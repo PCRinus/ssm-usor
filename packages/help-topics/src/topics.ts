@@ -449,11 +449,12 @@ export const helpTopics = {
     anchor: 'lista-persoanelor-responsabile',
   },
   'legislatie.acte': { path: '/legislatie/', anchor: 'actele-urmărite' },
+  'legislatie.aplicate': { path: '/legislatie/', anchor: 'modificările-aplicate-în-documente' },
   'legislatie.cautare': { path: '/legislatie/', anchor: 'căutarea-filtrele-și-ordinea' },
   'legislatie.ce-nu-faci': { path: '/legislatie/', anchor: 'ce-nu-ai-de-făcut' },
   'legislatie.citat-in': { path: '/legislatie/', anchor: 'preluări-și-trimiteri' },
   'legislatie.documente': { path: '/legislatie/', anchor: 'documentele-de-actualizat' },
-  'legislatie.in-verificare': { path: '/legislatie/', anchor: 'o-modificare-în-verificare' },
+  'legislatie.in-analiza': { path: '/legislatie/', anchor: 'o-modificare-în-analiză' },
   'legislatie.incheiere': { path: '/legislatie/', anchor: 'cum-se-încheie-o-modificare' },
   'legislatie.pagina': { path: '/legislatie/', anchor: 'ce-urmărește-pagina-legislație' },
   'legislatie.verificare': { path: '/legislatie/', anchor: 'verificarea-zilnică' },
@@ -515,6 +516,12 @@ export const helpTopics = {
   'semnaturi.limita': { path: '/semnaturi/', anchor: 'cel-mult-30-de-semnături-cu-un-cod' },
   'semnaturi.lista': { path: '/semnaturi/', anchor: 'ce-ai-de-semnat' },
   'semnaturi.rubrici': { path: '/semnaturi/', anchor: 'ce-rubrici-semnezi' },
+  'teste.cele-trei-teste': { path: '/teste/', anchor: 'cele-trei-teste' },
+  'teste.extragere': { path: '/teste/', anchor: 'cum-se-alcătuiește-un-test' },
+  'teste.minimum': { path: '/teste/', anchor: 'minimum-zece-întrebări-active' },
+  'teste.pagina': { path: '/teste/', anchor: 'pagina-teste' },
+  'teste.predefinite-si-proprii': { path: '/teste/', anchor: 'întrebări-predefinite-și-proprii' },
+  'teste.temei': { path: '/teste/', anchor: 'temeiul-unei-întrebări' },
 } as const;
 
 export type HelpTopic = keyof typeof helpTopics;

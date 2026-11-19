@@ -3,7 +3,6 @@ import {
   type MeResponse,
   type PendingInvitationListResponse,
   type Profile,
-  readOnlyDays,
   type SubscriptionSummary,
   type SupportIdentity,
 } from '@ssm-usor/contracts';
@@ -16,6 +15,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { currentImpersonation, endActiveImpersonation } from '../../lib/impersonation';
 import { employeesOverStepOf } from '../billing/employees-over-step';
+import { deletesAtOf } from '../billing/rules';
 import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
 import { creditsForMember, smsForMember } from '../extras/members';
@@ -57,10 +57,6 @@ function toSubscription(
   access: SubscriptionSummary['access']
 ): SubscriptionSummary {
   const iso = (value: string | null) => (value ? new Date(value).toISOString() : null);
-  const deletesAt =
-    access === 'read_only' && row.access_until
-      ? new Date(new Date(row.access_until).getTime() + readOnlyDays * 86_400_000).toISOString()
-      : null;
   return {
     plan: row.plan,
     planChosen: row.stripe_subscription_id !== null,
@@ -69,7 +65,7 @@ function toSubscription(
     trialEndsAt: iso(row.trial_ends_at),
     accessUntil: iso(row.access_until),
     access,
-    deletesAt,
+    deletesAt: deletesAtOf(row.access_until, access),
   };
 }
 

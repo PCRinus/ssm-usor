@@ -248,7 +248,9 @@ pass over the templates that exist, covers included, without originals or an off
 
 Then **read the result**. `preview` renders every template twice, with one person and short
 names and with three people and names long enough to test the layout, converts to PDF, and
-prints the page counts. No check replaces reading the pages.
+prints the page counts. No check replaces reading the pages. The two samples of the SSM and SU
+sets are in `tools/set-samples.ts`, and `src/templates/set-samples.test.ts` fails when a
+template of either set asks for a field they do not give.
 
 `src/editor-layout.test.ts` opens every template in the layout engine of the in-app editor, at
 the version the app uses (both take it from the `catalog` in `pnpm-workspace.yaml`), and fails
@@ -611,7 +613,7 @@ printed. The tests' citations went with their questions: `citations.json` no lon
 
 `tools/knowledge-test-samples.ts` holds sample data in this shape: the provider's questions, the
 pictogram question as text, and two more per test for a bank that grew;
-`knowledgeTestData(code, count)` gives the first ten or twelve. `src/templates.test.ts` renders
+`knowledgeTestData(code, count)` gives the first ten or twelve. `src/templates/ssm-set.test.ts` renders
 each test with ten and twelve: every question twice, every option, a row per question on the
 answer sheet and in the key, the two titles with their line, the 70% line, the specimen on a new
 page, no picture, and an error without `questions`. `preview` prints the short sample with ten
@@ -695,7 +697,7 @@ leaver's sheets are drawn up too.
 the duration: "Str. Lungă – Str. Fabricii, pe jos și cu transportul public (25 de minute)"
 ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md), amended 2026-11-13).
 
-`src/templates.test.ts` holds both templates to `tools/training-sheet-samples.ts`, the sample
+`src/templates/training-sheets.test.ts` holds both templates to `tools/training-sheet-samples.ts`, the sample
 merge data in this shape: every placeholder has a value, every loop closes, every blank row
 item prints one row, the test results print with none, two and five passes in five rows, and the
 rubrics of each form are there; the typesetting checks of every template apply to them as well.

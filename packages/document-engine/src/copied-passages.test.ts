@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
-import { templatesUrl } from '../tools/template-sources';
+import { templatesUrl } from './template-store';
 
 // A template may print a passage of another, copied at import (ADR 019): the fire-safety set's
 // first aid is 3.2's. The import lists each copy in copied-passages.json, since its specs live

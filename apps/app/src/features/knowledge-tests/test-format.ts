@@ -17,16 +17,31 @@ export type BankQuestion = BankTest['questions'][number];
 
 export const belowMinimumMessage = 'Un test trebuie să păstreze cel puțin zece întrebări active.';
 
-export function bankTestFacts(
-  test: Pick<BankTest, 'activeCount'>,
-  bank: Pick<TestBankResponse, 'sittingSize' | 'passMarkPercent'>
+export function sittingRules(bank: Pick<TestBankResponse, 'sittingSize' | 'passMarkPercent'>) {
+  return `${countOf(bank.sittingSize, 'întrebare', 'întrebări')} pe test, extrase la întâmplare · prag de promovare ${bank.passMarkPercent} %`;
+}
+
+export function bankTestCounts(
+  test: Pick<BankTest, 'activeCount'> & { questions: Pick<BankQuestion, 'hidden'>[] },
+  minimum: number
 ) {
-  const active =
+  const hidden = test.questions.filter((question) => question.hidden).length;
+  return [
     test.activeCount === 0
       ? 'Nicio întrebare activă'
-      : countOf(test.activeCount, 'întrebare activă', 'întrebări active');
-  return `${active} · se extrag ${bank.sittingSize} · prag ${bank.passMarkPercent} %`;
+      : countOf(test.activeCount, 'întrebare activă', 'întrebări active'),
+    test.activeCount <= minimum && `minimum ${minimum}`,
+    hidden > 0 && countOf(hidden, 'ascunsă', 'ascunse'),
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
+
+export const atMinimum = (test: Pick<BankTest, 'activeCount'>, minimum: number) =>
+  test.activeCount <= minimum;
+
+export const minimumMessage = (minimum: number) =>
+  `Testul are minimum ${minimum} întrebări active. Adaugă întâi una proprie, apoi o poți ascunde pe aceasta.`;
 
 export const optionLetter = (index: number) => String.fromCharCode(97 + index);
 

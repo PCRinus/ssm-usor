@@ -1,6 +1,5 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
-  clientConflictReasons,
   type CreditsShort,
   extractionRefusalOf,
   importCredits,
@@ -25,10 +24,11 @@ import {
 } from '@ssm-usor/import';
 
 import { createLastingAdminClient } from '../../lib/admin-db';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createExtractor } from '../../lib/extractor';
+import { requireWritableClient } from '../clients/lookup';
 import { creditsStore } from '../credits/store';
 import { safetySheetCharges } from '../credits/usage';
 import { blocksReporterOf } from '../extras/reporting';
@@ -64,23 +64,7 @@ function sheetModel(env: ApiEnv['Bindings']) {
 const isPdf = (bytes: Uint8Array) =>
   bytes.length > 4 && String.fromCharCode(...bytes.subarray(0, 5)) === '%PDF-';
 
-async function writableClient(db: DataClient, clientId: string) {
-  const { data, error } = await db
-    .from('clients')
-    .select('id, archived_at, stage')
-    .eq('id', clientId)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
-  if (data.archived_at) {
-    throw new ApiError('conflict', undefined, undefined, clientConflictReasons.clientArchived);
-  }
-  if (data.stage === 'lead') {
-    throw new ApiError('conflict', undefined, undefined, clientConflictReasons.clientIsLead);
-  }
-}
-
-const tooLarge = () =>
+export const tooLarge = () =>
   refused(safetySheetErrorReasons.tooLarge, 'The file is larger than a safety data sheet may be.');
 
 async function sheetText(pdf: () => Promise<PdfText>) {
@@ -111,31 +95,6 @@ async function sheetText(pdf: () => Promise<PdfText>) {
     .join('\n\n');
 }
 
-// The header is checked first, but a chunked body has none: it is read no further than the limit.
-async function bodyWithin(body: ReadableStream<Uint8Array> | null, limit: number) {
-  if (!body) return new Uint8Array();
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > limit) {
-      await reader.cancel();
-      throw tooLarge();
-    }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return bytes;
-}
-
 const notASheet = () =>
   refused(safetySheetErrorReasons.notASheet, 'The file is not a safety data sheet.');
 
@@ -154,7 +113,6 @@ function logUsage(fields: {
 
 export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  if (Number(c.req.header('Content-Length') ?? 0) > safetySheetLimits.maxBytes) throw tooLarge();
   const model = sheetModel(c.env);
   const extractor = createExtractor(c.env);
   if (!model || !extractor) {
@@ -165,9 +123,10 @@ export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> 
       safetySheetErrorReasons.unavailable
     );
   }
-  const bytes = await bodyWithin(c.req.raw.body, safetySheetLimits.maxBytes);
+  // The body is the file itself, not JSON, so it is read here rather than validated above.
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
   if (!isPdf(bytes)) throw refused(safetySheetErrorReasons.notPdf, 'The file is not a PDF.');
-  await writableClient(createDataClient(c), clientId);
+  await requireWritableClient(createDataClient(c), clientId, { lead: 'refused' });
 
   const organizationId = c.get('membership').organizationId;
   // The refund must land even when the member closes the dialog while the model reads.

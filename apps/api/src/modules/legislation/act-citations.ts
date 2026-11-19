@@ -1,5 +1,6 @@
-import type { LegalActDomain } from '@ssm-usor/contracts';
+import { documentSetOf, type LegalActDomain, type LegalChangeDocument } from '@ssm-usor/contracts';
 import { citationIndex, legalActs } from '@ssm-usor/document-engine/citations';
+import { templateOfType } from '@ssm-usor/document-engine/template-files';
 
 type Citation = Pick<
   ReturnType<typeof citationIndex>[number],
@@ -80,3 +81,32 @@ export const notCited: ActCitations = {
   domains: [],
   citedIn: { documents: 0, quotes: 0 },
 };
+
+const collator = new Intl.Collator('ro');
+
+export function documentOfType(typeKey: string): LegalChangeDocument | null {
+  const template = templateOfType(typeKey);
+  return template && { typeKey, title: template.title, set: documentSetOf(typeKey) };
+}
+
+export function citingDocuments(citations: readonly Pick<Citation, 'act' | 'typeKey'>[]) {
+  const typeKeysOf = new Map<string, Set<string>>();
+  for (const citation of citations) {
+    typeKeysOf.set(citation.act, (typeKeysOf.get(citation.act) ?? new Set()).add(citation.typeKey));
+  }
+  return new Map(
+    [...typeKeysOf].map(([act, typeKeys]) => [
+      act,
+      [...typeKeys]
+        .flatMap((typeKey) => documentOfType(typeKey) ?? [])
+        .sort((a, b) => collator.compare(a.title, b.title)),
+    ])
+  );
+}
+
+let bundledCiting: Map<string, LegalChangeDocument[]> | undefined;
+
+export function bundledCitingDocuments() {
+  bundledCiting ??= citingDocuments(citationIndex());
+  return bundledCiting;
+}

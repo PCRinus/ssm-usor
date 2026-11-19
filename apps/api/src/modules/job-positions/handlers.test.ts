@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
-import { toTrainMatch } from '../employees/handlers';
+import { toTrainMatch } from '../employees/training-match';
 
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',

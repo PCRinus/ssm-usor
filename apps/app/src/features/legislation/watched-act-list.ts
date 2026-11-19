@@ -21,7 +21,7 @@ export function actState(act: WatchedAct): ActState {
 }
 
 export const actStateLabels: Record<ActState, string> = {
-  open: 'În verificare',
+  open: 'În analiză',
   in_force: 'În vigoare',
   repealed: 'Abrogat',
   unchecked: 'Neverificat',

@@ -1,4 +1,4 @@
-import { countOf, type SubscriptionSummary } from '@ssm-usor/contracts';
+import { countOf, type DocumentSet, type SubscriptionSummary } from '@ssm-usor/contracts';
 import { Avatar, AvatarFallback } from '@ssm-usor/ui/components/avatar';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -83,6 +83,8 @@ import { MyImportsProvider } from '@/features/imports/my-imports';
 import { instructionSections } from '@/features/instructions/instruction-sections';
 import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
+import { RegenerationsProvider } from '@/features/legislation/regenerations';
+import { behindCountOf, useBehindSummary } from '@/features/legislation/use-behind-summary';
 import { SetupGuideHeaderButton, SetupGuidePanel } from '@/features/setup-guide/setup-guide-panel';
 import { SetupGuideProvider } from '@/features/setup-guide/setup-guide-provider';
 import { SubscriptionBadge, SubscriptionSeal } from '@/features/subscription/subscription-badge';
@@ -201,6 +203,9 @@ const navigation = [
 
 const foldsFor = 200;
 
+const navPill =
+  'ml-auto shrink-0 rounded-full bg-brand-lime px-2 py-px text-xs font-semibold text-foreground tabular-nums group-data-[collapsible=icon]:hidden';
+
 // A group's tabs fold open and shut. The group leaves the page once shut, so its links are out of
 // the tab order and the screen reader's outline. `starting:` gives the first paint of a mounting
 // group its folded size, which is what the opening transition starts from.
@@ -266,6 +271,9 @@ function AppNavigation({
   };
   const within = (to: string) => pathname === to || pathname.startsWith(`${to}/`);
   const helpHome = helpHref();
+  const behindCounts = useBehindSummary().data?.counts;
+  const behindCountFor = (to: string, set?: DocumentSet) =>
+    set ? (behindCounts?.[set] ?? 0) : to === '/legislatie' ? behindCountOf(behindCounts) : 0;
   return (
     <Sidebar collapsible="icon" className="sticky top-16 bottom-auto h-[calc(100svh-4rem)]">
       <SidebarContent>
@@ -311,6 +319,12 @@ function AppNavigation({
                             >
                               <Icon aria-hidden="true" />
                               <span>{label}</span>
+                              {!expanded && behindCountFor(to) > 0 && (
+                                <span data-testid={`nav-${testId}-count`} className={navPill}>
+                                  {behindCountFor(to)}
+                                  <span className="sr-only"> documente de actualizat</span>
+                                </span>
+                              )}
                             </Link>
                           </SidebarMenuButton>
                           {children && (
@@ -325,7 +339,19 @@ function AppNavigation({
                                         aria-current={within(child.to) ? 'page' : undefined}
                                         onClick={closeOnMobile}
                                       >
-                                        <span>{child.label}</span>
+                                        <span>
+                                          {'navLabel' in child ? child.navLabel : child.label}
+                                        </span>
+                                        {'set' in child &&
+                                          behindCountFor(child.to, child.set) > 0 && (
+                                            <span data-testid="nav-sub-count" className={navPill}>
+                                              {behindCountFor(child.to, child.set)}
+                                              <span className="sr-only">
+                                                {' '}
+                                                documente de actualizat
+                                              </span>
+                                            </span>
+                                          )}
                                       </Link>
                                     </SidebarMenuSubButton>
                                   </SidebarMenuSubItem>
@@ -358,10 +384,7 @@ function AppNavigation({
                 <Sparkles aria-hidden="true" />
                 <span>Actualizări</span>
                 {unreadReleases > 0 && (
-                  <span
-                    data-testid="nav-actualizari-badge"
-                    className="ml-auto shrink-0 rounded-full bg-brand-lime px-2 py-px text-xs font-semibold text-foreground group-data-[collapsible=icon]:hidden"
-                  >
+                  <span data-testid="nav-actualizari-badge" className={navPill}>
                     {newCount(unreadReleases)}
                   </span>
                 )}
@@ -573,138 +596,140 @@ export function AppShell() {
         holdBack={releases.query.isPending || updateDialogOpen}
       >
         <MyImportsProvider>
-          <a
-            href="#main-content"
-            className="sr-only z-50 rounded-md bg-card p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
-          >
-            Sari la conținut
-          </a>
-          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
-            <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-              <SidebarTrigger data-testid="sidebar-toggle" aria-label="Comută meniul lateral" />
-              <Separator orientation="vertical" className="!h-6" />
-              <Link to="/dashboard" aria-label="SSM Ușor — pagina principală">
-                <img
-                  data-testid="app-logo"
-                  src="/brand/logo.png"
-                  alt="SSM Ușor"
-                  width={2172}
-                  height={724}
-                  className="h-auto w-28 sm:w-36"
-                />
-              </Link>
-              {me.data?.impersonation && (
-                <ImpersonationMarker
-                  impersonation={me.data.impersonation}
-                  organizationName={me.data.membership?.organization.name}
-                />
+          <RegenerationsProvider>
+            <a
+              href="#main-content"
+              className="sr-only z-50 rounded-md bg-card p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+            >
+              Sari la conținut
+            </a>
+            <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
+              <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+                <SidebarTrigger data-testid="sidebar-toggle" aria-label="Comută meniul lateral" />
+                <Separator orientation="vertical" className="!h-6" />
+                <Link to="/dashboard" aria-label="SSM Ușor — pagina principală">
+                  <img
+                    data-testid="app-logo"
+                    src="/brand/logo.png"
+                    alt="SSM Ușor"
+                    width={2172}
+                    height={724}
+                    className="h-auto w-28 sm:w-36"
+                  />
+                </Link>
+                {me.data?.impersonation && (
+                  <ImpersonationMarker
+                    impersonation={me.data.impersonation}
+                    organizationName={me.data.membership?.organization.name}
+                  />
+                )}
+                {!phone && me.data?.subscription && (
+                  <SubscriptionBadge
+                    subscription={me.data.subscription}
+                    sms={me.data.smsThisMonth ?? null}
+                    credits={me.data.creditsThisMonth ?? null}
+                    isOwner={me.data.membership?.role === 'owner'}
+                    impersonating={Boolean(me.data.impersonation)}
+                  />
+                )}
+              </div>
+              <div className="flex shrink-0 items-center gap-3 md:gap-2">
+                <ImportsHeaderButton />
+                <SetupGuideHeaderButton variant="ring" />
+                <SetupGuideHeaderButton variant="pill" />
+              </div>
+            </header>
+            <div
+              className={cn(
+                'flex flex-1',
+                editorPage ? 'min-h-0 overflow-hidden' : 'min-h-[calc(100svh-4rem)]'
               )}
-              {!phone && me.data?.subscription && (
-                <SubscriptionBadge
-                  subscription={me.data.subscription}
-                  sms={me.data.smsThisMonth ?? null}
-                  credits={me.data.creditsThisMonth ?? null}
-                  isOwner={me.data.membership?.role === 'owner'}
-                  impersonating={Boolean(me.data.impersonation)}
-                />
-              )}
-            </div>
-            <div className="flex shrink-0 items-center gap-3 md:gap-2">
-              <ImportsHeaderButton />
-              <SetupGuideHeaderButton variant="ring" />
-              <SetupGuideHeaderButton variant="pill" />
-            </div>
-          </header>
-          <div
-            className={cn(
-              'flex flex-1',
-              editorPage ? 'min-h-0 overflow-hidden' : 'min-h-[calc(100svh-4rem)]'
-            )}
-          >
-            <AppNavigation
-              email={email}
-              name={me.data?.profile?.fullName}
-              organizationName={me.data?.membership?.organization.name}
-              isOwner={me.data?.membership?.role === 'owner'}
-              pending={pending}
-              onSignOut={signOut}
-              onReportProblem={() => reportProblem()}
-              unreadCount={unreadCount}
-              unreadReleases={releases.unreadCount}
-              subscription={me.data?.subscription ?? null}
-            />
-            <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
-              {/* In the content column, not above the header: the sticky header, the sidebar
+            >
+              <AppNavigation
+                email={email}
+                name={me.data?.profile?.fullName}
+                organizationName={me.data?.membership?.organization.name}
+                isOwner={me.data?.membership?.role === 'owner'}
+                pending={pending}
+                onSignOut={signOut}
+                onReportProblem={() => reportProblem()}
+                unreadCount={unreadCount}
+                unreadReleases={releases.unreadCount}
+                subscription={me.data?.subscription ?? null}
+              />
+              <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
+                {/* In the content column, not above the header: the sticky header, the sidebar
                   and the section tabs are all placed by the header's fixed height. */}
-              {me.data?.impersonation && (
-                <ImpersonationBanner
-                  impersonation={me.data.impersonation}
-                  organizationName={me.data.membership?.organization.name}
-                />
-              )}
-              {me.data?.subscription && !editorPage && (
-                <SubscriptionBar
-                  subscription={me.data.subscription}
-                  sms={me.data.smsThisMonth ?? null}
-                  isOwner={me.data.membership?.role === 'owner'}
-                  canAct={me.data.membership?.role === 'owner' && !me.data.impersonation}
-                />
-              )}
-              <main
-                id="main-content"
-                tabIndex={-1}
-                className={cn(
-                  'mx-auto w-full flex-1 outline-none',
-                  editorPage
-                    ? 'flex min-h-0 max-w-none flex-col overflow-hidden px-3 py-3 sm:px-5'
-                    : 'max-w-7xl px-5 py-6 sm:px-8 lg:px-10'
+                {me.data?.impersonation && (
+                  <ImpersonationBanner
+                    impersonation={me.data.impersonation}
+                    organizationName={me.data.membership?.organization.name}
+                  />
                 )}
-              >
-                {error && (
-                  <Notice
-                    variant="destructive"
-                    data-testid="sign-out-error"
-                    className="mb-6"
-                    action={
-                      <Button
-                        data-testid="sign-out-retry"
-                        variant="outline"
-                        disabled={pending}
-                        onClick={() => void signOut()}
-                      >
-                        Reîncearcă deconectarea
-                      </Button>
-                    }
-                  >
-                    {error}
-                  </Notice>
+                {me.data?.subscription && !editorPage && (
+                  <SubscriptionBar
+                    subscription={me.data.subscription}
+                    sms={me.data.smsThisMonth ?? null}
+                    isOwner={me.data.membership?.role === 'owner'}
+                    canAct={me.data.membership?.role === 'owner' && !me.data.impersonation}
+                  />
                 )}
-                <ReportProblemContext value={reportProblem}>
-                  <EditorLayoutContext value={countEditorViews}>
-                    <Outlet />
-                  </EditorLayoutContext>
-                </ReportProblemContext>
-              </main>
-              {!editorPage && (
-                <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
-                  <span>© {new Date().getFullYear()} SSM Ușor</span>
-                  <CommitVersion linked={Boolean(shippedTag && releases.find(shippedTag))} />
-                </footer>
-              )}
+                <main
+                  id="main-content"
+                  tabIndex={-1}
+                  className={cn(
+                    'mx-auto w-full flex-1 outline-none',
+                    editorPage
+                      ? 'flex min-h-0 max-w-none flex-col overflow-hidden px-3 py-3 sm:px-5'
+                      : 'max-w-7xl px-5 py-6 sm:px-8 lg:px-10'
+                  )}
+                >
+                  {error && (
+                    <Notice
+                      variant="destructive"
+                      data-testid="sign-out-error"
+                      className="mb-6"
+                      action={
+                        <Button
+                          data-testid="sign-out-retry"
+                          variant="outline"
+                          disabled={pending}
+                          onClick={() => void signOut()}
+                        >
+                          Reîncearcă deconectarea
+                        </Button>
+                      }
+                    >
+                      {error}
+                    </Notice>
+                  )}
+                  <ReportProblemContext value={reportProblem}>
+                    <EditorLayoutContext value={countEditorViews}>
+                      <Outlet />
+                    </EditorLayoutContext>
+                  </ReportProblemContext>
+                </main>
+                {!editorPage && (
+                  <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
+                    <span>© {new Date().getFullYear()} SSM Ușor</span>
+                    <CommitVersion linked={Boolean(shippedTag && releases.find(shippedTag))} />
+                  </footer>
+                )}
+              </div>
             </div>
-          </div>
-          <SetupGuidePanel />
-          <ImportReadyWatcher />
-          <ReportProblemDialog
-            open={reportingByEmail !== null}
-            note={reportingByEmail?.note}
-            onClose={() => setReportingByEmail(null)}
-          />
-          {releases.newestUnread && (
-            <Suspense fallback={null}>
-              <UpdateDialog />
-            </Suspense>
-          )}
+            <SetupGuidePanel />
+            <ImportReadyWatcher />
+            <ReportProblemDialog
+              open={reportingByEmail !== null}
+              note={reportingByEmail?.note}
+              onClose={() => setReportingByEmail(null)}
+            />
+            {releases.newestUnread && (
+              <Suspense fallback={null}>
+                <UpdateDialog />
+              </Suspense>
+            )}
+          </RegenerationsProvider>
         </MyImportsProvider>
       </SetupGuideProvider>
     </SidebarProvider>

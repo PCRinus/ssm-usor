@@ -1,10 +1,7 @@
-import type {
-  DocumentsBehindResponseItemsItemNewestVersionKind,
-  LegalChangeListResponseItemsItem,
-  LegalChangeListResponseItemsItemAmendedUnitsItemOperation,
-  LegalChangeListResponseItemsItemOutcome,
-  LegalChangeListResponseItemsItemResolution,
-} from '@/api/generated/api';
+import type { LegalAmendedUnit, LegalChangeOutcome } from '@ssm-usor/contracts';
+
+import type { DocumentsBehindResponseItemsItemNewestVersionKind } from '@/api/generated/api';
+import { isoToDate } from '@/lib/dates';
 
 export const portalPage = (portalId: number) =>
   `https://legislatie.just.ro/Public/DetaliiDocument/${portalId}`;
@@ -15,12 +12,6 @@ export const kindLabels: Record<DocumentsBehindResponseItemsItemNewestVersionKin
   layout: 'Aranjare în pagină',
 };
 
-export const resolutionLabels: Record<LegalChangeListResponseItemsItemResolution, string> = {
-  open: 'În verificare',
-  no_impact: 'Fără impact asupra documentelor',
-  template_version: 'Șablon actualizat',
-};
-
 const dayFormat = new Intl.DateTimeFormat('ro-RO', {
   day: 'numeric',
   month: 'long',
@@ -29,12 +20,20 @@ const dayFormat = new Intl.DateTimeFormat('ro-RO', {
 
 const dayMonthFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long' });
 
+const shortDayFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short' });
+
 const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit' });
 
 export const formatDayOf = (isoTimestamp: string) => dayFormat.format(new Date(isoTimestamp));
 export const formatTimeOf = (isoTimestamp: string) => timeFormat.format(new Date(isoTimestamp));
-export const momentOf = (isoTimestamp: string) =>
-  `${formatDayOf(isoTimestamp)} la ${formatTimeOf(isoTimestamp)}`;
+
+// Read in local time, so a date-only value never moves to the day before.
+export function shortDayOf(isoDate: string) {
+  const date = isoToDate(isoDate);
+  return date
+    ? { day: shortDayFormat.format(date), year: String(date.getFullYear()) }
+    : { day: isoDate, year: '' };
+}
 
 export function formatDayThisYear(isoTimestamp: string, now: number) {
   const date = new Date(isoTimestamp);
@@ -54,10 +53,7 @@ export const withSuperscripts = (text: string) =>
 export const unitLabel = (unit: string) => withSuperscripts(unit).replace(/^Art\./, 'art.');
 
 // Nouns, not participles: a participle would have to agree with "art.", "lit." or "anexa".
-export const operationLabels: Record<
-  LegalChangeListResponseItemsItemAmendedUnitsItemOperation,
-  string
-> = {
+export const operationLabels: Record<LegalAmendedUnit['operation'], string> = {
   modified: 'Modificări',
   supplemented: 'Completări',
   inserted: 'Introduceri',
@@ -71,19 +67,11 @@ export function listOf(items: string[]) {
     : `${items.slice(0, -1).join(', ')} și ${items.at(-1)}`;
 }
 
-const openChangeSentences: Partial<
-  Record<NonNullable<LegalChangeListResponseItemsItemOutcome> | 'unassessed', string>
-> = {
+const openChangeSentences: Partial<Record<LegalChangeOutcome | 'unassessed', string>> = {
   unassessed: 'Modificarea nu a fost încă analizată.',
   quote_differs: 'Modifică un text citat în documente.',
   needs_review: 'Modifică un articol la care trimit documentele.',
 };
 
-export const openChangeSentence = (outcome: LegalChangeListResponseItemsItemOutcome) =>
+export const openChangeSentence = (outcome: LegalChangeOutcome | null) =>
   openChangeSentences[outcome ?? 'unassessed'] ?? null;
-
-export function changeStatus(change: LegalChangeListResponseItemsItem) {
-  return change.resolution === 'open' ? openChangeSentence(change.outcome) : null;
-}
-
-export const legalChangeAnchor = (changeId: string) => `modificare-${changeId}`;

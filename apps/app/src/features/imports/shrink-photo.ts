@@ -1,4 +1,4 @@
-import type { SelectedFile } from '../upload-selection';
+import type { SelectedFile } from './upload-selection';
 
 // About what the import converts every photograph to (ADR 032): a larger one only costs upload.
 export const maxPhotoEdge = 2000;

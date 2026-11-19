@@ -23,9 +23,9 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 
-import { shrinkSelected } from './employees/shrink-photo';
 import { importErrorMessage, importErrorReason } from './import-format';
 import { sha256Of, uploadImportObject } from './import-storage';
+import { shrinkSelected } from './shrink-photo';
 import { type SelectedFile, shrinksBeforeUpload } from './upload-selection';
 
 export type UploadPhase =

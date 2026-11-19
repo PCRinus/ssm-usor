@@ -7,7 +7,7 @@ import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
 import { userOnlyMe } from '@/test/records';
 
-import { bankTestFacts } from './test-format';
+import { bankTestCounts, sittingRules } from './test-format';
 
 type Question = {
   id: string;
@@ -18,6 +18,7 @@ type Question = {
   options: { text: string; correct: boolean }[];
   explanation: string | null;
   citation: string | null;
+  citationParts: { text: string; url: string | null }[];
   builtIn: boolean;
   hidden: boolean;
   replacesQuestionId: string | null;
@@ -40,6 +41,7 @@ const builtIn = (n: number, overrides: Partial<Question> = {}): Question => ({
   ],
   explanation: null,
   citation: null,
+  citationParts: [],
   builtIn: true,
   hidden: false,
   replacesQuestionId: null,
@@ -58,6 +60,14 @@ const firstAid = builtIn(1, {
   explanation:
     'Victima rămâne sub tensiune cât timp curentul nu este întrerupt; cine o atinge se electrocutează și el.',
   citation: 'HG 1425/2006, anexa 11',
+  citationParts: [
+    { text: 'HG 1425/2006', url: 'https://legislatie.just.ro/Public/DetaliiDocument/252029' },
+    { text: ', ', url: null },
+    {
+      text: 'anexa 11',
+      url: 'https://legislatie.just.ro/Public/DetaliiDocument/252029#id_anx11',
+    },
+  ],
 });
 
 const ownQuestion: Question = {
@@ -99,6 +109,8 @@ const fireAnnual = builtIn(41, {
   domain: 'su',
   test: 'annual',
   text: 'Cât de des se verifică stingătorul?',
+  citation: 'IPSU, art. 151',
+  citationParts: [{ text: 'IPSU, art. 151', url: null }],
 });
 
 const bank = (ssm: Question[]) => ({
@@ -112,6 +124,18 @@ const bank = (ssm: Question[]) => ({
   ],
 });
 
+const bankFor = (url: URL, questions: Question[]) => {
+  const all = bank(questions);
+  const domain = url.searchParams.get('domain');
+  const test = url.searchParams.get('test');
+  return {
+    ...all,
+    tests: all.tests.filter(
+      (each) => (!domain || each.domain === domain) && (!test || each.test === test)
+    ),
+  };
+};
+
 type Handler = (url: URL, init: RequestInit | undefined) => Response | Promise<Response>;
 
 function mockBankApi(routes: Partial<Record<string, Handler>> = {}, questions = ssmQuestions()) {
@@ -120,11 +144,8 @@ function mockBankApi(routes: Partial<Record<string, Handler>> = {}, questions = 
       const key = `${init?.method ?? 'GET'} ${url.pathname}`;
       const route = routes[key];
       if (route) return route(url, init);
-      if (key === 'GET /organization/tests/questions') {
-        const domain = url.searchParams.get('domain');
-        const all = bank(questions);
-        return Response.json({ ...all, tests: all.tests.filter((test) => test.domain === domain) });
-      }
+      if (key === 'GET /organization/tests/questions')
+        return Response.json(bankFor(url, questions));
     },
     { me: userOnlyMe }
   );
@@ -151,42 +172,52 @@ const mount = (path = '/teste') => mountApp(authFixture(makeSession()).client, p
 installFetchMock();
 
 describe('the question bank', () => {
-  it('words the active count, the sitting size and the pass mark', () => {
-    const fixed = { sittingSize: 10, passMarkPercent: 70 };
-    expect(bankTestFacts({ activeCount: 12 }, fixed)).toBe(
-      '12 întrebări active · se extrag 10 · prag 70 %'
+  it('words the sitting rules and a test’s counts, with the floor while it is reached', () => {
+    expect(sittingRules({ sittingSize: 10, passMarkPercent: 70 })).toBe(
+      '10 întrebări pe test, extrase la întâmplare · prag de promovare 70 %'
     );
-    expect(bankTestFacts({ activeCount: 1 }, fixed)).toBe(
-      '1 întrebare activă · se extrag 10 · prag 70 %'
+    const counts = (questions: Question[]) =>
+      bankTestCounts(bankTest('ssm', 'hiring', 'TASSM', questions), 10);
+    expect(counts([...ssmQuestions(), ownQuestion, builtIn(11)])).toBe('12 întrebări active');
+    expect(
+      counts(ssmQuestions([builtIn(11, { hidden: true }), builtIn(12, { hidden: true })]))
+    ).toBe('10 întrebări active · minimum 10 · 2 ascunse');
+    expect(counts([...ssmQuestions(), ownQuestion, builtIn(11, { hidden: true })])).toBe(
+      '11 întrebări active · 1 ascunsă'
     );
-    expect(bankTestFacts({ activeCount: 20 }, fixed)).toBe(
-      '20 de întrebări active · se extrag 10 · prag 70 %'
+    expect(counts(Array.from({ length: 20 }, (_, index) => builtIn(index + 1)))).toBe(
+      '20 de întrebări active'
     );
   });
 
-  it('opens on the occupational safety tests from the sidebar and lists the questions in order', async () => {
+  it('opens on the occupational safety hiring test from the sidebar and lists its questions in order', async () => {
     mockBankApi({}, ssmQuestions([builtIn(11, { hidden: true, text: 'O întrebare ascunsă' })]));
     const runtime = mount('/dashboard');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('nav-tests'));
-    await screen.findByTestId('test-bank-ssm');
+    const tab = await screen.findByTestId('test-bank-test');
     expect(runtime.router.state.location.pathname).toBe('/teste/ssm');
     expect(
       within(screen.getByTestId('nav-tests-group'))
         .getAllByTestId('nav-sub-entry')
         .map((link) => link.textContent)
-    ).toEqual(['Teste SSM', 'Teste SU']);
-    expect(
-      requests('GET', '/organization/tests/questions')[0]!.url.searchParams.get('domain')
-    ).toBe('ssm');
-
-    const [card] = screen.getAllByTestId('test-bank-test');
-    expect(card!.textContent).toContain('Testul la angajare');
-    expect(card!.textContent).toContain('TASSM');
-    expect(within(card!).getByTestId('test-bank-facts').textContent).toBe(
-      '10 întrebări active · se extrag 10 · prag 70 %'
+    ).toEqual(['SSM la angajare', 'SU la angajare', 'SU anual']);
+    expect(screen.getAllByTestId('test-bank-section').map((link) => link.textContent)).toEqual([
+      'SSM la angajare',
+      'SU la angajare',
+      'SU anual',
+    ]);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Teste');
+    expect((await screen.findByTestId('test-bank-rules')).textContent).toBe(
+      '10 întrebări pe test, extrase la întâmplare · prag de promovare 70 %'
     );
-    const questions = within(card!).getAllByTestId('test-question');
+    expect(requests('GET', '/organization/tests/questions')[0]!.url.search).toBe('');
+    expect(screen.getByTestId('test-bank').textContent).not.toMatch(/TASSM|TASU|TPSU/);
+
+    expect(within(tab).getByTestId('test-bank-counts').textContent).toBe(
+      '10 întrebări active · minimum 10 · 1 ascunsă'
+    );
+    const questions = within(tab).getAllByTestId('test-question');
     expect(questions).toHaveLength(11);
     const first = within(questions[0]!);
     expect(first.getByTestId('test-question-text').textContent).toBe(
@@ -196,42 +227,132 @@ describe('the question bank', () => {
     expect(
       first.getAllByTestId('test-question-option').map((option) => option.dataset.correct)
     ).toEqual(['false', 'true', 'true']);
+    expect(first.getByTestId('test-question-many').textContent).toBe(
+      '2 răspunsuri corecte: lucrătorul le bifează pe toate.'
+    );
     expect(first.getByTestId('test-question-explanation').textContent).toContain(
       'Victima rămâne sub tensiune'
     );
-    expect(first.getByTestId('test-question-citation').textContent).toBe(
-      'Temei: HG 1425/2006, anexa 11'
-    );
     expect(first.queryByTestId('test-question-edit')).toBeNull();
-    expect(first.getByTestId('test-question-hide')).toBeTruthy();
+    expect(first.getByTestId('test-question-hide').textContent).toBe('Ascunde din test');
+    expect(within(questions[1]!).queryByTestId('test-question-citation')).toBeNull();
+    expect(within(questions[1]!).queryByTestId('test-question-explanation')).toBeNull();
 
     const hidden = within(questions[10]!);
     expect(questions[10]!.dataset.hidden).toBe('true');
-    expect(hidden.getByTestId('test-question-hidden').textContent).toBe('Ascunsă');
-    expect(hidden.getByTestId('test-question-restore')).toBeTruthy();
-    expect(hidden.queryByTestId('test-question-explanation')).toBeNull();
+    expect(hidden.getByTestId('test-question-hidden').textContent).toBe(
+      'Ascunsă, nu intră în test · '
+    );
+    expect(hidden.getByTestId('test-question-restore').textContent).toBe('Repune în test');
+    expect(hidden.queryByTestId('test-question-preview')).toBeNull();
+    expect(hidden.queryByTestId('test-question-option')).toBeNull();
   });
 
-  it('shows the fire-safety hiring and annual tests on their own tab', async () => {
+  it('links each part of the temei that names an act and keeps the rest as text', async () => {
     mockBankApi();
-    mount('/teste/su');
-    await screen.findByTestId('test-bank-su');
-    const cards = screen.getAllByTestId('test-bank-test');
-    expect(cards.map((card) => card.dataset.test)).toEqual(['hiring', 'annual']);
-    expect(cards[1]!.textContent).toContain('TPSU');
+    mount('/teste/ssm');
+    const [first] = await screen.findAllByTestId('test-question');
+    const citation = within(first!).getByTestId('test-question-citation');
+    expect(citation.textContent).toBe('Temei: HG 1425/2006, anexa 11');
+    const links = within(citation).getAllByTestId('test-question-citation-link');
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      'https://legislatie.just.ro/Public/DetaliiDocument/252029',
+      'https://legislatie.just.ro/Public/DetaliiDocument/252029#id_anx11',
+    ]);
+    expect(links.every((link) => link.getAttribute('target') === '_blank')).toBe(true);
+    expect(links.every((link) => link.getAttribute('rel')?.includes('noopener'))).toBe(true);
   });
 
-  it('says beside the question why a built-in cannot be hidden at ten active questions', async () => {
-    mockBankApi({ [`PUT /organization/tests/questions/${uuid(2)}/hidden`]: refused });
+  it('shows each fire-safety test on a tab of its own, its own-instruction temei as text', async () => {
+    mockBankApi();
+    const runtime = mount('/teste/su-la-angajare');
+    const user = userEvent.setup();
+    const hiring = await screen.findByTestId('test-bank-test');
+    expect(hiring.dataset.test).toBe('hiring');
+    expect(within(hiring).getByTestId('test-question-text').textContent).toBe(fireHiring.text);
+
+    await user.click(screen.getAllByTestId('test-bank-section')[2]!);
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/teste/su-anual'));
+    await waitFor(() => expect(screen.getByTestId('test-bank-test').dataset.test).toBe('annual'));
+    const annual = screen.getByTestId('test-bank-test');
+    expect(within(annual).getByTestId('test-question-text').textContent).toBe(fireAnnual.text);
+    const citation = within(annual).getByTestId('test-question-citation');
+    expect(citation.textContent).toBe('Temei: IPSU, art. 151');
+    expect(within(citation).queryByRole('link')).toBeNull();
+    expect(within(annual).getByTestId('test-bank-counts').textContent).toBe(
+      '1 întrebare activă · minimum 10'
+    );
+  });
+
+  it('says at ten active questions why a built-in stays, without asking the API, and offers to add one', async () => {
+    mockBankApi({}, ssmQuestions([ownQuestion]).slice(1));
+    mount('/teste/ssm');
+    const user = userEvent.setup();
+    const questions = await screen.findAllByTestId('test-question');
+    const hide = within(questions[1]!).getByTestId('test-question-hide');
+    await user.click(hide);
+    const message = await screen.findByTestId('test-minimum');
+    const description = document.getElementById(message.getAttribute('aria-describedby')!);
+    expect(description?.textContent).toBe(
+      'Testul are minimum 10 întrebări active. Adaugă întâi una proprie, apoi o poți ascunde pe aceasta.'
+    );
+    expect(hide.getAttribute('aria-expanded')).toBe('true');
+    expect(requests('PUT', `/organization/tests/questions/${uuid(3)}/hidden`)).toHaveLength(0);
+
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('test-minimum')).toBeNull());
+    expect(document.activeElement).toBe(hide);
+
+    await user.click(hide);
+    await screen.findByTestId('test-minimum');
+    await user.click(screen.getByTestId('test-bank-counts'));
+    await waitFor(() => expect(screen.queryByTestId('test-minimum')).toBeNull());
+    expect(document.activeElement).not.toBe(hide);
+
+    await user.click(hide);
+    await user.click(await screen.findByTestId('test-minimum-add'));
+    const dialog = within(await screen.findByTestId('test-question-dialog'));
+    expect((dialog.getByTestId('test-question-test') as HTMLInputElement).value).toBe(
+      'SSM la angajare'
+    );
+    expect(screen.queryByTestId('test-minimum')).toBeNull();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('test-question-dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(hide));
+  });
+
+  it('says the same when the API refuses a hide the counts allowed', async () => {
+    mockBankApi(
+      { [`PUT /organization/tests/questions/${uuid(2)}/hidden`]: refused },
+      ssmQuestions([ownQuestion])
+    );
+    mount('/teste/ssm');
+    const user = userEvent.setup();
+    const questions = await screen.findAllByTestId('test-question');
+    await user.click(within(questions[1]!).getByTestId('test-question-hide'));
+    expect((await screen.findByTestId('test-minimum')).textContent).toContain(
+      'Testul are minimum 10 întrebări active.'
+    );
+    expect(requests('PUT', `/organization/tests/questions/${uuid(2)}/hidden`)).toHaveLength(1);
+    expect(screen.queryByTestId('test-bank-error')).toBeNull();
+  });
+
+  it('keeps any other failure under the question that caused it', async () => {
+    mockBankApi(
+      {
+        [`PUT /organization/tests/questions/${uuid(2)}/hidden`]: () =>
+          Response.json({ error: 'internal', message: 'x' }, { status: 500 }),
+      },
+      ssmQuestions([ownQuestion])
+    );
     mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[1]!).getByTestId('test-question-hide'));
     expect((await within(questions[1]!).findByTestId('test-bank-error')).textContent).toBe(
-      'Un test trebuie să păstreze cel puțin zece întrebări active.'
+      'Nu am putut salva schimbarea. Verifică conexiunea și încearcă din nou.'
     );
     expect(screen.getAllByTestId('test-bank-error')).toHaveLength(1);
-    expect(requests('PUT', `/organization/tests/questions/${uuid(2)}/hidden`)).toHaveLength(1);
   });
 
   it('hides a built-in and restores a hidden one without asking first', async () => {
@@ -270,7 +391,7 @@ describe('the question bank', () => {
     await user.click(await screen.findByTestId('test-question-add'));
     const dialog = within(await screen.findByTestId('test-question-dialog'));
     expect((dialog.getByTestId('test-question-test') as HTMLInputElement).value).toBe(
-      'Testul la angajare (TASSM)'
+      'SSM la angajare'
     );
     await user.type(dialog.getByTestId('test-question-text'), ownQuestion.text);
     const options = dialog.getAllByTestId('test-question-option-text');
@@ -304,17 +425,34 @@ describe('the question bank', () => {
     });
   });
 
-  it('chooses between the two fire-safety tests when adding from the annual one', async () => {
+  it('adds a question to the test of the open tab', async () => {
     mockBankApi({
       'POST /organization/tests/questions': () =>
-        Response.json({ question: ownQuestion }, { status: 201 }),
+        Response.json(
+          { question: { ...ownQuestion, domain: 'su', test: 'annual' } },
+          { status: 201 }
+        ),
     });
-    mount('/teste/su');
+    mount('/teste/su-anual');
     const user = userEvent.setup();
-    await screen.findByTestId('test-bank-su');
-    await user.click(screen.getAllByTestId('test-question-add')[1]!);
+    await user.click(await screen.findByTestId('test-question-add'));
     const dialog = within(await screen.findByTestId('test-question-dialog'));
-    expect((dialog.getByTestId('test-question-test') as HTMLSelectElement).value).toBe('annual');
+    expect((dialog.getByTestId('test-question-test') as HTMLInputElement).value).toBe('SU anual');
+    await user.type(dialog.getByTestId('test-question-text'), ownQuestion.text);
+    const options = dialog.getAllByTestId('test-question-option-text');
+    await user.type(options[0]!, 'Lângă ușa de evacuare');
+    await user.type(options[1]!, 'În biroul contabilității');
+    await user.click(dialog.getAllByTestId('test-question-option-remove')[2]!);
+    await user.click(dialog.getByRole('checkbox', { name: 'Varianta a este corectă' }));
+    await user.click(dialog.getByTestId('test-question-submit'));
+    await waitFor(() => expect(screen.queryByTestId('test-question-dialog')).toBeNull());
+    expect(requests('POST', '/organization/tests/questions')[0]!.body).toMatchObject({
+      domain: 'su',
+      test: 'annual',
+    });
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('test-question-add'))
+    );
   });
 
   it('edits an own question and keeps the built-in it departs from', async () => {
@@ -415,12 +553,7 @@ describe('the question bank', () => {
             held += 1;
             await reread;
           }
-          const all = bank(questions);
-          const domain = url.searchParams.get('domain');
-          return Response.json({
-            ...all,
-            tests: all.tests.filter((test) => test.domain === domain),
-          });
+          return Response.json(bankFor(url, questions));
         },
       },
       questions

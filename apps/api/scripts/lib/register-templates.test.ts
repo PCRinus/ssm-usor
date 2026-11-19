@@ -1,10 +1,9 @@
-import { readFileSync } from 'node:fs';
-
+import { manifestEntries } from '@ssm-usor/document-engine/template-store';
 import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Database } from '../../src/database.types';
-import { builtInTemplatePath, manifestSchema, registerTemplates } from './register-templates';
+import { builtInTemplatePath, manifestEntrySchema, registerTemplates } from './register-templates';
 
 // sha256 of the three bytes below.
 const sha256 = '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81';
@@ -111,16 +110,15 @@ describe('a version that resolves legal changes', () => {
   const other = { act: 'lege-319-2006', consolidatedOn: '2026-11-10' };
 
   it('reads one change or a list of them from the manifest as a list', () => {
-    const parsed = manifestSchema.parse({ templates: [entry(change), entry([change, other])] });
-    expect(parsed.templates.map((each) => each.change.resolves)).toEqual([
-      [change],
-      [change, other],
-    ]);
+    const parsed = [entry(change), entry([change, other])].map((each) =>
+      manifestEntrySchema.parse(each)
+    );
+    expect(parsed.map((each) => each.change.resolves)).toEqual([[change], [change, other]]);
   });
 
   it('refuses a change without a date', () => {
-    expect(() => manifestSchema.parse({ templates: [entry({ act: 'oug-195-2002' })] })).toThrow();
-    expect(() => manifestSchema.parse({ templates: [entry([])] })).toThrow();
+    expect(() => manifestEntrySchema.parse(entry({ act: 'oug-195-2002' }))).toThrow();
+    expect(() => manifestEntrySchema.parse(entry([]))).toThrow();
   });
 
   it('passes every change to the database', async () => {
@@ -130,10 +128,8 @@ describe('a version that resolves legal changes', () => {
       .mockResolvedValueOnce(
         Response.json([{ template_version_id: 'a', version: 2, created: true }])
       );
-    const [parsed] = manifestSchema.parse({ templates: [entry([change, other])] }).templates;
-    await registerTemplates(db, [
-      { ...template, kind: 'legal', resolves: parsed!.change.resolves },
-    ]);
+    const parsed = manifestEntrySchema.parse(entry([change, other]));
+    await registerTemplates(db, [{ ...template, kind: 'legal', resolves: parsed.change.resolves }]);
     const [, rpcInit] = fetchMock.mock.calls[1]!;
     expect(JSON.parse(String(rpcInit?.body))).toMatchObject({
       p_kind: 'legal',
@@ -144,17 +140,8 @@ describe('a version that resolves legal changes', () => {
 
 describe('the manifest of the document engine', () => {
   it('matches what the registration reads, with keys the database accepts', () => {
-    const manifest = manifestSchema.parse(
-      JSON.parse(
-        readFileSync(
-          new URL('../../../../packages/document-engine/templates/manifest.json', import.meta.url),
-          'utf8'
-        )
-      )
-    );
-    expect(manifest.templates.length).toBeGreaterThan(0);
-    expect(new Set(manifest.templates.map((entry) => entry.typeKey)).size).toBe(
-      manifest.templates.length
-    );
+    const entries = manifestEntries().map((entry) => manifestEntrySchema.parse(entry));
+    expect(entries.length).toBeGreaterThan(0);
+    expect(new Set(entries.map((entry) => entry.typeKey)).size).toBe(entries.length);
   });
 });

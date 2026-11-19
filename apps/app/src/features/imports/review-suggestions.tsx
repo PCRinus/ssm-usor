@@ -10,7 +10,7 @@ import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { Sparkles } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
-import { DecisionRow } from './library/decision-row';
+import { DecisionRow } from './decision-row';
 import { FieldCard, type FieldContext } from './review-fields';
 import {
   anchorOf,

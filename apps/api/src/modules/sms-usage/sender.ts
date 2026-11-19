@@ -9,6 +9,7 @@ import type { Context } from 'hono';
 import { adminClient } from '../../lib/admin-db';
 import { type ApiEnv, subscriptionUrl } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { later } from '../../lib/later';
 import type { EntitlementRow } from '../billing/entitlements';
 import { noticeRecipient, usageNoticeStore } from '../billing/usage-notices';
 import { createExtrasNotices, extrasNoticeDeps } from '../extras/notices';
@@ -125,17 +126,6 @@ export function createSmsSender(deps: {
 
 export type SmsSender = ReturnType<typeof createSmsSender>;
 
-// Hono's executionCtx throws where the runtime gives none, as in tests.
-function waitUntilOf(c: Context<ApiEnv>) {
-  return (work: Promise<unknown>) => {
-    try {
-      c.executionCtx.waitUntil(work);
-    } catch {
-      void work;
-    }
-  };
-}
-
 export function smsSenderFor(env: ApiEnv['Bindings'], later: (work: Promise<unknown>) => void) {
   const db = adminClient(env);
   const store = smsUsageStore(db);
@@ -167,4 +157,4 @@ export function smsSenderFor(env: ApiEnv['Bindings'], later: (work: Promise<unkn
   });
 }
 
-export const smsSenderOf = (c: Context<ApiEnv>) => smsSenderFor(c.env, waitUntilOf(c));
+export const smsSenderOf = (c: Context<ApiEnv>) => smsSenderFor(c.env, (work) => later(c, work));

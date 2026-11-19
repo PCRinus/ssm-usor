@@ -29,9 +29,9 @@ import { Field } from '@/components/form-field';
 import { Masked } from '@/components/replay';
 import { CommuteMeansCombobox } from '@/features/employees/commute-means-combobox';
 
-import { PendingNote, StatusDot, type Tone } from '../library/decision-row';
-import { rowTones } from '../library/row-tones';
+import { PendingNote, StatusDot, type Tone } from '../decision-row';
 import { EditedTag, RowNote, Tag } from '../review-parts';
+import { rowTones } from '../row-tones';
 import {
   type Changes,
   type Decision,

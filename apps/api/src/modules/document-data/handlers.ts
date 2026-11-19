@@ -19,15 +19,11 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import {
-  archivedClientError,
-  createDataClient,
-  type DataClient,
-  fromDatabaseError,
-} from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { sentColumns } from '../../lib/partial-update';
+import { clientNotFound, requireClient, requireWritableClient } from '../clients/lookup';
 import type {
   archiveResponsiblePersonRoute,
   archiveWorkplaceRoute,
@@ -44,6 +40,11 @@ import type {
   updateResponsiblePersonRoute,
   updateWorkplaceRoute,
 } from './routes';
+import {
+  officeWithoutActivity,
+  refuseWorkplaceOfAnotherClient,
+  workplaceNotOfClient,
+} from './workplaces';
 
 type Tables = Database['public']['Tables'];
 
@@ -193,26 +194,6 @@ export const updateOrganizationAuthorizations: RouteHandler<
   return c.json({ authorizations: toAuthorizations(data) }, 200);
 };
 
-const noSuchClient = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
-
-async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db
-    .from('clients')
-    .select('id, archived_at')
-    .eq('id', clientId)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw noSuchClient();
-  return data;
-}
-
-async function findActiveClient(db: DataClient, clientId: string) {
-  const client = await findClient(db, clientId);
-  if (client.archived_at) throw archivedClientError();
-  return client;
-}
-
 const documentDetailsColumns =
   'legal_representative_name, legal_representative_role, legal_representative_employee_id, legal_representative_employee:employees!clients_legal_representative_employee_of_client(id, last_name, first_name, job_title), periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to';
 
@@ -270,7 +251,7 @@ export const getClientDocumentDetails: RouteHandler<
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'client document details');
-  if (!data) throw noSuchClient();
+  if (!data) throw clientNotFound();
   return c.json({ documentDetails: toDocumentDetails(data) }, 200);
 };
 
@@ -305,7 +286,7 @@ export const updateClientDocumentDetails: RouteHandler<
     .maybeSingle();
   if (error?.code === '23503') throw employeeNotOfClient();
   if (error) throw fromDatabaseError(error, 'update client document details');
-  if (!data) throw noSuchClient();
+  if (!data) throw clientNotFound();
   return c.json({ documentDetails: toDocumentDetails(data) }, 200);
 };
 
@@ -496,7 +477,7 @@ type WorkplaceListRow = {
 export const listWorkplaces: RouteHandler<typeof listWorkplacesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const [workplaces, unassigned] = await Promise.all([
     db
       .from('client_workplace_list')
@@ -533,7 +514,7 @@ export const createWorkplace: RouteHandler<typeof createWorkplaceRoute, ApiEnv> 
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findActiveClient(db, clientId);
+  await requireWritableClient(db, clientId);
   await refuseOfficeWithoutActivity(db, clientId, body);
   const { data, error } = await db
     .from('client_workplaces')
@@ -649,7 +630,7 @@ async function refuseLegalRepresentative(
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'client legal representative');
-  if (!data) throw noSuchClient();
+  if (!data) throw clientNotFound();
   const legalRepresentative = {
     employeeId: data.legal_representative_employee_id,
     fullName: data.legal_representative_name,
@@ -672,41 +653,6 @@ async function refuseLegalRepresentative(
 const noSuchResponsiblePerson = () =>
   new ApiError('not_found', 'This responsible person does not exist under this client.');
 
-export const workplaceNotOfClient = () => {
-  const message = 'This workplace is not an active workplace of this client.';
-  return new ApiError('validation_error', message, [{ path: 'workplaceId', message }]);
-};
-
-export const officeWithoutActivity = () => {
-  const message = 'No activity takes place at this registered office.';
-  return new ApiError('validation_error', message, [{ path: 'workplaceId', message }]);
-};
-
-/**
- * The foreign key alone would take an archived workplace, which no document lists. With
- * `withActivity`, also a registered office where no activity takes place (ADR 041), which
- * nobody works at and which carries no SU data.
- */
-export async function refuseWorkplaceOfAnotherClient(
-  db: DataClient,
-  clientId: string,
-  workplaceId: string | null | undefined,
-  { withActivity = false }: { withActivity?: boolean } = {}
-) {
-  if (!workplaceId) return;
-  const { data, error } = await db
-    .from('client_workplaces')
-    .select('id, office_has_activity')
-    .eq('id', workplaceId)
-    .eq('client_id', clientId)
-    .is('archived_at', null)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find workplace');
-  if (!data) throw workplaceNotOfClient();
-  if (withActivity && !data.office_has_activity) throw officeWithoutActivity();
-  return data;
-}
-
 function responsiblePersonError(error: { code: string; message?: string }, context: string) {
   if (error.code === '23505') {
     return new ApiError('conflict', 'This employee is already a responsible person.');
@@ -727,7 +673,7 @@ export const listResponsiblePersons: RouteHandler<
 > = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('client_responsible_persons')
     .select(responsiblePersonColumns)
@@ -769,7 +715,7 @@ export const createResponsiblePerson: RouteHandler<
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findActiveClient(db, clientId);
+  await requireWritableClient(db, clientId);
   await refuseLegalRepresentative(db, clientId, body);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db

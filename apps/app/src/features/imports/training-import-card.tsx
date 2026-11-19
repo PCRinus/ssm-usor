@@ -23,7 +23,7 @@ import {
   startingInterval,
 } from '@/features/training/schedule-rules';
 
-import { PendingNote } from './library/decision-row';
+import { PendingNote } from './decision-row';
 import type { FieldContext } from './review-fields';
 import { anchorOf, type FieldState, formatFieldValue } from './review-model';
 import {

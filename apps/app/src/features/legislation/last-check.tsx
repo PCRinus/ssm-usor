@@ -1,46 +1,77 @@
 import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
-import { ChevronDown, LoaderCircle } from 'lucide-react';
-import { useId, useState } from 'react';
+import { cn } from '@ssm-usor/ui/lib/utils';
+import { Link, useRouteContext } from '@tanstack/react-router';
+import { Check, ChevronDown, CircleAlert, CircleX, Clock, LoaderCircle } from 'lucide-react';
+import { type ReactNode, useId, useState } from 'react';
 
-import {
-  getGetLatestLegalCheckRunQueryKey,
-  type LatestLegalCheckRunResponseRun,
-  useGetLatestLegalCheckRun,
-} from '@/api/generated/api';
+import { getGetLatestLegalCheckRunQueryKey, useGetLatestLegalCheckRun } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
-import { formatDayThisYear, formatTimeOf, momentOf } from './legislation-labels';
+import { formatDayThisYear, formatTimeOf } from './legislation-labels';
 import { groupFailures, groupHeading } from './run-failures';
 import { useLegalActs } from './use-legal-acts';
 
-const staleAfterMs = 2 * 24 * 60 * 60 * 1000;
+const dayMs = 24 * 60 * 60 * 1000;
+const staleAfterMs = 2 * dayMs;
 
-type Run = NonNullable<LatestLegalCheckRunResponseRun>;
+const startOfDay = (time: number) => new Date(time).setHours(0, 0, 0, 0);
 
-function found(run: Run) {
-  const parts = [countOf(run.actsChecked, 'act citit', 'acte citite')];
-  if (run.changesFound > 0) {
-    parts.push(countOf(run.changesFound, 'modificare nouă', 'modificări noi'));
-  }
-  return parts.join(' · ');
+function daysAgo(isoTimestamp: string, now: number) {
+  return Math.round((startOfDay(now) - startOfDay(new Date(isoTimestamp).getTime())) / dayMs);
 }
 
-function failedSummary(run: Run, openedAt: number) {
-  const at = `${formatDayThisYear(run.startedAt, openedAt)}, ${formatTimeOf(run.startedAt)}`;
-  const errors = run.errors ?? [];
-  const acts = errors.filter((error) => error.act !== null).length;
-  const what =
-    acts === 1
-      ? '1 act nu a putut fi citit'
-      : acts > 1
-        ? `${countOf(acts, 'act', 'acte')} nu au putut fi citite`
-        : errors.length > 0
-          ? 'verificarea s-a oprit înainte de final'
-          : null;
-  return `Ultima verificare nu a reușit (${at})${what ? `: ${what}` : ''}.`;
+function dayWord(isoTimestamp: string, now: number) {
+  const ago = daysAgo(isoTimestamp, now);
+  if (ago === 0) return 'azi';
+  if (ago === 1) return 'ieri';
+  return `pe ${formatDayThisYear(isoTimestamp, now)}`;
+}
+
+const factLink =
+  'font-medium underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground';
+
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="tabular-nums">{children}</span>
+    </span>
+  );
+}
+
+function Status({
+  icon: Icon,
+  tone,
+  testId,
+  children,
+}: {
+  icon: typeof Check;
+  tone: 'ok' | 'running' | 'failed' | 'warning';
+  testId: string;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      data-testid={testId}
+      className={cn(
+        'inline-flex items-center gap-1.5 font-medium',
+        tone === 'failed' && 'text-destructive-foreground',
+        tone === 'warning' && 'text-warning-foreground'
+      )}
+    >
+      <Icon
+        aria-hidden="true"
+        className={cn(
+          'size-4 shrink-0',
+          tone === 'ok' && 'text-success-foreground',
+          tone === 'running' && 'animate-spin'
+        )}
+      />
+      {children}
+    </span>
+  );
 }
 
 export function LastCheck({ userId }: { userId: string }) {
@@ -49,9 +80,12 @@ export function LastCheck({ userId }: { userId: string }) {
     request: apiRequest,
     query: { queryKey: [...getGetLatestLegalCheckRunQueryKey(), userId] },
   });
+  const acts = useLegalActs(userId);
   const [openedAt] = useState(() => Date.now());
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsId = useId();
 
-  if (latest.isPending) return <Skeleton className="h-5 w-80 max-w-full" />;
+  if (latest.isPending) return <Skeleton className="h-5 w-96 max-w-full" />;
   if (latest.isError) {
     return (
       <Notice
@@ -74,80 +108,76 @@ export function LastCheck({ userId }: { userId: string }) {
   }
 
   const { run } = latest.data;
-  if (!run) {
-    return (
-      <Notice variant="warning" data-testid="last-check-never">
-        Verificarea nu a rulat încă: actele urmărite nu au fost citite pe Portalul Legislativ.
-      </Notice>
-    );
-  }
-
-  if (run.status === 'failed') {
-    return <FailedCheck run={run} userId={userId} summary={failedSummary(run, openedAt)} />;
-  }
-
-  const at = run.finishedAt ?? run.startedAt;
-  if (openedAt - new Date(at).getTime() > staleAfterMs) {
-    return (
-      <Notice variant="warning" data-testid="last-check-stale">
-        Verificarea nu a mai rulat de peste două zile. Ultima dată: {momentOf(at)}.
-      </Notice>
-    );
-  }
-
-  if (run.status === 'running') {
-    return (
-      <Notice
-        variant="info"
-        data-testid="last-check-running"
-        icon={<LoaderCircle className="animate-spin" aria-hidden="true" />}
-      >
-        Verificarea rulează din {momentOf(run.startedAt)}.
-      </Notice>
-    );
-  }
-
-  return (
-    <Notice variant="success" data-testid="last-check-ok">
-      Verificat pe {momentOf(at)} · {found(run)}
-    </Notice>
+  const actItems = acts.data?.items;
+  const total = actItems?.length;
+  const inAnalysis = actItems?.filter((act) => act.openChange !== null).length ?? 0;
+  const analysis = inAnalysis > 0 && (
+    <Fact label="În analiză">
+      <Link to="/legislatie/modificari" data-testid="last-check-in-analysis" className={factLink}>
+        {countOf(inAnalysis, 'modificare', 'modificări')}
+      </Link>
+    </Fact>
   );
-}
+  const read = (checked: number, partial: boolean) => (
+    <Fact label="Acte citite">
+      <span data-testid="last-check-acts">
+        {partial && total !== undefined && checked < total ? `${checked} din ${total}` : checked}
+      </span>
+    </Fact>
+  );
 
-function FailedCheck({ run, userId, summary }: { run: Run; userId: string; summary: string }) {
-  const acts = useLegalActs(userId);
-  const actNames = new Map((acts.data?.items ?? []).map((act) => [act.id, act.name]));
-  const groups = groupFailures(run.errors ?? [], actNames);
-  const [open, setOpen] = useState(false);
-  const detailsId = useId();
-
-  return (
-    <Notice
-      variant="warning"
-      data-testid="last-check-failed"
-      className="sm:[&>svg]:translate-y-1 sm:[&>svg]:self-start"
-    >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <p>{summary}</p>
+  let facts: ReactNode;
+  let details: ReactNode = null;
+  if (!run) {
+    facts = (
+      <>
+        <Status icon={CircleAlert} tone="warning" testId="last-check-never">
+          Verificarea nu a rulat încă
+        </Status>
+        <Fact label="Acte citite">niciunul</Fact>
+      </>
+    );
+  } else if (run.status === 'failed') {
+    const groups = groupFailures(
+      run.errors ?? [],
+      new Map((actItems ?? []).map((act) => [act.id, act.name]))
+    );
+    facts = (
+      <>
+        <Status icon={CircleX} tone="failed" testId="last-check-failed">
+          Verificarea{' '}
+          {dayWord(run.startedAt, openedAt) === 'azi'
+            ? 'de azi'
+            : `din ${formatDayThisYear(run.startedAt, openedAt)}`}{' '}
+          nu a reușit
+        </Status>
+        {read(run.actsChecked, true)}
+        {analysis}
         {groups.length > 0 && (
           <Button
             variant="ghost"
             size="sm"
             data-testid="last-check-details"
-            aria-expanded={open}
+            aria-expanded={detailsOpen}
             aria-controls={detailsId}
-            className="-mx-2 -my-1 px-2 text-inherit hover:bg-warning-border/40 hover:text-inherit"
-            onClick={() => setOpen((current) => !current)}
+            className="-my-1 h-7 px-2 font-medium"
+            onClick={() => setDetailsOpen((current) => !current)}
           >
             Detalii
             <ChevronDown
               aria-hidden="true"
-              className={open ? 'rotate-180 transition-transform' : 'transition-transform'}
+              className={cn('transition-transform', detailsOpen && 'rotate-180')}
             />
           </Button>
         )}
-      </div>
-      <div id={detailsId} hidden={!open} className="mt-3 grid gap-3">
+      </>
+    );
+    details = (
+      <div
+        id={detailsId}
+        hidden={!detailsOpen}
+        className="mt-1 grid gap-3 rounded-lg border border-destructive-border bg-destructive-soft px-4 py-3 text-sm text-destructive-foreground"
+      >
         <p>Modificările acestor acte apar pe pagină după o verificare reușită.</p>
         <ul className="grid gap-2.5">
           {groups.map((group) => (
@@ -162,6 +192,62 @@ function FailedCheck({ run, userId, summary }: { run: Run; userId: string; summa
           ))}
         </ul>
       </div>
-    </Notice>
+    );
+  } else if (openedAt - new Date(run.finishedAt ?? run.startedAt).getTime() > staleAfterMs) {
+    // Before the running state: a run cut off keeps running without an end, for good.
+    const at = run.finishedAt ?? run.startedAt;
+    facts = (
+      <>
+        <Status icon={Clock} tone="warning" testId="last-check-stale">
+          Ultima verificare: {formatDayThisYear(at, openedAt)}, acum{' '}
+          {countOf(daysAgo(at, openedAt), 'zi', 'zile')}
+        </Status>
+        {read(run.actsChecked, false)}
+        {analysis}
+      </>
+    );
+  } else if (run.status === 'running') {
+    facts = (
+      <>
+        <Status icon={LoaderCircle} tone="running" testId="last-check-running">
+          Verificarea rulează din {formatTimeOf(run.startedAt)}
+        </Status>
+        {read(run.actsChecked, true)}
+        {analysis}
+      </>
+    );
+  } else {
+    const at = run.finishedAt ?? run.startedAt;
+    facts = (
+      <>
+        <Status icon={Check} tone="ok" testId="last-check-ok">
+          Verificat {dayWord(at, openedAt)} la {formatTimeOf(at)}
+        </Status>
+        {read(run.actsChecked, false)}
+        <Fact label="Modificări noi">
+          {run.changesFound > 0 ? (
+            <Link
+              to="/legislatie/modificari"
+              data-testid="last-check-new-changes"
+              className={factLink}
+            >
+              {run.changesFound}
+            </Link>
+          ) : (
+            <span data-testid="last-check-new-changes">niciuna</span>
+          )}
+        </Fact>
+        {analysis}
+      </>
+    );
+  }
+
+  return (
+    <div className="grid gap-2">
+      <p data-testid="last-check" className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+        {facts}
+      </p>
+      {details}
+    </div>
   );
 }

@@ -4,7 +4,9 @@ import {
   contractReturnResponseSchema,
   documentDownloadResponseSchema,
 } from '@ssm-usor/contracts';
+import { bodyLimit } from 'hono/body-limit';
 
+import { ApiError } from '../../lib/errors';
 import { errorContent, publicErrors } from '../../lib/openapi';
 
 // The return link (ADR 007, amended): public, for the person who received a contract by
@@ -76,10 +78,19 @@ export const downloadContractReturnRoute = createRoute({
   },
 });
 
+// The 15 MB file and the form around it; the handler checks the file itself.
+const returnWithinLimit = bodyLimit({
+  maxSize: 16 * 1024 * 1024,
+  onError: () => {
+    throw new ApiError('validation_error', 'The file is larger than 15 MB.');
+  },
+});
+
 export const uploadContractReturnRoute = createRoute({
   method: 'post',
   path: '/contract-returns/upload',
   operationId: 'uploadContractReturn',
+  middleware: [returnWithinLimit] as const,
   summary: 'Send the signed copy back through the link',
   description:
     'One PDF of at most 15 MB, signed with a qualified certificate or scanned. It is kept as the received copy of the revision that was sent, replacing an earlier one that no owner has confirmed yet; the owner is told. Refused with `return_link_closed` once a copy is confirmed, a newer revision is issued or the link expired, and with `return_link_too_many_uploads` past a bounded number of tries.',

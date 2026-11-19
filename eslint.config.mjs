@@ -86,6 +86,23 @@ export default defineConfig([
     },
   },
   {
+    files: ['apps/api/src/modules/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['../*/handlers', '../*/*-handlers', '../*/routes', '../*/*-routes'],
+              message:
+                "Another module's HTTP files are its own; import what it shares from a named domain file of it.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: [
       '**/*.config.{js,mjs,cjs,ts,mts,cts}',
       'eslint.config.mjs',

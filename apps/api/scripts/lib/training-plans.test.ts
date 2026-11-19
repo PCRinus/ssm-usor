@@ -1,11 +1,10 @@
 import { readFileSync } from 'node:fs';
 
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
 import { hiringMinutes, hiringPlans } from '../../src/modules/trainings/proposal';
-
-const templatesUrl = new URL('../../../../packages/document-engine/templates/', import.meta.url);
 
 function paragraphs(file: string) {
   const xml = new PizZip(readFileSync(new URL(file, templatesUrl)))

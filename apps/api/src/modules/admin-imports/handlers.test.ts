@@ -391,10 +391,12 @@ describe('GET /admin/imports', () => {
     expect(calls.map((call) => call.url.pathname)).not.toContain('/rest/v1/rpc/admin_list_imports');
   });
 
-  it('refuses a filter it does not know', async () => {
+  it('refuses a filter it does not know, naming it', async () => {
     const response = await request('/admin/imports?status=lost');
     expect(response.status).toBe(400);
-    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('validation_error');
+    const body = apiErrorResponseSchema.parse(await response.json());
+    expect(body.error).toBe('validation_error');
+    expect(body.issues?.map((issue) => issue.path)).toEqual(['status']);
   });
 });
 

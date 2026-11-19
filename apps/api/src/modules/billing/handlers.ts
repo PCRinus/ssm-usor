@@ -13,7 +13,6 @@ import {
   type InvoiceEmail,
   meteredProducts,
   type PaidPlan,
-  readOnlyDays,
   smsOverage,
   vatPercent,
 } from '@ssm-usor/contracts';
@@ -27,9 +26,9 @@ import { adminFileStore } from '../../lib/files';
 import { isOwnerInPerson } from '../../lib/membership';
 import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
-import { extrasView } from '../extras/handlers';
 import { creditsForMember, smsForMember } from '../extras/members';
 import { extrasStore } from '../extras/store';
+import { extrasView } from '../extras/view';
 import { smsUsageStore } from '../sms-usage/store';
 import { smsUsageOf } from '../sms-usage/usage';
 import { employeesOverStepOf } from './employees-over-step';
@@ -44,7 +43,7 @@ import type {
   resumeSubscriptionRoute,
   updateInvoiceEmailRoute,
 } from './routes';
-import { minimumStepFor, problemsWith, usageLimits } from './rules';
+import { deletesAtOf, minimumStepFor, problemsWith, productOf, usageLimits } from './rules';
 import {
   type Billing,
   cancelSubscription,
@@ -69,7 +68,7 @@ import {
   saveSubscription,
   type SubscriptionRow,
 } from './store';
-import { stripeCatalogue, stripeFor } from './stripe';
+import { lookupKeyOfLine, priceIdOfLine, stripeCatalogue, stripeFor } from './stripe';
 
 function billingOf(c: Context<ApiEnv>): Billing {
   return {
@@ -121,10 +120,6 @@ function subscriptionView(
   access: AccessLevel,
   stripeCancelAt: string | null
 ): NonNullable<BillingOverview['subscription']> {
-  const deletesAt =
-    access === 'read_only' && row.access_until
-      ? new Date(new Date(row.access_until).getTime() + readOnlyDays * 86_400_000).toISOString()
-      : null;
   return {
     plan: row.plan,
     planChosen: row.stripe_subscription_id !== null,
@@ -136,7 +131,7 @@ function subscriptionView(
     billingAnchorAt: iso(row.billing_anchor_at),
     accessUntil: iso(row.access_until),
     access,
-    deletesAt,
+    deletesAt: deletesAtOf(row.access_until, access),
     cancelsAt: cancelsAtOf(row, stripeCancelAt),
   };
 }
@@ -184,18 +179,12 @@ async function stripeDetails(c: Context<ApiEnv>, billing: Billing, row: Subscrip
     const upcoming = await stripe.invoices.createPreview({ subscription: subscription.id });
     const smsPrice = stripeBilling.catalogue.priceIds.get(smsOverage.price.lookupKey);
     smsOverageCents = upcoming.lines.data
-      .filter((line) => {
-        const price = line.pricing?.price_details?.price;
-        return (typeof price === 'string' ? price : price?.id) === smsPrice;
-      })
+      .filter((line) => priceIdOfLine(line) === smsPrice)
       .reduce((sum, line) => sum + line.amount, 0);
     extrasInPreviewCents = upcoming.lines.data
       .filter((line) => {
-        const price = line.pricing?.price_details?.price;
-        const key = stripeBilling.catalogue.lookupKeys.get(
-          (typeof price === 'string' ? price : price?.id) ?? ''
-        );
-        return meteredProducts.some((product) => key?.startsWith(`${product.key}_`));
+        const product = productOf(lookupKeyOfLine(line, stripeBilling.catalogue));
+        return meteredProducts.some((metered) => metered.key === product);
       })
       .reduce((sum, line) => sum + line.amount, 0);
     nextPayment = {

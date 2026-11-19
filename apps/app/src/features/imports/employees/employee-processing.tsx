@@ -4,7 +4,6 @@ import { Card } from '@ssm-usor/ui/components/card';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Check, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
@@ -18,6 +17,7 @@ import { isRunning, uploadedWhen } from '../import-format';
 import { ImportThumbnail } from '../import-thumbnail';
 import { inPathOrder } from '../path-order';
 import { ImportFileView, PhotoPreviewDialog } from '../photo-preview-dialog';
+import { ImportSteps } from '../processing-parts';
 import { ReportImportButton } from '../report-import-button';
 import { useCanReportImport } from '../use-can-report-import';
 import { useUploadStalled } from '../use-upload-stalled';
@@ -178,64 +178,24 @@ export function EmployeeProcessing({
       {detail.status !== 'abandoned' && (
         <Card className="gap-4 px-5 py-4" data-testid="employee-processing-steps">
           <h2 className="sr-only">Pașii importului</h2>
-          <ol className="grid gap-3">
-            {steps.map((label, index) => {
-              const state =
-                index < reached
-                  ? 'done'
-                  : index === reached
-                    ? detail.status === 'failed'
-                      ? 'failed'
-                      : 'current'
-                    : 'next';
-              return (
-                <li
-                  key={label}
-                  data-state={state}
-                  aria-current={state === 'current' ? 'step' : undefined}
-                  className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-x-3 sm:grid-cols-[1.75rem_minmax(0,14rem)_minmax(0,1fr)]"
-                >
-                  <span
-                    className={cn(
-                      'grid size-7 place-items-center rounded-full text-xs font-semibold',
-                      state === 'done' && 'bg-primary text-primary-foreground',
-                      state === 'current' && 'bg-accent text-accent-foreground',
-                      state === 'failed' && 'bg-destructive text-white',
-                      state === 'next' && 'border text-muted-foreground'
-                    )}
-                    aria-hidden="true"
-                  >
-                    {state === 'done' ? (
-                      <Check className="size-4" />
-                    ) : state === 'failed' ? (
-                      <X className="size-4" />
-                    ) : (
-                      index + 1
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      'text-sm font-medium',
-                      state === 'next' && 'text-muted-foreground'
-                    )}
-                  >
-                    {label}
-                  </span>
-                  <span className="col-start-2 text-sm text-muted-foreground tabular-nums sm:col-start-3">
-                    {index === 0 &&
-                      (reached > 0
-                        ? failed.length > 0
-                          ? `${filesText}, ${failed.length === 1 ? `${photos ? 'una' : 'unul'} nu se poate citi` : `${failed.length} nu se pot citi`}`
-                          : `${filesText}, toate se pot deschide`
-                        : null)}
-                    {index === 1 && reached >= 1 && `${scansRead} din ${scans}`}
-                    {index === 2 && 'După nume, CNP și ordinea pozelor'}
-                    {index === 3 && 'CNP, posturi, lucrători existenți'}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+          <ImportSteps
+            steps={[
+              {
+                label: steps[0],
+                detail:
+                  reached > 0
+                    ? failed.length > 0
+                      ? `${filesText}, ${failed.length === 1 ? `${photos ? 'una' : 'unul'} nu se poate citi` : `${failed.length} nu se pot citi`}`
+                      : `${filesText}, toate se pot deschide`
+                    : null,
+              },
+              { label: steps[1], detail: reached >= 1 ? `${scansRead} din ${scans}` : null },
+              { label: steps[2], detail: 'După nume, CNP și ordinea pozelor' },
+              { label: steps[3], detail: 'CNP, posturi, lucrători existenți' },
+            ]}
+            reached={reached}
+            failed={detail.status === 'failed'}
+          />
           {running && reached === 1 && scans > 0 && (
             <div className="grid gap-2 rounded-lg bg-muted/50 p-4">
               <p className="text-sm">

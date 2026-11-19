@@ -6,7 +6,8 @@ import {
 } from '@ssm-usor/contracts';
 
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
-import { ApiError } from '../../lib/errors';
+import { clientNotFound } from '../clients/lookup';
+import { bySortOrder } from '../risk-evaluations/evaluation';
 import { type DocumentFacts, romanianDay } from './context';
 import type { FireYearRecords } from './fire-safety';
 import { loadTestQuestions } from './knowledge-tests';
@@ -205,9 +206,7 @@ export async function loadDocumentFacts(
     loadFireYearRecords(db, clientId, periods),
   ]);
   if (client.error) throw fromDatabaseError(client.error, 'document facts: client');
-  if (!client.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!client.data) throw clientNotFound();
   if (organization.error)
     throw fromDatabaseError(organization.error, 'document facts: organization');
   if (membership.error) throw fromDatabaseError(membership.error, 'document facts: membership');
@@ -478,11 +477,6 @@ export async function loadDocumentFacts(
     riskEvaluations,
   };
 }
-
-const bySortOrder = (
-  a: { sort_order: number; id: string },
-  b: { sort_order: number; id: string }
-) => a.sort_order - b.sort_order || a.id.localeCompare(b.id);
 
 export async function loadRiskEvaluations(
   db: DataClient,

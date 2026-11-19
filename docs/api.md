@@ -128,7 +128,9 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /organization/authorizations`                                     | Verified user with a membership       | `{ "authorizations": { … } }`: the certificate of authorization, the fire-safety technician and authorization                                                                                      |
 | `PUT /organization/authorizations`                                     | Owner                                 | The authorizations after replacing them                                                                                                                                                            |
 | `GET /legislation/acts`                                                | Verified user with a membership       | `{ "items": [ … ] }`, the watched acts by name with what the portal showed, each act's subject, domains and citations from the bundled citation index, and its newest open change; not paginated   |
-| `GET /legislation/changes`                                             | Verified user with a membership       | `{ "items": [ … ] }`, legal changes newest first, each with its `act`, `passages` and `updatedDocuments`; not paginated                                                                            |
+| `GET /legislation/changes/open`                                        | Verified user with a membership       | `{ "items": [ … ] }`, open changes newest form first, each with its act, `outcome`, what its passages `touched` and the documents citing the act (`citedBy`); not paginated                        |
+| `GET /legislation/changes/applied`                                     | Verified user with a membership       | `{ items, page, pageSize, total }`, changes a template version answers, newest form first, `pageSize` 20 (at most 100); each with `updatedDocuments` and the documents still `behind`              |
+| `GET /legislation/changes/{changeId}`                                  | Verified user with a membership       | `{ "change": { … } }`, one change with its act's subject, the answering versions and notes, `citedBy` and `behind`; `404` for a change that does not exist                                         |
 | `GET /legislation/runs/latest`                                         | Verified user with a membership       | `{ "run": { … } }`, the run of the daily check that started last, or `{ "run": null }`                                                                                                             |
 | `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's name and role, the employee they also are (`legalRepresentativeEmployeeId`, `legalRepresentativeEmployee`) or null, and the training schedule |
 | `PATCH /clients/{clientId}/document-details`                           | Verified user with a membership       | The document details after changing the fields sent                                                                                                                                                |
@@ -2339,21 +2341,24 @@ only the client's newest period counts (ADR 020): an earlier year's report is wh
 for that year. The database view `documents_behind` decides it, under the caller's policies.
 
 `GET /documents/behind` lists the organization's documents behind by type, in the pack's
-order: the template's `title`, its `newestVersion` (`version`, `kind`, `note`), the
-`runningJobId` of a regeneration of that type still under way, or null, and the `clients`
-behind, by name, each with its `documentId`, the `version` its newest revision came from,
-`editedDraft` when that revision is a draft edited by hand, `behindTemplate`, and
+order: the template's `title`, its `set`, its `newestVersion` (`version`, `kind`, `note`),
+`legalChanges`, the legal changes that version answers (`id`, `actName`, from
+`template_version_legal_changes`), the `runningJobId` of a regeneration of that type still under
+way, or null, and the `clients` behind, by name, each with its `documentId`, the `version` its
+newest revision came from, that revision's `status` (`draft` or `issued`) and `issueDate`, the
+date it carries, `editedDraft` when it is a draft edited by hand, `behindTemplate`, and
 `instructionChanges`: per module, `module_version` with `newestVersionAt`, the date of the
 library's newest version, `module_added` or `module_removed`, with the module's `title`; empty
-for a document behind its template alone. A type nobody is behind on is left out. The themes
+for a document behind its template alone. A type nobody is behind on is left out. The view is read a page at a time, as the regenerations read it too, so the list, the jobs and the counts agree however many documents are behind. The themes
 cite the newest own instructions revision, so regenerating 4.2 while 3.2 is itself behind
 leaves 4.2 behind: the app says to regenerate the own instructions first.
 
 `POST /documents/behind/regenerate` takes `{ typeKey }`, a built-in type of either set, and
 starts a **regeneration job**: one item per client behind, read with the caller's token, and
 one message per client on the Cloudflare Queue `ssm-usor-regeneration`, which the API Worker
-also consumes. It answers `201` with the job, every client `queued`; `409` with the reason
-`nothing_behind` when no client is behind, and with `regeneration_running` while a job of the
+also consumes. A draft edited by hand is left out of the job, so its counts are what will be
+regenerated. It answers `201` with the job, every client `queued`; `409` with the reason
+`nothing_behind` when no client is behind or each one behind is a draft edited by hand, and with `regeneration_running` while a job of the
 same type is under way (a job unfinished after an hour no longer counts: the next one closes it
 and fails the clients it left queued); `503` where no queue is bound or the messages could not
 be sent, in which case the job is taken back. `GET /documents/regeneration-jobs/{jobId}`
@@ -2361,12 +2366,28 @@ returns the job with `total`, `done`, `skipped` and `failed`, `finishedAt` once 
 queued, and the `items`, by client name, each with its `status` and, when skipped or failed, a
 `detail` in Romanian.
 
+`POST /documents/behind/regenerate-all` takes `{ set }` and starts one such job per document
+type of the set with a client to regenerate, in the pack's order; a type already regenerating
+keeps its job, unless that job is over an hour old, which starting closes as above. It answers
+`201` with `jobs`, every job of the set under way afterwards (`id`, `typeKey`, `set`,
+`requestedBy` and the counts), and `notStarted`, the types that did not start because the
+queue failed after some jobs had; those stay behind, to be started again. `503` when no job
+could be queued. `409` with `nothing_behind` when only drafts edited by hand are behind in the
+set, and with `regeneration_running` when every type that could start already runs.
+
+`GET /documents/behind/summary` is what the navigation, the dashboard and the regeneration
+watcher read on every page: `counts` per set of the rows the list holds (one per client and
+document type, drafts edited by hand included), counted in the database as the dashboard counts them, and
+`running`, the organization's unfinished jobs of the last hour, each with the member who
+started it and its counts, so a page follows every job with this one request and reads a job
+whole only once it leaves the list.
+
 The consumer (`queue` in `src/index.ts`, `modules/documents/regeneration-queue.ts`) handles one
 client per message, with the secret key, since nobody is signed in. It asks again whether the
 document is behind: one regenerated since is `skipped` as no longer behind, which also covers a
 message delivered twice, and an item that is no longer `queued` is not touched again. A draft
-edited by hand is `skipped`, because regenerating would discard the edits; the specialist does
-those one at a time. Everything else goes through the same `regenerateDocument` as
+edited by hand before its turn is `skipped`, because regenerating would discard the edits; the
+specialist does those one at a time. Everything else goes through the same `regenerateDocument` as
 `POST /documents/{documentId}/regenerate`, as the member who started the job: a draft is
 overwritten, and an issued document gets a new draft and stays in force until someone issues
 it, client by client. Missing data or a refused document fails the item at once; an unreachable

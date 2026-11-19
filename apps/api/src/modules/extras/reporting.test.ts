@@ -91,7 +91,10 @@ describe('reporting a block of extra credits', () => {
     fake.stripe['POST /v1/billing/meter_events'] = () => ({ object: 'billing.meter_event' });
 
     expect(await reportBlocks(deps(), { organizationId })).toEqual({ reported: 2, failed: 0 });
-    expect(meterEvents(fake).map((event) => event.identifier)).toEqual(['b4', 'b5']);
+    expect(meterEvents(fake).map((event) => [event.identifier, event.timestamp])).toEqual([
+      ['b4', String(Math.floor(boughtAt.getTime() / 1000))],
+      ['b5', String(Math.floor(boughtAt.getTime() / 1000))],
+    ]);
     const query = fake.calls.find(
       (call) => call.method === 'GET' && call.url.pathname === '/rest/v1/credit_extra_blocks'
     )!;

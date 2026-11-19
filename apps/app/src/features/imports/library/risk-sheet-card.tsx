@@ -19,9 +19,9 @@ import { type ReactNode, useId, useState } from 'react';
 import { openedHere } from '@/app/opener';
 import { Segmented } from '@/components/segmented';
 
-import type { LabelledSource } from '../review-model';
+import { DecisionRow, PendingNote, RenameRow, type Tone } from '../decision-row';
 import { SourceButton, Tag } from '../review-parts';
-import { DecisionRow, PendingNote, RenameRow, type Tone } from './decision-row';
+import type { LabelledSource } from '../review-types';
 import { RiskDifferences } from './risk-differences';
 import { RiskFactorRows } from './risk-factor-rows';
 import { RiskPlanRows } from './risk-plan-rows';

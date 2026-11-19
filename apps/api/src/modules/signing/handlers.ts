@@ -24,14 +24,15 @@ import type { Context } from 'hono';
 
 import { printedAddress } from '../../lib/address';
 import { createAdminClient } from '../../lib/admin-db';
-import { contentDisposition } from '../../lib/content-disposition';
+import { contentDisposition, fileNameWords } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, failureLabel } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
 import { createPortalReadClient, participationOf } from '../../lib/participant';
 import { requirePdfConverter } from '../../lib/pdf';
 import { collator } from '../../lib/romanian';
+import { requireClient } from '../clients/lookup';
 import { builtInTemplates, merge } from '../documents/documents';
 import { signedSheetContext, voidRow } from '../signed-sheets/signed-sheets';
 import { awaitedParty, awaits } from './agreement-state';
@@ -64,8 +65,6 @@ import type {
 } from './routes';
 import { contactOf, signersOfClient } from './signers';
 
-const noSuchClient = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
 const noSuchRecord = () =>
   new ApiError('not_found', 'This training record does not exist under this client.');
 const noSuchEmployee = () =>
@@ -99,18 +98,12 @@ const representativeMissing = (client: RepresentativeColumns) =>
 const toIso = (value: string) => new Date(value).toISOString();
 const toIsoOrNull = (value: string | null) => (value ? toIso(value) : null);
 
-async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db.from('clients').select('id').eq('id', clientId).maybeSingle();
-  if (error) throw fromDatabaseError(error, 'signing client');
-  if (!data) throw noSuchClient();
-}
-
 export const listSignerCandidates: RouteHandler<typeof listSignerCandidatesRoute, ApiEnv> = async (
   c
 ) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const seen = new Set<string>();
   const items = (await signersOfClient(db, clientId)).flatMap(
     ({ accountId, name, jobTitle, kind, employeeId }) => {
@@ -233,7 +226,7 @@ export const voidRecordSignatures: RouteHandler<typeof voidRecordSignaturesRoute
   } catch (failure) {
     if (!(failure instanceof ApiError && failure.reason === 'record_not_on_sheet')) {
       console.error(
-        `The voided row of ${recordId} was not marked on its sheet: ${failure instanceof ApiError ? (failure.reason ?? failure.code) : failure instanceof Error ? failure.name : 'unknown'}`
+        `The voided row of ${recordId} was not marked on its sheet: ${failureLabel(failure)}`
       );
     }
   }
@@ -360,7 +353,7 @@ export const listClientSignatureRequests: RouteHandler<
   const { clientId } = c.req.valid('param');
   const { state } = c.req.valid('query');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('signature_requests')
     .select(listColumns)
@@ -717,12 +710,7 @@ const agreementOf = async (db: DataClient, clientId: string, employeeId: string)
   toAgreement(await agreementSources(db, clientId, employeeId));
 
 const agreementFileName = (employee: { lastName: string; firstName: string }) => {
-  const words = `${employee.lastName} ${employee.firstName}`
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .map((word) => word[0]!.toUpperCase() + word.slice(1).toLowerCase());
+  const words = fileNameWords(`${employee.lastName} ${employee.firstName}`);
   return `Act-aditional-semnare-electronica-${words.join('-')}.pdf`;
 };
 

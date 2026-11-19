@@ -14,9 +14,10 @@ import { buildTestSheetData, testSheetTypeKey } from '@ssm-usor/document-engine'
 import type { Context } from 'hono';
 
 import { type AdminClient, createAdminClient, createLastingAdminClient } from '../../lib/admin-db';
+import { fileNameWords } from '../../lib/content-disposition';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, failureLabel } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import { builtInTemplates, merge } from '../documents/documents';
 import { signedOn } from '../signed-sheets/form';
@@ -525,9 +526,7 @@ export async function afterTestPass(c: Context<ApiEnv>, resultId: string) {
     const sheet = await ensureTestSheet(deps, resultId);
     if (sheet) await issueTestSheetRequests(deps, sheet, null);
   } catch (error) {
-    console.error(
-      `Test sheet of ${resultId} not drawn up: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
-    );
+    console.error(`Test sheet of ${resultId} not drawn up: ${failureLabel(error)}`);
   }
 }
 
@@ -592,14 +591,6 @@ export async function testSheetSummaries(
 export const summaryOf = (summaries: Map<string, TestSheetSummary>, resultId: string) =>
   summaries.get(resultId) ?? emptySummary(false);
 
-const fileWords = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .map((word) => word[0]!.toUpperCase() + word.slice(1).toLowerCase());
-
 export function testSheetFileName(
   employee: { last_name: string; first_name: string },
   result: { domain: 'ssm' | 'su'; test: 'hiring' | 'annual'; taken_on: string }
@@ -608,7 +599,7 @@ export function testSheetFileName(
     [
       'Fisa-de-test',
       knowledgeTestCodeOf(result.domain, result.test),
-      ...fileWords(`${employee.last_name} ${employee.first_name}`),
+      ...fileNameWords(`${employee.last_name} ${employee.first_name}`),
       result.taken_on,
     ].join('-') + '.pdf'
   );
@@ -618,9 +609,7 @@ async function issueQuietly(deps: TestSheetDeps, sheet: TestSheetRow, resultId: 
   try {
     await issueTestSheetRequests(deps, sheet, null);
   } catch (error) {
-    console.error(
-      `Test sheet requests of ${resultId} not issued: ${error instanceof ApiError ? (error.reason ?? error.code) : 'unknown'}`
-    );
+    console.error(`Test sheet requests of ${resultId} not issued: ${failureLabel(error)}`);
   }
 }
 
