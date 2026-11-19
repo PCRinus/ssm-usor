@@ -14,11 +14,11 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { Plus, X } from 'lucide-react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 
 import { useCreateTestQuestion, useUpdateTestQuestion } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { Field, FieldMessage } from '@/components/form-field';
@@ -75,9 +75,9 @@ function QuestionForm({
   onClose: () => void;
   onCloseAutoFocus?: (event: Event) => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const create = useCreateTestQuestion({ request: apiRequest });
-  const update = useUpdateTestQuestion({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const create = useCreateTestQuestion({ request });
+  const update = useUpdateTestQuestion({ request });
   const question = editing.kind === 'edit' ? editing.question : null;
   const domain = editing.kind === 'edit' ? editing.question.domain : editing.domain;
   const form = useForm<QuestionFormValues>({

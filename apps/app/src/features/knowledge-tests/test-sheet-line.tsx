@@ -18,7 +18,6 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { Eye, LoaderCircle, PenLine } from 'lucide-react';
 import { useState } from 'react';
 
@@ -28,6 +27,7 @@ import {
   useMarkTestSheetPaperSignature,
 } from '@/api/generated/api';
 import { apiErrorReason } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { FileLinkButton } from '@/components/file-link-button';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
@@ -66,16 +66,16 @@ export function TestSheetLine({
   result: TestResult;
   readOnly: boolean;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const [previewing, setPreviewing] = useState(false);
   const [marking, setMarking] = useState<TestSheetSignerSlot | null>(null);
   const { signed } = result.sheet;
   // A signature writes a new version of the sheet: the slots in the key fetch its link anew.
   const link = useFileLink({
     queryKey: ['test-sheet-link', clientId, employeeId, result.id, signed.trainee, signed.examiner],
-    load: (signal) => getTestSheetLink(clientId, employeeId, result.id, { ...apiRequest, signal }),
+    load: (signal) => getTestSheetLink(clientId, employeeId, result.id, { ...request, signal }),
     enabled: result.sheet.available,
-    apiRequest,
+    apiRequest: request,
     disposition: 'inline',
   });
 
@@ -83,7 +83,7 @@ export function TestSheetLine({
     setPreviewing(true);
     try {
       await openPreview(
-        () => getTestSheet(clientId, employeeId, result.id, apiRequest),
+        () => getTestSheet(clientId, employeeId, result.id, request),
         'Fișa de test'
       );
       // Opening draws up the sheet the pass could not, and requests its signatures.
@@ -185,8 +185,8 @@ function PaperSlotDialog({
   slot: TestSheetSignerSlot | null;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const mark = useMarkTestSheetPaperSignature({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const mark = useMarkTestSheetPaperSignature({ request });
   const [error, setError] = useState<string | null>(null);
 
   function close() {

@@ -1,9 +1,9 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useDeleteTestQuestion } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 import { type BankQuestion, invalidateTestBank, testFailure } from './test-format';
@@ -15,8 +15,8 @@ export function DeleteQuestionDialog({
   question: BankQuestion | null;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const remove = useDeleteTestQuestion({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const remove = useDeleteTestQuestion({ request });
   const [error, setError] = useState<string | null>(null);
 
   function close() {

@@ -20,7 +20,6 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
@@ -32,6 +31,7 @@ import {
   useRecordPaperTestResult,
   useUpdateTestResult,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
 import { FormDialog } from '@/components/form-dialog';
@@ -88,14 +88,12 @@ interface Examiner {
 export function TestResultDialog({
   clientId,
   employeeId,
-  userId,
   domain,
   target,
   onClose,
 }: {
   clientId: string;
   employeeId: string;
-  userId: string;
   domain: TrainingDomain;
   target: TestResultTarget;
   onClose: () => void;
@@ -106,7 +104,6 @@ export function TestResultDialog({
         <ProposedExaminer
           key={target.kind === 'examiner' ? target.result.id : 'paper'}
           clientId={clientId}
-          userId={userId}
           domain={domain}
           skip={target.kind === 'examiner' && target.result.examiner !== null}
         >
@@ -130,24 +127,22 @@ export function TestResultDialog({
 // specialist for occupational safety and the fire-safety technician for fire safety.
 function ProposedExaminer({
   clientId,
-  userId,
   domain,
   skip,
   children,
 }: {
   clientId: string;
-  userId: string;
   domain: TrainingDomain;
   skip: boolean;
   children: (proposed: Examiner | null) => ReactNode;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const params = { domain, phase: 'introductory_general', heldOn: todayIso() } as const;
   const proposal = useGetTrainingProposal(clientId, params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetTrainingProposalQueryKey(clientId, params), userId],
-      enabled: !skip && Boolean(apiRequest.baseUrl),
+      queryKey: key(getGetTrainingProposalQueryKey(clientId, params)),
+      enabled: !skip && Boolean(request.baseUrl),
       retry: false,
     },
   });
@@ -180,9 +175,9 @@ function ResultForm({
   proposed: Examiner | null;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const record = useRecordPaperTestResult({ request: apiRequest });
-  const update = useUpdateTestResult({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const record = useRecordPaperTestResult({ request });
+  const update = useUpdateTestResult({ request });
   const result = target.kind === 'examiner' ? target.result : null;
   const examiner = result?.examiner ?? proposed;
   const fromPaper = target.kind === 'paper';

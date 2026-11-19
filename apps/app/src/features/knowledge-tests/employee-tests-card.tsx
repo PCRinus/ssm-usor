@@ -9,7 +9,6 @@ import {
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
 import { FilePen, Pencil } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
@@ -18,6 +17,7 @@ import {
   getGetEmployeeTestsQueryKey,
   useGetEmployeeTests,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
@@ -72,22 +72,20 @@ function recordableTests(domain: TrainingDomain, status: TestStatus): KnowledgeT
 export function EmployeeTestsCard({
   clientId,
   employeeId,
-  userId,
   domain,
   readOnly,
 }: {
   clientId: string;
   employeeId: string;
-  userId: string;
   domain: TrainingDomain;
   readOnly: boolean;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const tests = useGetEmployeeTests(clientId, employeeId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetEmployeeTestsQueryKey(clientId, employeeId), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getGetEmployeeTestsQueryKey(clientId, employeeId)),
+      enabled: ready,
     },
   });
   const [target, setTarget] = useState<TestResultTarget>(null);
@@ -146,7 +144,6 @@ export function EmployeeTestsCard({
       <TestResultDialog
         clientId={clientId}
         employeeId={employeeId}
-        userId={userId}
         domain={domain}
         target={target}
         onClose={() => setTarget(null)}
