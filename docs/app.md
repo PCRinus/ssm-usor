@@ -1288,7 +1288,7 @@ their tab bars read.
   last ten confirmed employee imports (`GET /imports?kind=employees&clientId=&status=confirmed`)
   with someone it brought left to invite (`uninvited`) shows as a card, with "Invită în portal
   angajații din fișe": on the visit right after the confirm the import just confirmed, with what
-  was created, held in memory for that visit (`employees-imported-notice.ts`), on later visits
+  was created, held in memory for that visit (`employees-imported-notice.tsx`), on later visits
   with the day of the import and how many are left. "Ascunde" hides it for that import in this
   browser (`localStorage`, keyed by the import), and the next import with someone left shows
   instead. The upload dialog
@@ -1635,7 +1635,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   (remembered in `localStorage`), and the header's outline "Salvează în bibliotecă…" shows
   whenever the band does not. Once a factor is in a profile (`sourceProfile`), the card's
   description says which profiles hold how many of the factors, with links
-  (`factor-origin.tsx`); a row names its profile ("În evaluarea … din bibliotecă") only when the rows differ,
+  (`factor-origin-view.tsx`); a row names its profile ("În evaluarea … din bibliotecă") only when the rows differ,
   and the factor dialog says the factor is also in the profile and that edits stay here.
   Every change answers with the whole evaluation, which is written into both ways of reading
   it and refreshes the list and every profile's usage. An archived client gets the page with
