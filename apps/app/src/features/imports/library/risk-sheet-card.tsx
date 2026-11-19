@@ -1,4 +1,4 @@
-import { countOf } from '@ssm-usor/contracts';
+import { capitalized, countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
@@ -85,7 +85,7 @@ function textsLine(sheet: RiskSheet) {
   if (found.length === 0) return 'Nu am găsit în document textele sistemului de muncă.';
   const names =
     found.length === 1 ? found[0]! : `${found.slice(0, -1).join(', ')} și ${found.at(-1)}`;
-  return `${names.charAt(0).toUpperCase()}${names.slice(1)}, ca în document.`;
+  return `${capitalized(names)}, ca în document.`;
 }
 
 function statusTag(state: SheetState) {

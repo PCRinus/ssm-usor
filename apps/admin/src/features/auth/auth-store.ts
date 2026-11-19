@@ -1,12 +1,12 @@
 import {
-  type AuthSnapshot,
+  type AuthError,
   createSessionStore,
   type SessionClient,
+  unreachable,
+  verifiedTotp,
 } from '@ssm-usor/spa-runtime/session';
 import type { Session } from '@supabase/supabase-js';
 import type { QueryClient } from '@tanstack/react-query';
-
-type AuthError = { message: string; code?: string; status?: number };
 
 type Factor = { id: string; factor_type: string; status: string };
 
@@ -50,9 +50,6 @@ export interface Enrolment {
   secret: string;
 }
 
-// supabase-js reports a request that never got an answer with status 0.
-const unreachable = (error: AuthError) => error.status === 0;
-
 function assuranceLevel(accessToken: string) {
   try {
     const payload = accessToken.split('.')[1] ?? '';
@@ -64,18 +61,11 @@ function assuranceLevel(accessToken: string) {
   }
 }
 
-const verifiedTotp = (session: Session) =>
-  session.user.factors?.find(
-    (factor) => factor.factor_type === 'totp' && factor.status === 'verified'
-  );
-
 export function stepOf(session: Session | null): Step {
   if (!session) return 'sign-in';
   if (assuranceLevel(session.access_token) === 'aal2') return 'admin';
   return verifiedTotp(session) ? 'verify' : 'enrol';
 }
-
-export type { AuthSnapshot };
 
 export function createAuthStore(client: AuthClient | null, queryClient: QueryClient) {
   const { store, publish, refreshSnapshot } = createSessionStore(client, queryClient);

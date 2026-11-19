@@ -1,8 +1,10 @@
 import {
+  capitalized,
   formatEmployeeName,
   supplementaryTrainingReasonLabels,
   type TrainingDomain,
   trainingDomainLabels,
+  trainingIntervalLabel,
   type TrainingPhase,
   type TrainingStatus,
 } from '@ssm-usor/contracts';
@@ -31,7 +33,6 @@ import { useAuth } from '@/features/auth/auth-context';
 import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
 import { WorkersListError } from '@/features/employees/workers-list';
-import { intervalLabel } from '@/features/job-positions/job-position-schema';
 import { EmployeeTestsCard } from '@/features/knowledge-tests/employee-tests-card';
 import { RecordSignatures } from '@/features/signatures/record-signatures';
 import { trainingLocks, useRecordSignatures } from '@/features/signatures/use-record-signatures';
@@ -83,8 +84,6 @@ function StatusFact({ label, children }: { label: string; children: ReactNode })
   );
 }
 
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-
 const sourceLinkClass = 'underline underline-offset-4 hover:text-foreground';
 
 const programmeFocus = {
@@ -127,7 +126,7 @@ function IntervalFact({
   }
   return (
     <span data-testid="training-interval" className="grid gap-0.5">
-      <span>{capitalized(intervalLabel(status.intervalMonths))}</span>
+      <span>{capitalized(trainingIntervalLabel(status.intervalMonths))}</span>
       <span className="text-xs font-normal text-muted-foreground">
         {status.intervalSource === 'position' ? (
           <Link

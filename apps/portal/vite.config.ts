@@ -1,24 +1,12 @@
-import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { lingui } from '@lingui/vite-plugin';
 import posthogRollupPlugin from '@posthog/rollup-plugin';
-import { versionFile } from '@ssm-usor/spa-runtime/vite';
+import { commitSha, versionFile } from '@ssm-usor/spa-runtime/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-
-function commitSha() {
-  const configuredSha = process.env.GIT_COMMIT_SHA?.trim();
-  if (configuredSha) return configuredSha;
-
-  try {
-    return execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  } catch {
-    return 'local';
-  }
-}
 
 const commit = commitSha();
 

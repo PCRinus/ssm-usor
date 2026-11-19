@@ -95,13 +95,11 @@ import {
   itemSpellings,
   type ItemState,
   itemStates,
-  type LabelledSource,
   meansTaken,
   nameSpellings,
   roleLabel,
   sameValue,
   secondRegisteredOfficeNote,
-  type Source,
   substancesAnswer,
   substancesStateLabels,
   suggestedFields,
@@ -124,6 +122,7 @@ import {
   Tag,
 } from './review-parts';
 import { Suggestions } from './review-suggestions';
+import { type LabelledSource, type Source } from './review-types';
 
 type ItemsContext = FieldContext & { blockers: Blocker[] };
 

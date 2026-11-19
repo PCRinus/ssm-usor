@@ -14,7 +14,7 @@ export type LookupState =
   | { status: 'done'; message: string; inactive: boolean }
   | { status: 'error'; message: string };
 
-export type AnafCompany = CompanyLookupResponse['company'];
+type AnafCompany = CompanyLookupResponse['company'];
 
 type CompanyFields = {
   cui: string;

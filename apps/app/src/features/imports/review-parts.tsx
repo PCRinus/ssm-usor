@@ -17,7 +17,7 @@ import { type ComponentProps, type ReactNode, use, useEffect, useId, useRef } fr
 import { replayMask } from '@/app/observability/replay-masking';
 
 import { filesLabel } from './import-format';
-import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-model';
+import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-types';
 import { requestFileName } from './source-match';
 import { SourcePrefetchContext } from './source-query';
 import { type DiffRun, spellingDiff } from './spelling-diff';

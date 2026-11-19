@@ -89,7 +89,6 @@ function DeleteTrainingConfirm({
   return (
     <ConfirmDialog
       open
-      busy={remove.isPending}
       testId="training-delete"
       title="Ștergi instruirea?"
       confirmLabel="Șterge instruirea"

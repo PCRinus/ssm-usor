@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type DiffSegment, wordDiff } from './law-diff';
+import { type DiffSegment, wordDiff } from './token-diff';
 
 const readBack = (segments: DiffSegment[], skip: DiffSegment['kind']) =>
   segments
@@ -52,6 +52,7 @@ describe('wordDiff', () => {
     for (let round = 0; round < 3000; round += 1) {
       const [before, after] = [text(), text()];
       const segments = wordDiff(before, after);
+      expect(segments.every((segment) => segment.text !== '')).toBe(true);
       expect(readBack(segments, 'inserted')).toBe(before);
       expect(readBack(segments, 'deleted')).toBe(after);
     }
@@ -79,6 +80,27 @@ describe('wordDiff', () => {
       { kind: 'same', text: ' ' },
       { kind: 'deleted', text: 'doi' },
       { kind: 'same', text: ')' },
+    ]);
+  });
+
+  it('marks a paragraph break added between two units, with no empty change', () => {
+    expect(wordDiff('alin. (1)\nText vechi.', 'alin. (1)\n\nText nou.')).toEqual([
+      { kind: 'same', text: 'alin. (1)' },
+      { kind: 'inserted', text: '\n\n' },
+      { kind: 'deleted', text: '\n' },
+      { kind: 'same', text: 'Text ' },
+      { kind: 'deleted', text: 'vechi' },
+      { kind: 'inserted', text: 'nou' },
+      { kind: 'same', text: '.' },
+    ]);
+  });
+
+  it('marks a removed double space, with no empty change', () => {
+    expect(wordDiff('a)  dublu spațiu', 'a) dublu spațiu')).toEqual([
+      { kind: 'same', text: 'a)' },
+      { kind: 'inserted', text: ' ' },
+      { kind: 'deleted', text: '  ' },
+      { kind: 'same', text: 'dublu spațiu' },
     ]);
   });
 
@@ -112,5 +134,11 @@ describe('wordDiff', () => {
       { kind: 'inserted', text: 'trei' },
       { kind: 'same', text: '.' },
     ]);
+  });
+
+  it('gives up past the cells it is allowed, and only then', () => {
+    const long = 'cuvânt '.repeat(1100);
+    expect(wordDiff(long, `${long}nou`, { maxCells: 4_000_000 })).toBeNull();
+    expect(wordDiff(long, `${long}nou`)).not.toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import {
+  capitalized,
   countOf,
   type InstructionBody,
   instructionCategoriesByDomain,
@@ -17,6 +18,7 @@ import type {
   InstructionsProposalPositionsItem,
   InstructionsProposalUnreadItem,
 } from '@/api/generated/api';
+import { dayMonthFormat } from '@/lib/dates';
 
 export type LibraryPart = InstructionsLibraryPart;
 export type LibraryPost = ImportLibraryPartsResponse['posts'][number];
@@ -61,7 +63,7 @@ export function partsNoun(parts: readonly { part: ImportLibraryPart['part'] }[])
   ];
   if (names.length === 0) return null;
   const text = names.join(' și ');
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+  return capitalized(text);
 }
 
 export const partOfDomain: Record<InstructionDomain, PartName> = {
@@ -84,9 +86,7 @@ export const statusLabels: Record<PartStatus, string> = {
   confirmed: 'Confirmat',
 };
 
-const dayFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long' });
-
-export const libraryDay = (iso: string) => dayFormat.format(new Date(iso));
+export const libraryDay = (iso: string) => dayMonthFormat.format(new Date(iso));
 
 type PartTiming = { status: PartStatus; expiresAt: string | null };
 
@@ -217,7 +217,7 @@ export function partDescription(part: LibraryPart, clientConfirmed: boolean, now
       const identical =
         asked.length > 0 && counts.identical > 0 ? ` ${counts.identical} deja în bibliotecă.` : '';
       const description = `${found}${identical}`;
-      return description.charAt(0).toUpperCase() + description.slice(1);
+      return capitalized(description);
     }
   }
 }

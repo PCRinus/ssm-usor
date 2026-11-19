@@ -1,6 +1,5 @@
 import {
   countOf,
-  sortOrderSchema,
   trainingPhaseLabels,
   trainingPhases,
   trainingSignatureStates,
@@ -12,7 +11,10 @@ import { z } from 'zod';
 
 import type { ListFilterFacet, ListFilterOption } from '@/components/list-filters/types';
 import { filterSearchSchema, periodSearchSchema } from '@/components/list-filters/url';
-import { listPageSearchSchema } from '@/components/list-filters/use-list-search';
+import {
+  listPageSearchSchema,
+  listSortSearchSchema,
+} from '@/components/list-filters/use-list-search';
 
 export const trainingFilterKeys = ['phase', 'signatures', 'mode', 'period'] as const;
 export type TrainingFilterKey = (typeof trainingFilterKeys)[number];
@@ -37,8 +39,7 @@ export const clientTrainingsSearchSchema = listPageSearchSchema(trainingSortKeys
 });
 
 export const ownTrainingsSearchSchema = z.object({
-  sort: z.enum(['heldOn', 'duration']).optional().catch(undefined),
-  order: sortOrderSchema.optional().catch(undefined),
+  ...listSortSearchSchema(['heldOn', 'duration']).shape,
   signature: filterSearchSchema(trainingSignatureStates),
   ...filterSearch,
 });

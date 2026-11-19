@@ -6,8 +6,6 @@ import { captureEvent } from '@/app/observability/posthog';
 import { browserPage } from './reload-page';
 import { newVersionText } from './reload-text';
 
-export { versionCheckInterval } from '@ssm-usor/spa-runtime/version-watch';
-
 const toastId = 'new-version';
 const postponedKey = 'ssm-usor.new-version-postponed';
 

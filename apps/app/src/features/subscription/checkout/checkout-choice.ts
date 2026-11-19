@@ -3,6 +3,7 @@ import {
   type BillingInterval,
   billingPlans,
   type BillingPreview,
+  capitalized,
   formatCount,
   lastStep,
   type PaidPlan,
@@ -76,7 +77,7 @@ export function nextStepSentence(choice: BillingChoice, next: NextStep) {
   const price = `${formatEuro(next.step.prices[choice.interval].unitAmount)} + TVA ${perInterval[choice.interval]}`;
   const step = `treapta de ${employeesLabel(next.step.employees)}`;
   return next.plan === choice.plan
-    ? `${step.charAt(0).toUpperCase()}${step.slice(1)} costă ${price}.`
+    ? `${capitalized(step)} costă ${price}.`
     : `${shortPlanNames[next.plan]}, cu ${step}, costă ${price}.`;
 }
 

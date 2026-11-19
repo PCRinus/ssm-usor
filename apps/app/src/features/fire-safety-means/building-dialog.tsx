@@ -1,5 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { fireBuildingClassificationLabels, fireBuildingClassifications } from '@ssm-usor/contracts';
+import {
+  capitalized,
+  fireBuildingClassificationLabels,
+  fireBuildingClassifications,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DialogBody,
@@ -325,5 +329,3 @@ function Group({ id, title, children }: { id: string; title: string; children: R
     </section>
   );
 }
-
-const capitalized = (text: string) => text.charAt(0).toLocaleUpperCase('ro') + text.slice(1);

@@ -24,8 +24,6 @@ type PagerOptions = {
   noun: { one: string; many: string };
   testId?: string;
   onPage: (page: number) => void;
-  // A short list, as a section under a page, shows no pager while it fits on one page.
-  onlyWhenSeveralPages?: boolean;
 };
 
 export function ListTable<List extends { items: readonly unknown[] }>({
@@ -33,21 +31,21 @@ export function ListTable<List extends { items: readonly unknown[] }>({
   testId,
   label,
   columns,
-  skeletonRows = 3,
   empty,
-  emptyClassName = 'h-40',
   row,
   pager,
+  compact = false,
 }: {
   query: UseQueryResult<List, Error>;
   testId: string;
   label: string;
   columns: readonly ReactNode[];
-  skeletonRows?: number;
   empty: ReactNode;
-  emptyClassName?: string;
   row: (item: List['items'][number]) => ReactNode;
   pager?: List extends Paged ? PagerOptions : never;
+  // A short list shown as a section under a page: fewer placeholder rows, a lower empty row, and
+  // no pager while it fits on one page.
+  compact?: boolean;
 }) {
   if (query.isError && !query.data) {
     return <LoadFailure error={query.error} onRetry={() => void query.refetch()} />;
@@ -70,7 +68,7 @@ export function ListTable<List extends { items: readonly unknown[] }>({
         </TableHeader>
         <TableBody className={cn(query.isPlaceholderData && 'opacity-50')}>
           {query.isPending || !data ? (
-            Array.from({ length: skeletonRows }, (_, index) => (
+            Array.from({ length: compact ? 2 : 3 }, (_, index) => (
               <TableRow key={index} className="hover:bg-transparent">
                 {columns.map((_column, cell) => (
                   <TableCell key={cell}>
@@ -83,7 +81,7 @@ export function ListTable<List extends { items: readonly unknown[] }>({
             <TableRow className="hover:bg-transparent">
               <TableCell
                 colSpan={columns.length}
-                className={cn('text-muted-foreground text-center', emptyClassName)}
+                className={cn('text-muted-foreground text-center', compact ? 'h-24' : 'h-40')}
               >
                 {empty}
               </TableCell>
@@ -93,7 +91,7 @@ export function ListTable<List extends { items: readonly unknown[] }>({
           )}
         </TableBody>
       </Table>
-      {pager && paged && (!pager.onlyWhenSeveralPages || paged.total > paged.pageSize) && (
+      {pager && paged && (!compact || paged.total > paged.pageSize) && (
         <Pager
           testId={pager.testId}
           noun={pager.noun}

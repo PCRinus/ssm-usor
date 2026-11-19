@@ -21,3 +21,5 @@ export function countNoun(count: number, one: string, many: string) {
 export function countOf(count: number, one: string, many: string) {
   return `${formatCount(count)} ${countNoun(count, one, many)}`;
 }
+
+export const capitalized = (text: string) => text.charAt(0).toLocaleUpperCase('ro') + text.slice(1);

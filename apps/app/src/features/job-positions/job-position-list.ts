@@ -1,10 +1,10 @@
-import { countOf, sortOrderSchema, staffCategories, type StaffCategory } from '@ssm-usor/contracts';
+import { countOf, staffCategories, type StaffCategory } from '@ssm-usor/contracts';
 import { Users } from 'lucide-react';
-import { z } from 'zod';
 
 import type { DataTableSort } from '@/components/data-table/columns';
 import type { ListFilterFacet } from '@/components/list-filters/types';
 import { filterSearchSchema } from '@/components/list-filters/url';
+import { listSortSearchSchema } from '@/components/list-filters/use-list-search';
 import type { RiskEvaluationSummary } from '@/features/risk-evaluations/risk-evaluation-schema';
 
 import {
@@ -27,8 +27,7 @@ export type JobPositionFilterKey = (typeof jobPositionFilterKeys)[number];
 // A client's posts are few and read whole, so they sort and filter here; the address keeps the
 // choice as on every list.
 export const jobPositionListSearch = {
-  sort: z.enum(jobPositionSortKeys).optional().catch(undefined),
-  order: sortOrderSchema.optional().catch(undefined),
+  ...listSortSearchSchema(jobPositionSortKeys).shape,
   staffCategory: filterSearchSchema(staffCategories),
 };
 

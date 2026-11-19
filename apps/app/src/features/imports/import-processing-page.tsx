@@ -1,4 +1,4 @@
-import { countOf } from '@ssm-usor/contracts';
+import { capitalized, countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Progress } from '@ssm-usor/ui/components/progress';
@@ -491,8 +491,6 @@ function OtherCompanyNotice({
     </Notice>
   );
 }
-
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 type Step = { label: string; detail: (detail: ImportDetail) => string | null };
 

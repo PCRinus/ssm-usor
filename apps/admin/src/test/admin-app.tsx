@@ -1,3 +1,4 @@
+import { createQueryClient } from '@ssm-usor/spa-runtime/query-client';
 import type { Session } from '@supabase/supabase-js';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
@@ -6,7 +7,6 @@ import { afterEach, beforeEach, expect, vi } from 'vitest';
 import { type AdminRuntime, createAdminRuntime } from '@/app/admin-runtime';
 import App from '@/app/App';
 import type { AuthClient } from '@/features/auth/auth-store';
-import { createQueryClient } from '@/lib/query-client';
 
 const encode = (value: unknown) =>
   btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
