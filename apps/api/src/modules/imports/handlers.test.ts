@@ -4,7 +4,7 @@ import { emptyReading } from '@ssm-usor/import/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { accessTokenAt } from '../../lib/access-token.fixture';
-import type { ImportMessage } from '../../lib/env';
+import type { ApiEnv, ImportMessage } from '../../lib/env';
 import { creditsUpstream } from '../../test/credits';
 import { apiRequest } from '../../test/request';
 import {

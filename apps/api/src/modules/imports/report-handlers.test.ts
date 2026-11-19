@@ -1,36 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  membershipRow,
+  routeUpstream,
+  signedInUserRoutes,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  testUser as user,
+  upstreamCalls,
+} from '../../test/upstream';
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
-const secretKey = 'sb_secret_test_key_imports';
 const webhook = 'https://discord.example/api/webhooks/1/token';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: secretKey,
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   CORS_ORIGINS: 'http://localhost:5173',
   DISCORD_ALERTS_WEBHOOK: webhook,
   ENVIRONMENT: 'production',
-};
+});
 
-type Call = { method: string; url: URL; body: unknown; admin: boolean };
-
-const fetchMock = vi.fn<typeof fetch>();
-let calls: Call[] = [];
 let visible: boolean;
 let partVisible: boolean;
 let quiet: boolean;
@@ -39,67 +31,48 @@ let status: string;
 let member: string;
 
 function mockUpstream() {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    const raw = init?.body;
-    const call: Call = {
-      method,
-      url,
-      body: typeof raw === 'string' && /^[[{]/.test(raw) ? JSON.parse(raw) : raw,
-      admin: new Headers(init?.headers).get('Authorization') === `Bearer ${secretKey}`,
-    };
-    calls.push(call);
-    if (url.href === webhook) return new Response(null, { status: 204 });
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return Response.json([
-        { user_id: member, organization_id: organizationId, role: 'specialist', access },
-      ]);
-    }
-    const quietFilter = url.searchParams.has('or');
-    if (url.pathname === '/rest/v1/imports' && method === 'GET') {
-      return Response.json(
-        visible
-          ? {
-              id: importId,
-              kind: 'client',
-              status,
-              organization_id: organizationId,
-              cost_usd: '0.420000',
-            }
-          : null
-      );
-    }
-    if (url.pathname === '/rest/v1/import_library_parts' && method === 'GET') {
-      return Response.json(partVisible ? { part: 'risk_evaluations' } : null);
-    }
-    if (
-      (url.pathname === '/rest/v1/imports' || url.pathname === '/rest/v1/import_library_parts') &&
-      method === 'PATCH'
-    ) {
-      if (!quietFilter) return new Response(null, { status: 204 });
-      return Response.json(quiet ? [{ id: importId, part: 'risk_evaluations' }] : []);
-    }
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
-  });
+  const reported = ({ url }: { url: URL }) => {
+    if (!url.searchParams.has('or')) return new Response(null, { status: 204 });
+    return Response.json(quiet ? [{ id: importId, part: 'risk_evaluations' }] : []);
+  };
+  routeUpstream(
+    {
+      [new URL(webhook).pathname]: ({ url }) =>
+        url.href === webhook ? new Response(null, { status: 204 }) : undefined,
+      '/rest/v1/rpc/current_membership': () =>
+        Response.json([membershipRow({ user_id: member, access })]),
+      'GET /rest/v1/imports': () =>
+        Response.json(
+          visible
+            ? {
+                id: importId,
+                kind: 'client',
+                status,
+                organization_id: organizationId,
+                cost_usd: '0.420000',
+              }
+            : null
+        ),
+      'GET /rest/v1/import_library_parts': () =>
+        Response.json(partVisible ? { part: 'risk_evaluations' } : null),
+      'PATCH /rest/v1/imports': reported,
+      'PATCH /rest/v1/import_library_parts': reported,
+    },
+    signedInUserRoutes
+  );
 }
 
-const request = (path: string) =>
-  createApp().request(
-    path,
-    { method: 'POST', headers: { Authorization: 'Bearer user-token' } },
-    env
+const request = (path: string) => apiRequest(path, { method: 'POST' }, env);
+
+const posts = () => upstreamCalls().filter((call) => call.url.href === webhook);
+const updates = (table: string) =>
+  upstreamCalls().filter(
+    (call) => call.url.pathname === `/rest/v1/${table}` && call.method === 'PATCH'
   );
 
-const posts = () => calls.filter((call) => call.url.href === webhook);
-const updates = (table: string) =>
-  calls.filter((call) => call.url.pathname === `/rest/v1/${table}` && call.method === 'PATCH');
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-  calls = [];
   visible = true;
   partVisible = true;
   quiet = true;
@@ -111,7 +84,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -121,7 +93,7 @@ describe('POST /imports/{importId}/report', () => {
 
     expect(response.status).toBe(204);
     const [update] = updates('imports');
-    expect(update!.admin).toBe(true);
+    expect(update!.secret).toBe(true);
     expect(update!.url.searchParams.get('id')).toBe(`eq.${importId}`);
     expect(update!.url.searchParams.get('or')).toMatch(
       /^\(reported_at\.is\.null,reported_at\.lt\./
@@ -168,8 +140,8 @@ describe('POST /imports/{importId}/report', () => {
     const response = await request(`/imports/${importId}/report`);
 
     expect(response.status).toBe(404);
-    const read = calls.find((call) => call.url.pathname === '/rest/v1/imports')!;
-    expect(read.admin).toBe(false);
+    const read = upstreamCalls().find((call) => call.url.pathname === '/rest/v1/imports')!;
+    expect(read.secret).toBe(false);
     expect(updates('imports')).toEqual([]);
     expect(posts()).toEqual([]);
   });
@@ -203,9 +175,9 @@ describe('POST /imports/{importId}/report', () => {
   });
 
   it('refuses a caller without a token', async () => {
-    const response = await createApp().request(
+    const response = await apiRequest(
       `/imports/${importId}/report`,
-      { method: 'POST' },
+      { method: 'POST', token: null },
       env
     );
     expect(response.status).toBe(401);
@@ -218,7 +190,7 @@ describe('POST /imports/{importId}/library-parts/{part}/report', () => {
 
     expect(response.status).toBe(204);
     const [update] = updates('import_library_parts');
-    expect(update!.admin).toBe(true);
+    expect(update!.secret).toBe(true);
     expect(update!.url.searchParams.get('import_id')).toBe(`eq.${importId}`);
     expect(update!.url.searchParams.get('part')).toBe('eq.risk_evaluations');
     expect(updates('imports')).toEqual([]);
