@@ -159,6 +159,9 @@ describe("the organization's employees", () => {
     const workerPath = `/clienti/${petromId}/angajati/${popescu.id}`;
     mockRoutes((_init, url) => {
       if (url.pathname === '/employees') return Response.json(page([popescu, taranu]));
+      if (url.pathname === '/clients')
+        return Response.json(page([client(petromId, 'OMV PETROM SA')]));
+      if (url.pathname === '/imports') return Response.json({ items: [] });
       if (url.pathname === `/clients/${petromId}`) {
         return Response.json({ client: client(petromId, 'OMV PETROM SA') });
       }
