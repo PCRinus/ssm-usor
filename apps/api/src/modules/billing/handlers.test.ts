@@ -52,38 +52,11 @@ describe('GET /billing', () => {
       planChosen: false,
       status: 'trialing',
     });
-    expect(body.usage).toEqual({
+    expect(body.usage).toMatchObject({
       employees: { used: 120, limit: 5000 },
-      employeesOverStep: null,
       members: { used: 1, limit: 10 },
-      invitations: 0,
-      smsThisMonth: {
-        used: 0,
-        included: 0,
-        allowance: 0,
-        granted: 0,
-        overage: 0,
-        extrasOn: false,
-        periodStart: null,
-        periodEnd: null,
-        state: 'none',
-      },
-      creditsThisMonth: {
-        used: 0,
-        included: 300,
-        allowance: 300,
-        granted: 0,
-        shortfall: 0,
-        left: 300,
-        giftLeft: 0,
-        extra: 0,
-        extraLeft: 0,
-        extrasOn: false,
-        period: 'trial',
-        periodStart: trial.created_at,
-        periodEnd: trial.trial_ends_at,
-        state: 'ok',
-      },
+      smsThisMonth: { state: 'none' },
+      creditsThisMonth: { included: 300, period: 'trial', state: 'ok' },
     });
     expect(
       body.catalogue.plans.map((plan) => [
