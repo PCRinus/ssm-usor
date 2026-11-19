@@ -148,23 +148,17 @@ describe('client document data', () => {
     );
   });
 
-  it('offers execution personnel no interval above six months', async () => {
+  it('offers execution personnel every month from one to six, and administrative staff twelve', async () => {
     mockApi({ positions: [welder, director] });
     mount();
 
     await screen.findByTestId('details-category-execution');
-    expect(screen.queryByTestId('details-worker-interval-12')).toBeNull();
+    expect(
+      Array.from(document.querySelectorAll('[data-testid^="details-worker-interval-"]'), (option) =>
+        option.getAttribute('data-testid')
+      )
+    ).toEqual([1, 2, 3, 4, 5, 6].map((months) => `details-worker-interval-${months}`));
     expect(screen.getByTestId('details-administrative-interval-12')).toBeTruthy();
-  });
-
-  it('offers execution personnel every month from one to six', async () => {
-    mockApi({ positions: [welder] });
-    mount();
-
-    await screen.findByTestId('details-category-execution');
-    for (const months of [1, 2, 3, 4, 5, 6]) {
-      expect(screen.getByTestId(`details-worker-interval-${months}`)).toBeTruthy();
-    }
   });
 
   it('loads a saved interval outside the list, and asks for one from the list before saving', async () => {

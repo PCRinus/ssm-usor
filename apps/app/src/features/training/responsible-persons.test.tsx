@@ -450,40 +450,30 @@ describe('client responsible persons', () => {
     ).toEqual(['Luca Paolo-AntonioManager magazin']);
   });
 
-  it('lists the occupational safety roles, the fire safety ones, then the representative', async () => {
-    mockApi({ items: [], client: { ...sampleClient, currentEmployeeCount: 10 } });
-    mount();
-    const user = userEvent.setup();
+  const safetyRoles = [
+    'workplace_manager',
+    'first_aid',
+    'imminent_danger',
+    'risk_evaluation_team',
+    'fire_safety_coordinator',
+    'fire_intervention_leader',
+  ];
 
-    await user.click(await screen.findByTestId('responsible-add'));
-    await screen.findByTestId('responsible-role-workers_representative');
-    expect(renderedRoles()).toEqual([
-      'workplace_manager',
-      'first_aid',
-      'imminent_danger',
-      'risk_evaluation_team',
-      'fire_safety_coordinator',
-      'fire_intervention_leader',
-      'workers_representative',
-    ]);
-  });
+  it.each([
+    [10, [...safetyRoles, 'workers_representative']],
+    [6, safetyRoles],
+  ])(
+    'lists the occupational safety roles, the fire safety ones, then the representative from 10 employees: %i',
+    async (currentEmployeeCount, roles) => {
+      mockApi({ items: [], client: { ...sampleClient, currentEmployeeCount } });
+      mount();
+      const user = userEvent.setup();
 
-  it('leaves the workers’ representative out below 10 employees', async () => {
-    mockApi({ items: [], client: { ...sampleClient, currentEmployeeCount: 6 } });
-    mount();
-    const user = userEvent.setup();
-
-    await user.click(await screen.findByTestId('responsible-add'));
-    await screen.findByTestId('responsible-role-fire_intervention_leader');
-    expect(renderedRoles()).toEqual([
-      'workplace_manager',
-      'first_aid',
-      'imminent_danger',
-      'risk_evaluation_team',
-      'fire_safety_coordinator',
-      'fire_intervention_leader',
-    ]);
-  });
+      await user.click(await screen.findByTestId('responsible-add'));
+      await screen.findByTestId(`responsible-role-${roles.at(-1)}`);
+      expect(renderedRoles()).toEqual(roles);
+    }
+  );
 
   it('lets someone who holds the role below 10 employees keep or drop it', async () => {
     mockApi({
@@ -637,18 +627,24 @@ describe('client responsible persons', () => {
   });
 
   it.each([
+    ['imminent-danger', 'responsible-role-imminent_danger'],
     ['fire-safety-coordinator', 'responsible-role-fire_safety_coordinator'],
     ['fire-intervention-leader', 'responsible-role-fire_intervention_leader'],
   ])('opens the new person dialog for ?focus=%s with that role ticked', async (focus, box) => {
     mockApi({ items: [] });
-    mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire?focus=${focus}`);
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clienti/${clientId}/instruire?focus=${focus}`
+    );
     const dialog = await screen.findByTestId('responsible-dialog');
+    expect(within(dialog).getByRole('heading').textContent).toBe('Adaugă o persoană responsabilă');
     expect(
       within(dialog)
         .getAllByRole('checkbox')
         .filter((item) => item.getAttribute('data-state') === 'checked')
         .map((item) => item.id)
     ).toEqual([box]);
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
   it('needs a name, a job title, and at least one role before calling the API', async () => {
@@ -862,23 +858,6 @@ describe('client responsible persons', () => {
     expect(await screen.findAllByTestId('responsible-row')).toHaveLength(1);
     expect(screen.queryByTestId('responsible-add')).toBeNull();
     expect(screen.queryByTestId('responsible-actions')).toBeNull();
-  });
-
-  it('opens the new person dialog with the role a row asked for already ticked', async () => {
-    mockApi({ items: [] });
-    const runtime = mountApp(
-      authFixture(makeSession()).client,
-      `/clienti/${clientId}/instruire?focus=imminent-danger`
-    );
-    const dialog = await screen.findByTestId('responsible-dialog');
-    expect(within(dialog).getByRole('heading').textContent).toBe('Adaugă o persoană responsabilă');
-    expect(
-      within(dialog)
-        .getAllByRole('checkbox')
-        .filter((box) => box.getAttribute('data-state') === 'checked')
-        .map((box) => box.id)
-    ).toEqual(['responsible-role-imminent_danger']);
-    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
   it("opens the representative who has the legal representative's name, at the role", async () => {
