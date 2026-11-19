@@ -54,7 +54,9 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
 beforeEach(() => {
   Object.values(posthog).forEach((mock) => mock.mockReset());
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
-  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
+  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+    queryResult({ agreement: null, unavailable: null })
+  );
   vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
   vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryPending());

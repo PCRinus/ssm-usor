@@ -48,7 +48,9 @@ beforeEach(() => {
   vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
   vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
   vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
+  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+    queryResult({ agreement: null, unavailable: null })
+  );
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
   vi.mocked(useGetPortalTests).mockReturnValue(queryResult(portalTests()));
