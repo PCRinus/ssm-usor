@@ -22,8 +22,8 @@ import { Notice } from '@/components/notice';
 import { PhoneInput } from '@/components/phone-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
+import { EmployeeCombobox } from '@/features/employees/employee-combobox';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
-import { EmployeeCombobox } from '@/features/training/employee-combobox';
 
 import {
   administratorInviteFormSchema,

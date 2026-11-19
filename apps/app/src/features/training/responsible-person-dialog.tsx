@@ -40,10 +40,14 @@ import { Field, FieldMessage, personalError } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import {
+  type Administrator,
+  administratorValue,
+  EmployeeCombobox,
+} from '@/features/employees/employee-combobox';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { commonFailure } from '@/lib/api-errors';
 
-import { type Administrator, administratorValue, EmployeeCombobox } from './employee-combobox';
 import {
   emptyResponsiblePersonForm,
   type ResponsiblePerson,

@@ -1056,6 +1056,20 @@ describe('client creation', () => {
     expect(await screen.findByText('OMV PETROM SA a fost adăugat.')).toBeTruthy();
   });
 
+  it('warns when ANAF reports an inactive company, with a link to why it matters', async () => {
+    mockApi({ lookup: () => Response.json({ company: { ...sampleCompany, inactive: true } }) });
+    mountApp(authFixture(makeSession()).client, '/clienti/nou');
+    const user = userEvent.setup();
+    await screen.findByTestId('new-client-page');
+    await user.type(screen.getByTestId('client-cui'), '1590082');
+    await user.click(screen.getByTestId('client-lookup'));
+    const status = await screen.findByTestId('client-lookup-status');
+    expect(status.textContent).toContain('compania figurează ca inactivă');
+    expect(status.querySelector('[data-help-topic]')?.getAttribute('data-help-topic')).toBe(
+      'clienti.firma-inactiva'
+    );
+  });
+
   it('keeps manual entry when ANAF has no record', async () => {
     mockApi({
       lookup: () => Response.json({ error: 'not_found', message: 'none' }, { status: 404 }),

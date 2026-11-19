@@ -26,6 +26,7 @@ import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { SheetAction } from '@/features/clients/details/sheet-action';
+import { useDocumentDetails } from '@/features/clients/document-details/use-document-details-form';
 import { type ResponsiblePersonFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { commonFailure } from '@/lib/api-errors';
 
@@ -36,7 +37,6 @@ import {
   responsiblePersonsOfArchivedClientMessage,
 } from './responsible-person-dialog';
 import { missingRoles, type ResponsiblePerson } from './responsible-person-schema';
-import { useDocumentDetails } from './use-document-details-form';
 
 const focusRoles: Record<ResponsiblePersonFocus, ResponsiblePersonRole> = {
   'workplace-manager': 'workplace_manager',

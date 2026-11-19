@@ -7,11 +7,11 @@ import { Controller, type FieldError, type UseFormReturn, useFormState } from 'r
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 
 import { AnafLookupButton } from './anaf-lookup-button';
 import { CaenCombobox } from './caen-combobox';
 import { clientErrorHelp, type ClientFormValues } from './client-form-schema';
+import { CompanyLookupStatus } from './company-lookup-status';
 import { CountyCombobox } from './county-combobox';
 import type { LookupState } from './use-company-lookup';
 
@@ -80,31 +80,11 @@ export function IdentificationFields({
           />
         </div>
       </Field>
-      {lookup.status === 'done' && (
-        <Notice
-          variant={lookup.inactive ? 'warning' : 'success'}
-          data-testid="client-lookup-status"
-          className="sm:col-span-2"
-        >
-          {lookup.message}
-          {lookup.inactive && (
-            <>
-              {' '}
-              <HelpLink topic="clienti.firma-inactiva">Află mai mult</HelpLink>
-            </>
-          )}
-        </Notice>
-      )}
-      {lookup.status === 'error' && (
-        <Notice
-          variant="warning"
-          role="alert"
-          data-testid="client-lookup-status"
-          className="sm:col-span-2"
-        >
-          {lookup.message}
-        </Notice>
-      )}
+      <CompanyLookupStatus
+        lookup={lookup}
+        testId="client-lookup-status"
+        inactiveHelp="clienti.firma-inactiva"
+      />
       <Field
         id="legalName"
         label="Denumire"

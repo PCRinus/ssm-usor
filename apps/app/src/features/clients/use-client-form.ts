@@ -23,7 +23,7 @@ import {
   toUpdateClientRequest,
 } from './client-form-schema';
 import { clientWording, reportClientSaveError } from './client-save-error';
-import { useCompanyLookup } from './use-company-lookup';
+import { useClientCompanyLookup } from './use-company-lookup';
 
 // With a lead, the form corrects what was entered about it; without, it adds a client or a
 // lead. A client is corrected card by card on its Detalii tab instead.
@@ -40,7 +40,7 @@ export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
   });
   const create = useCreateClient({ request: apiRequest });
   const update = useUpdateClient({ request: apiRequest });
-  const { lookup, lookupCui } = useCompanyLookup(form);
+  const { lookup, lookupCui } = useClientCompanyLookup(form);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {

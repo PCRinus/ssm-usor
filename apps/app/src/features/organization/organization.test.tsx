@@ -927,6 +927,8 @@ describe('company details', () => {
     await user.click(screen.getByTestId('company-lookup'));
     const status = await screen.findByTestId('company-lookup-status');
     expect(status.textContent).toContain('compania figurează ca inactivă');
+    // The help article is about a client found inactive, not the organization's own firm.
+    expect(status.querySelector('[data-help-topic]')).toBeNull();
   });
 
   it.each([
