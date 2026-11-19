@@ -40,11 +40,11 @@ import {
   adminImportStore,
   existingRecords,
   findImport,
+  modelUsageOf,
   queueEnded,
   storedChanges,
   storedProposal,
-} from './handlers';
-import { modelUsageOf } from './import-queries';
+} from './import-queries';
 import { clientPeople, libraryPartExpiry, libraryReasons, riskReasons } from './library';
 import { toClientPayload } from './payload';
 import { describe } from './pipeline';
