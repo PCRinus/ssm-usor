@@ -10,31 +10,19 @@ import { documentText } from '@ssm-usor/document-engine';
 import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId,
+  type UpstreamCall,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const membership = {
-  user_id: user.id,
-  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
-  role: 'owner',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
@@ -132,7 +120,8 @@ const resultRows = [
   },
 ];
 
-const fetchMock = vi.fn<typeof fetch>();
+const signedLink = ({ url }: UpstreamCall) =>
+  Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
 
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   const defaults: Record<Upstream, Handler> = {
@@ -168,26 +157,22 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     '/rest/v1/document_templates': 'templates',
     '/rest/v1/signed_sheets': 'sheets',
   };
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    if (url.pathname.startsWith('/storage/v1/object/sign/documents/')) {
-      if ((init?.method ?? 'GET') === 'POST') {
-        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
-      }
-      return new Response(`%PDF-1.7 ${url.pathname.split('/').at(-2)}`);
-    }
-    if (url.pathname.startsWith('/storage/v1/object/sign/document-templates/')) {
-      if ((init?.method ?? 'GET') === 'POST') {
-        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
-      }
+  mockSignedInUpstream({
+    '/rest/v1/rpc/current_membership': () => Response.json([membershipRow({ role: 'owner' })]),
+    'POST /storage/v1/object/sign/documents/*': signedLink,
+    '/storage/v1/object/sign/documents/*': ({ url }) =>
+      new Response(`%PDF-1.7 ${url.pathname.split('/').at(-2)}`),
+    'POST /storage/v1/object/sign/document-templates/*': signedLink,
+    '/storage/v1/object/sign/document-templates/*': ({ url }) => {
       const typeKey = url.pathname.split('/').at(-2)!;
       return new Response(readFileSync(new URL(templateFiles[typeKey]!, templatesUrl)));
-    }
-    const upstream = paths[url.pathname];
-    if (!upstream) throw new Error(`Unexpected upstream request: ${url}`);
-    return (handlers[upstream] ?? defaults[upstream])(url);
+    },
+    ...Object.fromEntries(
+      Object.entries(paths).map(([pathname, upstream]) => [
+        pathname,
+        ({ url }: UpstreamCall) => (handlers[upstream] ?? defaults[upstream])(url),
+      ])
+    ),
   });
 }
 
@@ -213,20 +198,19 @@ const withConverter = {
 } as ApiEnv['Bindings'];
 
 const request = (path: string, bindings: ApiEnv['Bindings'] = withConverter) =>
-  createApp().request(path, { headers: { Authorization: 'Bearer test-access-token' } }, bindings);
+  apiRequest(path, {}, bindings);
 
 const sheetsPath = `/clients/${clientId}/employees/${employeeId}/training-sheets`;
 const sheetPath = (domain: string) =>
   `/clients/${clientId}/employees/${employeeId}/training-sheet?domain=${domain}`;
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   convertDocx.mockClear();
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -364,7 +348,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
 
   const storedSheet = (sequence: number) => ({
     id: `5d5d5d5d-0000-4000-8000-00000000000${sequence}`,
-    organization_id: membership.organization_id,
+    organization_id: testOrganizationId,
     client_id: clientId,
     employee_id: employeeId,
     domain: 'ssm',

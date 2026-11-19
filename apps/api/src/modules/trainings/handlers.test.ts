@@ -7,35 +7,23 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
 import { accessTokenAt } from '../../lib/access-token.fixture';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testUser as user,
+} from '../../test/upstream';
 import { buildDocumentContext } from '../documents/context';
 import { facts } from '../documents/context.fixture';
 import { hiringPlans } from './proposal';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const membership = {
-  user_id: user.id,
-  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
-  role: 'owner',
-};
+const membership = membershipRow({ role: 'owner' });
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const trainingId = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
@@ -126,8 +114,6 @@ type Upstream =
   | 'requests'
   | 'list';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
   const defaults: Record<Upstream, Handler> = {
     auth: () => Response.json(user),
@@ -168,12 +154,14 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
     '/rest/v1/signature_requests': 'requests',
     '/rest/v1/training_list': 'list',
   };
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const upstream = paths[url.pathname];
-    if (!upstream) throw new Error(`Unexpected upstream request: ${url}`);
-    return (handlers[upstream] ?? defaults[upstream])(init, url);
-  });
+  routeUpstream(
+    Object.fromEntries(
+      Object.entries(paths).map(([pathname, upstream]) => [
+        pathname,
+        ({ init, url }) => (handlers[upstream] ?? defaults[upstream])(init, url),
+      ])
+    )
+  );
 }
 
 const calls = (pathname: string) =>
@@ -182,22 +170,10 @@ const calls = (pathname: string) =>
 const searchOf = (pathname: string, index = 0) =>
   new URL(String(calls(pathname)[index]![0])).searchParams;
 
-const request = (path: string, init: RequestInit = {}) =>
-  createApp().request(
-    path,
-    {
-      ...init,
-      headers: { Authorization: 'Bearer test-access-token', ...(init.headers ?? {}) },
-    },
-    env
-  );
+const request = (path: string, init: RequestInit = {}) => apiRequest(path, init, env);
 
 const send = (method: string, path: string, body: unknown) =>
-  request(path, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  apiRequest(path, { method, body }, env);
 
 const sheetRow = ({ certified, voided = false }: { certified: boolean; voided?: boolean }) => ({
   voided_at: voided ? '2026-10-20T09:00:00Z' : null,
@@ -219,16 +195,15 @@ const validBody = {
   admission: { admittedOn: '2026-10-01', name: 'Ion POP', jobTitle: 'Șef atelier' },
 };
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-10-16T09:00:00Z'));
 });
 
 afterEach(() => {
   vi.useRealTimers();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
