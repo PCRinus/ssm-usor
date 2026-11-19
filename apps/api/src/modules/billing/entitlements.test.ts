@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { adminClient } from '../../lib/admin-db';
+import { routeUpstream, stubFetch } from '../../test/upstream';
 import {
   addMonths,
   entitlementColumns,
@@ -33,21 +34,16 @@ const row = (id: string) => ({
 
 function upstream(answer: (url: URL) => Response) {
   const urls: URL[] = [];
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (input: RequestInfo | URL) => {
-      const url = new URL(input instanceof Request ? input.url : String(input));
+  routeUpstream({
+    '/*': ({ url }) => {
       urls.push(url);
       return answer(url);
-    })
-  );
+    },
+  });
   return urls;
 }
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
-});
+stubFetch();
 
 describe("the subscription's month", () => {
   it("adds months on the anchor's day, or the month's last day where it is shorter, as Stripe does", () => {
