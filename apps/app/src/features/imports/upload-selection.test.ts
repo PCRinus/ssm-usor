@@ -50,7 +50,38 @@ function rename(zipped: Uint8Array, placeholder: string, name: string | number[]
   return zipped;
 }
 
-const megabytes = (count: number) => new Uint8Array(count * 1024 * 1024);
+const megabyte = 1024 * 1024;
+
+const megabytes = (count: number) => new Uint8Array(count * megabyte);
+
+// The caps read only a file's size, so a few bytes stand in for many; the large cases that read
+// real bytes keep them.
+function weighing(count: number, text = 'x') {
+  const light = blob(text);
+  Object.defineProperty(light, 'size', { value: count * megabyte });
+  return light;
+}
+
+// Stored, so fflate copies each entry as it is instead of allocating the size its headers declare.
+function zipDeclaring(entries: Record<string, string>, count: number) {
+  const zipped = zipSync(
+    Object.fromEntries(Object.entries(entries).map(([name, text]) => [name, strToU8(text)])),
+    { level: 0 }
+  );
+  const view = new DataView(zipped.buffer, zipped.byteOffset, zipped.byteLength);
+  const end = zipped.length - 22;
+  let central = view.getUint32(end + 16, true);
+  for (let index = 0; index < view.getUint16(end + 10, true); index += 1) {
+    view.setUint32(central + 24, count * megabyte, true);
+    view.setUint32(view.getUint32(central + 42, true) + 22, count * megabyte, true);
+    central +=
+      46 +
+      view.getUint16(central + 28, true) +
+      view.getUint16(central + 30, true) +
+      view.getUint16(central + 32, true);
+  }
+  return new Blob([zipped as BlobPart]);
+}
 
 describe('choosing the files of an import', () => {
   it('opens a zip in the browser and keeps its paths under the zip', async () => {
@@ -186,10 +217,9 @@ describe('choosing the files of an import', () => {
       },
       {
         path: 'prea-grea.zip',
-        blob: zip(
-          Object.fromEntries(
-            Array.from({ length: 6 }, (_, index) => [`f${index}.pdf`, megabytes(18)])
-          )
+        blob: zipDeclaring(
+          Object.fromEntries(Array.from({ length: 6 }, (_, index) => [`f${index}.pdf`, 'x'])),
+          18
         ),
       },
       { path: 'Decizie.docx', blob: blob() },
@@ -259,10 +289,7 @@ describe('choosing the files of an import', () => {
 
     const heavy = await addToSelection(
       emptySelection,
-      Array.from({ length: 6 }, (_, index) => ({
-        path: `f${index}.pdf`,
-        blob: new Blob([new Uint8Array(18 * 1024 * 1024)]),
-      }))
+      Array.from({ length: 6 }, (_, index) => ({ path: `f${index}.pdf`, blob: weighing(18) }))
     );
     expect(selectionTotals(heavy)).toMatchObject({ count: 6, overFiles: false, overBytes: true });
   });
@@ -296,12 +323,12 @@ describe('choosing the photographs of an employee import', () => {
 
   it('weighs a JPEG or PNG once shrunk, so a large one is not set aside', async () => {
     const large = [
-      { path: 'IMG_4001.jpg', blob: new Blob([megabytes(30)]) },
-      { path: 'scan.png', blob: new Blob([megabytes(30)]) },
+      { path: 'IMG_4001.jpg', blob: weighing(30) },
+      { path: 'scan.png', blob: weighing(30) },
     ];
     const employees = await addToSelection(
       emptySelection,
-      [...large, { path: 'fise.zip', blob: zip({ 'IMG_4002.jpg': megabytes(30) }) }],
+      [...large, { path: 'fise.zip', blob: zipDeclaring({ 'IMG_4002.jpg': 'x' }, 30) }],
       'employees'
     );
     expect(employees.files.map((file) => file.path)).toEqual([
@@ -320,7 +347,7 @@ describe('choosing the photographs of an employee import', () => {
       emptySelection,
       Array.from({ length: 250 }, (_, index) => ({
         path: `IMG_${index}.jpg`,
-        blob: new Blob([megabytes(5)]),
+        blob: weighing(5, `IMG_${index}`),
       })),
       'employees'
     );
