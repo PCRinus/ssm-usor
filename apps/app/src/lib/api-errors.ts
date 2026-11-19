@@ -17,7 +17,8 @@ export const isSessionExpired = (cause: unknown) =>
   cause instanceof ApiHttpError && cause.status === 401;
 
 // The refusals that mean the same on every page, whatever the page was doing; a page words the
-// rest itself.
+// rest itself. A page that sends a route refused while impersonating must also send
+// `wordingRefusalHere`, or the impersonation line shows twice: here and in the global toast.
 export function commonFailure(cause: unknown): string | undefined {
   if (isSessionExpired(cause)) return sessionExpiredMessage;
   if (isReadOnlyError(cause)) return readOnlyMessage;
