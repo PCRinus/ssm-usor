@@ -24,7 +24,8 @@ import {
   type UpstreamCall,
   upstreamCalls,
 } from '../../test/upstream';
-import { bankQuestions } from './context.fixture';
+import { buildDocumentContext } from './context';
+import { bankQuestions, facts as contextFacts } from './context.fixture';
 import { printedTest } from './knowledge-tests';
 import { sensitiveGroupsEvaluation, workshopEvaluation } from './risk-evaluations.fixture';
 
@@ -3255,22 +3256,20 @@ describe('the fire-safety set', () => {
     });
     expect((await generate('fire_safety')).status).toBe(201);
     expect(merged).toHaveLength(2);
-    expect(Object.keys(merged[0]!).sort()).toEqual([
+    const shared = [
       'annexes',
       'branding',
       'client',
-      'controlDecision',
-      'extinguisherRegister',
-      'fire',
-      'fireSafetyTechnician',
-      'installationRegister',
-      'installationSheets',
       'issueDate',
+      'knowledgeTests',
       'noAnnexes',
-      'officeWithoutActivity',
       'provider',
-      'seasonsDecision',
-    ]);
+    ];
+    const occupational = Object.keys(buildDocumentContext(contextFacts)).filter(
+      (name) => !shared.includes(name)
+    );
+    expect(occupational).toContain('positions');
+    for (const name of occupational) expect(merged[0]).not.toHaveProperty(name);
     expect(merged[0]).toMatchObject({ annexes: [], noAnnexes: true });
     expect(merged[0]).toMatchObject({ issueDate: '01.10.2026', ...printedFireSafety });
   });
