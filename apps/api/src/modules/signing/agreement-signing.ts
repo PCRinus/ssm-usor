@@ -2,11 +2,12 @@ import type { SigningAgreementParty, SigningAgreementState } from '@ssm-usor/con
 import type { Context } from 'hono';
 
 import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
-import { fromDatabaseError } from '../../lib/db';
-import { sha256 } from '../../lib/docx';
+import { archivedClientError, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { pdfSigningServices, signedOn, signField } from '../../lib/pdf-signing';
+import { sha256 } from '../../lib/hash';
+import { arrayBufferOf, pdfSigningServices, signField } from '../../lib/pdf-signing';
+import { printedDay } from '../../lib/romanian';
 import { checkToSign } from '../../lib/signed-attributes';
 import { signingAgreementDocx } from './agreement';
 import { type AgreementStateRow, awaits } from './agreement-state';
@@ -31,25 +32,19 @@ const partyLabels: Record<SigningAgreementParty, string> = {
 };
 
 export const agreementNotAwaiting = () =>
-  new ApiError(
-    'conflict',
-    'The signing agreement does not await this signature.',
-    undefined,
-    'agreement_not_awaiting'
+  ApiError.conflict(
+    'agreement_not_awaiting',
+    'The signing agreement does not await this signature.'
   );
 
 const agreementChanged = () =>
-  new ApiError(
-    'conflict',
-    'The signing agreement changed since the code was asked for; ask for a new code.',
-    undefined,
-    'agreement_changed'
+  ApiError.conflict(
+    'agreement_changed',
+    'The signing agreement changed since the code was asked for; ask for a new code.'
   );
 
 const unavailable = (reason: 'pdf_unavailable' | 'signer_unavailable') =>
   new ApiError('service_unavailable', undefined, undefined, reason);
-
-const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
 
 // What the employee is shown is the agreement as drawn up from the template and the merge data;
 // the converted PDF differs on every conversion, so the digest is of what goes into it.
@@ -151,7 +146,7 @@ export async function signAgreement(
     ? { organization_id: row.organization_id, archived_at: row.clients.archived_at }
     : await clientOfEmployee(admin, clientId, employeeId);
   if (client.archived_at) {
-    throw new ApiError('conflict', undefined, undefined, 'client_archived');
+    throw archivedClientError();
   }
 
   const ctx = pdfSigningServices(c);
@@ -165,7 +160,7 @@ export async function signAgreement(
     if (agreement.digest !== input.digest) throw agreementChanged();
     const form = await ctx.pdf.convertForm(agreement.docx);
     before = new Uint8Array(
-      await signerService.prepareSheet(buffer(form), Object.values(agreementSignatureFields))
+      await signerService.prepareSheet(arrayBufferOf(form), Object.values(agreementSignatureFields))
     );
   } else {
     before = await ctx.files.readDocument(row!.storage_path!);
@@ -187,8 +182,8 @@ export async function signAgreement(
   const identity = await identities.identityFor(signer.accountId, input.accountName);
   const signedAt = new Date();
   before = new Uint8Array(
-    await signerService.fillFields(buffer(before), {
-      [agreementDateFields[party]]: signedOn(signedAt),
+    await signerService.fillFields(arrayBufferOf(before), {
+      [agreementDateFields[party]]: printedDay(signedAt),
     })
   );
   const signed = await signField(

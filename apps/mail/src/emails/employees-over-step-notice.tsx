@@ -1,19 +1,17 @@
 import type { EmployeesOverStepNoticeEmail } from '@ssm-usor/contracts/mail';
-import { countOf } from '@ssm-usor/contracts/romanian';
+import { countOf, printedDate } from '@ssm-usor/contracts/romanian';
 
 import { Layout } from './_components/layout';
 import { Action, FallbackLink, Paragraph, Title } from './_components/text';
 
 export type EmployeesOverStepNoticeProps = Omit<EmployeesOverStepNoticeEmail, 'to'>;
 
-const printed = (isoDate: string) => isoDate.split('-').reverse().join('.');
-
 export const workers = (count: number) =>
   count === 1 ? 'un lucrător' : countOf(count, 'lucrător', 'lucrători');
 
 export function subject({ kind, lastDay }: EmployeesOverStepNoticeProps) {
   return kind === 'employees_soon'
-    ? `Din ${printed(nextDay(lastDay))} nu mai poți adăuga lucrători noi`
+    ? `Din ${printedDate(nextDay(lastDay))} nu mai poți adăuga lucrători noi`
     : 'Ai mai mulți lucrători decât treapta abonamentului';
 }
 
@@ -27,7 +25,7 @@ export default function EmployeesOverStepNotice(props: EmployeesOverStepNoticePr
   const { kind, organizationName, employees, limit, lastDay, subscriptionUrl } = props;
   const reason = `Primești acest email pentru că ești adminul organizației ${organizationName} în SSM Ușor. Îl trimitem când treci de treaptă și încă o dată cu trei zile înainte de termen.`;
   const counts = `${organizationName} are acum ${workers(employees)} activi la clienții activi, iar treapta abonamentului acoperă ${workers(limit)}.`;
-  const rule = `Poți adăuga lucrători noi până pe ${printed(lastDay)} inclusiv. Dacă după această dată ai tot mai mulți lucrători decât treapta, nu mai poți adăuga lucrători noi, nici clienți cu lucrători, până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți.`;
+  const rule = `Poți adăuga lucrători noi până pe ${printedDate(lastDay)} inclusiv. Dacă după această dată ai tot mai mulți lucrători decât treapta, nu mai poți adăuga lucrători noi, nici clienți cu lucrători, până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți.`;
   const kept =
     'Tot ce ai lucrat merge mai departe: editezi, emiți documente, instruiești și semnezi ca până acum.';
 
@@ -35,14 +33,14 @@ export default function EmployeesOverStepNotice(props: EmployeesOverStepNoticePr
     <Layout
       preview={
         kind === 'employees_soon'
-          ? `Mai poți adăuga lucrători noi până pe ${printed(lastDay)} inclusiv.`
-          : `Poți adăuga lucrători noi până pe ${printed(lastDay)} inclusiv.`
+          ? `Mai poți adăuga lucrători noi până pe ${printedDate(lastDay)} inclusiv.`
+          : `Poți adăuga lucrători noi până pe ${printedDate(lastDay)} inclusiv.`
       }
       reason={reason}
     >
       <Title>
         {kind === 'employees_soon'
-          ? `Mai poți adăuga lucrători noi până pe ${printed(lastDay)}`
+          ? `Mai poți adăuga lucrători noi până pe ${printedDate(lastDay)}`
           : 'Ai trecut de treapta de lucrători'}
       </Title>
       <Paragraph>{counts}</Paragraph>

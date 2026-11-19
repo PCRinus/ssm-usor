@@ -15,7 +15,11 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
-import { createPortalReadClient, participationOf } from '../../lib/participant';
+import {
+  createPortalReadClient,
+  participantEmployee,
+  participationOf,
+} from '../../lib/participant';
 import { requirePdfConverter } from '../../lib/pdf';
 import { collator } from '../../lib/romanian';
 import { mergeBuiltIn } from '../../lib/templates';
@@ -188,11 +192,9 @@ export async function signingAgreementDocx(
   // their codes go.
   const contact = contactOf({ emails: [employee.data.email], phones: [employee.data.phone] });
   if (!contact) {
-    throw new ApiError(
-      'conflict',
-      'The employee has neither an email nor a phone for the signing codes.',
-      undefined,
-      signatureErrorReasons.employeeHasNoAddress
+    throw ApiError.conflict(
+      signatureErrorReasons.employeeHasNoAddress,
+      'The employee has neither an email nor a phone for the signing codes.'
     );
   }
   const row = employee.data;
@@ -404,14 +406,6 @@ async function requireRepresentative(db: DataClient, clientId: string) {
   if (data && representativeMissing(data)) throw noRepresentative(data);
 }
 
-function ownEmployee(c: Context<ApiEnv>, participantId: string) {
-  const participation = participationOf(c, participantId);
-  if (!participation.employeeId) {
-    throw new ApiError('not_found', 'This participant is not an employee of the client.');
-  }
-  return { clientId: participation.clientId, employeeId: participation.employeeId };
-}
-
 export const getPortalSigningAgreement: RouteHandler<
   typeof getPortalSigningAgreementRoute,
   ApiEnv
@@ -420,7 +414,7 @@ export const getPortalSigningAgreement: RouteHandler<
   const drawn = await signingAgreementPdf(
     c,
     createPortalReadClient(c),
-    ownEmployee(c, participantId),
+    participantEmployee(c, participantId),
     createAdminFileStore(c).readTemplate
   );
   return c.body(new Uint8Array(drawn.pdf), 200, pdfHeaders(drawn.fileName));
@@ -432,7 +426,7 @@ export const getPortalSigningAgreementLink: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   return c.json(
-    await storedAgreementLink(c, createPortalReadClient(c), ownEmployee(c, participantId)),
+    await storedAgreementLink(c, createPortalReadClient(c), participantEmployee(c, participantId)),
     200
   );
 };
@@ -442,7 +436,7 @@ export const getPortalSigningAgreementState: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { participantId } = c.req.valid('param');
-  const { clientId, employeeId } = ownEmployee(c, participantId);
+  const { clientId, employeeId } = participantEmployee(c, participantId);
   return c.json(await agreementOf(createPortalReadClient(c), clientId, employeeId), 200);
 };
 

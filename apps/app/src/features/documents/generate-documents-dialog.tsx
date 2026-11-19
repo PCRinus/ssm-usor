@@ -46,7 +46,7 @@ import {
 import { useStartWayBack } from '@/features/missing-data/way-back';
 import { SensitiveGroupsNoneButton } from '@/features/risk-evaluations/sensitive-groups-none-button';
 import { commonFailure } from '@/lib/api-errors';
-import { dateToIso } from '@/lib/dates';
+import { todayIso } from '@/lib/dates';
 
 import {
   appliesAt,
@@ -127,7 +127,7 @@ function GenerateDocumentsForm({
   const form = useForm<GenerateDocumentsFormValues>({
     resolver: zodResolver(generateDocumentsFormSchema(set)),
     defaultValues: {
-      issueDate: lastGeneration?.issueDate ?? dateToIso(new Date()),
+      issueDate: lastGeneration?.issueDate ?? todayIso(),
       firstDecisionNumber: String(lastGeneration?.firstDecisionNumber ?? 1),
       period: String(new Date().getFullYear()),
     },

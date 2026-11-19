@@ -154,11 +154,9 @@ export function fromStripeError(error: Error): Error {
     return new ApiError('unprocessable', error.message, undefined, 'card_declined');
   }
   if (error.type === 'StripeIdempotencyError') {
-    return new ApiError(
-      'conflict',
-      'Another checkout for this organization is under way.',
-      undefined,
-      'checkout_in_progress'
+    return ApiError.conflict(
+      'checkout_in_progress',
+      'Another checkout for this organization is under way.'
     );
   }
   console.error(`Stripe refused a request: ${error.type} ${error.code ?? ''} ${error.message}`);

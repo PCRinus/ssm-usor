@@ -31,6 +31,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { clientObjectBuckets, createAdminFileStore } from '../../lib/files';
 import { listPage, matchingEveryTerm, orderedBy, type SortColumn } from '../../lib/list-page';
+import { sentColumns } from '../../lib/partial-update';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
 import { clientNotFound, requireClient } from './lookup';
 import type {
@@ -414,25 +415,19 @@ async function cuiConflict(db: DataClient, cui: string) {
   const holder = await db.from('clients').select('archived_at, stage').eq('cui', cui).maybeSingle();
   if (holder.error) return fromDatabaseError(holder.error, 'find client by cui');
   if (!holder.data || (holder.data.stage === 'lead' && !holder.data.archived_at)) {
-    return new ApiError(
-      'conflict',
-      'A lead of your organization has this CUI.',
-      undefined,
-      clientConflictReasons.cuiTakenByLead
+    return ApiError.conflict(
+      clientConflictReasons.cuiTakenByLead,
+      'A lead of your organization has this CUI.'
     );
   }
   return holder.data.archived_at
-    ? new ApiError(
-        'conflict',
-        'An archived client of your organization has this CUI.',
-        undefined,
-        clientConflictReasons.cuiTakenByArchived
+    ? ApiError.conflict(
+        clientConflictReasons.cuiTakenByArchived,
+        'An archived client of your organization has this CUI.'
       )
-    : new ApiError(
-        'conflict',
-        'A client with this CUI already exists in your organization.',
-        undefined,
-        clientConflictReasons.cuiTaken
+    : ApiError.conflict(
+        clientConflictReasons.cuiTaken,
+        'A client with this CUI already exists in your organization.'
       );
 }
 
@@ -490,13 +485,13 @@ export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = asyn
       county_code: body.countyCode ?? null,
       locality: body.locality ?? null,
       address_line: body.addressLine ?? null,
-      // A client's form no longer asks for it; what its lead declared stays.
-      ...(body.declaredEmployeeCount !== undefined && {
+      ...sentColumns({
+        // A client's form no longer asks for it; what its lead declared stays.
         declared_employee_count: body.declaredEmployeeCount,
+        contact_name: body.contactName,
+        contact_email: body.contactEmail,
+        contact_phone: body.contactPhone,
       }),
-      ...(body.contactName !== undefined && { contact_name: body.contactName }),
-      ...(body.contactEmail !== undefined && { contact_email: body.contactEmail }),
-      ...(body.contactPhone !== undefined && { contact_phone: body.contactPhone }),
     })
     .eq('id', clientId)
     .is('archived_at', null)
@@ -509,11 +504,9 @@ export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = asyn
   }
   if (data) return c.json(clientResponse(c, toClient(data)), 200);
   await requireClient(db, clientId);
-  throw new ApiError(
-    'conflict',
-    'An archived client is not edited.',
-    undefined,
-    clientConflictReasons.clientArchived
+  throw ApiError.conflict(
+    clientConflictReasons.clientArchived,
+    'An archived client is not edited.'
   );
 };
 
@@ -550,11 +543,9 @@ export const restoreClient: RouteHandler<typeof restoreClientRoute, ApiEnv> = as
 };
 
 const clientNotArchived = () =>
-  new ApiError(
-    'conflict',
-    'Only an archived client is deleted; archive it first.',
-    undefined,
-    clientConflictReasons.clientNotArchived
+  ApiError.conflict(
+    clientConflictReasons.clientNotArchived,
+    'Only an archived client is deleted; archive it first.'
   );
 
 // The function runs with the secret key, since only this route decides who may delete, so the

@@ -3,6 +3,7 @@ import type { Context } from 'hono';
 import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { hex } from '../../lib/hash';
 import {
   identityFor,
   type IdentityStore,
@@ -16,8 +17,7 @@ const identityColumns =
   'account_id, subject_name, certificate_pem, certificate_serial, private_key_encrypted, key_version, not_before, not_after';
 
 // PostgREST reads and writes bytea as hex text with a `\x` prefix.
-const toByteaHex = (bytes: Uint8Array) =>
-  `\\x${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+const toByteaHex = (bytes: Uint8Array) => `\\x${hex(bytes)}`;
 
 function fromByteaHex(text: string) {
   const hex = text.startsWith('\\x') ? text.slice(2) : text;

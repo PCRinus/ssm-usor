@@ -13,6 +13,7 @@ import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError, failureLabel } from '../../lib/errors';
 import { signedSheetContext, syncResultRows } from '../signed-sheets/signed-sheets';
+import { resultExaminer } from '../signing/printed-signers';
 import { summaryOf, testSheetSummaries } from '../test-sheets/test-sheets';
 
 type Tables = Database['public']['Tables'];
@@ -87,10 +88,7 @@ export function toTestResult(
     takenOn: row.taken_on,
     material: row.material,
     grade: 'admis',
-    examiner:
-      row.examiner_name !== null && row.examiner_job_title !== null
-        ? { name: row.examiner_name, jobTitle: row.examiner_job_title }
-        : null,
+    examiner: resultExaminer(row),
     source: row.source,
     attemptId: row.attempt_id,
     createdAt: row.created_at,

@@ -16,10 +16,9 @@ import {
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import { bearerSecurity, employeeParams, errorContent, membershipErrors } from '../../lib/openapi';
 
 const questionParams = z.object({ questionId: z.uuid() });
-const employeeParams = z.object({ clientId: z.uuid(), employeeId: z.uuid() });
 const resultParams = employeeParams.extend({ resultId: z.uuid() });
 
 const questionContent = {

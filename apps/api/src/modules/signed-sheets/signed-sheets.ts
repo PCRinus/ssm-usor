@@ -16,10 +16,11 @@ import {
 import type { Context } from 'hono';
 
 import { createLastingAdminClient } from '../../lib/admin-db';
-import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError, failureLabel } from '../../lib/errors';
+import { sha256 } from '../../lib/hash';
 import {
+  arrayBufferOf,
   type PdfSigningServices,
   pdfSigningServices,
   rewriteVersioned,
@@ -108,8 +109,6 @@ function need<T>(service: T | null, unavailable: () => ApiError): T {
   return service;
 }
 
-const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
-
 /** SHA-256 of a row's values, the same whatever order they were built in. */
 export function rowDigest(values: Record<string, string>) {
   const sorted = Object.keys(values)
@@ -127,27 +126,18 @@ function storagePathOf(
 }
 
 const sheetBusy = () =>
-  new ApiError(
-    'conflict',
-    'The training sheet changed while it was being written. Try again.',
-    undefined,
-    'sheet_busy'
+  ApiError.conflict(
+    'sheet_busy',
+    'The training sheet changed while it was being written. Try again.'
   );
 
 const notOnSheet = () =>
-  new ApiError(
-    'conflict',
-    'The training record has no row on a signed sheet.',
-    undefined,
-    'record_not_on_sheet'
-  );
+  ApiError.conflict('record_not_on_sheet', 'The training record has no row on a signed sheet.');
 
 const rowLocked = () =>
-  new ApiError(
-    'conflict',
-    "A signature on the sheet holds the record's row as it was; void the record's signatures to correct it.",
-    undefined,
-    'row_locked'
+  ApiError.conflict(
+    'row_locked',
+    "A signature on the sheet holds the record's row as it was; void the record's signatures to correct it."
   );
 
 async function forget(ctx: SignedSheetContext, path: string) {
@@ -197,7 +187,7 @@ async function rewriteSheet(
       if (notes.length > 0) {
         const values = Object.fromEntries(notes.map(({ note }) => [note, voidedNote]));
         bytes = new Uint8Array(
-          await need(ctx.signer, signerUnavailable).fillFields(buffer(bytes), values)
+          await need(ctx.signer, signerUnavailable).fillFields(arrayBufferOf(bytes), values)
         );
       }
       return { ...(await rewrite(sheet, bytes)), notes };
@@ -232,11 +222,9 @@ async function createSheet(
   const facts = await ctx.sheetFacts(owner.clientId, employeeId);
   const missing = missingSheetDataOf({ ...facts, domain });
   if (missing.length > 0) {
-    throw new ApiError(
-      'conflict',
-      `The sheet cannot be drawn up without: ${missing.map((code) => missingSheetDataLabels[code]).join(', ')}.`,
-      undefined,
-      'missing_sheet_data'
+    throw ApiError.conflict(
+      'missing_sheet_data',
+      `The sheet cannot be drawn up without: ${missing.map((code) => missingSheetDataLabels[code]).join(', ')}.`
     );
   }
   const docx = await ctx.drawForm(
@@ -247,11 +235,11 @@ async function createSheet(
   const pdf = await need(ctx.pdf, pdfUnavailable).convertForm(docx);
   const signer = need(ctx.signer, signerUnavailable);
   let prepared = new Uint8Array(
-    await signer.prepareSheet(buffer(pdf), signatureFieldsOf(domain, printed))
+    await signer.prepareSheet(arrayBufferOf(pdf), signatureFieldsOf(domain, printed))
   );
   if (printed.length > 0 && form >= sheetForms.transcribing) {
     prepared = new Uint8Array(
-      await signer.fillFields(buffer(prepared), {
+      await signer.fillFields(arrayBufferOf(prepared), {
         [transcriptionLineField]: transcriptionLine,
       })
     );
@@ -455,7 +443,7 @@ async function fillRows(
     return table?.table === 'p' ? [table.index] : [];
   });
   const { after } = await rewriteSheet(ctx, sheetId, async (sheet, bytes) => ({
-    bytes: new Uint8Array(await signer.fillFields(buffer(bytes), values)),
+    bytes: new Uint8Array(await signer.fillFields(arrayBufferOf(bytes), values)),
     changes: periodic.length > 0 ? { rowsUsed: Math.max(sheet.rowsUsed, ...periodic) } : undefined,
   }));
   for (const { row, values: own } of rows) {
@@ -717,11 +705,9 @@ export async function applySignature(
   if (!live) throw notOnSheet();
   const field = signatureFieldOf(record.domain, live.rowKey, slot);
   if (!field) {
-    throw new ApiError(
-      'conflict',
-      `The ${record.domain} sheet has no signature for the ${slot} of this record.`,
-      undefined,
-      'slot_not_on_sheet'
+    throw ApiError.conflict(
+      'slot_not_on_sheet',
+      `The ${record.domain} sheet has no signature for the ${slot} of this record.`
     );
   }
   const service = need(ctx.signer, signerUnavailable);

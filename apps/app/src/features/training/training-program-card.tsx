@@ -1,4 +1,8 @@
-import { offeredTrainingInterval, type StaffCategory } from '@ssm-usor/contracts';
+import {
+  offeredTrainingInterval,
+  type StaffCategory,
+  trainingIntervalLabel,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
@@ -20,7 +24,7 @@ import {
   useDocumentDetails,
   useDocumentDetailsForm,
 } from '@/features/clients/document-details/use-document-details-form';
-import { intervalLabel, type JobPosition } from '@/features/job-positions/job-position-schema';
+import { type JobPosition } from '@/features/job-positions/job-position-schema';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { useFocusRequest } from '@/features/missing-data/focus';
 
@@ -263,7 +267,7 @@ function TrainingProgramSummary({
             {exceptions.map((position) => (
               <li key={position.id} className="flex flex-wrap items-baseline gap-x-2">
                 <span className="font-medium">{position.name}</span>
-                <span>{intervalLabel(position.trainingIntervalMonths!)}</span>
+                <span>{trainingIntervalLabel(position.trainingIntervalMonths!)}</span>
                 <span className="text-muted-foreground">
                   {trainingMonthsText(
                     program.firstMonth,
@@ -291,12 +295,13 @@ function OwnIntervalNote({
 }) {
   if (positions.length === 0) return null;
   const names = positions.map(
-    (position) => `${position.name.trim()} (${intervalLabel(position.trainingIntervalMonths!)})`
+    (position) =>
+      `${position.name.trim()} (${trainingIntervalLabel(position.trainingIntervalMonths!)})`
   );
   return (
     <p className="text-xs text-muted-foreground">
       {positions.length === 1
-        ? `${positions[0]!.name.trim()} are interval propriu, ${intervalLabel(positions[0]!.trainingIntervalMonths!)}. Îl schimbi din `
+        ? `${positions[0]!.name.trim()} are interval propriu, ${trainingIntervalLabel(positions[0]!.trainingIntervalMonths!)}. Îl schimbi din `
         : `${names.join(', ')} au interval propriu. Le schimbi din `}
       <PositionsLink clientId={clientId} />.
     </p>

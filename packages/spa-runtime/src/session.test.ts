@@ -2,12 +2,15 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createQueryClientDefaults } from './query-client';
+import { createQueryClient, createQueryClientDefaults } from './query-client';
 import {
   createSessionStore,
+  createSupabaseClient,
   invalidateOnSessionChange,
   type SessionClient,
   type SessionStore,
+  unreachable,
+  verifiedTotp,
 } from './session';
 
 function makeSession(id = 'user-one'): Session {
@@ -266,5 +269,48 @@ describe('query defaults', () => {
 
   it('never retries a change', () => {
     expect(createQueryClientDefaults().mutations?.retry).toBe(false);
+  });
+
+  it('gives a new client these defaults', () => {
+    expect(createQueryClient().getDefaultOptions()).toMatchObject({
+      queries: { staleTime: 30_000, retry: expect.any(Function) },
+      mutations: { retry: false },
+    });
+  });
+});
+
+describe('Supabase helpers', () => {
+  const url = 'https://project.supabase.example';
+
+  it.each([
+    ['no address', { url: undefined, publishableKey: 'sb_publishable_x' }],
+    ['a blank key', { url, publishableKey: '  ' }],
+    ['a secret key', { url, publishableKey: 'sb_secret_x' }],
+    ['an address it cannot parse', { url: 'not a url', publishableKey: 'sb_publishable_x' }],
+  ])('makes no client with %s', (_, config) => {
+    expect(createSupabaseClient(config)).toBeNull();
+  });
+
+  it('makes a client from a publishable key', () => {
+    expect(
+      createSupabaseClient({ url: ` ${url} `, publishableKey: ' sb_publishable_x ' })
+    ).not.toBeNull();
+  });
+
+  it('tells a request that got no answer from a refusal', () => {
+    expect(unreachable({ message: 'Failed to fetch', status: 0 })).toBe(true);
+    expect(unreachable({ message: 'Invalid code', status: 403 })).toBe(false);
+    expect(unreachable({ message: 'Unknown' })).toBe(false);
+  });
+
+  it('finds only a verified authenticator app', () => {
+    const factor = (id: string, factor_type: 'totp' | 'phone', status: 'verified' | 'unverified') =>
+      ({ id, factor_type, status, created_at: '', updated_at: '' }) as const;
+    const session = makeSession();
+    expect(verifiedTotp(session)).toBeUndefined();
+    session.user.factors = [factor('a', 'totp', 'unverified'), factor('b', 'phone', 'verified')];
+    expect(verifiedTotp(session)).toBeUndefined();
+    session.user.factors.push(factor('c', 'totp', 'verified'));
+    expect(verifiedTotp(session)?.id).toBe('c');
   });
 });

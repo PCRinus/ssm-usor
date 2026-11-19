@@ -96,7 +96,7 @@ function validity(minutes: number, language: Language) {
     if (minutes === 60) return 'o ora';
     if (minutes % 60 === 0) return `${minutes / 60} ore`;
     if (minutes === 1) return 'un minut';
-    return minutes < 20 ? `${minutes} minute` : `${minutes} de minute`;
+    return countOf(minutes, 'minut', 'minute');
   }
   if (minutes === 60) return '1 hour';
   if (minutes % 60 === 0) return `${minutes / 60} hours`;

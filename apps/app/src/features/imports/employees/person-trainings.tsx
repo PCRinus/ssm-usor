@@ -1,5 +1,7 @@
 import {
   countOf,
+  inMinutesRange,
+  minutesRange,
   type SupplementaryTrainingReason,
   supplementaryTrainingReasonLabels,
   supplementaryTrainingReasons,
@@ -982,8 +984,7 @@ function RowDialog({
   const [material, setMaterial] = useState(values.material ?? '');
   const [reason, setReason] = useState(values.supplementaryReason ?? '');
   const durationInvalid =
-    duration !== '' &&
-    !(/^\d+$/.test(duration) && Number(duration) >= 1 && Number(duration) <= 600);
+    duration !== '' && !(/^\d+$/.test(duration) && inMinutesRange(Number(duration)));
   const text = (value: string) => (value.trim() === '' ? null : value.trim());
 
   function submit(event: FormEvent) {
@@ -1024,7 +1025,10 @@ function RowDialog({
               mark="optional"
               error={
                 durationInvalid
-                  ? { type: 'range', message: 'Scrie un număr de minute între 1 și 600.' }
+                  ? {
+                      type: 'range',
+                      message: `Scrie un număr de minute între ${minutesRange.min} și ${minutesRange.max}.`,
+                    }
                   : undefined
               }
             >

@@ -4,7 +4,7 @@ import type Stripe from 'stripe';
 import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, errorMessage } from '../../lib/errors';
 import { later } from '../../lib/later';
 import { handleChargeRefunded, handleInvoicePaid } from './invoices';
 import { type BillingAlerts, billingAlerts } from './operator-alerts';
@@ -206,7 +206,7 @@ export async function stripeWebhook(c: Context<ApiEnv>) {
     const delivery = { eventId: event.id, redelivered: claimed === 'retry' };
     await handleEvent({ env: c.env, db, access, catalogue, event, alerts, delivery });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     console.error(`Stripe event ${event.id} (${event.type}) failed: ${message}`);
     await db
       .from('stripe_events')

@@ -32,6 +32,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { listPage, orderedBy } from '../../lib/list-page';
+import { toIsoOrNull } from '../../lib/timestamps';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
 import { requireClient, requireWritableClient } from '../clients/lookup';
 import { refuseWorkplaceOfAnotherClient } from '../document-data/workplaces';
@@ -202,19 +203,15 @@ function employeeFields(body: CreateEmployeeRequest) {
 
 function conflictError(detail: string | undefined) {
   if (detail?.includes('employees_client_cnp_key')) {
-    return new ApiError(
-      'conflict',
-      'A current employee of this client already has this CNP.',
-      undefined,
-      employeeConflictReasons.cnpTaken
+    return ApiError.conflict(
+      employeeConflictReasons.cnpTaken,
+      'A current employee of this client already has this CNP.'
     );
   }
   if (detail?.includes('employees_client_employee_number_key')) {
-    return new ApiError(
-      'conflict',
-      'A current employee of this client already has this number.',
-      undefined,
-      employeeConflictReasons.numberTaken
+    return ApiError.conflict(
+      employeeConflictReasons.numberTaken,
+      'A current employee of this client already has this number.'
     );
   }
   return new ApiError('conflict', 'This employee conflicts with an existing one.');
@@ -273,18 +270,15 @@ type PortalViewColumns = Pick<
 // The database refuses a resend inside this window (PRT05).
 const RESEND_AFTER_MS = 10 * 60 * 1000;
 
-const isoOrNull = (value: string | null | undefined) =>
-  value ? new Date(value).toISOString() : null;
-
 export function toPortalAccess(row: Partial<PortalViewColumns>): EmployeePortalAccess {
   const state = (row.portal_state ?? 'none') as PortalAccessState;
   const pending = state === 'invited' || state === 'expired';
-  const since = isoOrNull(row.portal_since);
+  const since = toIsoOrNull(row.portal_since);
   return {
     state,
     since: state === 'revoked' ? null : since,
-    expiresAt: pending ? isoOrNull(row.portal_expires_at) : null,
-    revokedAt: state === 'revoked' ? isoOrNull(row.portal_revoked_at) : null,
+    expiresAt: pending ? toIsoOrNull(row.portal_expires_at) : null,
+    revokedAt: state === 'revoked' ? toIsoOrNull(row.portal_revoked_at) : null,
     resendableAt:
       pending && since ? new Date(Date.parse(since) + RESEND_AFTER_MS).toISOString() : null,
     channel: (row.portal_channel as ParticipantChannel | null) ?? null,

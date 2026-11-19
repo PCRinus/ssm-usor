@@ -1,3 +1,4 @@
+import { useSecondsLeft } from '@ssm-usor/spa-runtime/countdown';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -7,7 +8,6 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { CircleCheck, Hourglass, RotateCw } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
 import {
   type ReloadDialogState,
@@ -15,17 +15,6 @@ import {
   useReloadDialogState,
 } from './reload-dialog-store';
 import { reloadDialogText } from './reload-text';
-
-function useSecondsLeft(until: number | null) {
-  const [now, setNow] = useState(() => Date.now());
-  const waiting = until !== null && now < until;
-  useEffect(() => {
-    if (!waiting) return;
-    const timer = setInterval(() => setNow(Date.now()), 1_000);
-    return () => clearInterval(timer);
-  }, [waiting]);
-  return waiting ? Math.ceil((until - now) / 1_000) : 0;
-}
 
 const countdown = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;

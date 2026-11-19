@@ -19,7 +19,7 @@ import { z } from 'zod';
 import type { AdminClient } from '../../lib/admin-db';
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import type { RegenerationQueue } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, errorMessage } from '../../lib/errors';
 import type { Actor } from './rows';
 
 const typeOrder = new Map<string, number>(
@@ -225,11 +225,9 @@ async function openJob(
     p_client_ids: clientIds,
   });
   if (started.error?.code === '23505') {
-    throw new ApiError(
-      'conflict',
-      'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.',
-      undefined,
-      'regeneration_running'
+    throw ApiError.conflict(
+      'regeneration_running',
+      'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.'
     );
   }
   if (started.error) throw fromDatabaseError(started.error, 'start regeneration job');
@@ -247,7 +245,7 @@ async function openJob(
     // A job whose clients never reach the queue would hold the type for an hour. Messages
     // already sent find no item and are dropped.
     console.error(
-      `Regeneration job ${jobId} could not be queued: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Regeneration job ${jobId} could not be queued: ${errorMessage(error, 'unknown error')}`
     );
     const removed = await admin.from('regeneration_jobs').delete().eq('id', jobId);
     if (removed.error) console.error(`Regeneration job ${jobId} stays open: ${removed.error.code}`);
@@ -280,20 +278,13 @@ export async function startRegeneration(
     'documents behind of a type'
   );
   if (behind.length === 0) {
-    throw new ApiError(
-      'conflict',
-      'Niciun client nu are acest document în urmă.',
-      undefined,
-      'nothing_behind'
-    );
+    throw ApiError.conflict('nothing_behind', 'Niciun client nu are acest document în urmă.');
   }
   const clientIds = regenerable(behind);
   if (clientIds.length === 0) {
-    throw new ApiError(
-      'conflict',
-      'Fiecare ciornă a acestui document e editată de mână. Regenerează-le de pe pagina fiecărui client.',
-      undefined,
-      'nothing_behind'
+    throw ApiError.conflict(
+      'nothing_behind',
+      'Fiecare ciornă a acestui document e editată de mână. Regenerează-le de pe pagina fiecărui client.'
     );
   }
   return readRegenerationJob(db, await openJob(admin, queue, actor, typeKey, clientIds));
@@ -341,11 +332,9 @@ export async function startSetRegeneration(
         a.typeKey.localeCompare(b.typeKey)
     );
   if (todo.length === 0) {
-    throw new ApiError(
-      'conflict',
-      'Niciun document nu are ce regenera: ce a rămas în urmă sunt ciorne editate de mână.',
-      undefined,
-      'nothing_behind'
+    throw ApiError.conflict(
+      'nothing_behind',
+      'Niciun document nu are ce regenera: ce a rămas în urmă sunt ciorne editate de mână.'
     );
   }
 
@@ -380,11 +369,9 @@ export async function startSetRegeneration(
     }
   }
   if (started.length === 0) {
-    throw new ApiError(
-      'conflict',
-      'Documentele se regenerează deja. Așteaptă să se termine.',
-      undefined,
-      'regeneration_running'
+    throw ApiError.conflict(
+      'regeneration_running',
+      'Documentele se regenerează deja. Așteaptă să se termine.'
     );
   }
   return { jobs: [...already, ...started], notStarted };

@@ -1,3 +1,5 @@
+import { printedDate } from '@ssm-usor/contracts/romanian';
+
 import { Layout } from './_components/layout';
 import { Action, FallbackLink, Paragraph, Title } from './_components/text';
 
@@ -10,8 +12,6 @@ export type SignedCopyReceivedProps = {
 };
 
 export const subject = (clientName: string) => `Exemplar semnat primit – ${clientName}`;
-
-const printedDate = (isoDate: string) => isoDate.split('-').reverse().join('.');
 
 // To the owner who sent a contract: the copy is in the app, waiting to be looked at.
 export default function SignedCopyReceived({

@@ -21,12 +21,12 @@ import {
   clientNotFoundResponse,
   clientParams,
   errorContent,
+  jobPositionParams,
   membershipErrors,
 } from '../../lib/openapi';
 
 const evaluationParams = clientParams.extend({ evaluationId: z.uuid() });
 const factorParams = evaluationParams.extend({ factorId: z.uuid() });
-const positionParams = clientParams.extend({ jobPositionId: z.uuid() });
 
 const noSuchEvaluation = {
   description: 'The evaluation does not exist under this client',
@@ -182,7 +182,7 @@ export const getJobPositionRiskEvaluationRoute = createRoute({
     'The same as reading the evaluation by its id; `evaluation` is null until one is started.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: positionParams },
+  request: { params: jobPositionParams },
   responses: {
     200: {
       description: 'The evaluation, or null',

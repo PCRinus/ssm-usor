@@ -2,6 +2,7 @@ import { smsOverage } from '@ssm-usor/contracts';
 
 import { adminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
+import { errorMessage } from '../../lib/errors';
 import { type MeterDeps, meterReporter } from '../billing/meter-reports';
 import { stripeFor } from '../billing/stripe';
 
@@ -21,10 +22,8 @@ const overageMeter = meterReporter({
   },
 });
 
-export const reportOverage = (deps: MeterDeps, send: OverageSend) =>
+const reportOverage = (deps: MeterDeps, send: OverageSend) =>
   overageMeter.report(deps, { id: send.id, at: send.sentAt, customerId: send.customerId });
-
-export const retryOverageReports = overageMeter.retry;
 
 export const scheduledOverageReports = overageMeter.scheduled;
 
@@ -33,7 +32,7 @@ export function reportOverageLater(env: ApiEnv['Bindings'], send: OverageSend) {
     try {
       await reportOverage({ db: adminClient(env), stripe: stripeFor(env).stripe }, send);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = errorMessage(error);
       console.error(`SMS overage ${send.id} not reported yet: ${message}`);
     }
   })();

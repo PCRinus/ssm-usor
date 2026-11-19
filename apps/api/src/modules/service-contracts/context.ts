@@ -3,11 +3,11 @@ import {
   countOf,
   formatCui,
   formatIban,
+  printedDate,
   type ServiceContract,
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { printedDate } from '../../lib/romanian';
 import type { ServiceContractFacts } from './facts';
 
 // What the starter template of the service contract is merged with. The readiness check

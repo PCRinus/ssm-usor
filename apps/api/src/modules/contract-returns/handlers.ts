@@ -12,7 +12,7 @@ import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import { hashToken } from '../../lib/tokens';
-import { recordSignedCopy } from '../documents/revisions';
+import { recordSignedCopy, requireSignedCopy } from '../documents/revisions';
 import { contractFileName } from '../service-contracts/context';
 import type {
   downloadContractReturnRoute,
@@ -21,8 +21,6 @@ import type {
 } from './routes';
 
 const maxUploads = 20;
-const maxBytes = 15 * 1024 * 1024;
-const pdfSignature = new TextEncoder().encode('%PDF-');
 
 // Everything the send points at, one step at a time: the embeds between these tables need
 // their relationship names, and a wrong one is only found against a real database.
@@ -125,11 +123,9 @@ async function respond(found: Found): Promise<ContractReturnResponse> {
 }
 
 const closed = () =>
-  new ApiError(
-    'conflict',
-    'This link no longer takes a signed copy.',
-    undefined,
-    contractReturnConflictReasons.closed
+  ApiError.conflict(
+    contractReturnConflictReasons.closed,
+    'This link no longer takes a signed copy.'
   );
 
 export const lookupContractReturn: RouteHandler<typeof lookupContractReturnRoute, ApiEnv> = async (
@@ -162,20 +158,13 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
   const found = await findSend(c, token);
   if (found.status !== 'open' && found.status !== 'received') throw closed();
   if (found.send.return_uploads >= maxUploads) {
-    throw new ApiError(
-      'conflict',
-      'This link has taken as many files as it will.',
-      undefined,
-      contractReturnConflictReasons.tooManyUploads
+    throw ApiError.conflict(
+      contractReturnConflictReasons.tooManyUploads,
+      'This link has taken as many files as it will.'
     );
   }
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (bytes.length === 0 || bytes.length > maxBytes) {
-    throw new ApiError('validation_error', 'The file is empty or larger than 15 MB.');
-  }
-  if (!pdfSignature.every((byte, index) => bytes[index] === byte)) {
-    throw new ApiError('validation_error', 'The signed copy is a PDF.');
-  }
+  requireSignedCopy(bytes);
 
   const { admin, send, revision } = found;
   // The counter goes up before the file so that a failing upload still counts as a try.

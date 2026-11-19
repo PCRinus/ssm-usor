@@ -1,18 +1,12 @@
 import type { SignerService } from '@ssm-usor/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import { sha256 } from './docx';
 import { ApiError } from './errors';
-import { rewriteVersioned, signedOn, signField } from './pdf-signing';
+import { sha256 } from './hash';
+import { rewriteVersioned, signField } from './pdf-signing';
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 const text = (buffer: ArrayBuffer | Uint8Array) => new TextDecoder().decode(buffer);
-
-describe('signedOn', () => {
-  it("prints the day in Romania's time zone", () => {
-    expect(signedOn(new Date('2026-10-17T22:30:00Z'))).toBe('18.10.2026');
-  });
-});
 
 describe('a signature field signed', () => {
   it('begins with the standard appearance, signs what the signer prepared and finishes the same session', async () => {

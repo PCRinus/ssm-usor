@@ -1,7 +1,20 @@
 import { SigningAgreementDataError } from '@ssm-usor/document-engine';
 import { describe, expect, it } from 'vitest';
 
-import { ApiError, failureLabel, fromEngineError } from './errors';
+import { ApiError, errorMessage, failureLabel, fromEngineError } from './errors';
+
+describe('errorMessage', () => {
+  it("is an error's message, or the thrown value as text", () => {
+    expect(errorMessage(new TypeError('fetch failed'))).toBe('fetch failed');
+    expect(errorMessage('timeout')).toBe('timeout');
+    expect(errorMessage(undefined)).toBe('undefined');
+  });
+
+  it('is the fallback for what is not an error, when the caller gives one', () => {
+    expect(errorMessage({ code: 'x' }, 'unknown')).toBe('unknown');
+    expect(errorMessage(new Error('down'), 'unknown')).toBe('down');
+  });
+});
 
 describe('fromEngineError', () => {
   it('answers a signing agreement without the representative as the data it lacks', () => {

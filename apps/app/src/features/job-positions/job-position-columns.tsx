@@ -1,3 +1,4 @@
+import { trainingIntervalLabel } from '@ssm-usor/contracts';
 import { Link } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 
@@ -18,7 +19,7 @@ import {
 import { DecisionBadge } from './decision-badge';
 import { PositionMenu, StateLink, WorkersCell } from './job-position-cells';
 import type { JobPositionRow } from './job-position-list';
-import { intervalLabel, type JobPosition, staffCategoryShortLabels } from './job-position-schema';
+import { type JobPosition, staffCategoryShortLabels } from './job-position-schema';
 import { positionSections } from './position-sections';
 
 const helper = createDataTableColumns<JobPositionRow>();
@@ -36,7 +37,8 @@ export function positionFacts(position: JobPosition) {
   return [
     staffCategoryShortLabels[position.staffCategory],
     position.workZone,
-    interval && (interval === 1 ? 'instruire lunară' : `instruire ${intervalLabel(interval)}`),
+    interval &&
+      (interval === 1 ? 'instruire lunară' : `instruire ${trainingIntervalLabel(interval)}`),
   ]
     .filter(Boolean)
     .join(' · ');

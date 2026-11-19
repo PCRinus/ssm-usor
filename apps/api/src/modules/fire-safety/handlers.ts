@@ -879,11 +879,9 @@ export const updateFireSubstancesState: RouteHandler<
         .single(),
     refusal: (error) =>
       error.code === 'SUB01'
-        ? new ApiError(
-            'conflict',
-            'The client has dangerous substances listed; delete them before saying it uses none.',
-            undefined,
-            'substances_listed'
+        ? ApiError.conflict(
+            'substances_listed',
+            'The client has dangerous substances listed; delete them before saying it uses none.'
           )
         : fromDatabaseError(error, 'update fire substances state'),
   });
@@ -917,11 +915,9 @@ export const createFireSubstance: RouteHandler<typeof createFireSubstanceRoute, 
     .select(substanceColumns)
     .single();
   if (error?.code === 'SUB02') {
-    throw new ApiError(
-      'conflict',
-      'The client does not list its dangerous substances; say it uses some first.',
-      undefined,
-      'substances_not_listed'
+    throw ApiError.conflict(
+      'substances_not_listed',
+      'The client does not list its dangerous substances; say it uses some first.'
     );
   }
   if (error) throw fromDatabaseError(error, 'create fire substance');

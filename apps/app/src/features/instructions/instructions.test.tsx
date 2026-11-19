@@ -353,6 +353,11 @@ describe('the instruction library', () => {
     );
     expect(within(rows[0]!).getByTestId('instruction-usage').textContent).toBe('—');
     expect(screen.getByTestId('instruction-count').textContent).toBe('3 instrucțiuni');
+    const toolbar = screen.getByTestId('instruction-toolbar');
+    expect(screen.getByTestId('instruction-library-ssm').contains(toolbar)).toBe(true);
+    expect(screen.getAllByTestId('instruction-write')).toEqual([
+      within(toolbar).getByTestId('instruction-write'),
+    ]);
   });
 
   it('shows the archived ones on their own tab, kept in the address', async () => {
@@ -380,12 +385,12 @@ describe('the instruction library', () => {
     expect(screen.queryByTestId('instruction-edit')).toBeNull();
   });
 
-  it('says when there is nothing archived', async () => {
+  it('says when there is nothing archived, and offers no new instruction there', async () => {
     mockInstructionsApi();
     mountApp(authFixture(makeSession()).client, '/instructiuni/ssm?status=archived');
-    expect((await screen.findByTestId('instruction-empty')).textContent).toContain(
-      'Nicio instrucțiune proprie SSM arhivată'
-    );
+    const empty = await screen.findByTestId('instruction-empty');
+    expect(empty.textContent).toContain('Nicio instrucțiune proprie SSM arhivată');
+    expect(screen.queryByTestId('instruction-write')).toBeNull();
   });
 
   it('reads status=active in the address as the active tab', async () => {
@@ -1623,6 +1628,29 @@ describe('searching and filtering the instruction library', () => {
     expect(clear.textContent).toBe('Șterge căutarea');
     await userEvent.setup().click(clear);
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('shows no empty-tab message and one Scrie o instrucțiune while a cleared search loads', async () => {
+    mockInstructionsApi();
+    const answer = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/instruction-modules' && !url.searchParams.has('q')) await held;
+      return answer(input, init);
+    });
+    const runtime = mount('/instructiuni/ssm?q=stivuitor');
+    const empty = await screen.findByTestId('instruction-empty-filtered');
+    await userEvent.setup().click(within(empty).getByTestId('instruction-empty-clear'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    expect(screen.queryByTestId('instruction-empty')).toBeNull();
+    expect(screen.getAllByTestId('instruction-write')).toHaveLength(1);
+    release();
+    await screen.findAllByTestId('instruction-row');
+    expect(screen.getAllByTestId('instruction-write')).toHaveLength(1);
   });
 
   it('moves Scrie o instrucțiune into the message while the tab has none, with no search, filters or count', async () => {

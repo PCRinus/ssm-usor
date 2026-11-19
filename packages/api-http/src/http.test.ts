@@ -373,7 +373,7 @@ describe('uploading a file', () => {
 describe('reading an error body', () => {
   it('reads the fields of a JSON object body', () => {
     const error = new ApiHttpError(409, { error: 'conflict', reason: 'client_archived' });
-    expect(apiErrorBody<{ error: string; reason: string }>(error)).toEqual({
+    expect(apiErrorBody(error)).toEqual({
       error: 'conflict',
       reason: 'client_archived',
     });

@@ -20,8 +20,8 @@ import {
   sortingSystemPrompt,
 } from '@ssm-usor/import';
 
-import { sha256 } from '../../lib/docx';
 import type { ImportMessage } from '../../lib/env';
+import { sha256 } from '../../lib/hash';
 import {
   ask,
   failImport,

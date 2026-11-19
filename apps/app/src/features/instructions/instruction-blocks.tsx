@@ -197,8 +197,7 @@ function SuggestionText({ title, hint }: { title: string; hint?: string }) {
 
 const suggestionsLabel = 'Din structura propusă';
 
-const addSectionClass =
-  'h-12 w-full border-dashed bg-transparent font-semibold shadow-none dark:bg-transparent';
+const addSectionClass = 'h-12 w-full font-semibold';
 
 const addSectionLabel = (
   <>
@@ -643,7 +642,7 @@ export function InstructionBlocks({
                 )}
                 <div className="grid grid-cols-2 gap-2 sm:flex">
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     className={cn(!example && 'col-span-2')}
                     data-testid="instruction-section-write-first"
                     aria-label="Scrie primul articol"
@@ -663,7 +662,7 @@ export function InstructionBlocks({
                 </ol>
                 <div className="flex flex-wrap gap-2 px-4 pb-4 sm:pr-5 sm:pl-[calc(1.25rem+60px+0.625rem)]">
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     className="max-sm:w-full"
                     data-testid="instruction-section-add-article"
                     onClick={() =>
@@ -684,7 +683,7 @@ export function InstructionBlocks({
       })}
       {suggested.length === 0 ? (
         <Button
-          variant="outline"
+          variant="secondary"
           className={addSectionClass}
           data-testid="instruction-add-section"
           onClick={() => focusBlock(newSectionAfter(null))}
@@ -695,7 +694,7 @@ export function InstructionBlocks({
       ) : phone ? (
         <>
           <Button
-            variant="outline"
+            variant="secondary"
             className={addSectionClass}
             data-testid="instruction-add-section"
             aria-haspopup="dialog"
@@ -762,8 +761,8 @@ export function InstructionBlocks({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="outline"
-              className={cn(addSectionClass, 'data-[state=open]:border-solid')}
+              variant="secondary"
+              className={addSectionClass}
               data-testid="instruction-add-section"
             >
               {addSectionLabel}

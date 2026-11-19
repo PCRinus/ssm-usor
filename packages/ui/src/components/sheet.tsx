@@ -43,16 +43,14 @@ function SheetContent({
   children,
   side = 'right',
   showCloseButton = true,
-  closeLabel,
   overlayClassName,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: 'top' | 'right' | 'bottom' | 'left';
   showCloseButton?: boolean;
-  closeLabel?: string;
   overlayClassName?: string;
 }) {
-  const close = useCloseLabel(closeLabel);
+  const close = useCloseLabel();
   return (
     <SheetPortal>
       <SheetOverlay className={overlayClassName} />

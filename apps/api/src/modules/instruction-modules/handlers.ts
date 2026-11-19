@@ -22,7 +22,8 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { listPage, matchingEveryTerm, orderedBy, type SortColumn } from '../../lib/list-page';
-import { printedDate, romanianDay } from '../../lib/romanian';
+import { sentColumns } from '../../lib/partial-update';
+import { printedDay } from '../../lib/romanian';
 import { fileNameOf } from '../../lib/text';
 import { renderInstructionAnnex } from '../documents/annexes';
 import { findJobPosition } from '../job-positions/positions';
@@ -114,12 +115,7 @@ const titleTaken = () =>
   );
 
 const moduleArchived = () =>
-  new ApiError(
-    'conflict',
-    'The module is archived; restore it first.',
-    undefined,
-    'instruction_module_archived'
-  );
+  ApiError.conflict('instruction_module_archived', 'The module is archived; restore it first.');
 
 const noSuchModule = () =>
   new ApiError('not_found', 'This module does not exist in your organization.');
@@ -344,13 +340,13 @@ export const updateInstructionModule: RouteHandler<
   const { moduleId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  const changes: Database['public']['Tables']['instruction_modules']['Update'] = {};
-  if (body.title !== undefined) changes.title = body.title;
-  if (body.group !== undefined) changes.module_group = body.group;
-  if (body.domain !== undefined) changes.domain = body.domain;
-  if (body.archived !== undefined) {
-    changes.archived_at = body.archived ? new Date().toISOString() : null;
-  }
+  const changes = sentColumns({
+    title: body.title,
+    module_group: body.group,
+    domain: body.domain,
+    archived_at:
+      body.archived === undefined ? undefined : body.archived ? new Date().toISOString() : null,
+  });
   if (body.group !== undefined || body.domain !== undefined) {
     const current = await readModule(db, moduleId);
     if (!categoryFitsDomain(body.group ?? current.group, body.domain ?? current.domain)) {
@@ -368,11 +364,9 @@ export const updateInstructionModule: RouteHandler<
     // The category changed with a concurrent move to the other domain.
     if (error?.code === '23514') throw categoryOfOtherDomain();
     if (error?.code === 'INS04') {
-      throw new ApiError(
-        'conflict',
-        'A job position still applies this module; remove it there first.',
-        undefined,
-        'instruction_module_applied'
+      throw ApiError.conflict(
+        'instruction_module_applied',
+        'A job position still applies this module; remove it there first.'
       );
     }
     if (error?.code === 'INS07') {
@@ -433,7 +427,7 @@ async function libraryAnnexData(
   return {
     // Every plan carries the line for now (docs/document-branding.md).
     branding: true,
-    issueDate: printedDate(romanianDay(new Date().toISOString())),
+    issueDate: printedDay(new Date()),
     provider: {
       legalName: filled(data.legal_name),
       representativeName: filled(data.legal_representative_name),
@@ -460,7 +454,7 @@ export const downloadInstructionModule: RouteHandler<
   const { version, body } = await readVersion(db, moduleId, versionId ?? module.version.id);
   const data = await libraryAnnexData(db, c.get('membership').organizationId, {
     title: module.title,
-    versionDate: printedDate(romanianDay(version.createdAt)),
+    versionDate: printedDay(version.createdAt),
   });
   const bytes = renderInstructionAnnex(module.domain, body, data);
   const fileName = `${fileNameOf(
@@ -477,7 +471,7 @@ export const previewInstruction: RouteHandler<typeof previewInstructionRoute, Ap
 ) => {
   const { title, domain, body } = c.req.valid('json');
   const db = createDataClient(c);
-  const today = printedDate(romanianDay(new Date().toISOString()));
+  const today = printedDay(new Date());
   const data = await libraryAnnexData(db, c.get('membership').organizationId, {
     title,
     versionDate: today,

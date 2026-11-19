@@ -130,12 +130,11 @@ export function InvitationStatus({
           </Button>
           <ConfirmDialog
             open={confirming}
-            busy={revoke.isPending}
             testId="participant-invitation-revoke"
             title="Revoci invitația?"
             confirmLabel="Revocă invitația"
             pendingLabel="Se revocă…"
-            onConfirm={() => void revokeInvitation()}
+            onConfirm={revokeInvitation}
             onClose={() => setConfirming(false)}
           >
             Persoana nu va mai putea intra în portal cu{' '}
@@ -215,12 +214,11 @@ export function ParticipantStatus({
           </Button>
           <ConfirmDialog
             open={confirming}
-            busy={revoke.isPending}
             testId="participant-revoke"
             title="Revoci accesul la portal?"
             confirmLabel="Revocă accesul"
             pendingLabel="Se revocă…"
-            onConfirm={() => void revokeAccess()}
+            onConfirm={revokeAccess}
             onClose={() => setConfirming(false)}
           >
             <Masked className="font-medium text-foreground">{participant.fullName}</Masked> nu va

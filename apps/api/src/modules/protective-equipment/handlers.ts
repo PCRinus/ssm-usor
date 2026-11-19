@@ -216,11 +216,9 @@ export const decideProtectiveEquipment: RouteHandler<
     .select(jobPositionColumns)
     .single();
   if (error?.code === 'EQP01') {
-    throw new ApiError(
-      'conflict',
-      'The position has equipment entries; remove them before saying it needs none.',
-      undefined,
-      'equipment_entries_exist'
+    throw ApiError.conflict(
+      'equipment_entries_exist',
+      'The position has equipment entries; remove them before saying it needs none.'
     );
   }
   if (error) throw fromDatabaseError(error, 'decide protective equipment');

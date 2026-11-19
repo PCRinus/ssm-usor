@@ -8,6 +8,7 @@ import {
   resolveEmployeeImportField,
   reviewedRowValue,
   rowExaminer,
+  trainingRowProblems,
 } from './employee-import-rules';
 
 const field = (app?: string | null) => ({
@@ -174,5 +175,42 @@ describe('one training held by several people', () => {
     expect(heldTrainingKey({ ...held, supplementaryReason: 'accident' })).toBe(
       heldTrainingKey(held)
     );
+  });
+});
+
+describe('trainingRowProblems', () => {
+  const today = '2026-11-19';
+  const row = { heldOn: '2026-03-02', durationMinutes: null, supplementaryReason: null };
+
+  it('needs only the day of a paper training', () => {
+    expect(trainingRowProblems(row, 'periodic', today)).toEqual([]);
+    expect(trainingRowProblems({ ...row, heldOn: ' ' }, 'periodic', today)).toEqual([
+      { field: 'heldOn', problem: 'missing' },
+    ]);
+  });
+
+  it('needs the reason of a supplementary training, from the legal cases', () => {
+    expect(trainingRowProblems(row, 'supplementary', today)).toEqual([
+      { field: 'supplementaryReason', problem: 'missing' },
+    ]);
+    expect(
+      trainingRowProblems({ ...row, supplementaryReason: 'accident' }, 'supplementary', today)
+    ).toEqual([{ field: 'supplementaryReason', problem: 'invalid' }]);
+    expect(
+      trainingRowProblems({ ...row, supplementaryReason: 'after_accident' }, 'supplementary', today)
+    ).toEqual([]);
+  });
+
+  it('refuses a day in the future or not a calendar day, and a duration out of range', () => {
+    expect(trainingRowProblems({ ...row, heldOn: '2026-11-20' }, 'periodic', today)).toEqual([
+      { field: 'heldOn', problem: 'invalid' },
+    ]);
+    expect(trainingRowProblems({ ...row, heldOn: '02.03.2026' }, 'periodic', today)).toEqual([
+      { field: 'heldOn', problem: 'invalid' },
+    ]);
+    expect(trainingRowProblems({ ...row, durationMinutes: 601 }, 'periodic', today)).toEqual([
+      { field: 'durationMinutes', problem: 'invalid' },
+    ]);
+    expect(trainingRowProblems({ ...row, durationMinutes: 600 }, 'periodic', today)).toEqual([]);
   });
 });

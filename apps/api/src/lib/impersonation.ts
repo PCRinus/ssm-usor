@@ -56,11 +56,9 @@ export async function refuseChangedIdentity(c: Context<ApiEnv>) {
   if (pageBuiltFor === undefined || !c.get('mayImpersonate')) return;
   const actsAs = (await currentImpersonation(c))?.target_user_id ?? actingAsSelf;
   if (pageBuiltFor !== actsAs) {
-    throw new ApiError(
-      'conflict',
-      'The page was built for someone other than whom this account acts as now. Reload it.',
-      undefined,
-      impersonationErrorReasons.identityChanged
+    throw ApiError.conflict(
+      impersonationErrorReasons.identityChanged,
+      'The page was built for someone other than whom this account acts as now. Reload it.'
     );
   }
 }

@@ -64,7 +64,6 @@ import {
   flagsAt,
   formatFieldValue,
   inferenceNote,
-  type LabelledSource,
   personalPaths,
   type Proposal,
   type RegisteredCompany,
@@ -90,6 +89,7 @@ import {
   SpellingChoice,
   Tag,
 } from './review-parts';
+import { type LabelledSource } from './review-types';
 import { TrainingImportCard } from './training-import-card';
 import type { ImportReview } from './use-import-review';
 

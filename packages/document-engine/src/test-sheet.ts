@@ -1,3 +1,5 @@
+import { printedDate } from '@ssm-usor/contracts/romanian';
+
 export const testSheetTypeKey = 'test_sheet';
 
 export type TestSheetFacts = {
@@ -41,11 +43,6 @@ export type TestSheetData = {
 const letters = 'abcdefghijklmnopqrstuvwxyz';
 
 const text = (value: string | null | undefined) => value?.trim() ?? '';
-
-const printedDate = (isoDate: string) => {
-  const [year, month, day] = isoDate.slice(0, 10).split('-');
-  return `${day}.${month}.${year}`;
-};
 
 export function buildTestSheetData(facts: TestSheetFacts): TestSheetData {
   const { employee } = facts;

@@ -3,6 +3,7 @@ import { creditsExtra } from '@ssm-usor/contracts';
 import type { Database } from '../../database.types';
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
+import { errorMessage } from '../../lib/errors';
 import { loadEntitlementRow } from '../billing/entitlements';
 import type { CreditPolicy } from './policy';
 
@@ -136,7 +137,7 @@ export function creditsStore(db: AdminClient, hooks: CreditsHooks = {}) {
         } catch (cause) {
           // The daily retry reports what this left.
           console.error(
-            `Extra credit blocks of ${input.organizationId} not reported yet: ${cause instanceof Error ? cause.message : 'unknown'}`
+            `Extra credit blocks of ${input.organizationId} not reported yet: ${errorMessage(cause, 'unknown')}`
           );
         }
       }

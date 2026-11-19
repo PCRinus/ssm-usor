@@ -30,11 +30,9 @@ interface PostgrestError {
 // The member functions raise their own SQLSTATE; see the migration that defines them.
 function fromMemberError(error: PostgrestError, context: string): ApiError {
   if (error.code === 'MEM01') {
-    return new ApiError(
-      'conflict',
-      'You cannot change your own membership.',
-      undefined,
-      'own_membership' satisfies MemberErrorReason
+    return ApiError.conflict(
+      'own_membership' satisfies MemberErrorReason,
+      'You cannot change your own membership.'
     );
   }
   return fromDatabaseError(error, context);
@@ -55,11 +53,9 @@ export const createOrganization: RouteHandler<typeof createOrganizationRoute, Ap
   });
   if (error) {
     if (error.code === 'ORG01') {
-      throw new ApiError(
-        'conflict',
-        'This account already belongs to an organization.',
-        undefined,
-        'already_in_organization' satisfies OnboardingErrorReason
+      throw ApiError.conflict(
+        'already_in_organization' satisfies OnboardingErrorReason,
+        'This account already belongs to an organization.'
       );
     }
     if (error.code === '42501') {

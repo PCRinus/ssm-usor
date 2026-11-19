@@ -1,12 +1,11 @@
 import {
-  type AuthSnapshot,
+  type AuthError,
   createSessionStore,
   type SessionClient,
+  unreachable,
 } from '@ssm-usor/spa-runtime/session';
 import type { Session } from '@supabase/supabase-js';
 import type { QueryClient } from '@tanstack/react-query';
-
-type AuthError = { message: string; code?: string; status?: number };
 
 export type SignInAddress = { email: string } | { phone: string };
 
@@ -22,13 +21,8 @@ export interface AuthClient extends SessionClient {
   ): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
 }
 
-export type { AuthSnapshot };
-
 export type CodeRequestResult = 'requested' | 'unreachable' | 'challenge-failed';
 export type CodeVerificationResult = 'signed-in' | 'invalid' | 'rate-limited' | 'unreachable';
-
-// supabase-js reports a request that never got an answer with status 0.
-const unreachable = (error: AuthError) => error.status === 0;
 
 export function createAuthStore(client: AuthClient | null, queryClient: QueryClient) {
   const { store, publish } = createSessionStore(client, queryClient);

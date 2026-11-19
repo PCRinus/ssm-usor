@@ -12,13 +12,14 @@ import {
   type KnowledgeTest,
   knowledgeTestLabels,
   knowledgeTestsByDomain,
+  printedDate,
   trainingMonths,
   type TrainingPhase,
   trainingPhases,
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { definiteRole, listed, printedDate, runOn } from '../../lib/romanian';
+import { definiteRole, listed, runOn } from '../../lib/romanian';
 import { documentApplies } from './context';
 import { extinguisherGroups, otherEquipmentGroups } from './equipment';
 import type {

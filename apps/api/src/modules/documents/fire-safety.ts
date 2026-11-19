@@ -17,6 +17,7 @@ import {
   type FireSubstancesState,
   type KnowledgeTest,
   missingSubstanceEssentials,
+  printedDate,
   type ResponsiblePersonRole,
   staffCategoriesWithPosts,
   type StaffCategory,
@@ -28,7 +29,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { collator, listed, printedDate, runOn, withoutFinalStop } from '../../lib/romanian';
+import { collator, listed, runOn, withoutFinalStop } from '../../lib/romanian';
 import { filled } from '../../lib/text';
 import { type AnnualReportContext, buildAnnualReport } from './annual-report';
 import {

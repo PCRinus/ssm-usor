@@ -73,9 +73,9 @@ export const summaryColumns =
 
 // The clean-up fails an import uploading or ready with no change to it or its files for 14 days
 // (fail_stalled_imports).
-export const leftForDays = 14;
+const leftForDays = 14;
 
-export const detailColumns = `${summaryColumns}, version, proposal, changes, proposal_dropped_at, read_characters, input_tokens, cached_input_tokens, output_tokens, cost_usd, usage_by_step`;
+const detailColumns = `${summaryColumns}, version, proposal, changes, proposal_dropped_at, read_characters, input_tokens, cached_input_tokens, output_tokens, cost_usd, usage_by_step`;
 
 export const notFound = () =>
   new ApiError('not_found', 'This import does not exist in your organization.');
@@ -88,7 +88,7 @@ export async function creatorNames(db: DataClient, rows: { created_by: string | 
   return new Map(data.map((profile) => [profile.user_id, profile.full_name]));
 }
 
-export function expiresAtOf(row: Pick<ImportRow, 'status' | 'updated_at' | 'last_file'>) {
+function expiresAtOf(row: Pick<ImportRow, 'status' | 'updated_at' | 'last_file'>) {
   if (row.status !== 'uploading' && row.status !== 'ready') return null;
   const changed = Math.max(
     ...[row.updated_at, ...(row.last_file ?? []).map((file) => file.updated_at)].map((at) =>
@@ -147,6 +147,15 @@ export async function findImport(db: DataClient, importId: string) {
   if (error) throw fromDatabaseError(error, 'find import');
   if (!data) throw notFound();
   return data;
+}
+
+// Not findImport: the detail's columns carry the whole proposal, and these callers need only the
+// kind and to know the import is the caller's.
+export async function importKindOf(db: DataClient, importId: string) {
+  const { data, error } = await db.from('imports').select('kind').eq('id', importId).maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find import');
+  if (!data) throw notFound();
+  return data.kind;
 }
 
 export const wrongKind = () =>
@@ -244,7 +253,7 @@ export function progressOf(files: Pick<ImportFileRow, 'state' | 'is_scan'>[]): I
 export const adminImportStore = (c: Context<ApiEnv>, admin: AdminClient = createAdminClient(c)) =>
   importStore(admin, blocksReporterOf(c));
 
-export const proposalListOfTable: Record<ImportKind, Record<string, string>> = {
+const proposalListOfTable: Record<ImportKind, Record<string, string>> = {
   client: {
     clients: 'client',
     client_fire_safety: 'fireSafety',
@@ -266,14 +275,14 @@ export const proposalListOfTable: Record<ImportKind, Record<string, string>> = {
   },
 };
 
-export const registeredOfficeKey = 'client_workplaces_registered_office_key';
+const registeredOfficeKey = 'client_workplaces_registered_office_key';
 
 export const employeeKeys: Record<string, { column: 'cnp' | 'employee_number'; field: string }> = {
   employees_client_cnp_key: { column: 'cnp', field: 'cnp' },
   employees_client_employee_number_key: { column: 'employee_number', field: 'employeeNumber' },
 };
 
-export function proposalPathOf(constraint: BrokenConstraint, kind: ImportKind) {
+function proposalPathOf(constraint: BrokenConstraint, kind: ImportKind) {
   const lists = proposalListOfTable[kind];
   const table =
     constraint.table ?? Object.keys(lists).find((name) => constraint.name.startsWith(`${name}_`));
@@ -283,11 +292,7 @@ export function proposalPathOf(constraint: BrokenConstraint, kind: ImportKind) {
 export type DatabaseFailure = { code?: string | null; message?: string; details?: string | null };
 
 // Postgres names the duplicate value only in the error's details, which are never logged.
-export function duplicatePersonPath(
-  error: DatabaseFailure,
-  name: string,
-  payload: EmployeeImportPayload
-) {
+function duplicatePersonPath(error: DatabaseFailure, name: string, payload: EmployeeImportPayload) {
   const key = employeeKeys[name]!;
   const value = /=\([^,]*, (.*)\) already exists/.exec(error.details ?? '')?.[1];
   const person = payload.employees.find((employee) => employee[key.column] === value);

@@ -1,4 +1,5 @@
 import {
+  capitalized,
   countOf,
   formatTrainingDuration,
   legalMaxTrainingInterval,
@@ -51,8 +52,6 @@ export function categoriesWithPosts<
     return held.length === 0 ? [] : [{ category, positions: held }];
   });
 }
-
-export const capitalized = (text: string) => text.charAt(0).toLocaleUpperCase('ro') + text.slice(1);
 
 /** "Ianuarie, iulie", as a sentence and not as a list of names. */
 export const trainingMonthsText = (firstMonth: number, interval: number) =>

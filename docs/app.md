@@ -213,7 +213,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/angajati/index.tsx`                                            | `/angajati`                                            | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the status, client and state filters, the text search and the sort in the search params.               |
 | `routes/_authenticated/instructiuni.tsx`                                              | `/instructiuni`                                        | Layout of the instruction library (ADR 012), the sidebar entry "Instrucțiuni proprii" (ADR 034) between the clients and the organization.                                                                  |
 | `routes/_authenticated/instructiuni/index.tsx`                                        | `/instructiuni`                                        | Opens the SSM tab, `/instructiuni/ssm`.                                                                                                                                                                    |
-| `routes/_authenticated/instructiuni/_library.tsx`                                     | `/instructiuni/*`                                      | Pathless layout of the library: the title and the section navigation with one tab per domain.                                                                                                              |
+| `routes/_authenticated/instructiuni/_library.tsx`                                     | `/instructiuni/*`                                      | Pathless layout of the library: the title and one folder tab per domain onto one sheet.                                                                                                                    |
 | `routes/_authenticated/instructiuni/_library/ssm.tsx`                                 | `/instructiuni/ssm`                                    | The occupational safety modules by group, writing, correcting and archiving them.                                                                                                                          |
 | `routes/_authenticated/instructiuni/_library/su.tsx`                                  | `/instructiuni/su`                                     | The fire-safety modules, the same list for the `su` domain.                                                                                                                                                |
 | `routes/_authenticated/instructiuni/nou.tsx`                                          | `/instructiuni/nou`                                    | A new module's form, from "Scrie o instrucțiune": title, domain, category and an optional module to copy in the search; nothing stored before the first save.                                              |
@@ -1493,21 +1493,22 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
 - `/instructiuni`: the organization's instruction library
   ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/features/instructions/`, an entry of
   the sidebar for owners and specialists alike, titled "Instrucțiuni proprii"
-  ([ADR 034](architecture/adr-034-own-instructions-as-app-text.md)) with a subtitle on what a module
-  is for. The page has one tab per domain (amendment of 2026-10-11), "IPSSM" at
+  ([ADR 034](architecture/adr-034-own-instructions-as-app-text.md)) with its help link and no
+  subtitle. The page has one tab per domain (amendment of 2026-10-11), "IPSSM" at
   `/instructiuni/ssm` and "IPSU" at `/instructiuni/su`, the abbreviations the documents print,
-  in the section navigation the client and organization pages use; `/instructiuni` opens the
+  as folder tabs onto one sheet, as Teste and Legislație have them; `/instructiuni` opens the
   SSM tab. A tab lists `GET /instruction-modules?domain=` on the shared data table, in pages
   sorted by title (the default, kept out of the URL), category, version date (newest first) or
   use (most first), each module with its category as text, "v3, din 12.10.2026" with its
   article count under it, and "Folosită la", the active clients' posts with "la N clienți"
   under them, "—" when none; the tabs "Active" and "Arhivate" over the table switch to the
-  archived ones of the domain, without "Folosită la". The card's toolbar is the shared one:
+  archived ones of the domain, without "Folosită la". The sheet's toolbar is the shared one:
   the search by title (`q`), the "Filtre" panel with the tab's categories (`category`) and
   "Nefolosită" (`usage=unused`, not on Arhivate), the applied strip, and the count, "5 din 64
-  de instrucțiuni" while narrowed; page, sort, search, filters and tab are kept in the search.
-  While the tab has no active module, "Scrie o instrucțiune" moves from the header into the
-  empty message, through `instruction-start-context.ts`; a search or filter that finds none
+  de instrucțiuni" while narrowed, then "Scrie o instrucțiune", the page's one main action, on
+  Active only (a new module is never archived), on a phone a full-width row of its own under the search; page, sort, search,
+  filters and tab are kept in the search. While the tab has no active module, the toolbar keeps
+  only Active and Arhivate and "Scrie o instrucțiune" moves into the empty message; a search or filter that finds none
   says so with "Șterge filtrele", which keeps the search, or "Șterge căutarea". The row menu's "Modifică detaliile…" corrects a module's title, category and
   domain; "Arhivează…" and "Reactivează…" ask in a dialog first, which for a module positions
   apply says how many and offers no archiving. There is no upload of Word

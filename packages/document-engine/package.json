@@ -51,6 +51,7 @@
     "build-test-sheet": "python3 tools/import/build_test_sheet.py"
   },
   "dependencies": {
+    "@ssm-usor/contracts": "workspace:*",
     "docxtemplater": "3.69.3",
     "pizzip": "^3.3.0"
   },

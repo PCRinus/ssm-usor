@@ -14,11 +14,11 @@ import {
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import { bearerSecurity, clientParams, errorContent, membershipErrors } from '../../lib/openapi';
 
 const profileParams = z.object({ profileId: z.uuid() });
 const factorParams = profileParams.extend({ factorId: z.uuid() });
-const evaluationParams = z.object({ clientId: z.uuid(), evaluationId: z.uuid() });
+const evaluationParams = clientParams.extend({ evaluationId: z.uuid() });
 
 const noSuchProfile = {
   description: 'The profile does not exist in this organization',

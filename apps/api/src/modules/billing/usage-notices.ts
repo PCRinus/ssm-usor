@@ -2,6 +2,7 @@ import type { MailService } from '@ssm-usor/contracts';
 
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
+import { type ApiEnv, subscriptionUrl } from '../../lib/env';
 import { ownerEmail } from './store';
 
 export type NoticeRecipient = { to: string; organizationName: string };
@@ -49,6 +50,15 @@ export type NoticeDeps = {
   recipient: (organizationId: string) => Promise<NoticeRecipient | null>;
   mail: MailService | undefined;
 };
+
+export function noticeDepsFor(env: ApiEnv['Bindings'], db: AdminClient) {
+  return {
+    store: usageNoticeStore(db),
+    recipient: (organizationId: string) => noticeRecipient(db, organizationId),
+    mail: env.MAIL,
+    subscriptionUrl: () => subscriptionUrl(env),
+  } satisfies NoticeDeps & { subscriptionUrl: () => string };
+}
 
 // 'unaddressed' stays recorded without an email; 'failed' only when onFailure took the error.
 export type NoticeOutcome = 'sent' | 'unaddressed' | 'duplicate' | 'failed';

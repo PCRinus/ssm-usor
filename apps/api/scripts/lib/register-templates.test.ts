@@ -109,15 +109,8 @@ describe('a version that resolves legal changes', () => {
   const change = { act: 'oug-195-2002', consolidatedOn: '2026-11-06' };
   const other = { act: 'lege-319-2006', consolidatedOn: '2026-11-10' };
 
-  it('reads one change or a list of them from the manifest as a list', () => {
-    const parsed = [entry(change), entry([change, other])].map((each) =>
-      manifestEntrySchema.parse(each)
-    );
-    expect(parsed.map((each) => each.change.resolves)).toEqual([[change], [change, other]]);
-  });
-
   it('refuses a change without a date', () => {
-    expect(() => manifestEntrySchema.parse(entry({ act: 'oug-195-2002' }))).toThrow();
+    expect(() => manifestEntrySchema.parse(entry([{ act: 'oug-195-2002' }]))).toThrow();
     expect(() => manifestEntrySchema.parse(entry([]))).toThrow();
   });
 

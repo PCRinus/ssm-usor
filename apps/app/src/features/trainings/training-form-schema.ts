@@ -1,4 +1,6 @@
 import {
+  inMinutesRange,
+  minutesRange,
   supplementaryTrainingReasons,
   trainingDomains,
   trainingPhases,
@@ -31,9 +33,8 @@ export const trainingFormSchema = z
       .string()
       .trim()
       .refine(
-        (value) =>
-          value === '' || (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 600),
-        'Durata este un număr întreg de minute, între 1 și 600.'
+        (value) => value === '' || (/^\d+$/.test(value) && inMinutesRange(Number(value))),
+        `Durata este un număr întreg de minute, între ${minutesRange.min} și ${minutesRange.max}.`
       ),
     material: z.string().trim().max(4000, 'Materialul are cel mult 4000 de caractere.'),
     trainerName: optionalPersonText,

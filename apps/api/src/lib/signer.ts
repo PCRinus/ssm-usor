@@ -49,7 +49,7 @@ export function signerRefusalOf(error: unknown): SignerRefusal | null {
 }
 
 export const signerRefused = (reason: SignerRefusal) =>
-  new ApiError('conflict', refusalMessages[reason], undefined, reason);
+  ApiError.conflict(reason, refusalMessages[reason]);
 
 function postTo(url: string): SignerPost {
   return async (route, body) => {

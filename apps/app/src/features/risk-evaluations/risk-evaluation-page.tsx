@@ -406,7 +406,6 @@ function RemoveEvaluationDialog({
   return (
     <ConfirmDialog
       open={open}
-      busy={remove.isPending}
       error={error}
       testId="risk-evaluation-remove"
       title="Ștergi fișa de evaluare a riscurilor?"

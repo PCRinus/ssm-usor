@@ -1,4 +1,4 @@
-import type { DefaultOptions } from '@tanstack/react-query';
+import { type DefaultOptions, QueryClient } from '@tanstack/react-query';
 
 export function createQueryClientDefaults(): DefaultOptions {
   return {
@@ -12,4 +12,8 @@ export function createQueryClientDefaults(): DefaultOptions {
     },
     mutations: { retry: false },
   };
+}
+
+export function createQueryClient() {
+  return new QueryClient({ defaultOptions: createQueryClientDefaults() });
 }

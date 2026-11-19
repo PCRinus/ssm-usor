@@ -137,8 +137,19 @@ function UploadForm({
     creditsNeeded: (chosen) => importStartCredits('employees', readOf(chosen)),
     addedSheets,
   });
-  const { selection, totals, over, opening, busy, choosing, refusal, balance, isOwner, leave } =
-    form;
+  const {
+    selection,
+    totals,
+    over,
+    opening,
+    busy,
+    choosing,
+    refusal,
+    canSubmit,
+    balance,
+    isOwner,
+    leave,
+  } = form;
   const bytesLabel = `${totals.estimated ? 'cam ' : ''}${sizeLabel(totals.bytes)}`;
   const noPosts = positions.isSuccess && (positions.data?.items ?? []).length === 0;
   const pdfs = selection.files.filter(isPdf).length + addedPdfs.length;
@@ -366,13 +377,7 @@ function UploadForm({
                   <Button type="button" variant="outline" disabled={busy} onClick={leave}>
                     Renunță
                   </Button>
-                  <Button
-                    type="submit"
-                    data-testid="employee-upload-submit"
-                    disabled={
-                      !choosing || totals.count === 0 || over || opening || refusal !== null
-                    }
-                  >
+                  <Button type="submit" data-testid="employee-upload-submit" disabled={!canSubmit}>
                     {busy ? 'Se încarcă…' : 'Încarcă și citește'}
                   </Button>
                 </div>

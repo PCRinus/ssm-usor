@@ -34,13 +34,11 @@ export function watchDeployedVersion({
   onNewer,
   postponedKey,
   fetchCommit = () => fetchDeployedCommit(),
-  intervalMs = versionCheckInterval,
 }: {
   running: string;
   onNewer: (commit: string, postpone: () => void) => void;
   postponedKey: string;
   fetchCommit?: () => Promise<string | null>;
-  intervalMs?: number;
 }) {
   if (running === 'local') return () => {};
 
@@ -60,7 +58,7 @@ export function watchDeployedVersion({
     clearInterval(timer);
     timer = undefined;
     if (document.visibilityState !== 'visible') return;
-    timer = setInterval(() => void check(), intervalMs);
+    timer = setInterval(() => void check(), versionCheckInterval);
   }
 
   function onVisibilityChange() {

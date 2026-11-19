@@ -1,4 +1,10 @@
-import { countOf, staffCategories, type StaffCategory } from '@ssm-usor/contracts';
+import {
+  capitalized,
+  countOf,
+  staffCategories,
+  type StaffCategory,
+  trainingIntervalLabel,
+} from '@ssm-usor/contracts';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -9,10 +15,9 @@ import { replayShow } from '@/app/observability/replay-masking';
 import { FieldMessage } from '@/components/form-field';
 import { Segmented, type SegmentOption } from '@/components/segmented';
 import { monthNames } from '@/features/clients/document-details/document-details-schema';
-import { intervalLabel, staffCategoryLabels } from '@/features/job-positions/job-position-schema';
+import { staffCategoryLabels } from '@/features/job-positions/job-position-schema';
 
 import {
-  capitalized,
   type CategoryPosts,
   durations,
   type HeldPosition,
@@ -107,7 +112,7 @@ export function CategoryBlock({
                   data-testid={testId && `${testId}-interval`}
                   className="text-2xl leading-tight font-semibold tracking-tight tabular-nums"
                 >
-                  {capitalized(intervalLabel(interval))}
+                  {capitalized(trainingIntervalLabel(interval))}
                 </p>
                 {firstMonth !== null && (
                   <p

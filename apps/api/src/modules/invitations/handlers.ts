@@ -13,6 +13,7 @@ import { createAdminClient } from '../../lib/admin-db';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { toIso, toIsoOrNull } from '../../lib/timestamps';
 import { createToken, hashToken } from '../../lib/tokens';
 import { usageLimits } from '../billing/rules';
 import { countMemberSeats, loadSubscription } from '../billing/store';
@@ -43,15 +44,13 @@ interface InvitationRow {
   created_at: string;
 }
 
-const toIso = (value: string) => new Date(value).toISOString();
-
 function toInvitation(row: InvitationRow): Invitation {
   return {
     id: row.id,
     email: row.email,
     role: row.role,
     status: Date.parse(row.expires_at) <= Date.now() ? 'expired' : 'open',
-    sentAt: row.sent_at ? toIso(row.sent_at) : null,
+    sentAt: toIsoOrNull(row.sent_at),
     expiresAt: toIso(row.expires_at),
     createdAt: toIso(row.created_at),
   };
@@ -87,11 +86,9 @@ async function sendInvitation(c: Context<ApiEnv>, email: string, role: Organizat
   if (!row) throw new ApiError('internal_error');
 
   if (row.sent_at && Date.now() - Date.parse(row.sent_at) < RESEND_AFTER_MS) {
-    throw new ApiError(
-      'conflict',
-      'An invitation was emailed to this address in the last 10 minutes.',
-      undefined,
-      'sent_recently'
+    throw ApiError.conflict(
+      'sent_recently',
+      'An invitation was emailed to this address in the last 10 minutes.'
     );
   }
 
@@ -151,11 +148,9 @@ async function assertRoomForMember(c: Context<ApiEnv>, email: string) {
   const list = await createDataClient(c).rpc('organization_member_list');
   if (list.error) throw fromDatabaseError(list.error, 'invitation member list');
   if (list.data.some((member) => member.email.toLowerCase() === email)) return;
-  throw new ApiError(
-    'conflict',
-    `The plan has ${limit} users, and every place is taken or invited.`,
-    undefined,
-    'member_limit_reached'
+  throw ApiError.conflict(
+    'member_limit_reached',
+    `The plan has ${limit} users, and every place is taken or invited.`
   );
 }
 

@@ -16,12 +16,12 @@ import {
   bearerSecurity,
   clientNotFoundResponse,
   clientParams,
+  employeeParams,
   errorContent,
   membershipErrors,
 } from '../../lib/openapi';
 
 const trainingParams = clientParams.extend({ trainingId: z.uuid() });
-const employeeParams = clientParams.extend({ employeeId: z.uuid() });
 
 const noSuchTraining = {
   description: 'The client, or the training under it, does not exist',

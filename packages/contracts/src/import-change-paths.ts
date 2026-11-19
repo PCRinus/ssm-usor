@@ -1,6 +1,6 @@
-export const importValuePathRoots = ['client', 'trainingSchedule', 'fireSafety'] as const;
+const importValuePathRoots = ['client', 'trainingSchedule', 'fireSafety'] as const;
 
-export const importItemPathRoots = [
+const importItemPathRoots = [
   'fireEquipmentCounts',
   'assemblyPoints',
   'suggestedValues',

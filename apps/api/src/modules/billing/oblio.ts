@@ -1,4 +1,4 @@
-import { ApiError } from '../../lib/errors';
+import { ApiError, errorMessage } from '../../lib/errors';
 
 const baseUrl = 'https://www.oblio.eu/api';
 
@@ -166,7 +166,7 @@ export function createOblioClient(config: OblioConfig, deps: OblioDeps = {}) {
       try {
         response = await fetcher(url, init);
       } catch (error) {
-        throw unreachable(error instanceof Error ? error.message : String(error));
+        throw unreachable(errorMessage(error));
       }
       if (response.status !== 429 || attempt > 0) return response;
       await sleep(retryDelayMs(response));

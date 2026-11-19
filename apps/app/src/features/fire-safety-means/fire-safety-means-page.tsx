@@ -125,9 +125,6 @@ export function FireSafetyMeansPage({
     field: readOnly || !withoutExtinguisher ? undefined : 'fire-equipment-agent',
   });
 
-  const busyDeleting =
-    deleteEquipment.isPending || deleteInstallation.isPending || deleteMaintenanceItem.isPending;
-
   async function confirmDelete(target: NonNullable<Deleting>) {
     setError(null);
     try {
@@ -382,12 +379,11 @@ export function FireSafetyMeansPage({
       {deleting && (
         <ConfirmDialog
           open
-          busy={busyDeleting}
           testId="fire-means-delete"
           title={deletingTitles[deleting.what]}
           confirmLabel="Șterge"
           pendingLabel="Se șterge…"
-          onConfirm={() => void confirmDelete(deleting)}
+          onConfirm={() => confirmDelete(deleting)}
           onClose={() => setDeleting(null)}
         >
           <span className="font-medium text-foreground">{deletingName}</span>

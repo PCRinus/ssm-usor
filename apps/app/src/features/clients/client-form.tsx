@@ -7,6 +7,7 @@ import type { ComponentProps } from 'react';
 import { keepOpener } from '@/app/opener';
 import { useReturnOnClick } from '@/app/use-return-to-opener';
 import { BackLink, TitleWithBack } from '@/components/back-link';
+import { describedBy } from '@/components/described-by';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
 import { Notice } from '@/components/notice';
@@ -20,9 +21,6 @@ import {
 } from './client-fields';
 import type { Client, ClientStage } from './client-form-schema';
 import { useClientForm } from './use-client-form';
-
-const describedBy = (id: string, error: unknown, hint?: boolean) =>
-  error ? `${id}-error` : hint ? `${id}-hint` : undefined;
 
 const wording = {
   client: { new: 'Client nou', save: 'Salvează clientul', testId: 'client' },

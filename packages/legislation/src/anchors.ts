@@ -2,17 +2,15 @@ import { type ActText, type ActUnit, fetchActText, plainLabel } from './act-text
 import type { PortalOptions } from './portal';
 import type { StoredArticleAnchor } from './stored';
 
-// One entry per article and per annex of the act's form, an annex's own articles under its label.
-export type ArticleAnchor = StoredArticleAnchor;
-
 export type ActAnchors = {
   // Null for the act as published, never consolidated.
   consolidatedOn: string | null;
-  anchors: ArticleAnchor[];
+  // One entry per article and per annex of the act's form, an annex's own articles under its label.
+  anchors: StoredArticleAnchor[];
 };
 
-export function articleAnchors(text: ActText): ArticleAnchor[] {
-  const found: ArticleAnchor[] = [];
+export function articleAnchors(text: ActText): StoredArticleAnchor[] {
+  const found: StoredArticleAnchor[] = [];
   const walk = (units: (string | ActUnit)[], annex: string | null) => {
     for (const unit of units) {
       if (typeof unit === 'string') continue;
