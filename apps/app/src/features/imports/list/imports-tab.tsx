@@ -13,6 +13,7 @@ import {
   ListCardHeader,
   ListCount,
 } from '@/components/list-card-header';
+import { LoadFailed } from '@/components/load-failed';
 
 import { openCount, openImportsOf } from '../open-imports';
 import { WayBadge, wayClass } from '../start-ways';
@@ -40,15 +41,27 @@ export function ImportsTab({ kind, search }: { kind: ImportKind; search: Imports
   const closed = status === 'closed';
   const path = importTabOf(kind);
   const navigate = useNavigate({ from: path });
-  const { items } = useMyImports();
+  const shared = useMyImports();
+  const { items } = shared;
   const groups = useMemo(() => (items ? openImportsOf(items, kind) : null), [items, kind]);
-  const closedTotal = useClosedTotal(kind);
-  const otherClosedTotal = useClosedTotal(kind === 'client' ? 'employees' : 'client');
+  const history = useClosedTotal(kind);
+  const closedTotal = history.total;
+  const otherClosedTotal = useClosedTotal(kind === 'client' ? 'employees' : 'client').total;
   const closedPage = useClosedImports({ kind, page, pageSize: defaultPageSize }, closed);
   const { start, dialogs } = useNewImport();
   const open = groups ? openCount(groups) : 0;
   const never = groups !== null && open === 0 && closedTotal === 0;
   const accountNever = never && items?.length === 0 && otherClosedTotal === 0;
+
+  const waitingForHistory = groups !== null && open === 0 && !history.settled;
+
+  if (!closed && waitingForHistory) {
+    return (
+      <div data-testid={`imports-tab-${kind}`}>
+        <Loading />
+      </div>
+    );
+  }
 
   if (never && !closed) {
     return (
@@ -100,10 +113,20 @@ export function ImportsTab({ kind, search }: { kind: ImportKind; search: Imports
           }
         />
       ) : !groups ? (
-        <div className="grid gap-3 px-5 py-6" aria-busy="true">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
+        shared.status === 'error' ? (
+          <div className="px-4 py-5 md:px-5">
+            <LoadFailed
+              error={shared.error}
+              testId="imports-open-error"
+              busy={shared.isFetching}
+              onRetry={shared.refetch}
+            >
+              Nu am putut încărca importurile.
+            </LoadFailed>
+          </div>
+        ) : (
+          <Loading />
+        )
       ) : open === 0 ? (
         <ListEmpty>
           <EmptyState
@@ -120,6 +143,15 @@ export function ImportsTab({ kind, search }: { kind: ImportKind; search: Imports
         <OpenImportsList groups={groups} />
       )}
       {dialogs}
+    </div>
+  );
+}
+
+function Loading() {
+  return (
+    <div className="grid gap-3 px-5 py-6" aria-busy="true">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
     </div>
   );
 }

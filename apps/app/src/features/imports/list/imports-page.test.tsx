@@ -93,12 +93,20 @@ const clients = [
 let items: Record<string, unknown>[] = [];
 let closed: Record<string, Record<string, unknown>[]> = {};
 let clientItems: Record<string, unknown>[] = [];
+let clientsTotal: number | null = null;
+let importsFail = false;
+let closedHangs = false;
 let me: MeResponse = meWithCredits({ left: 812, included: 1250, giftLeft: 0 });
 
 function mount(path: string) {
   mockApi((_init, url) => {
-    if (url.pathname === '/imports') return Response.json({ items });
+    if (url.pathname === '/imports') {
+      return importsFail
+        ? Response.json({ error: 'internal', message: 'Boom.' }, { status: 500 })
+        : Response.json({ items });
+    }
     if (url.pathname === '/imports/closed') {
+      if (closedHangs) return new Promise<Response>(() => undefined);
       const all = closed[url.searchParams.get('kind') ?? 'client'] ?? [];
       const pageSize = Number(url.searchParams.get('pageSize'));
       return Response.json({
@@ -109,11 +117,15 @@ function mount(path: string) {
       });
     }
     if (url.pathname === '/clients') {
+      const q = url.searchParams.get('q')?.toLowerCase();
+      const found = clientItems.filter(
+        (client) => !q || String(client.legalName).toLowerCase().includes(q)
+      );
       return Response.json({
-        items: clientItems,
+        items: found,
         page: 1,
         pageSize: 50,
-        total: clientItems.length,
+        total: clientsTotal ?? found.length,
         unfilteredTotal: clientItems.length,
       });
     }
@@ -137,6 +149,9 @@ beforeEach(() => {
   items = [readyClient, partsToReview, readingClient, failedClient, readyEmployees];
   closed = { client: [confirmedClosed, abandonedClosed], employees: [] };
   clientItems = clients;
+  clientsTotal = null;
+  importsFail = false;
+  closedHangs = false;
   me = meWithCredits({ left: 812, included: 1250, giftLeft: 0 });
 });
 
@@ -247,7 +262,7 @@ describe('the Importuri AI page', () => {
     const continueButton = within(picker).getByTestId('imports-client-continue');
     expect((continueButton as HTMLButtonElement).disabled).toBe(true);
     const option = await within(picker).findByRole('radio', { name: /Hotel Carpați Sinaia SRL/ });
-    expect(option.textContent).toContain('CUI 29871104 · 33 de lucrători');
+    expect(option.closest('label')!.textContent).toContain('CUI 29871104 · 33 de lucrători');
     await user.click(option);
     await user.click(continueButton);
 
@@ -331,6 +346,99 @@ describe('the Importuri AI page', () => {
     );
     expect(screen.getByTestId('imports-toolbar')).toBeTruthy();
     expect(screen.queryByTestId('imports-first')).toBeNull();
+  });
+
+  it('asks for the closed totals again only when an import closes', async () => {
+    const runtime = mount('/importuri/clienti');
+    await screen.findByTestId('imports-open');
+    await waitFor(() => expect(requestsTo('/imports/closed').length).toBeGreaterThan(0));
+    const asked = requestsTo('/imports/closed').length;
+
+    items = [...items];
+    await runtime.queryClient.invalidateQueries({ queryKey: ['/imports'] });
+    await waitFor(() => expect(requestsTo('/imports').length).toBeGreaterThan(1));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(requestsTo('/imports/closed')).toHaveLength(asked);
+
+    items = items.filter((each) => each !== failedClient);
+    await runtime.queryClient.invalidateQueries({ queryKey: ['/imports'] });
+    await waitFor(() => expect(requestsTo('/imports/closed').length).toBeGreaterThan(asked));
+  });
+
+  it('offers to load the open imports again when they fail', async () => {
+    importsFail = true;
+    mount('/importuri/clienti');
+    const user = userEvent.setup();
+
+    const failed = await screen.findByTestId('imports-open-error', {}, { timeout: 5000 });
+    expect(failed.textContent).toContain('Nu am putut încărca importurile.');
+    importsFail = false;
+    await user.click(within(failed).getByRole('button'));
+    expect(await screen.findByTestId('imports-open')).toBeTruthy();
+  });
+
+  it('waits for the history before saying a tab has nothing open', async () => {
+    items = [readyEmployees];
+    closedHangs = true;
+    mount('/importuri/clienti');
+
+    await screen.findByTestId('imports-tab-client');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByTestId('imports-toolbar')).toBeNull();
+    expect(screen.queryByTestId('imports-open-empty')).toBeNull();
+    expect(screen.queryByTestId('imports-first')).toBeNull();
+  });
+
+  it('shows a dash for an abandoned import that had no files', async () => {
+    closed = { client: [{ ...abandonedClosed, fileCount: 0 }], employees: [] };
+    mount('/importuri/clienti?status=closed');
+
+    const [row] = await screen.findAllByTestId('imports-closed-row');
+    expect(row!.querySelector('td:nth-child(2)')!.textContent).toBe('—');
+  });
+
+  it('shows the same credits under the title and in the menu, gift included', async () => {
+    me = meWithCredits({ left: 1270, included: 1500, giftLeft: 7840 });
+    mount('/importuri/clienti');
+    const user = userEvent.setup();
+
+    expect((await screen.findByTestId('imports-credits')).textContent).toBe(
+      'Credite AI rămase 9.110, cu cele de bun venit'
+    );
+    await user.click(await screen.findByTestId('imports-new'));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByTestId('imports-credits-available').textContent).toBe(
+      'Îți mai rămân 9.110 credite AI, cu cele de bun venit'
+    );
+    expect(menu.getAttribute('aria-describedby')).toBe(
+      within(menu).getByTestId('imports-credits-available').id
+    );
+  });
+
+  it('drops a picked client the search hides, and says when the list is cut short', async () => {
+    clientItems = [
+      ...clients,
+      { ...clients[0], id: 'c3000000-0000-4000-8000-000000000003', legalName: 'Elcons Instal SRL' },
+    ];
+    clientsTotal = 60;
+    mount('/importuri/lucratori');
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('imports-new'));
+    const picker = await screen.findByTestId('imports-client-picker');
+    expect((await within(picker).findByTestId('imports-client-capped')).textContent).toContain(
+      'Caută'
+    );
+    await user.click(within(picker).getByRole('radio', { name: /Hotel Carpați/ }));
+    const continueButton = within(picker).getByTestId('imports-client-continue');
+    expect((continueButton as HTMLButtonElement).disabled).toBe(false);
+
+    await user.type(within(picker).getByTestId('imports-client-search'), 'Elcons');
+    await waitFor(() =>
+      expect(within(picker).queryByRole('radio', { name: /Hotel Carpați/ })).toBeNull()
+    );
+    expect((continueButton as HTMLButtonElement).disabled).toBe(true);
+    expect(within(picker).getByRole('button', { name: 'Renunță' })).toBeTruthy();
   });
 
   it('says nothing is open on a tab that has a history', async () => {

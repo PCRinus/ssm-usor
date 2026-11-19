@@ -20,9 +20,10 @@ export function useClosedImports(params: ListClosedImportsParams, enabled = true
   });
 }
 
-// Undefined until the list answers.
+// `settled` once the list answered or failed; a failed list leaves the total unknown.
 export function useClosedTotal(kind: ImportKind) {
-  return useClosedImports({ kind, page: 1, pageSize: 1 }).data?.total;
+  const closed = useClosedImports({ kind, page: 1, pageSize: 1 });
+  return { total: closed.data?.total, settled: closed.isSuccess || closed.isError };
 }
 
 export const importNoun = ['import', 'importuri'] as const;

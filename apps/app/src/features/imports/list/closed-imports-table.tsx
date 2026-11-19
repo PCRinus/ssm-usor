@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 
 import type { ImportListResponseItemsItem } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
-import { CellNote } from '@/components/data-table/cell-note';
+import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
@@ -68,6 +68,7 @@ function closedColumns(kind: ImportKind) {
       header: 'Ce a citit AI',
       meta: { headerClassName: 'w-48', skeletonClassName: 'w-28' },
       cell: ({ row }) => {
+        if (row.original.fileCount === 0) return <CellEmpty />;
         const [what, count] = readLines(row.original);
         return (
           <>

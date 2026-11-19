@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Outlet } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { getListClosedImportsQueryKey } from '@/api/generated/api';
 import { HelpLink } from '@/components/help-link';
@@ -8,6 +8,7 @@ import { phoneBleed } from '@/components/page-spacing';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { TabSheet } from '@/components/tab-sheet';
 
+import { closedSince, statusesOf } from '../open-imports';
 import { useCreditsBalance } from '../use-credits-balance';
 import { useMyImports } from '../use-my-imports';
 import { importSections } from './import-sections';
@@ -17,8 +18,8 @@ import { useClosedTotal } from './use-closed-imports';
 // An account that never imported reads its credits in the first import's card instead.
 function useNeverImported() {
   const { items } = useMyImports();
-  const closedClients = useClosedTotal('client');
-  const closedEmployees = useClosedTotal('employees');
+  const closedClients = useClosedTotal('client').total;
+  const closedEmployees = useClosedTotal('employees').total;
   return items?.length === 0 && closedClients === 0 && closedEmployees === 0;
 }
 
@@ -26,8 +27,14 @@ function useNeverImported() {
 function useClosedFollowOpen() {
   const queryClient = useQueryClient();
   const { items } = useMyImports();
+  const seen = useRef<ReadonlyMap<string, string> | null>(null);
   useEffect(() => {
-    if (items) void queryClient.invalidateQueries({ queryKey: getListClosedImportsQueryKey() });
+    if (!items) return;
+    const previous = seen.current;
+    seen.current = statusesOf(items);
+    if (previous && closedSince(previous, items)) {
+      void queryClient.invalidateQueries({ queryKey: getListClosedImportsQueryKey() });
+    }
   }, [items, queryClient]);
 }
 

@@ -38,26 +38,34 @@ export function ClientPicker({
   onPick: (client: PickedClient) => void;
 }) {
   const phone = useIsMobile();
+  // Each opening starts afresh, while the closing sheet keeps what it showed as it slides away.
+  const [opening, setOpening] = useState(0);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setOpening((count) => count + 1);
+  }
+  const body = (
+    <PickerBody key={opening} title={title} phone={phone} onClose={onClose} onPick={onPick} />
+  );
   if (phone) {
     return (
       <Drawer open={open} onOpenChange={(next) => !next && onClose()}>
         <DrawerContent data-testid="imports-client-picker" className="h-auto max-h-[92dvh] bg-card">
-          {open && <PickerBody title={title} phone onClose={onClose} onPick={onPick} />}
+          {body}
         </DrawerContent>
       </Drawer>
     );
   }
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      {open && (
-        <DialogContent
-          data-testid="imports-client-picker"
-          aria-describedby={undefined}
-          className="sm:max-w-[32rem]"
-        >
-          <PickerBody title={title} phone={false} onClose={onClose} onPick={onPick} />
-        </DialogContent>
-      )}
+      <DialogContent
+        data-testid="imports-client-picker"
+        aria-describedby={undefined}
+        className="sm:max-w-[32rem]"
+      >
+        {body}
+      </DialogContent>
     </Dialog>
   );
 }
@@ -74,10 +82,13 @@ function PickerBody({
   onPick: (client: PickedClient) => void;
 }) {
   const [q, setQ] = useState('');
-  const [chosen, setChosen] = useState<PickedClient | null>(null);
+  const [picked, setPicked] = useState<PickedClient | null>(null);
   const clients = useActiveClients(q || undefined);
   const items = clients.data?.items ?? [];
+  const chosen = picked && items.some((client) => client.id === picked.id) ? picked : null;
+  const capped = (clients.data?.total ?? 0) > items.length;
   const labelId = useId();
+  const name = useId();
 
   const list = (
     <div className="grid gap-2">
@@ -113,18 +124,19 @@ function PickerBody({
           {items.map((client) => {
             const selected = chosen?.id === client.id;
             return (
-              <button
+              <label
                 key={client.id}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                data-testid="imports-client-option"
-                onClick={() => setChosen(client)}
-                className={cn(
-                  'grid grid-cols-[minmax(0,1fr)_1rem] items-center gap-x-3 rounded-md px-3 py-2 text-left outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                  selected && 'bg-muted'
-                )}
+                className="relative grid cursor-pointer grid-cols-[minmax(0,1fr)_1rem] items-center gap-x-3 rounded-md px-3 py-2 hover:bg-muted/60 has-checked:bg-muted has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50"
               >
+                <input
+                  type="radio"
+                  name={name}
+                  value={client.id}
+                  checked={selected}
+                  data-testid="imports-client-option"
+                  onChange={() => setPicked(client)}
+                  className="absolute inset-0 m-0 size-full cursor-pointer appearance-none opacity-0"
+                />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">{client.legalName}</span>
                   <span className="block text-[13px] text-muted-foreground tabular-nums">
@@ -133,9 +145,17 @@ function PickerBody({
                   </span>
                 </span>
                 {selected && <Check aria-hidden="true" className="size-4" />}
-              </button>
+              </label>
             );
           })}
+          {capped && (
+            <p
+              data-testid="imports-client-capped"
+              className="px-3 py-2 text-[13px] text-muted-foreground"
+            >
+              Se văd primii {items.length} clienți. Caută-l pe cel pe care nu-l găsești.
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -151,7 +171,7 @@ function PickerBody({
       >
         Continuă
       </Button>
-      <Button variant="outline" className={cn(phone && 'h-11')} onClick={onClose}>
+      <Button variant="ghost" className={cn(phone && 'h-11')} onClick={onClose}>
         Renunță
       </Button>
     </>

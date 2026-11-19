@@ -3,7 +3,15 @@ import { describe, expect, it } from 'vitest';
 import type { ImportListResponseItemsItem } from '@/api/generated/api';
 import { clientId, importDetail, summaryOf } from '@/test/import-fixture';
 
-import { bandOf, isAnyMoving, openImportsOf, tabWithWaiting, waitingCounts } from './open-imports';
+import {
+  bandOf,
+  closedSince,
+  isAnyMoving,
+  openImportsOf,
+  statusesOf,
+  tabWithWaiting,
+  waitingCounts,
+} from './open-imports';
 
 const now = Date.parse('2026-11-19T12:00:00+02:00');
 const later = '2026-12-03T12:00:00+02:00';
@@ -40,9 +48,15 @@ describe('bandOf', () => {
   it('puts each open import in the band of what it waits for', () => {
     expect(bandOf(item({ status: 'ready' }), now)).toBe('review');
     expect(bandOf(item({ status: 'failed' }), now)).toBe('stopped');
-    for (const status of ['uploading', 'preparing', 'sorting', 'reading', 'checking']) {
+    for (const status of ['preparing', 'sorting', 'reading', 'checking']) {
       expect(bandOf(item({ status }), now)).toBe('reading');
     }
+    expect(bandOf(item({ status: 'uploading', createdAt: '2026-11-19T11:55:00+02:00' }), now)).toBe(
+      'reading'
+    );
+    expect(bandOf(item({ status: 'uploading', createdAt: '2026-11-19T09:00:00+02:00' }), now)).toBe(
+      'stopped'
+    );
     expect(bandOf(item({ status: 'abandoned' }), now)).toBeNull();
   });
 
@@ -204,7 +218,7 @@ describe('openImportsOf', () => {
     ]);
   });
 
-  it('reads an upload as reading, and says when it stalled', () => {
+  it('reads an upload under way as reading, and a stalled one as stopped', () => {
     const groups = openImportsOf(
       [
         item({ status: 'uploading', createdAt: '2026-11-19T11:55:00+02:00' }),
@@ -215,7 +229,13 @@ describe('openImportsOf', () => {
     );
     expect(groups.reading.map((row) => [row.state, row.stateNote])).toEqual([
       ['Se încarcă fișierele', null],
-      ['Încărcarea nu s-a terminat', 'Citirea n-a pornit.'],
+    ]);
+    expect(groups.stopped).toMatchObject([
+      {
+        state: 'S-a oprit',
+        stateNote: 'Încărcarea nu s-a terminat, așa că citirea n-a pornit.',
+        action: 'Vezi importul',
+      },
     ]);
   });
 
@@ -292,5 +312,20 @@ describe('isAnyMoving', () => {
     expect(
       isAnyMoving([item({ status: 'uploading', createdAt: '2026-11-19T11:55:00+02:00' })], now)
     ).toBe(true);
+  });
+});
+
+describe('closedSince', () => {
+  it('is true only when an import left the open list or was confirmed', () => {
+    const ready = item({ status: 'ready' });
+    const reading = item({ status: 'reading' });
+    const before = statusesOf([ready, reading]);
+
+    expect(closedSince(before, [ready, { ...reading, status: 'checking' }])).toBe(false);
+    expect(closedSince(before, [ready, reading, item({ status: 'uploading' })])).toBe(false);
+    expect(closedSince(before, [reading])).toBe(true);
+    expect(closedSince(before, [{ ...ready, status: 'confirmed' }, reading])).toBe(true);
+    const confirmed = { ...ready, status: 'confirmed' } as ImportListResponseItemsItem;
+    expect(closedSince(statusesOf([confirmed]), [confirmed])).toBe(false);
   });
 });

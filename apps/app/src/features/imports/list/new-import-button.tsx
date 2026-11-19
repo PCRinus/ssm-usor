@@ -12,12 +12,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { Building2, ChevronDown, FilePen, type LucideIcon, Plus, X } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { useCreditsBalance } from '../use-credits-balance';
 import { CreditsAvailable } from './imports-credits';
@@ -50,6 +51,7 @@ export function NewImportButton({
   const phone = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
   const { balance } = useCreditsBalance();
+  const creditsId = useId();
   if (kind === 'employees') {
     return (
       <Button
@@ -128,7 +130,12 @@ export function NewImportButton({
           {face}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent data-testid="imports-new-menu" align="end" className="w-80">
+      <DropdownMenuContent
+        data-testid="imports-new-menu"
+        align="end"
+        className="w-80"
+        aria-describedby={balance ? creditsId : undefined}
+      >
         {clientWays.map(({ way, label, icon: Icon, testId }) => (
           <DropdownMenuItem
             key={way}
@@ -143,11 +150,14 @@ export function NewImportButton({
         {balance && (
           <>
             <DropdownMenuSeparator />
-            <CreditsAvailable
-              balance={balance}
-              lead="remain"
-              className="px-2 py-1.5 text-[13px] text-muted-foreground"
-            />
+            <DropdownMenuLabel className="font-normal">
+              <CreditsAvailable
+                id={creditsId}
+                balance={balance}
+                lead="remain"
+                className="text-[13px] text-muted-foreground"
+              />
+            </DropdownMenuLabel>
           </>
         )}
       </DropdownMenuContent>

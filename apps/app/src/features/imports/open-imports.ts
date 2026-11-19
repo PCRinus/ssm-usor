@@ -51,7 +51,8 @@ const toReview = (part: Part) => part.status === 'to_review' || part.status === 
 export function bandOf(item: ImportItem, now = Date.now()): ImportBand | null {
   if (item.status === 'ready') return 'review';
   if (item.status === 'failed') return 'stopped';
-  if (item.status === 'uploading' || isRunning(item.status)) return 'reading';
+  if (item.status === 'uploading') return isUploadStalled(item, now) ? 'stopped' : 'reading';
+  if (isRunning(item.status)) return 'reading';
   if (item.status !== 'confirmed' || item.kind !== 'client') return null;
   const parts = liveParts(item, now);
   if (parts.some(toReview)) return 'review';
@@ -65,6 +66,18 @@ export function waitingCounts(items: readonly ImportItem[], now = Date.now()): W
   const counts = { client: 0, employees: 0 };
   for (const item of items) if (bandOf(item, now) === 'review') counts[item.kind] += 1;
   return { ...counts, total: counts.client + counts.employees };
+}
+
+export const statusesOf = (items: readonly ImportItem[]): ReadonlyMap<string, string> =>
+  new Map(items.map((item) => [item.id, item.status]));
+
+// An import leaves the open list when it is confirmed or abandoned, and a confirmed one with open
+// library parts stays on it as confirmed.
+export function closedSince(previous: ReadonlyMap<string, string>, items: readonly ImportItem[]) {
+  const now = statusesOf(items);
+  return [...previous].some(
+    ([id, status]) => !now.has(id) || (status !== 'confirmed' && now.get(id) === 'confirmed')
+  );
 }
 
 export const tabWithWaiting = (counts: WaitingCounts): ImportKind =>
@@ -219,13 +232,11 @@ function readingState(item: ImportItem, now: number) {
   }
   const photos = item.kind === 'employees';
   if (item.status === 'uploading') {
-    return isUploadStalled(item, now)
-      ? { state: 'Încărcarea nu s-a terminat', stateNote: 'Citirea n-a pornit.', progress: null }
-      : {
-          state: photos ? 'Se încarcă fotografiile' : 'Se încarcă fișierele',
-          stateNote: null,
-          progress: null,
-        };
+    return {
+      state: photos ? 'Se încarcă fotografiile' : 'Se încarcă fișierele',
+      stateNote: null,
+      progress: null,
+    };
   }
   const { step, progress } = runningStep(item);
   const counted = progress !== null;
@@ -270,7 +281,9 @@ function rowOf(item: ImportItem, band: ImportBand, now: number): OpenImport {
       stateNote:
         item.status === 'confirmed'
           ? `Nu s-au putut citi ${partsNames(liveParts(item, now), { lower: true })}.`
-          : (item.failureReason ?? 'Importul s-a oprit din cauza unei erori.'),
+          : item.status === 'uploading'
+            ? 'Încărcarea nu s-a terminat, așa că citirea n-a pornit.'
+            : (item.failureReason ?? 'Importul s-a oprit din cauza unei erori.'),
       progress: null,
       action: 'Vezi importul',
     };

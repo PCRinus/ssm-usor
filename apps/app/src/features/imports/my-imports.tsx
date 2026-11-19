@@ -28,9 +28,18 @@ export function MyImportsProvider({ children }: { children: ReactNode }) {
     },
   });
   const items = imports.data?.items;
+  const { status, error, isFetching, refetch } = imports;
   const value = useMemo(
-    () => ({ items, userId, waiting: items ? waitingCounts(items) : null }),
-    [items, userId]
+    () => ({
+      items,
+      userId,
+      waiting: items ? waitingCounts(items) : null,
+      status,
+      error,
+      isFetching,
+      refetch: () => void refetch(),
+    }),
+    [items, userId, status, error, isFetching, refetch]
   );
   return <MyImportsContext.Provider value={value}>{children}</MyImportsContext.Provider>;
 }

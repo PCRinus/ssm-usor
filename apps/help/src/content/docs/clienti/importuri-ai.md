@@ -28,7 +28,7 @@ Pe **Importuri AI**, în meniul lateral sub **Clienții tăi**, găsești toate 
 
 Numărul de lângă fiecare tab arată câte importuri te așteaptă la verificare. Același număr apare în meniul lateral, lângă fiecare tab, iar cât timp nu ești pe pagină, totalul lor stă lângă **Importuri AI**. Când un import așteaptă verificarea, în capul paginii apare și **Importuri AI**, cu numărul lor; pe telefon e butonul rotund din dreapta sus. Te duce direct pe tabul cu importuri de verificat.
 
-Sub titlu vezi câte credite AI îți mai rămân luna aceasta sau, în perioada de probă, din cele ale perioadei. Cum se socotesc găsești la [Creditele importurilor](/clienti/import/#creditele-importurilor).
+Sub titlu vezi câte credite AI îți mai rămân luna aceasta sau, în perioada de probă, din cele ale perioadei. Când ai și credite de bun venit sau credite extra, numărul le cuprinde și pe ele, ca în meniul **Import nou**. Cum se socotesc găsești la [Creditele importurilor](/clienti/import/#creditele-importurilor).
 
 ## Importurile deschise
 
@@ -36,7 +36,7 @@ Pe fiecare tab, **Deschise** arată importurile la care mai e ceva de făcut, gr
 
 - **De verificat**: propunerea unui client e gata, persoanele din fișe te așteaptă sau un client deja creat ori completat are încă instrucțiuni proprii sau evaluări de risc de verificat. Rândul îți spune până când se păstrează importul și are butonul care te duce la verificare: **Verifică propunerea**, **Verifică persoanele** sau **Verifică părțile**.
 - **Se citesc**: importurile care se încarcă sau se citesc, cu pasul la care au ajuns și, când se pot număra, câte fișiere sau fotografii s-au citit. Tot aici stă un client deja creat ale cărui instrucțiuni proprii sau evaluări de risc încă se citesc. Un clic pe rând deschide importul.
-- **S-au oprit**: importurile a căror citire s-a oprit, cu motivul, și clienții ale căror instrucțiuni proprii sau evaluări de risc nu s-au putut citi, fiecare cu **Vezi importul**.
+- **S-au oprit**: importurile a căror citire s-a oprit, cu motivul, cele a căror încărcare nu s-a terminat, așa că citirea n-a pornit, și clienții ale căror instrucțiuni proprii sau evaluări de risc nu s-au putut citi, fiecare cu **Vezi importul**.
 
 Lângă fiecare import vezi când a fost pornit și de cine. Un grup fără niciun import nu apare. Un import confirmat sau la care s-a renunțat trece la **Încheiate**. Un client creat sau completat care mai are părți de verificat apare și la **Deschise**, cel mult 14 zile de la confirmare.
 
