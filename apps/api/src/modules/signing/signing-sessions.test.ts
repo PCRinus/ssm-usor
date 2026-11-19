@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fetchMock, stubFetch, testSecretKey } from '../../test/upstream';
 import type { SmsSender } from '../sms-usage/sender';
 import {
   createSigningSession,
@@ -316,22 +317,13 @@ describe('verifySigningCode', () => {
 });
 
 describe('the stores', () => {
-  const fetchMock = vi.fn<typeof fetch>();
-
-  beforeEach(() => {
-    vi.stubGlobal('fetch', fetchMock);
-    fetchMock.mockReset();
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+  stubFetch();
 
   it('counts an attempt only on the row it read, and never on a verified one', async () => {
     fetchMock.mockResolvedValue(Response.json([{ id: 's1' }]));
     const { createClient } = await import('@supabase/supabase-js');
     const store = signingSessionStore(
-      createClient('https://example.supabase.co', 'sb_secret_test_key_value') as never
+      createClient('https://example.supabase.co', testSecretKey) as never
     );
 
     expect(await store.countAttempt('s1', 2)).toBe(true);
@@ -350,7 +342,7 @@ describe('the stores', () => {
     );
     const { createClient } = await import('@supabase/supabase-js');
     const store = signingSessionStore(
-      createClient('https://example.supabase.co', 'sb_secret_test_key_value') as never
+      createClient('https://example.supabase.co', testSecretKey) as never
     );
 
     const answer = await store.insert(

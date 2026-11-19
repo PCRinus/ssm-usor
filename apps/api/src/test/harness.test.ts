@@ -1,7 +1,7 @@
 import { clientContract, clientContractHeader } from '@ssm-usor/contracts';
+import { Hono } from 'hono';
 import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../app';
 import { apiRequest, type ApiRequestInit, testAccessToken } from './request';
 import {
   callsTo,
@@ -14,6 +14,7 @@ import {
   testOrganizationId,
   testSecretKey,
   testUser,
+  upstreamCalls,
 } from './upstream';
 
 stubFetch();
@@ -50,6 +51,61 @@ describe('mockUpstream', () => {
     expect(await (await fetch('https://example.supabase.co/rest/v1/employees')).json()).toEqual([
       'module',
     ]);
+  });
+
+  it('routes a path under a prefix, preferring an exact path, then the longest prefix, then a method', async () => {
+    mockUpstream({
+      'POST /storage/v1/object/*': () => ['post'],
+      '/storage/v1/object/*': () => ['any'],
+      '/storage/v1/object/sign/*': () => ['sign'],
+      '/storage/v1/object/sign/a.pdf': () => ['exact'],
+    });
+    const answer = async (path: string, method = 'GET') =>
+      (await fetch(`https://example.supabase.co${path}`, { method })).json();
+
+    expect(await answer('/storage/v1/object/sign/a.pdf', 'POST')).toEqual(['exact']);
+    expect(await answer('/storage/v1/object/sign/b.pdf', 'POST')).toEqual(['sign']);
+    expect(await answer('/storage/v1/object/files/b.pdf', 'POST')).toEqual(['post']);
+    expect(await answer('/storage/v1/object/files/b.pdf')).toEqual(['any']);
+    await expect(fetch('https://example.supabase.co/storage/v1/objects')).rejects.toThrow(
+      'Unexpected upstream request'
+    );
+  });
+
+  it('leaves a call a route answers undefined to the later layers', async () => {
+    mockUpstream(
+      { '/*': ({ url }) => (url.pathname === '/rest/v1/clients' ? ['test'] : undefined) },
+      { '/rest/v1/employees': () => ['module'] }
+    );
+    const answer = async (path: string) =>
+      (await fetch(`https://example.supabase.co${path}`)).json();
+
+    expect(await answer('/rest/v1/clients')).toEqual(['test']);
+    expect(await answer('/rest/v1/employees')).toEqual(['module']);
+    expect(await answer('/auth/v1/user')).toEqual(testUser);
+    await expect(fetch('https://example.supabase.co/rest/v1/sites')).rejects.toThrow(
+      'Unexpected upstream request: GET https://example.supabase.co/rest/v1/sites'
+    );
+  });
+
+  it('refuses an exact route that answers undefined, rather than falling through', async () => {
+    mockUpstream({ '/rest/v1/rpc/current_membership': () => undefined });
+
+    await expect(
+      fetch('https://example.supabase.co/rest/v1/rpc/current_membership', { method: 'POST' })
+    ).rejects.toThrow('The route for POST /rest/v1/rpc/current_membership answered undefined');
+  });
+
+  it('hands a route the request init as the caller sent it', async () => {
+    const form = new FormData();
+    mockUpstream({ 'POST /storage/v1/object/files': ({ init }) => [init?.body === form] });
+
+    const response = await fetch('https://example.supabase.co/storage/v1/object/files', {
+      method: 'POST',
+      body: form,
+    });
+
+    expect(await response.json()).toEqual([true]);
   });
 
   it('answers one object when supabase-js asks for one, and PGRST116 when there is none', async () => {
@@ -104,6 +160,10 @@ describe('mockUpstream', () => {
       { body: 'a=b', secret: false },
     ]);
     expect(callsTo('/rest/v1/clients', 'GET')).toEqual([]);
+    expect(upstreamCalls().map(({ method, url }) => `${method} ${url.pathname}`)).toEqual([
+      'POST /rest/v1/clients',
+      'POST /rest/v1/clients',
+    ]);
   });
 
   it('reads the method and URL of a Request', async () => {
@@ -126,7 +186,7 @@ describe('membershipRow', () => {
 
 describe('apiRequest', () => {
   const echoed = async (init: ApiRequestInit = {}) => {
-    const app = createApp();
+    const app = new Hono();
     app.post('/echo', async (c) =>
       c.json({
         authorization: c.req.header('Authorization') ?? null,

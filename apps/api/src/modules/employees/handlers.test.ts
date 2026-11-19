@@ -4,34 +4,22 @@ import {
   employeeListResponseSchema,
   employeeResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
 import { openApiConfig } from '../../lib/openapi';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId,
+  testUser as user,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const membership = {
-  user_id: user.id,
-  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
-  role: 'owner',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const activeClient = { id: clientId, archived_at: null, stage: 'client' };
@@ -180,8 +168,6 @@ const employeeViewRow = {
 
 type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(
   handlers: Partial<
     Record<
@@ -190,73 +176,43 @@ function mockUpstream(
     >
   >
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return handlers.auth?.(init, url) ?? Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return handlers.membership?.(init, url) ?? Response.json([membership]);
-    }
-    if (url.pathname === '/rest/v1/clients') {
-      return handlers.clients?.(init, url) ?? Response.json([activeClient]);
-    }
-    if (url.pathname === '/rest/v1/job_positions') {
-      return handlers.positions?.(init, url) ?? Response.json({ id: positionId });
-    }
-    if (url.pathname === '/rest/v1/client_workplaces') {
-      return handlers.workplaces?.(init, url) ?? Response.json([]);
-    }
-    if (url.pathname === '/rest/v1/employee_list') {
-      return (
-        handlers.list?.(init, url) ??
-        Response.json([employeeViewRow], { headers: { 'Content-Range': '0-0/1' } })
-      );
-    }
-    if (url.pathname === '/rest/v1/employee_training_status') {
-      return Response.json([{ employee_id: employeeRow.id, ...employeeRow.training_status }]);
-    }
-    if (url.pathname === '/rest/v1/employee_test_status') {
-      return Response.json([{ employee_id: employeeRow.id, ...employeeRow.test_status }]);
-    }
-    if (url.pathname === '/rest/v1/employees') {
-      return (
-        handlers.employees?.(init, url) ??
-        Response.json([employeeListRow], { headers: { 'Content-Range': '0-0/1' } })
-      );
-    }
-    throw new Error(`Unexpected upstream request: ${url}`);
+  routeUpstream({
+    '/auth/v1/user': ({ init, url }) => handlers.auth?.(init, url) ?? Response.json(user),
+    '/rest/v1/rpc/current_membership': ({ init, url }) =>
+      handlers.membership?.(init, url) ?? Response.json([membershipRow({ role: 'owner' })]),
+    '/rest/v1/clients': ({ init, url }) =>
+      handlers.clients?.(init, url) ?? Response.json([activeClient]),
+    '/rest/v1/job_positions': ({ init, url }) =>
+      handlers.positions?.(init, url) ?? Response.json({ id: positionId }),
+    '/rest/v1/client_workplaces': ({ init, url }) =>
+      handlers.workplaces?.(init, url) ?? Response.json([]),
+    '/rest/v1/employee_list': ({ init, url }) =>
+      handlers.list?.(init, url) ??
+      Response.json([employeeViewRow], { headers: { 'Content-Range': '0-0/1' } }),
+    '/rest/v1/employee_training_status': () =>
+      Response.json([{ employee_id: employeeRow.id, ...employeeRow.training_status }]),
+    '/rest/v1/employee_test_status': () =>
+      Response.json([{ employee_id: employeeRow.id, ...employeeRow.test_status }]),
+    '/rest/v1/employees': ({ init, url }) =>
+      handlers.employees?.(init, url) ??
+      Response.json([employeeListRow], { headers: { 'Content-Range': '0-0/1' } }),
   });
 }
 
 const calls = (pathname: string) =>
   fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === pathname);
 
-const request = (path: string, init: RequestInit = {}, token = 'Bearer test-access-token') =>
-  createApp().request(
-    path,
-    { ...init, headers: { Authorization: token, ...(init.headers ?? {}) } },
-    env
-  );
+const request = (path: string, init: RequestInit = {}, token?: string | null) =>
+  apiRequest(path, { ...init, token }, env);
 
 const employeesPath = `/clients/${clientId}/employees`;
 
-const postEmployee = (body: unknown, path = employeesPath, token?: string) =>
-  request(
-    path,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    },
-    token
-  );
+const postEmployee = (body: unknown, path = employeesPath, token?: string | null) =>
+  apiRequest(path, { method: 'POST', body, token }, env);
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
+stubFetch();
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -714,7 +670,7 @@ describe('GET /clients/{clientId}/employees', () => {
 
   it('requires a bearer token', async () => {
     mockUpstream({});
-    const response = await request(employeesPath, {}, '');
+    const response = await request(employeesPath, {}, null);
     expect(response.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -819,7 +775,7 @@ describe('GET /clients/{clientId}/employee-invitees', () => {
     mockUpstream({ membership: () => Response.json([]) });
     expect((await request(inviteesPath)).status).toBe(403);
     mockUpstream({});
-    expect((await request(inviteesPath, {}, '')).status).toBe(401);
+    expect((await request(inviteesPath, {}, null)).status).toBe(401);
     expect(calls('/rest/v1/employee_list')).toHaveLength(0);
   });
 });
@@ -875,7 +831,7 @@ describe('POST /clients/{clientId}/employees', () => {
     const [, init] = calls('/rest/v1/employees')[0]!;
     expect(init?.method).toBe('POST');
     expect(JSON.parse(String(init?.body))).toEqual({
-      organization_id: membership.organization_id,
+      organization_id: testOrganizationId,
       client_id: clientId,
       last_name: 'Popescu',
       first_name: 'Ion',
@@ -991,7 +947,7 @@ describe('POST /clients/{clientId}/employees', () => {
 
   it('requires authentication before validation', async () => {
     mockUpstream({});
-    const response = await postEmployee({ lastName: 'A' }, employeesPath, '');
+    const response = await postEmployee({ lastName: 'A' }, employeesPath, null);
     expect(response.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
   });

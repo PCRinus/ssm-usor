@@ -3,29 +3,28 @@ import { type InstructionsProposal, type RisksProposal, toProposal } from '@ssm-
 import { emptyReading } from '@ssm-usor/import/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv, ImportMessage } from '../../lib/env';
-import { creditsUpstream } from '../credits/upstream.fixture';
+import type { ImportMessage } from '../../lib/env';
+import { creditsUpstream } from '../../test/credits';
+import { apiRequest } from '../../test/request';
+import {
+  callsTo,
+  membershipRoutes,
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  testUser as user,
+  type UpstreamCall,
+} from '../../test/upstream';
 import { riskReasons } from './library';
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const bakerId = 'c0000000-0000-4000-8000-000000000001';
 const driverId = 'c0000000-0000-4000-8000-000000000002';
 const tillModuleId = 'b1000000-0000-4000-8000-000000000001';
 const ladderModuleId = 'b1000000-0000-4000-8000-000000000002';
-const secretKey = 'sb_secret_test_key_imports';
 
 const sent: ImportMessage[] = [];
 const queue = {
@@ -35,16 +34,14 @@ const queue = {
   sendBatch: vi.fn(async () => {}),
 };
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: secretKey,
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   CORS_ORIGINS: 'http://localhost:5173',
   EXTRACTOR_URL: 'http://localhost:3302',
   AI_GATEWAY_URL: 'https://gateway.example/v1/account/ssm-usor',
   AI_GATEWAY_TOKEN: 'gateway-token',
   IMPORT_QUEUE: queue,
-};
+});
 
 const position = (name: string) => ({
   name,
@@ -222,83 +219,45 @@ function partRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-type Call = { method: string; url: URL; body: unknown; admin: boolean };
-type Handler = (call: Call) => Response | Promise<Response> | undefined;
-
-const fetchMock = vi.fn<typeof fetch>();
-let calls: Call[] = [];
+type Handler = (call: UpstreamCall) => Response | Promise<Response> | undefined;
 
 function mockUpstream(handler: Handler = () => undefined) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    const raw = init?.body;
-    const call: Call = {
-      method,
-      url,
-      body: typeof raw === 'string' && /^[[{]/.test(raw) ? JSON.parse(raw) : raw,
-      admin: new Headers(init?.headers).get('Authorization') === `Bearer ${secretKey}`,
-    };
-    calls.push(call);
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return Response.json([
-        { user_id: user.id, organization_id: organizationId, role: 'specialist', access: 'full' },
-      ]);
-    }
-    if (url.pathname === '/rest/v1/profiles') {
-      return Response.json([{ user_id: user.id, full_name: 'Ana Popescu' }]);
-    }
-    const custom = await handler(call);
-    if (custom) return custom;
-    switch (url.pathname) {
-      case '/rest/v1/clients':
-      case '/rest/v1/client_fire_safety':
-        return Response.json(null);
-      case '/rest/v1/job_positions':
-        return Response.json([
+  routeUpstream(
+    {
+      '/auth/v1/user': () => Response.json(user),
+      '/rest/v1/profiles': () => Response.json([{ user_id: user.id, full_name: 'Ana Popescu' }]),
+    },
+    membershipRoutes,
+    { '/*': handler },
+    {
+      '/rest/v1/clients': () => Response.json(null),
+      '/rest/v1/client_fire_safety': () => Response.json(null),
+      '/rest/v1/job_positions': () =>
+        Response.json([
           { id: bakerId, name: 'Brutar' },
           { id: driverId, name: 'Șofer de livrări' },
-        ]);
-      case '/rest/v1/client_workplaces':
-      case '/rest/v1/employees':
-      case '/rest/v1/client_responsible_persons':
-      case '/rest/v1/fire_substances':
-        return Response.json([]);
-    }
-    const credits = creditsUpstream(call);
-    if (credits) return credits;
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
-  });
+        ]),
+      '/rest/v1/client_workplaces': () => Response.json([]),
+      '/rest/v1/employees': () => Response.json([]),
+      '/rest/v1/client_responsible_persons': () => Response.json([]),
+      '/rest/v1/fire_substances': () => Response.json([]),
+    },
+    { '/*': creditsUpstream }
+  );
 }
 
 const request = (path: string, method = 'GET', payload?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer user-token',
-        ...(payload === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
-    },
-    env
-  );
+  apiRequest(path, { method, body: payload }, env);
 
-const callsTo = (pathname: string) => calls.filter((call) => call.url.pathname === pathname);
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-  calls = [];
   sent.length = 0;
   queue.send.mockClear();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -306,10 +265,10 @@ const parts = `/imports/${importId}/library-parts`;
 
 describe('GET /imports/{importId}/library-parts', () => {
   it("shows each part with its proposal, the client's posts and its credits net of a refund", async () => {
-    mockUpstream(({ url, admin }) => {
+    mockUpstream(({ url, secret }) => {
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
       if (url.pathname === '/rest/v1/import_library_parts') return Response.json([partRow()]);
-      if (url.pathname === '/rest/v1/credit_entries' && admin) {
+      if (url.pathname === '/rest/v1/credit_entries' && secret) {
         return Response.json([
           { import_id: importId, kind: 'import_start', credits: -25, import_part: null },
           {
@@ -392,7 +351,7 @@ describe('PUT /imports/{importId}/library-parts/{part}/changes', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ version: 4 });
     const rpc = callsTo('/rest/v1/rpc/save_import_library_part_changes')[0]!;
-    expect(rpc.admin).toBe(false);
+    expect(rpc.secret).toBe(false);
     expect(rpc.body).toEqual({
       p_import_id: importId,
       p_part: 'instructions_ssm',
@@ -485,7 +444,7 @@ describe('POST /imports/{importId}/library-parts/{part}/confirm', () => {
       links: 4,
     });
     const rpc = callsTo('/rest/v1/rpc/apply_instruction_import')[0]!;
-    expect(rpc.admin).toBe(false);
+    expect(rpc.secret).toBe(false);
     expect(rpc.body).toEqual({
       p_import_id: importId,
       p_part: 'instructions_ssm',
@@ -509,7 +468,7 @@ describe('POST /imports/{importId}/library-parts/{part}/confirm', () => {
     const quality = callsTo('/rest/v1/import_library_parts').find(
       (call) => call.method === 'PATCH'
     )!;
-    expect(quality.admin).toBe(true);
+    expect(quality.secret).toBe(true);
     expect(quality.url.searchParams.get('status')).toBe('eq.confirmed');
     expect(quality.body).toEqual({
       quality: { instructions: { changed: 2, unticked: 0, kept: 1 } },
@@ -636,7 +595,7 @@ describe('POST /imports/{importId}/library-parts/{part}/retry', () => {
     expect(await response.json()).toMatchObject({
       part: { status: 'reading', attempt: 2, proposal: null, counts: null },
     });
-    expect(callsTo('/rest/v1/rpc/retry_import_library_part')[0]!.admin).toBe(false);
+    expect(callsTo('/rest/v1/rpc/retry_import_library_part')[0]!.secret).toBe(false);
     expect(sent).toEqual([
       { type: 'read-instructions', importId, part: 'instructions_ssm', attempt: 2 },
     ]);
@@ -657,7 +616,7 @@ describe('POST /imports/{importId}/library-parts/{part}/retry', () => {
     const [failed] = callsTo('/rest/v1/import_library_parts').filter(
       (call) => call.method === 'PATCH'
     );
-    expect(failed!.admin).toBe(true);
+    expect(failed!.secret).toBe(true);
     expect(Object.fromEntries(failed!.url.searchParams)).toMatchObject({
       import_id: `eq.${importId}`,
       part: 'eq.risk_evaluations',
@@ -844,10 +803,10 @@ describe('the risk evaluations part', () => {
   const confirmUpstream =
     (
       part: Record<string, unknown>,
-      extra: (call: Call) => Response | undefined = () => undefined
+      extra: (call: UpstreamCall) => Response | undefined = () => undefined
     ): Handler =>
     (call) => {
-      const { url, admin } = call;
+      const { url, secret } = call;
       const custom = extra(call);
       if (custom) return custom;
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
@@ -862,7 +821,7 @@ describe('the risk evaluations part', () => {
           },
         ]);
       }
-      if (url.pathname === '/rest/v1/organizations' && admin) {
+      if (url.pathname === '/rest/v1/organizations' && secret) {
         return Response.json({
           name: 'Serviciul Extern',
           legal_name: 'SERVICIUL EXTERN S.R.L.',
@@ -872,7 +831,7 @@ describe('the risk evaluations part', () => {
           fire_safety_technician_name: null,
         });
       }
-      if (url.pathname === '/rest/v1/organization_members' && admin) {
+      if (url.pathname === '/rest/v1/organization_members' && secret) {
         return Response.json([{ user_id: user.id }]);
       }
       if (url.pathname === '/rest/v1/evaluation_profiles' && call.method === 'PATCH') {
@@ -903,7 +862,7 @@ describe('the risk evaluations part', () => {
     };
 
   it('shows the part with its sheets, their posts, the counts of sheets and the library’s names', async () => {
-    mockUpstream(({ url, admin }) => {
+    mockUpstream(({ url, secret }) => {
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
       if (url.pathname === '/rest/v1/import_library_parts') {
         return Response.json([
@@ -935,7 +894,7 @@ describe('the risk evaluations part', () => {
           },
         ]);
       }
-      if (url.pathname === '/rest/v1/credit_entries' && admin) {
+      if (url.pathname === '/rest/v1/credit_entries' && secret) {
         return Response.json([
           { import_id: importId, kind: 'import_start', credits: -25, import_part: null },
           {
@@ -1110,11 +1069,11 @@ describe('the risk evaluations part', () => {
     const stored = callsTo('/rest/v1/evaluation_profiles').filter(
       (call) => call.method === 'PATCH'
     );
-    expect(stored.map((call) => [call.url.searchParams.get('id'), call.body, call.admin])).toEqual([
-      [`eq.${createdEntryId}`, { global_risk_level: 3.33, unacceptable_factor_count: 1 }, false],
-    ]);
+    expect(stored.map((call) => [call.url.searchParams.get('id'), call.body, call.secret])).toEqual(
+      [[`eq.${createdEntryId}`, { global_risk_level: 3.33, unacceptable_factor_count: 1 }, false]]
+    );
     const rpc = callsTo('/rest/v1/rpc/apply_risk_import')[0]!;
-    expect(rpc.admin).toBe(false);
+    expect(rpc.secret).toBe(false);
     const { p_payload: payload, ...rest } = rpc.body as {
       p_payload: {
         entries: { key: string; name: string; factors: Record<string, unknown>[] }[];
@@ -1163,7 +1122,7 @@ describe('the risk evaluations part', () => {
     const quality = callsTo('/rest/v1/import_library_parts').find(
       (call) => call.method === 'PATCH'
     )!;
-    expect(quality.admin).toBe(true);
+    expect(quality.secret).toBe(true);
     expect(quality.body).toEqual({
       quality: {
         sheets: { changed: 2, unticked: 0, kept: expect.any(Number) },

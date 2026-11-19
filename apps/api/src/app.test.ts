@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from './app';
 import { openApiConfig } from './lib/openapi';
 import { apiRequest } from './test/request';
-import { fetchMock, stubFetch, testEnv } from './test/upstream';
+import { fetchMock, routeUpstream, stubFetch, testEnv } from './test/upstream';
 
 const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
@@ -21,15 +21,10 @@ const user = {
 
 // Supabase Auth answers with the token's user; the account has no profile or membership.
 function mockAccount(accountFor: (token: string | null) => unknown) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') {
-      const token = new Headers(init?.headers).get('Authorization');
-      return Response.json(accountFor(token));
-    }
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([]);
-    if (url.pathname.startsWith('/rest/v1/')) return Response.json(null);
-    throw new Error(`Unexpected upstream request: ${url}`);
+  routeUpstream({
+    '/auth/v1/user': ({ headers }) => Response.json(accountFor(headers.get('Authorization'))),
+    '/rest/v1/rpc/current_membership': () => Response.json([]),
+    '/rest/v1/*': () => Response.json(null),
   });
 }
 

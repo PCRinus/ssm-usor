@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
+import { stubFetch } from '../../test/upstream';
 import {
   accountId,
   billingWebhook,
@@ -8,7 +9,6 @@ import {
   discordPosts,
   env,
   type Fake,
-  fetchMock,
   oblioWrites,
   organizationId,
   owner,
@@ -111,14 +111,7 @@ function paidInvoice(overrides: Record<string, unknown> = {}) {
   };
 }
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+stubFetch();
 
 describe('POST /billing/stripe-webhook', () => {
   it('refuses a request whose signature does not match, before touching anything', async () => {

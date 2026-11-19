@@ -5,6 +5,7 @@ import { apiRequest } from '../test/request';
 import {
   fetchMock,
   membershipRow,
+  routeUpstream,
   stubFetch,
   testOrganizationId as organizationId,
   testUser as user,
@@ -13,34 +14,29 @@ import {
 const participantId = '5c2a1b3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d';
 
 function mockUpstream(access: 'full' | 'read_only') {
-  fetchMock.mockImplementation(async (input) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json({ ...user, is_anonymous: false, email_confirmed_at: '2026-09-01' });
-      case '/rest/v1/rpc/current_membership':
-        return Response.json([membershipRow({ role: 'owner', access })]);
-      case '/rest/v1/rpc/accept_participant_invitations':
-        return Response.json(0);
-      case '/rest/v1/rpc/current_participations':
-        return Response.json([
-          {
-            participant_id: participantId,
-            organization_id: organizationId,
-            organization_name: 'Protect SSM',
-            client_id: '6d3b2c4e-5f6a-4b7c-9d8e-0f1a2b3c4d5e',
-            client_name: 'Client SRL',
-            kind: 'employee',
-            employee_id: '7e4c3d5f-6a7b-4c8d-8e9f-1a2b3c4d5e6f',
-            full_name: 'Ion Pop',
-            notice_version: '2026-10-17',
-            language: null,
-            access,
-          },
-        ]);
-      default:
-        return Response.json({ message: 'not mocked' }, { status: 599 });
-    }
+  routeUpstream({
+    '/auth/v1/user': () =>
+      Response.json({ ...user, is_anonymous: false, email_confirmed_at: '2026-09-01' }),
+    '/rest/v1/rpc/current_membership': () =>
+      Response.json([membershipRow({ role: 'owner', access })]),
+    '/rest/v1/rpc/accept_participant_invitations': () => Response.json(0),
+    '/rest/v1/rpc/current_participations': () =>
+      Response.json([
+        {
+          participant_id: participantId,
+          organization_id: organizationId,
+          organization_name: 'Protect SSM',
+          client_id: '6d3b2c4e-5f6a-4b7c-9d8e-0f1a2b3c4d5e',
+          client_name: 'Client SRL',
+          kind: 'employee',
+          employee_id: '7e4c3d5f-6a7b-4c8d-8e9f-1a2b3c4d5e6f',
+          full_name: 'Ion Pop',
+          notice_version: '2026-10-17',
+          language: null,
+          access,
+        },
+      ]),
+    '/*': () => Response.json({ message: 'not mocked' }, { status: 599 }),
   });
 }
 

@@ -4,31 +4,19 @@ import {
   legalChangeDetailResponseSchema,
   openLegalChangeListResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+} from '../../test/upstream';
 import { bundledCitingDocuments } from './act-citations';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
-const membership = { user_id: user.id, organization_id: organizationId, role: 'specialist' };
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const helmet = {
   id: 'f2f2f2f2-0000-4000-8000-000000000002',
@@ -126,19 +114,17 @@ const behind = (client: number, version: number, document = client) => ({
   revision_version: version,
 });
 
-const fetchMock = vi.fn<typeof fetch>();
-
 type Upstream = (params: URLSearchParams, init?: RequestInit) => Response;
 
 function mockUpstream(tables: Record<string, Upstream>) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    const table = tables[url.pathname.replace('/rest/v1/', '')];
-    if (table && (init?.method ?? 'GET') === 'GET') return table(url.searchParams, init);
-    throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
-  });
+  mockSignedInUpstream(
+    Object.fromEntries(
+      Object.entries(tables).map(([table, answer]) => [
+        `GET /rest/v1/${table}`,
+        ({ url, init }) => answer(url.searchParams, init),
+      ])
+    )
+  );
 }
 
 const searchParams = (table: string) =>
@@ -147,8 +133,7 @@ const searchParams = (table: string) =>
     .filter((url) => url.pathname === `/rest/v1/${table}`)
     .map((url) => url.searchParams);
 
-const request = (path: string) =>
-  createApp().request(path, { headers: { Authorization: 'Bearer test-access-token' } }, env);
+const request = (path: string) => apiRequest(path, {}, env);
 
 const page = (rows: unknown[], total: number) => (params: URLSearchParams) => {
   const from = Number(params.get('offset') ?? 0);
@@ -164,12 +149,7 @@ const page = (rows: unknown[], total: number) => (params: URLSearchParams) => {
   });
 };
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => vi.unstubAllGlobals());
+stubFetch();
 
 const materialDocument = {
   typeKey: 'general_training_material',

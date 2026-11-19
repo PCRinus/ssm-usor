@@ -3,33 +3,17 @@ import {
   employeeListResponseSchema,
   organizationEmployeeListResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  callsTo,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const membership = {
-  user_id: user.id,
-  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
-  role: 'specialist',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const otherClientId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
@@ -60,53 +44,30 @@ type Handler = (url: URL, init?: RequestInit) => Response | Promise<Response>;
 
 type Upstream = 'clients' | 'list' | 'employee_training_status' | 'employee_test_status';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    if (url.pathname === '/rest/v1/clients') {
-      return handlers.clients?.(url, init) ?? Response.json([{ id: clientId, archived_at: null }]);
-    }
-    if (url.pathname === '/rest/v1/employee_list') {
-      return (
-        handlers.list?.(url, init) ??
-        Response.json([viewRow], { headers: { 'Content-Range': '0-0/1' } })
-      );
-    }
-    if (url.pathname === '/rest/v1/employee_training_status') {
-      return handlers.employee_training_status?.(url, init) ?? Response.json([]);
-    }
-    if (url.pathname === '/rest/v1/employee_test_status') {
-      return handlers.employee_test_status?.(url, init) ?? Response.json([]);
-    }
-    throw new Error(`Unexpected upstream request: ${url}`);
+  mockSignedInUpstream({
+    '/rest/v1/clients': ({ url, init }) =>
+      handlers.clients?.(url, init) ?? Response.json([{ id: clientId, archived_at: null }]),
+    '/rest/v1/employee_list': ({ url, init }) =>
+      handlers.list?.(url, init) ??
+      Response.json([viewRow], { headers: { 'Content-Range': '0-0/1' } }),
+    '/rest/v1/employee_training_status': ({ url, init }) =>
+      handlers.employee_training_status?.(url, init) ?? Response.json([]),
+    '/rest/v1/employee_test_status': ({ url, init }) =>
+      handlers.employee_test_status?.(url, init) ?? Response.json([]),
   });
 }
 
-const upstreamCalls = (table: string, method = 'GET') =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === `/rest/v1/${table}` &&
-        (init?.method ?? 'GET') === method
-    )
-    .map(([input]) => new URL(String(input)).searchParams);
+const queriesTo = (table: string, method = 'GET') =>
+  callsTo(`/rest/v1/${table}`, method).map((call) => call.url.searchParams);
 
-const listQuery = () => upstreamCalls('employee_list')[0]!;
+const listQuery = () => queriesTo('employee_list')[0]!;
 
-const request = (path: string) =>
-  createApp().request(path, { headers: { Authorization: 'Bearer test-access-token' } }, env);
+const request = (path: string) => apiRequest(path, {}, env);
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
+stubFetch();
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -140,7 +101,7 @@ describe("searching a client's employees", () => {
     mockUpstream();
     await request(`/clients/${clientId}/employees?q=%20%20`);
     expect(listQuery().has('or')).toBe(false);
-    expect(upstreamCalls('employee_list', 'HEAD')).toHaveLength(0);
+    expect(queriesTo('employee_list', 'HEAD')).toHaveLength(0);
   });
 
   it('refuses a query over 100 characters', async () => {
@@ -216,7 +177,7 @@ describe('GET /employees', () => {
     expect(query.get('order')).toBe('last_name.asc,first_name.asc,id.asc');
     expect(query.get('offset')).toBe('0');
     expect(query.get('limit')).toBe('25');
-    expect(upstreamCalls('clients')).toHaveLength(0);
+    expect(queriesTo('clients')).toHaveLength(0);
   });
 
   it('matches the name and the employee number, never the client name', async () => {
@@ -257,7 +218,7 @@ describe('GET /employees', () => {
       '(ssm_test_state.eq.pending,su_test_state.eq.pending)',
       '(signatures_pending_count.gt.0)',
     ]);
-    const [count] = upstreamCalls('employee_list', 'HEAD');
+    const [count] = queriesTo('employee_list', 'HEAD');
     expect(count!.get('client_stage')).toBe('eq.client');
     expect(count!.has('su_training_state')).toBe(false);
     expect(count!.has('or')).toBe(false);
@@ -297,7 +258,7 @@ describe('GET /employees', () => {
     const response = await request('/employees');
     const [item] = organizationEmployeeListResponseSchema.parse(await response.json()).items;
     expect(item!.training.ssm).toMatchObject({ state: 'overdue', dueOn: '2026-10-01' });
-    const [training] = upstreamCalls('employee_training_status');
+    const [training] = queriesTo('employee_training_status');
     expect(training!.get('employee_id')).toBe(`in.(${viewRow.id})`);
   });
 
@@ -320,10 +281,10 @@ describe('GET /employees', () => {
       total: 30,
       unfilteredTotal: 30,
     });
-    const recount = upstreamCalls('employee_list', 'HEAD').find((query) => query.has('or'));
+    const recount = queriesTo('employee_list', 'HEAD').find((query) => query.has('or'));
     expect(recount!.getAll('or')).toEqual([
       '(search_name.ilike.*ion*,employee_number.ilike.*ion*)',
     ]);
-    expect(upstreamCalls('employee_training_status')).toHaveLength(0);
+    expect(queriesTo('employee_training_status')).toHaveLength(0);
   });
 });

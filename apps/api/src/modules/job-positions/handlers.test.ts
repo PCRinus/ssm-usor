@@ -3,34 +3,20 @@ import {
   jobPositionListResponseSchema,
   jobPositionResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId,
+  testUser as user,
+} from '../../test/upstream';
 import { toTrainMatch } from '../employees/training-match';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const membership = {
-  user_id: user.id,
-  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
-  role: 'specialist',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const welderId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
@@ -59,17 +45,11 @@ const accountant = {
 
 type Handler = (init?: RequestInit, url?: URL) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(handlers: { clients?: Handler; positions?: Handler } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    if (url.pathname === '/rest/v1/clients') {
-      return handlers.clients?.(init, url) ?? Response.json([{ id: clientId, archived_at: null }]);
-    }
-    if (url.pathname === '/rest/v1/job_positions') {
+  mockSignedInUpstream({
+    '/rest/v1/clients': ({ init, url }) =>
+      handlers.clients?.(init, url) ?? Response.json([{ id: clientId, archived_at: null }]),
+    '/rest/v1/job_positions': ({ init, url }) => {
       const custom = handlers.positions?.(init, url);
       if (custom) return custom;
       // The count of current employees per position is a query of its own.
@@ -94,8 +74,7 @@ function mockUpstream(handlers: { clients?: Handler; positions?: Handler } = {})
         ]);
       }
       return Response.json([accountant, welder]);
-    }
-    throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
+    },
   });
 }
 
@@ -110,18 +89,7 @@ const sent = (method: string, index = 0) =>
   JSON.parse(String(calls(method)[index]![1]?.body)) as Record<string, unknown>;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
 const path = `/clients/${clientId}/job-positions`;
 const duplicate = () =>
@@ -130,12 +98,7 @@ const duplicate = () =>
     { status: 409 }
   );
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => vi.unstubAllGlobals());
+stubFetch();
 
 describe('GET /clients/{clientId}/job-positions', () => {
   it('lists the positions by name with their current employees, archived ones left out', async () => {
@@ -201,7 +164,7 @@ describe('POST /clients/{clientId}/job-positions', () => {
       work_zone: 'Atelier, teren',
       activities: null,
       training_interval_months: null,
-      organization_id: membership.organization_id,
+      organization_id: testOrganizationId,
       client_id: clientId,
       created_by: user.id,
     });

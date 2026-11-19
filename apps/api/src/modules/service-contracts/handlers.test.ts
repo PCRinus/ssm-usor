@@ -1,7 +1,16 @@
 import { apiErrorResponseSchema, serviceContractResponseSchema } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testUser as user,
+} from '../../test/upstream';
 
 // The engine is tested against the real template with the scripts. Here it prints whatever
 // the data holds, which is what the snapshot then records.
@@ -17,28 +26,12 @@ vi.mock('@ssm-usor/document-engine', () => ({
 
 import type { MailService } from '@ssm-usor/contracts';
 
-import type { ApiEnv } from '../../lib/env';
 import { endDateOf, missingServiceContractData, type ServiceContractFacts } from './facts';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
+const env = testEnv({
   CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
   APP_ORIGIN: 'https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
-const membership = { user_id: user.id, organization_id: organizationId, role: 'owner' };
+});
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 
 const clientRow: ServiceContractFacts['client'] = {
@@ -138,55 +131,39 @@ type Upstream =
   | 'profiles'
   | 'offers';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname.startsWith('/storage/v1/object/sign/')) {
-      if (init?.method === 'POST') {
-        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
-      }
-      // Files are read through the link just signed.
-      return handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3]));
-    }
-    if (url.pathname.startsWith('/storage/v1/object/documents')) {
-      return handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' });
-    }
-    switch (url.pathname) {
-      case '/rest/v1/service_contract_sends':
-        return (
-          handlers.sends?.(init, url) ??
-          (init?.method === 'POST' ? new Response(null, { status: 201 }) : Response.json([]))
-        );
-      case '/rest/v1/profiles':
-        return handlers.profiles?.(init, url) ?? Response.json([{ full_name: 'Olga Owner' }]);
-      case '/rest/v1/document_templates':
-        return handlers.templates?.(init, url) ?? Response.json([templateRow]);
-      case '/rest/v1/document_revisions':
-        return (
-          handlers.revisions?.(init, url) ??
-          (init?.method === 'POST'
-            ? Response.json({ id: revisionId })
-            : new Response(null, { status: 204 }))
-        );
-      case '/auth/v1/user':
-        return Response.json(user);
-      case '/rest/v1/rpc/current_organization_has_offers':
-        return handlers.offers?.(init, url) ?? Response.json(true);
-      case '/rest/v1/rpc/current_membership':
-        return handlers.membership?.(init, url) ?? Response.json([membership]);
-      case '/rest/v1/clients':
-        return handlers.clients?.(init, url) ?? Response.json([clientRow]);
-      case '/rest/v1/organizations':
-        return handlers.organizations?.(init, url) ?? Response.json(organizationRow);
-      case '/rest/v1/service_contracts':
-        return handlers.contracts?.(init, url) ?? Response.json([contractRow]);
-      case '/rest/v1/client_documents':
-        return handlers.documents?.(init, url) ?? Response.json([]);
-      default:
-        throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
-    }
+  mockSignedInUpstream({
+    'POST /storage/v1/object/sign/*': ({ url }) =>
+      Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` }),
+    // Files are read through the link just signed.
+    '/storage/v1/object/sign/*': ({ init, url }) =>
+      handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3])),
+    '/storage/v1/object/documents*': ({ init, url }) =>
+      handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' }),
+    '/rest/v1/service_contract_sends': ({ init, url }) =>
+      handlers.sends?.(init, url) ??
+      (init?.method === 'POST' ? new Response(null, { status: 201 }) : Response.json([])),
+    '/rest/v1/profiles': ({ init, url }) =>
+      handlers.profiles?.(init, url) ?? Response.json([{ full_name: 'Olga Owner' }]),
+    '/rest/v1/document_templates': ({ init, url }) =>
+      handlers.templates?.(init, url) ?? Response.json([templateRow]),
+    '/rest/v1/document_revisions': ({ init, url }) =>
+      handlers.revisions?.(init, url) ??
+      (init?.method === 'POST'
+        ? Response.json({ id: revisionId })
+        : new Response(null, { status: 204 })),
+    '/rest/v1/rpc/current_organization_has_offers': ({ init, url }) =>
+      handlers.offers?.(init, url) ?? Response.json(true),
+    '/rest/v1/rpc/current_membership': ({ init, url }) =>
+      handlers.membership?.(init, url) ?? Response.json([membershipRow({ role: 'owner' })]),
+    '/rest/v1/clients': ({ init, url }) =>
+      handlers.clients?.(init, url) ?? Response.json([clientRow]),
+    '/rest/v1/organizations': ({ init, url }) =>
+      handlers.organizations?.(init, url) ?? Response.json(organizationRow),
+    '/rest/v1/service_contracts': ({ init, url }) =>
+      handlers.contracts?.(init, url) ?? Response.json([contractRow]),
+    '/rest/v1/client_documents': ({ init, url }) =>
+      handlers.documents?.(init, url) ?? Response.json([]),
   });
 }
 
@@ -197,26 +174,11 @@ const calls = (pathname: string, method = 'GET') =>
   );
 
 const request = (method = 'GET', body?: unknown) =>
-  createApp().request(
-    `/clients/${clientId}/service-contract`,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(`/clients/${clientId}/service-contract`, { method, body }, env);
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
+stubFetch();
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -345,7 +307,7 @@ describe('GET /clients/{clientId}/service-contract', () => {
   it('answers 404 for a client that is not there, and 403 for a specialist', async () => {
     mockUpstream({ clients: () => Response.json([]) });
     expect((await request()).status).toBe(404);
-    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await request()).status).toBe(403);
   });
 });
@@ -443,18 +405,14 @@ describe('PUT /clients/{clientId}/service-contract', () => {
     expect((await request('PUT', validBody)).status).toBe(404);
     expect(calls('/rest/v1/service_contracts', 'PATCH')).toHaveLength(0);
 
-    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await request('PUT', validBody)).status).toBe(403);
   });
 });
 
 describe('POST /clients/{clientId}/service-contract/generate', () => {
   const generate = () =>
-    createApp().request(
-      `/clients/${clientId}/service-contract/generate`,
-      { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
-      env
-    );
+    apiRequest(`/clients/${clientId}/service-contract/generate`, { method: 'POST' }, env);
   // A list of a client's documents by type is an array; one document by id is an object.
   const documents =
     (existing: unknown[], byId: unknown = documentRow): Handler =>
@@ -538,7 +496,7 @@ describe('POST /clients/{clientId}/service-contract/generate', () => {
     expect(untemplated.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await untemplated.json()).reason).toBe('template_missing');
 
-    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await generate()).status).toBe(403);
   });
 
@@ -547,12 +505,7 @@ describe('POST /clients/{clientId}/service-contract/generate', () => {
       ...documentRow,
       document_revisions: [{ ...draftRow, data_snapshot: { contract: { number } } }],
     });
-    const request = () =>
-      createApp().request(
-        `/clients/${clientId}/service-contract`,
-        { headers: { Authorization: 'Bearer test-access-token' } },
-        env
-      );
+    const request = () => apiRequest(`/clients/${clientId}/service-contract`, {}, env);
     mockUpstream({ documents: () => Response.json([printed(51)]) });
     const same = serviceContractResponseSchema.parse(await (await request()).json());
     // The snapshot of the test holds only the number, and the rest of `contract` differs.
@@ -576,13 +529,9 @@ describe('POST /clients/{clientId}/service-contract/send', () => {
   };
   const issuedDocument = { ...documentRow, document_revisions: [issuedRow] };
   const send = (body: unknown = { to: 'andrei@client.example', note: ' Cum am vorbit. ' }) =>
-    createApp().request(
+    apiRequest(
       `/clients/${clientId}/service-contract/send`,
-      {
-        method: 'POST',
-        headers: { Authorization: 'Bearer test-access-token', 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      },
+      { method: 'POST', body },
       { ...env, MAIL: mail }
     );
   const pdfPath: Handler = (init) =>
@@ -695,20 +644,16 @@ describe('POST /clients/{clientId}/service-contract/send', () => {
     });
     expect((await send()).status).toBe(409);
 
-    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await send()).status).toBe(403);
     expect(sendServiceContract).not.toHaveBeenCalled();
   });
 
   it('is unavailable where no mail service is bound', async () => {
     mockUpstream({});
-    const response = await createApp().request(
+    const response = await apiRequest(
       `/clients/${clientId}/service-contract/send`,
-      {
-        method: 'POST',
-        headers: { Authorization: 'Bearer test-access-token', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: 'andrei@client.example' }),
-      },
+      { method: 'POST', body: { to: 'andrei@client.example' } },
       env
     );
     expect(response.status).toBe(503);
@@ -719,13 +664,9 @@ describe('the contract of a lead on a plan without offers', () => {
   const leadRow = { ...clientRow, stage: 'lead' };
   const sendServiceContract = vi.fn<MailService['sendServiceContract']>();
   const post = (path: string, body?: unknown) =>
-    createApp().request(
+    apiRequest(
       `/clients/${clientId}/service-contract${path}`,
-      {
-        method: 'POST',
-        headers: { Authorization: 'Bearer test-access-token', 'Content-Type': 'application/json' },
-        body: body === undefined ? undefined : JSON.stringify(body),
-      },
+      { method: 'POST', body },
       { ...env, MAIL: { sendServiceContract } as unknown as MailService }
     );
   const reasonOf = async (response: Response) =>

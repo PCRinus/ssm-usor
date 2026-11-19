@@ -1,23 +1,21 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { adminClient } from '../../lib/admin-db';
-import type { ApiEnv } from '../../lib/env';
+import {
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testSecretKey,
+  type UpstreamCall,
+  upstreamCalls,
+} from '../../test/upstream';
 import { importRecords } from './records';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_records',
-  CORS_ORIGINS: 'http://localhost:5173',
-};
+const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey, CORS_ORIGINS: 'http://localhost:5173' });
 
 const now = new Date('2026-11-05T02:41:00Z');
 const idOf = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
 
-type Request = { method: string; url: URL; body: unknown };
-
-const fetchMock = vi.fn<typeof fetch>();
-let requests: Request[];
 let ended: {
   id: string;
   status: string;
@@ -34,56 +32,41 @@ const page = <T>(rows: T[], url: URL) => {
   return Response.json(rows.slice(offset, offset + Math.min(limit, 1000)));
 };
 
+function imports({ method, url }: UpstreamCall) {
+  if (method === 'PATCH') {
+    const first = !claimed;
+    claimed = true;
+    return Response.json(first ? [{ id: idOf(1) }] : []);
+  }
+  if (url.searchParams.has('status')) return page(ended, url);
+  if (url.searchParams.has('or')) {
+    return page(
+      dayIds.map((id) => ({ id })),
+      url
+    );
+  }
+  const ids = url.searchParams.get('id')!.slice('in.('.length, -1).split(',');
+  if (url.searchParams.get('select')?.startsWith('id,status')) {
+    return Response.json(ended.filter((row) => ids.includes(row.id)));
+  }
+  return Response.json(ids.map((id) => ({ id, status: 'confirmed', import_library_parts: [] })));
+}
+
+stubFetch();
+
 beforeEach(() => {
-  requests = [];
   ended = [];
   copies = [];
   dayIds = [];
   claimed = false;
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    const raw = init?.body;
-    requests.push({ method, url, body: typeof raw === 'string' ? JSON.parse(raw) : raw });
-    const select = url.searchParams.get('select') ?? '';
-    if (url.pathname === '/rest/v1/imports' && method === 'PATCH') {
-      const first = !claimed;
-      claimed = true;
-      return Response.json(first ? [{ id: idOf(1) }] : []);
-    }
-    if (url.pathname === '/rest/v1/imports' && url.searchParams.has('status')) {
-      return page(ended, url);
-    }
-    if (url.pathname === '/rest/v1/imports' && url.searchParams.has('or')) {
-      return page(
-        dayIds.map((id) => ({ id })),
-        url
-      );
-    }
-    if (url.pathname === '/rest/v1/imports' && select.startsWith('id,status')) {
-      const ids = url.searchParams.get('id')!.slice('in.('.length, -1).split(',');
-      return Response.json(ended.filter((row) => ids.includes(row.id)));
-    }
-    if (url.pathname === '/rest/v1/imports') {
-      const ids = url.searchParams.get('id')!.slice('in.('.length, -1).split(',');
-      return Response.json(
-        ids.map((id) => ({ id, status: 'confirmed', import_library_parts: [] }))
-      );
-    }
-    if (url.pathname === '/rest/v1/import_library_parts') return page([], url);
-    if (url.pathname === '/rest/v1/import_copies') {
+  routeUpstream({
+    '/rest/v1/imports': imports,
+    '/rest/v1/import_library_parts': ({ url }) => page([], url),
+    '/rest/v1/import_copies': ({ url }) => {
       const ids = url.searchParams.get('import_id')!.slice('in.('.length, -1).split(',');
       return Response.json(copies.filter((copy) => ids.includes(copy.import_id)));
-    }
-    throw new Error(`Unexpected request: ${method} ${url}`);
+    },
   });
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
 });
 
 const records = () => importRecords(adminClient(env));
@@ -103,7 +86,7 @@ describe('uncopied', () => {
     expect(await records().uncopied(now)).toEqual([
       { importId: idOf(1499), part: null, recorded: false },
     ]);
-    const listed = requests.filter((request) => request.url.searchParams.has('status'));
+    const listed = upstreamCalls().filter((request) => request.url.searchParams.has('status'));
     expect(listed.map((request) => request.url.searchParams.get('offset'))).toEqual(['0', '1000']);
     for (const request of listed) {
       expect(request.url.searchParams.get('order')).toBe('id.asc');
@@ -159,7 +142,7 @@ describe('between', () => {
     const day = await records().between('2026-11-04T00:00:00.000Z', '2026-11-05T00:00:00.000Z');
 
     expect(day).toHaveLength(1001);
-    const listed = requests.filter((request) => request.url.searchParams.has('or'));
+    const listed = upstreamCalls().filter((request) => request.url.searchParams.has('or'));
     expect(
       listed
         .filter((request) => request.url.pathname === '/rest/v1/imports')
@@ -176,7 +159,7 @@ describe('between', () => {
         .find((request) => request.url.pathname === '/rest/v1/import_library_parts')!
         .url.searchParams.get('order')
     ).toBe('import_id.asc,part.asc');
-    const read = requests.find(
+    const read = upstreamCalls().find(
       (request) => request.url.pathname === '/rest/v1/imports' && request.url.searchParams.has('id')
     )!;
     const columns = read.url.searchParams.get('select')!;
@@ -193,7 +176,7 @@ describe('claimExpensiveAlert', () => {
     ]);
 
     expect([first, second].sort()).toEqual([false, true]);
-    const patch = requests.find((request) => request.method === 'PATCH')!;
+    const patch = upstreamCalls().find((request) => request.method === 'PATCH')!;
     expect(patch.url.searchParams.get('expensive_alerted_at')).toBe('is.null');
     expect(patch.body).toEqual({ expensive_alerted_at: expect.any(String) });
   });

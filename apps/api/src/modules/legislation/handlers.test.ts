@@ -3,34 +3,18 @@ import {
   latestLegalCheckRunResponseSchema,
   legalActListResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+} from '../../test/upstream';
 import { bundledActCitations } from './act-citations';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const membership = {
-  user_id: user.id,
-  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
-  role: 'specialist',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const law = {
   id: 'lege-319-2006',
@@ -59,17 +43,12 @@ const norms = { ...law, id: 'hg-1425-2006', name: 'H.G. 1425/2006', portal_id: 7
 const newerChangeId = 'd1d1d1d1-0000-4000-8000-000000000002';
 const olderChangeId = 'd1d1d1d1-0000-4000-8000-000000000001';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(tables: Record<string, () => Response>) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    const table = tables[url.pathname.replace('/rest/v1/', '')];
-    if (table && (init?.method ?? 'GET') === 'GET') return table();
-    throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
-  });
+  mockSignedInUpstream(
+    Object.fromEntries(
+      Object.entries(tables).map(([table, answer]) => [`GET /rest/v1/${table}`, () => answer()])
+    )
+  );
 }
 
 const searchParams = (table: string) =>
@@ -78,15 +57,9 @@ const searchParams = (table: string) =>
     .filter((url) => url.pathname === `/rest/v1/${table}`)
     .map((url) => url.searchParams);
 
-const request = (path: string) =>
-  createApp().request(path, { headers: { Authorization: 'Bearer test-access-token' } }, env);
+const request = (path: string) => apiRequest(path, {}, env);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => vi.unstubAllGlobals());
+stubFetch();
 
 describe('GET /legislation/acts', () => {
   it('lists the watched acts by name', async () => {
@@ -175,12 +148,7 @@ describe('GET /legislation/acts', () => {
   });
 
   it('answers 403 to an account without an organization', async () => {
-    fetchMock.mockImplementation(async (input) => {
-      const url = new URL(String(input));
-      if (url.pathname === '/auth/v1/user') return Response.json(user);
-      if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([]);
-      throw new Error(`Unexpected upstream request: ${url}`);
-    });
+    mockSignedInUpstream({ '/rest/v1/rpc/current_membership': () => Response.json([]) });
     const response = await request('/legislation/acts');
     expect(response.status).toBe(403);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('forbidden');

@@ -1,12 +1,12 @@
 import { billingOverviewSchema, billingPreviewSchema } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
+import { apiRequest } from '../../test/request';
+import { stubFetch } from '../../test/upstream';
 import {
   createFake,
   env,
   type Fake,
-  fetchMock,
   organizationId,
   owner,
   paidRow,
@@ -23,15 +23,7 @@ const start = { plan: 'start', step: 250, interval: 'month' } as const;
 const pro = { plan: 'profesional', step: 1500, interval: 'month' } as const;
 
 const request = (method: string, path: string, body?: unknown, bindings = env) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: { Authorization: 'Bearer user-token', 'Content-Type': 'application/json' },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    },
-    bindings
-  );
+  apiRequest(path, { method, body, headers: { 'Content-Type': 'application/json' } }, bindings);
 
 const reasonOf = async (response: Response) =>
   ((await response.json()) as { reason?: string }).reason;
@@ -40,14 +32,7 @@ const previewOf = async (response: Response) => billingPreviewSchema.parse(await
 const row = (fake: Fake) => fake.tables.subscriptions![0]!;
 const stripeCalls = (fake: Fake) => fake.calls.filter((call) => call.url.host === 'api.stripe.com');
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+stubFetch();
 
 describe('GET /billing', () => {
   it('shows a specialist the plan, the usage and the list prices, and nothing of the money', async () => {

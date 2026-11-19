@@ -9,41 +9,27 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAdminApp } from '../../admin-app';
-import type { ApiEnv } from '../../lib/env';
+import { accessTokenAt } from '../../lib/access-token.fixture';
+import { apiRequest } from '../../test/request';
+import {
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testSecretKey,
+  testUser,
+  type UpstreamCall,
+  upstreamCalls,
+} from '../../test/upstream';
 
-const admin = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'mircea@example.ro',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email', role: 'admin' },
-  user_metadata: {},
-};
+const admin = { ...testUser, app_metadata: { provider: 'email', role: 'admin' } };
 const member = { ...admin, app_metadata: { provider: 'email' } };
 
 const changeId = 'd1d1d1d1-0000-4000-8000-000000000001';
 const versionId = 'a1a1a1a1-0000-4000-8000-000000000001';
-const secretKey = 'sb_secret_test_key_admin_legislation';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: secretKey,
-};
+const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey });
 
-const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
-const token = `${encode({ alg: 'ES256', typ: 'JWT' })}.${encode({ sub: admin.id, aal: 'aal2' })}.c2ln`;
-
-type Call = {
-  method: string;
-  url: URL;
-  body: unknown;
-  secret: boolean;
-  ownToken: boolean;
-  actor: string | null;
-};
+const token = accessTokenAt('aal2', admin.id);
 
 const act = { id: 'oug-195-2002', name: 'O.U.G. 195/2002', portal_id: 41006 };
 
@@ -138,8 +124,6 @@ const runRow = (index: number) => ({
   errors: [{ act: 'hg-1425-2006', message: 'Page 76337 has no "Forme act" section.' }],
 });
 
-const fetchMock = vi.fn<typeof fetch>();
-let calls: Call[] = [];
 let user: typeof admin | typeof member = admin;
 let change: Record<string, unknown> | null = changeRow;
 let rpcError: { code: string; message: string } | null = null;
@@ -149,52 +133,41 @@ let older: unknown[] = [];
 let answering: unknown[] = [];
 let passages: unknown[] = [];
 
-function mockUpstream() {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    const headers = new Headers(init?.headers);
-    const raw = init?.body;
-    calls.push({
-      method,
-      url,
-      body: typeof raw === 'string' && /^[[{]/.test(raw) ? JSON.parse(raw) : raw,
-      secret: headers.get('Authorization') === `Bearer ${secretKey}`,
-      ownToken: headers.get('Authorization') === `Bearer ${token}`,
-      actor: headers.get('x-audit-actor'),
-    });
-    const path = url.pathname;
-    const params = url.searchParams;
+function legalChanges({ method, url, headers }: UpstreamCall) {
+  const params = url.searchParams;
+  if (params.get('select')?.includes('passages:')) {
+    const from = Number(params.get('offset') ?? 0);
+    return Response.json(listed.slice(from, from + Number(params.get('limit'))));
+  }
+  if (params.get('consolidated_on')?.startsWith('lt.')) return Response.json(older);
+  if (params.get('id')) {
     const single = headers.get('Accept') === 'application/vnd.pgrst.object+json';
+    return single ? Response.json(change) : Response.json(change ? [change] : []);
+  }
+  if (method === 'HEAD') {
+    return new Response(null, { status: 200, headers: { 'Content-Range': '*/0' } });
+  }
+  throw new Error(`Unexpected upstream request: ${method} ${url}`);
+}
 
-    if (path === '/auth/v1/user') return Response.json(user);
-    if (path.startsWith('/rest/v1/rpc/')) {
+function mockUpstream() {
+  routeUpstream({
+    '/auth/v1/user': () => Response.json(user),
+    '/rest/v1/rpc/*': ({ url }) => {
       if (rpcError) return Response.json(rpcError, { status: 400 });
-      if (path === '/rest/v1/rpc/admin_record_verified_form') {
+      if (url.pathname === '/rest/v1/rpc/admin_record_verified_form') {
         return Response.json({ ...actRow, verified_consolidated_on: '2026-11-06' });
       }
       return Response.json(changeRow);
-    }
-    if (path === '/rest/v1/legal_changes' && params.get('select')?.includes('passages:')) {
-      const from = Number(params.get('offset') ?? 0);
-      return Response.json(listed.slice(from, from + Number(params.get('limit'))));
-    }
-    if (path === '/rest/v1/legal_changes' && params.get('consolidated_on')?.startsWith('lt.')) {
-      return Response.json(older);
-    }
-    if (path === '/rest/v1/legal_changes' && params.get('id')) {
-      return single ? Response.json(change) : Response.json(change ? [change] : []);
-    }
-    if (path === '/rest/v1/legal_changes' && method === 'HEAD') {
-      return new Response(null, { status: 200, headers: { 'Content-Range': '*/0' } });
-    }
-    if (path === '/rest/v1/legal_change_passages') return Response.json(passages);
-    if (path === '/rest/v1/document_template_versions') {
-      if (params.get('answers.legal_change_id')?.startsWith('eq.')) return Response.json(answering);
-      return Response.json([versionRow]);
-    }
-    if (path === '/rest/v1/legal_acts') {
-      return Response.json([
+    },
+    '/rest/v1/legal_changes': legalChanges,
+    '/rest/v1/legal_change_passages': () => Response.json(passages),
+    '/rest/v1/document_template_versions': ({ url }) =>
+      url.searchParams.get('answers.legal_change_id')?.startsWith('eq.')
+        ? Response.json(answering)
+        : Response.json([versionRow]),
+    '/rest/v1/legal_acts': () =>
+      Response.json([
         {
           ...actRow,
           id: 'lege-319-2006',
@@ -203,11 +176,10 @@ function mockUpstream() {
           open: [{ count: 0 }],
         },
         { ...actRow, open: [{ count: 2 }] },
-      ]);
-    }
-    if (path === '/rest/v1/legal_check_runs') {
-      const from = Number(params.get('offset') ?? 0);
-      const limit = Number(params.get('limit') ?? 1000);
+      ]),
+    '/rest/v1/legal_check_runs': ({ url }) => {
+      const from = Number(url.searchParams.get('offset') ?? 0);
+      const limit = Number(url.searchParams.get('limit') ?? 1000);
       if (from >= runs.length && from > 0) {
         return Response.json(
           { code: 'PGRST103', message: 'Requested range not satisfiable' },
@@ -218,28 +190,38 @@ function mockUpstream() {
       return Response.json(rows, {
         headers: { 'Content-Range': `${from}-${from + rows.length - 1}/${runs.length}` },
       });
-    }
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
+    },
   });
 }
 
 const request = (path: string, init: RequestInit = {}) =>
-  createAdminApp().request(
+  apiRequest(
     path,
     {
       ...init,
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      app: createAdminApp(),
+      token,
+      client: null,
+      headers: { 'Content-Type': 'application/json' },
     },
     env
   );
 
-const restCalls = () => calls.filter((call) => call.url.pathname.startsWith('/rest/'));
-const rpcCalls = () => calls.filter((call) => call.url.pathname.startsWith('/rest/v1/rpc/'));
+const calls = () =>
+  upstreamCalls().map(({ method, url, body, headers, secret }) => ({
+    method,
+    url,
+    body,
+    secret,
+    ownToken: headers.get('Authorization') === `Bearer ${token}`,
+    actor: headers.get('x-audit-actor'),
+  }));
+const restCalls = () => calls().filter((call) => call.url.pathname.startsWith('/rest/'));
+const rpcCalls = () => calls().filter((call) => call.url.pathname.startsWith('/rest/v1/rpc/'));
+
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-  calls = [];
   user = admin;
   change = changeRow;
   rpcError = null;
@@ -263,7 +245,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 

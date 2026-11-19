@@ -1,9 +1,21 @@
 import { type SheetPage, type SheetPageInput, toEmployeeProposal } from '@ssm-usor/import';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv, ImportMessage } from '../../lib/env';
-import { creditsUpstream } from '../credits/upstream.fixture';
+import type { ImportMessage } from '../../lib/env';
+import { creditsUpstream } from '../../test/credits';
+import { apiRequest } from '../../test/request';
+import {
+  callsTo,
+  membershipRoutes,
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  testUser as user,
+  type UpstreamCall,
+  upstreamCalls,
+} from '../../test/upstream';
 import { syncResultRows, syncTrainingRows } from '../signed-sheets/signed-sheets';
 
 vi.mock('../signed-sheets/signed-sheets', async (importOriginal) => ({
@@ -13,23 +25,11 @@ vi.mock('../signed-sheets/signed-sheets', async (importOriginal) => ({
   syncResultRows: vi.fn(async () => {}),
 }));
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
 const clientImportId = '8b3a4f5e-6d7c-4e8f-9a01-b2c3d4e5f607';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const positionId = 'b0000000-0000-4000-8000-000000000001';
 const employeeId = 'e0000000-0000-4000-8000-000000000001';
-const secretKey = 'sb_secret_test_key_imports';
 const cnp = '1900101123457';
 
 const sent: ImportMessage[] = [];
@@ -42,16 +42,14 @@ const queue = {
   }),
 };
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: secretKey,
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   CORS_ORIGINS: 'http://localhost:5173',
   EXTRACTOR_URL: 'http://localhost:3302',
   AI_GATEWAY_URL: 'https://gateway.example/v1/account/ssm-usor',
   AI_GATEWAY_TOKEN: 'gateway-token',
   IMPORT_QUEUE: queue,
-};
+});
 
 const fileId = (n: number) => `f0000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const storagePath = (id: string, n: number, extension: string) =>
@@ -210,11 +208,7 @@ function importRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-type Call = { method: string; url: URL; body: unknown; admin: boolean };
-type Handler = (call: Call) => Response | Promise<Response> | undefined;
-
-const fetchMock = vi.fn<typeof fetch>();
-let calls: Call[] = [];
+type Handler = (call: UpstreamCall) => Response | Promise<Response> | undefined;
 
 const emptyClientTables = new Set([
   '/rest/v1/client_workplaces',
@@ -224,60 +218,27 @@ const emptyClientTables = new Set([
 ]);
 
 function mockUpstream(handler: Handler = () => undefined) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    const headers = new Headers(init?.headers);
-    const raw = init?.body;
-    const call: Call = {
-      method,
-      url,
-      body: typeof raw === 'string' && /^[[{]/.test(raw) ? JSON.parse(raw) : raw,
-      admin: headers.get('Authorization') === `Bearer ${secretKey}`,
-    };
-    calls.push(call);
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return Response.json([
-        { user_id: user.id, organization_id: organizationId, role: 'specialist', access: 'full' },
-      ]);
-    }
-    if (url.pathname === '/rest/v1/profiles') {
-      return Response.json([{ user_id: user.id, full_name: 'Ana Popescu' }]);
-    }
-    const custom = await handler(call);
-    if (custom) return custom;
-    if (url.pathname === '/rest/v1/job_positions') {
-      return Response.json([{ id: positionId, name: 'Vânzător' }]);
-    }
-    if (emptyClientTables.has(url.pathname)) return Response.json([]);
-    const credits = creditsUpstream(call);
-    if (credits) return credits;
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
-  });
+  routeUpstream(
+    {
+      '/auth/v1/user': () => Response.json(user),
+      '/rest/v1/profiles': () => Response.json([{ user_id: user.id, full_name: 'Ana Popescu' }]),
+    },
+    membershipRoutes,
+    { '/*': handler },
+    {
+      '/rest/v1/job_positions': () => Response.json([{ id: positionId, name: 'Vânzător' }]),
+      ...Object.fromEntries([...emptyClientTables].map((path) => [path, () => Response.json([])])),
+    },
+    { '/*': creditsUpstream }
+  );
 }
 
 const request = (path: string, method = 'GET', body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer user-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
-const callsTo = (pathname: string, method?: string) =>
-  calls.filter((call) => call.url.pathname === pathname && (!method || call.method === method));
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-  calls = [];
   sent.length = 0;
   queue.send.mockClear();
   queue.sendBatch.mockClear();
@@ -287,7 +248,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -410,7 +370,7 @@ describe('GET /clients/{clientId}/found-sheets', () => {
       total: 2,
     });
     const [found, taken] = callsTo('/rest/v1/import_files');
-    expect(found!.admin).toBe(false);
+    expect(found!.secret).toBe(false);
     expect(found!.url.searchParams.get('state')).toBe('eq.for_employees');
     expect(found!.url.searchParams.get('imports.status')).toBe('eq.confirmed');
     expect(found!.url.searchParams.get('imports.client_id')).toBe(`eq.${clientId}`);
@@ -533,7 +493,7 @@ describe('found sheets taken into an employee import', () => {
 
     expect(response.status).toBe(201);
     const inserted = callsTo('/rest/v1/import_files', 'POST')[0]!;
-    expect(inserted.admin).toBe(true);
+    expect(inserted.secret).toBe(true);
     expect(inserted.body).toEqual([
       {
         import_id: importId,
@@ -561,7 +521,7 @@ describe('found sheets taken into an employee import', () => {
       expect.objectContaining({ destinationKey: storagePath(importId, 11, 'jpg') }),
     ]);
     const marked = callsTo('/rest/v1/rpc/mark_found_sheets_uploaded')[0]!;
-    expect(marked.admin).toBe(true);
+    expect(marked.secret).toBe(true);
     expect(marked.body).toEqual({ p_import_id: importId, p_file_ids: [fileId(10), fileId(11)] });
     expect(callsTo('/rest/v1/import_files', 'PATCH')).toEqual([]);
   });
@@ -1211,7 +1171,7 @@ describe('PUT /imports/{importId}/employee-changes', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ version: 5 });
     const rpc = callsTo('/rest/v1/rpc/save_import_changes')[0]!;
-    expect(rpc.admin).toBe(false);
+    expect(rpc.secret).toBe(false);
     expect(rpc.body).toEqual({ p_import_id: importId, p_expected_version: 4, p_changes: changes });
   });
 
@@ -1311,7 +1271,7 @@ describe('POST /imports/{importId}/confirm for an employee import', () => {
       employeeIds: [employeeId],
     });
     const rpc = callsTo('/rest/v1/rpc/apply_employee_import')[0]!;
-    expect(rpc.admin).toBe(false);
+    expect(rpc.secret).toBe(false);
     expect(rpc.body).toMatchObject({
       p_import_id: importId,
       p_expected_version: 4,
@@ -1552,8 +1512,8 @@ describe('the other routes of an employee import', () => {
     });
     expect(body.derived.mimeType).toBe('image/jpeg');
     expect(body.derived.url).toContain(storagePath(importId, 1, 'jpeg'));
-    const read = calls.filter((call) => call.url.pathname.endsWith('.json'));
-    expect(read.map((call) => [call.method, call.admin])).toEqual([
+    const read = upstreamCalls().filter((call) => call.url.pathname.endsWith('.json'));
+    expect(read.map((call) => [call.method, call.secret])).toEqual([
       ['POST', true],
       ['GET', false],
     ]);

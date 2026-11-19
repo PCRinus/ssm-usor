@@ -8,30 +8,20 @@ import {
   workplaceListResponseSchema,
   workplaceResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testUser as user,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
-const membership = { user_id: user.id, organization_id: organizationId, role: 'owner' };
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const activeClient = { id: clientId, archived_at: null };
@@ -113,39 +103,26 @@ type Upstream =
   | 'employeeList'
   | 'responsiblePersons';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json(user);
-      case '/rest/v1/rpc/current_membership':
-        return handlers.membership?.(init, url) ?? Response.json([membership]);
-      case '/rest/v1/organizations':
-        return handlers.organizations?.(init, url) ?? Response.json(companyDetailsRow);
-      case '/rest/v1/clients':
-        return handlers.clients?.(init, url) ?? Response.json(activeClient);
-      case '/rest/v1/employees':
-        return handlers.employees?.(init, url) ?? Response.json({ id: employeeId });
-      case '/rest/v1/client_workplaces':
-        return handlers.workplaces?.(init, url) ?? Response.json([workplaceRow]);
-      case '/rest/v1/client_workplace_list':
-        return (
-          handlers.workplaceList?.(init, url) ??
-          Response.json([{ ...workplaceRow, current_employee_count: 16 }])
-        );
-      case '/rest/v1/employee_list':
-        return (
-          handlers.employeeList?.(init, url) ??
-          Response.json([{ id: employeeId, portal_state: 'invited' }])
-        );
-      case '/rest/v1/client_responsible_persons':
-        return handlers.responsiblePersons?.(init, url) ?? Response.json([responsiblePersonRow]);
-      default:
-        throw new Error(`Unexpected upstream request: ${url}`);
-    }
+  mockSignedInUpstream({
+    '/rest/v1/rpc/current_membership': ({ init, url }) =>
+      handlers.membership?.(init, url) ?? Response.json([membershipRow({ role: 'owner' })]),
+    '/rest/v1/organizations': ({ init, url }) =>
+      handlers.organizations?.(init, url) ?? Response.json(companyDetailsRow),
+    '/rest/v1/clients': ({ init, url }) =>
+      handlers.clients?.(init, url) ?? Response.json(activeClient),
+    '/rest/v1/employees': ({ init, url }) =>
+      handlers.employees?.(init, url) ?? Response.json({ id: employeeId }),
+    '/rest/v1/client_workplaces': ({ init, url }) =>
+      handlers.workplaces?.(init, url) ?? Response.json([workplaceRow]),
+    '/rest/v1/client_workplace_list': ({ init, url }) =>
+      handlers.workplaceList?.(init, url) ??
+      Response.json([{ ...workplaceRow, current_employee_count: 16 }]),
+    '/rest/v1/employee_list': ({ init, url }) =>
+      handlers.employeeList?.(init, url) ??
+      Response.json([{ id: employeeId, portal_state: 'invited' }]),
+    '/rest/v1/client_responsible_persons': ({ init, url }) =>
+      handlers.responsiblePersons?.(init, url) ?? Response.json([responsiblePersonRow]),
   });
 }
 
@@ -156,35 +133,20 @@ const sentBody = (pathname: string, index = 0) =>
   JSON.parse(String(calls(pathname)[index]![1]?.body)) as Record<string, unknown>;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
 const databaseError = (code: string, status: number) =>
   Response.json({ code, message: 'refused', details: null, hint: null }, { status });
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
+stubFetch();
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe('/organization/company-details', () => {
   it('reads them for any member', async () => {
-    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     const response = await request('/organization/company-details');
     expect(response.status).toBe(200);
     expect(organizationCompanyDetailsResponseSchema.parse(await response.json())).toEqual({
@@ -232,7 +194,7 @@ describe('/organization/company-details', () => {
   });
 
   it('refuses a specialist', async () => {
-    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     const response = await request('/organization/company-details', 'PUT', { legalName: 'Firma' });
     expect(response.status).toBe(403);
     expect(calls('/rest/v1/organizations')).toHaveLength(0);
@@ -266,7 +228,7 @@ describe('/organization/authorizations', () => {
 
   it('reads them for any member', async () => {
     mockUpstream({
-      membership: () => Response.json([{ ...membership, role: 'specialist' }]),
+      membership: () => Response.json([membershipRow({ role: 'specialist' })]),
       organizations: () => Response.json(authorizationsRow),
     });
     const response = await request('/organization/authorizations');
@@ -365,7 +327,7 @@ describe('/organization/authorizations', () => {
   });
 
   it('refuses a specialist who writes', async () => {
-    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await request('/organization/authorizations', 'PUT', {})).status).toBe(403);
     expect(calls('/rest/v1/organizations')).toHaveLength(0);
   });

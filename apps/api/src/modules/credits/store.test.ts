@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { adminClient } from '../../lib/admin-db';
+import { routeUpstream, stubFetch } from '../../test/upstream';
 import { env, organizationId } from '../billing/upstream.fixture';
 import { creditPolicy } from './policy';
 import { creditsStore } from './store';
@@ -22,29 +23,23 @@ const now = new Date('2026-12-01T10:00:00.000Z');
 
 function upstream(answer: Record<string, unknown>) {
   const bodies: Record<string, unknown>[] = [];
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = new URL(input instanceof Request ? input.url : String(input));
-      if (url.pathname === '/rest/v1/rpc/charge_credits') {
-        bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
-        return Response.json(answer);
-      }
-      if (url.pathname === '/rest/v1/usage_extras') return Response.json({ ceiling_cents: 1000 });
-      if (url.pathname === '/rest/v1/rpc/credit_balance') {
-        return Response.json({
-          granted: 0,
-          used: 850,
-          shortfall: 0,
-          balance: 0,
-          gift_left: 0,
-          extra: 100,
-          extra_left: 0,
-        });
-      }
-      throw new Error(`Unexpected ${url.pathname}`);
-    })
-  );
+  routeUpstream({
+    '/rest/v1/rpc/charge_credits': ({ body }) => {
+      bodies.push(body as Record<string, unknown>);
+      return Response.json(answer);
+    },
+    '/rest/v1/usage_extras': () => Response.json({ ceiling_cents: 1000 }),
+    '/rest/v1/rpc/credit_balance': () =>
+      Response.json({
+        granted: 0,
+        used: 850,
+        shortfall: 0,
+        balance: 0,
+        gift_left: 0,
+        extra: 100,
+        extra_left: 0,
+      }),
+  });
   return bodies;
 }
 
@@ -59,12 +54,13 @@ const charge = (store: ReturnType<typeof creditsStore>, policy = creditPolicy(pa
     require: true,
   });
 
+stubFetch();
+
 beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -135,25 +131,19 @@ describe('charging credits', () => {
 
 describe('blocks already bought', () => {
   it('stay counted when extras are off or cannot apply, since they are paid for', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = new URL(input instanceof Request ? input.url : String(input));
-        if (url.pathname === '/rest/v1/rpc/credit_balance') {
-          return Response.json({
-            granted: 0,
-            used: 1250,
-            shortfall: 0,
-            balance: 0,
-            gift_left: 0,
-            extra: 100,
-            extra_left: 70,
-          });
-        }
-        if (url.pathname === '/rest/v1/usage_extras') return Response.json(null);
-        throw new Error(`Unexpected ${url.pathname}`);
-      })
-    );
+    routeUpstream({
+      '/rest/v1/rpc/credit_balance': () =>
+        Response.json({
+          granted: 0,
+          used: 1250,
+          shortfall: 0,
+          balance: 0,
+          gift_left: 0,
+          extra: 100,
+          extra_left: 70,
+        }),
+      '/rest/v1/usage_extras': () => Response.json(null),
+    });
     const store = creditsStore(adminClient(env));
 
     for (const row of [paid, { ...paid, status: 'past_due' }]) {

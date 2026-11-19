@@ -3,7 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../app';
 import { apiRequest } from '../test/request';
-import { fetchMock, stubFetch, testEnv, testSecretKey } from '../test/upstream';
+import {
+  fetchMock,
+  membershipRow,
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testSecretKey,
+} from '../test/upstream';
 import { accessTokenAt } from './access-token.fixture';
 import { requireAuth } from './auth';
 import { refuseDuringImpersonation } from './impersonation';
@@ -20,7 +27,6 @@ const admin = {
   user_metadata: {},
 };
 const memberId = '9ae7d65f-fac5-4b57-9d9b-3e502febfd31';
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const someId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const activeImpersonation = {
@@ -57,23 +63,12 @@ beforeEach(() => {
   appMetadata = admin.app_metadata;
   effectiveUserId = memberId;
   impersonation = activeImpersonation;
-  fetchMock.mockImplementation(async (input) => {
-    const url = new URL(String(input));
-    if (url.pathname === '/auth/v1/user') {
-      return Response.json({ ...admin, app_metadata: appMetadata });
-    }
-    if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return Response.json([
-        {
-          user_id: effectiveUserId,
-          organization_id: organizationId,
-          role: 'owner',
-          access: 'full',
-        },
-      ]);
-    }
-    if (url.pathname === '/rest/v1/rpc/current_impersonation') return Response.json(impersonation);
-    return Response.json(null);
+  routeUpstream({
+    '/auth/v1/user': () => Response.json({ ...admin, app_metadata: appMetadata }),
+    '/rest/v1/rpc/current_membership': () =>
+      Response.json([membershipRow({ user_id: effectiveUserId, role: 'owner' })]),
+    '/rest/v1/rpc/current_impersonation': () => Response.json(impersonation),
+    '/*': () => Response.json(null),
   });
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });

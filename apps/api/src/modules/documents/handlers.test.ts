@@ -8,9 +8,20 @@ import {
   generateDocumentsResponseSchema,
 } from '@ssm-usor/contracts';
 import { unzipSync } from 'fflate';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
+import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testUser as user,
+  type UpstreamCall,
+} from '../../test/upstream';
 import { bankQuestions } from './context.fixture';
 import { printedTest } from './knowledge-tests';
 import { sensitiveGroupsEvaluation, workshopEvaluation } from './risk-evaluations.fixture';
@@ -88,27 +99,7 @@ vi.mock('@ssm-usor/document-engine', () => {
   };
 });
 
-import type { ApiEnv } from '../../lib/env';
-
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
-const membership = { user_id: user.id, organization_id: organizationId, role: 'owner' };
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 
 const organizationRow = {
@@ -415,7 +406,6 @@ type Upstream =
   | 'testResults'
   | 'offers';
 
-const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
   revision_id: revisionId,
   source: 'owner',
@@ -424,127 +414,103 @@ const confirmedCopy = {
 };
 
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    if (url.pathname.startsWith('/storage/v1/object/sign/')) {
-      if (method === 'POST') {
-        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+  const signedLink = ({ url }: UpstreamCall) =>
+    Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+  mockSignedInUpstream({
+    '/rest/v1/rpc/current_membership': () => Response.json([membershipRow({ role: 'owner' })]),
+    'POST /storage/v1/object/sign/*': signedLink,
+    'POST /storage/v1/object/sign/document-templates/*': signedLink,
+    // Files are read through the link just signed.
+    '/storage/v1/object/sign/document-templates/*': ({ url }) =>
+      new Response(new TextEncoder().encode(url.pathname.split('/').at(-2)!)),
+    '/storage/v1/object/sign/*': ({ init, url }) =>
+      handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3])),
+    'DELETE /storage/v1/object/documents*': () => Response.json([]),
+    '/storage/v1/object/documents*': ({ init, url }) =>
+      handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' }),
+    '/rest/v1/rpc/current_organization_has_offers': () =>
+      handlers.offers?.() ?? Response.json(true),
+    '/rest/v1/rpc/active_test_questions': ({ init, url }) =>
+      handlers.testQuestions?.(init, url) ?? Response.json(bankQuestions('muncă', 10)),
+    '/rest/v1/organizations': () => handlers.organizations?.() ?? Response.json(organizationRow),
+    '/rest/v1/clients': () => handlers.clients?.() ?? Response.json(clientRow),
+    '/rest/v1/organization_members': () =>
+      handlers.membership?.() ?? Response.json({ user_id: user.id }),
+    '/rest/v1/profiles': () => handlers.profile?.() ?? Response.json(profileRow),
+    '/rest/v1/client_responsible_persons': () => handlers.persons?.() ?? Response.json([personRow]),
+    '/rest/v1/client_participants': ({ init, url }) =>
+      handlers.participants?.(init, url) ??
+      new Response(null, { headers: { 'content-range': '*/0' } }),
+    '/rest/v1/participant_invitations': () =>
+      new Response(null, { headers: { 'content-range': '*/0' } }),
+    '/rest/v1/employees': ({ init, url }) =>
+      handlers.employees?.(init, url) ?? currentEmployees(1)(init, url),
+    '/rest/v1/job_positions': ({ init, url }) =>
+      handlers.positions?.(init, url) ?? Response.json([positionRow]),
+    '/rest/v1/client_workplaces': () => handlers.workplaces?.() ?? Response.json([workplaceRow]),
+    '/rest/v1/risk_evaluations': () =>
+      handlers.riskEvaluations?.() ?? Response.json(evaluationRows),
+    '/rest/v1/client_fire_safety': () => handlers.fireSafety?.() ?? Response.json(fireSafetyRow),
+    '/rest/v1/fire_equipment': () =>
+      handlers.fireEquipment?.() ?? Response.json([fireEquipmentRow]),
+    '/rest/v1/fire_installations': () => handlers.fireInstallations?.() ?? Response.json([]),
+    '/rest/v1/fire_substances': () => handlers.fireSubstances?.() ?? Response.json([]),
+    '/rest/v1/fire_maintenance_items': () => handlers.fireMaintenanceItems?.() ?? Response.json([]),
+    '/rest/v1/fire_buildings': () => handlers.fireBuildings?.() ?? Response.json([]),
+    '/rest/v1/training_records': ({ init, url }) =>
+      handlers.trainingRecords?.(init, url) ?? Response.json([]),
+    '/rest/v1/test_results': ({ init, url }) =>
+      handlers.testResults?.(init, url) ?? Response.json([]),
+    '/rest/v1/document_generations': ({ init, url, method }) =>
+      handlers.generations?.(init, url) ??
+      (method === 'POST'
+        ? Response.json({ id: generationId })
+        : Response.json({ issue_date: '2026-01-19', first_decision_number: 3 })),
+    '/rest/v1/instruction_module_versions': ({ init, url }) =>
+      handlers.moduleVersions?.(init, url) ?? Response.json([]),
+    '/rest/v1/document_signed_copies': ({ init, url }) =>
+      handlers.signedCopies?.(init, url) ?? new Response(null, { status: 201 }),
+    '/rest/v1/rpc/issue_document_revision': ({ init, url }) =>
+      handlers.issue?.(init, url) ?? new Response(null, { status: 204 }),
+    '/rest/v1/client_documents': ({ init, url, method }) => {
+      if (method === 'GET' && isConditionalDocumentsRead(url)) {
+        return handlers.conditionalDocuments?.() ?? Response.json([]);
       }
-      // Files are read through the link just signed.
-      if (url.pathname.startsWith('/storage/v1/object/sign/document-templates/')) {
-        const typeKey = url.pathname.split('/').at(-2)!;
-        return new Response(new TextEncoder().encode(typeKey));
+      return (
+        handlers.documents?.(init, url) ??
+        (method === 'POST' ? Response.json({ id: documentId }) : Response.json([documentRow]))
+      );
+    },
+    '/rest/v1/document_templates': async ({ url }) => {
+      const response = handlers.templates?.() ?? Response.json(templateRows);
+      // Only the types asked for, as PostgREST answers `type_key=in.(…)`.
+      const asked = url.searchParams
+        .get('type_key')
+        ?.match(/^in\.\((.*)\)$/)?.[1]
+        ?.split(',');
+      if (!asked || !response.ok) return response;
+      const rows = (await response.json()) as { type_key: string }[];
+      return Response.json(rows.filter((row) => asked.includes(row.type_key)));
+    },
+    '/rest/v1/document_revisions': ({ init, url, method }) => {
+      if (method === 'GET' && url.searchParams.has('client_documents.type_key')) {
+        return url.searchParams.get('client_documents.type_key') === 'eq.fire_own_instructions'
+          ? (handlers.fireOwnInstructions?.() ?? Response.json([]))
+          : (handlers.ownInstructions?.() ?? Response.json([]));
       }
-      return handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3]));
-    }
-    if (url.pathname.startsWith('/storage/v1/object/documents')) {
-      if (method === 'DELETE') return Response.json([]);
-      return handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' });
-    }
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json(user);
-      case '/rest/v1/rpc/current_membership':
-        return Response.json([membership]);
-      case '/rest/v1/rpc/current_organization_has_offers':
-        return handlers.offers?.() ?? Response.json(true);
-      case '/rest/v1/rpc/active_test_questions':
-        return handlers.testQuestions?.(init, url) ?? Response.json(bankQuestions('muncă', 10));
-      case '/rest/v1/organizations':
-        return handlers.organizations?.() ?? Response.json(organizationRow);
-      case '/rest/v1/clients':
-        return handlers.clients?.() ?? Response.json(clientRow);
-      case '/rest/v1/organization_members':
-        return handlers.membership?.() ?? Response.json({ user_id: user.id });
-      case '/rest/v1/profiles':
-        return handlers.profile?.() ?? Response.json(profileRow);
-      case '/rest/v1/client_responsible_persons':
-        return handlers.persons?.() ?? Response.json([personRow]);
-      case '/rest/v1/client_participants':
-        return (
-          handlers.participants?.(init, url) ??
-          new Response(null, { headers: { 'content-range': '*/0' } })
-        );
-      case '/rest/v1/participant_invitations':
-        return new Response(null, { headers: { 'content-range': '*/0' } });
-      case '/rest/v1/employees':
-        return handlers.employees?.(init, url) ?? currentEmployees(1)(init, url);
-      case '/rest/v1/job_positions':
-        return handlers.positions?.(init, url) ?? Response.json([positionRow]);
-      case '/rest/v1/client_workplaces':
-        return handlers.workplaces?.() ?? Response.json([workplaceRow]);
-      case '/rest/v1/risk_evaluations':
-        return handlers.riskEvaluations?.() ?? Response.json(evaluationRows);
-      case '/rest/v1/client_fire_safety':
-        return handlers.fireSafety?.() ?? Response.json(fireSafetyRow);
-      case '/rest/v1/fire_equipment':
-        return handlers.fireEquipment?.() ?? Response.json([fireEquipmentRow]);
-      case '/rest/v1/fire_installations':
-        return handlers.fireInstallations?.() ?? Response.json([]);
-      case '/rest/v1/fire_substances':
-        return handlers.fireSubstances?.() ?? Response.json([]);
-      case '/rest/v1/fire_maintenance_items':
-        return handlers.fireMaintenanceItems?.() ?? Response.json([]);
-      case '/rest/v1/fire_buildings':
-        return handlers.fireBuildings?.() ?? Response.json([]);
-      case '/rest/v1/training_records':
-        return handlers.trainingRecords?.(init, url) ?? Response.json([]);
-      case '/rest/v1/test_results':
-        return handlers.testResults?.(init, url) ?? Response.json([]);
-      case '/rest/v1/client_documents':
-        if (method === 'GET' && isConditionalDocumentsRead(url)) {
-          return handlers.conditionalDocuments?.() ?? Response.json([]);
-        }
-        return (
-          handlers.documents?.(init, url) ??
-          (method === 'POST' ? Response.json({ id: documentId }) : Response.json([documentRow]))
-        );
-      case '/rest/v1/document_generations':
-        return (
-          handlers.generations?.(init, url) ??
-          (method === 'POST'
-            ? Response.json({ id: generationId })
-            : Response.json({ issue_date: '2026-01-19', first_decision_number: 3 }))
-        );
-      case '/rest/v1/instruction_module_versions':
-        return handlers.moduleVersions?.(init, url) ?? Response.json([]);
-      case '/rest/v1/document_signed_copies':
-        return handlers.signedCopies?.(init, url) ?? new Response(null, { status: 201 });
-      case '/rest/v1/rpc/issue_document_revision':
-        return handlers.issue?.(init, url) ?? new Response(null, { status: 204 });
-      case '/rest/v1/document_templates': {
-        const response = handlers.templates?.() ?? Response.json(templateRows);
-        // Only the types asked for, as PostgREST answers `type_key=in.(…)`.
-        const asked = url.searchParams
-          .get('type_key')
-          ?.match(/^in\.\((.*)\)$/)?.[1]
-          ?.split(',');
-        if (!asked || !response.ok) return response;
-        const rows = (await response.json()) as { type_key: string }[];
-        return Response.json(rows.filter((row) => asked.includes(row.type_key)));
-      }
-      case '/rest/v1/document_revisions':
-        if (method === 'GET' && url.searchParams.has('client_documents.type_key')) {
-          return url.searchParams.get('client_documents.type_key') === 'eq.fire_own_instructions'
-            ? (handlers.fireOwnInstructions?.() ?? Response.json([]))
-            : (handlers.ownInstructions?.() ?? Response.json([]));
-        }
-        return (
-          handlers.revisions?.(init, url) ??
-          (method === 'POST'
-            ? Response.json({ id: revisionId })
-            : method === 'DELETE' || method === 'PATCH'
-              ? new Response(null, { status: 204 })
-              : Response.json({
-                  docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
-                  revision: 1,
-                  client_documents: { title: 'Copertă – Deciziile interne' },
-                }))
-        );
-      default:
-        throw new Error(`Unexpected upstream request: ${method} ${url}`);
-    }
+      return (
+        handlers.revisions?.(init, url) ??
+        (method === 'POST'
+          ? Response.json({ id: revisionId })
+          : method === 'DELETE' || method === 'PATCH'
+            ? new Response(null, { status: 204 })
+            : Response.json({
+                docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
+                revision: 1,
+                client_documents: { title: 'Copertă – Deciziile interne' },
+              }))
+      );
+    },
   });
 }
 
@@ -584,26 +550,11 @@ const sentBody = (pathname: string, index = 0, method = 'POST') =>
   JSON.parse(String(calls(pathname, method)[index]![1]?.body)) as Record<string, unknown>;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
+stubFetch();
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -2266,9 +2217,9 @@ describe('POST /documents/{documentId}/issue', () => {
     convertDocuments: (files: ArrayBuffer[]) => Promise<ArrayBuffer> = (files) =>
       convertDocx(files[0]!)
   ) =>
-    createApp().request(
+    apiRequest(
       `/documents/${documentId}/issue`,
-      { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
+      { method: 'POST' },
       {
         ...env,
         PDF_CONVERSION: 'service',
@@ -2416,9 +2367,9 @@ describe('POST /documents/{documentId}/issue', () => {
 
     // `wrangler dev` has the binding too, with nothing behind it.
     const convertDocx = vi.fn();
-    const local = await createApp().request(
+    const local = await apiRequest(
       `/documents/${documentId}/issue`,
-      { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
+      { method: 'POST' },
       {
         ...env,
         PDF: {
@@ -2613,11 +2564,11 @@ describe('the copy received through the return link', () => {
 describe('the signed copy of an issued revision', () => {
   const pdf = new Uint8Array([...new TextEncoder().encode('%PDF-1.7 signed'), 1, 2, 3]);
   const attach = (body: Uint8Array = pdf) =>
-    createApp().request(
+    apiRequest(
       `/documents/${documentId}/signed-copy`,
       {
         method: 'PUT',
-        headers: { Authorization: 'Bearer test-access-token', 'Content-Type': 'application/pdf' },
+        headers: { 'Content-Type': 'application/pdf' },
         body: new Uint8Array(body),
       },
       env
@@ -2791,12 +2742,11 @@ describe('PUT /documents/{documentId}/draft/file', () => {
     ...new TextEncoder().encode('…word/document.xml…'),
   ]);
   const save = (body: Uint8Array) =>
-    createApp().request(
+    apiRequest(
       `/documents/${documentId}/draft/file`,
       {
         method: 'PUT',
         headers: {
-          Authorization: 'Bearer test-access-token',
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         },
         // A copy with a plain ArrayBuffer behind it, which is what a request body is typed to take.
@@ -2863,12 +2813,11 @@ describe('POST /documents/{documentId}/print', () => {
   ]);
   const pdfBytes = new TextEncoder().encode('%PDF-1.7 printed');
   const print = (body: Uint8Array, bindings: Partial<ApiEnv['Bindings']> = {}) =>
-    createApp().request(
+    apiRequest(
       `/documents/${documentId}/print`,
       {
         method: 'POST',
         headers: {
-          Authorization: 'Bearer test-access-token',
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         },
         body: new Uint8Array(body),
@@ -2982,12 +2931,11 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
     ...new TextEncoder().encode('…word/document.xml…'),
   ]);
   const upload = (typeKey: string, body: Uint8Array = docx) =>
-    createApp().request(
+    apiRequest(
       `/clients/${clientId}/documents/${typeKey}/upload`,
       {
         method: 'POST',
         headers: {
-          Authorization: 'Bearer test-access-token',
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         },
         body: new Uint8Array(body),
@@ -3921,12 +3869,11 @@ describe('the fire-safety set', () => {
             ? Response.json(fireDocumentRow)
             : Response.json([fireDocumentRow]),
     });
-    const response = await createApp().request(
+    const response = await apiRequest(
       `/clients/${clientId}/documents/fire_cover_registers/upload`,
       {
         method: 'POST',
         headers: {
-          Authorization: 'Bearer test-access-token',
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         },
         body: new Uint8Array([
@@ -4381,12 +4328,11 @@ describe('the fire-safety set', () => {
               ? Response.json(url.searchParams.get('id') === `eq.${earlier.id}` ? earlier : newer)
               : Response.json([earlier, newer]),
         });
-        const response = await createApp().request(
+        const response = await apiRequest(
           `/clients/${clientId}/documents/fire_annual_report/upload${query}`,
           {
             method: 'POST',
             headers: {
-              Authorization: 'Bearer test-access-token',
               'Content-Type':
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             },
@@ -4419,11 +4365,11 @@ describe('the document a change answers with', () => {
   ]);
   const pdf = new Uint8Array([...new TextEncoder().encode('%PDF-1.7 signed'), 1, 2, 3]);
   const send = (path: string, method: string, body: Uint8Array, contentType: string) =>
-    createApp().request(
+    apiRequest(
       path,
       {
         method,
-        headers: { Authorization: 'Bearer test-access-token', 'Content-Type': contentType },
+        headers: { 'Content-Type': contentType },
         body: new Uint8Array(body),
       },
       env

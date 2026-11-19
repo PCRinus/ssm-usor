@@ -7,10 +7,18 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv, RegenerationMessage } from '../../lib/env';
+import type { RegenerationMessage } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey as secretKey,
+  testUser as user,
+} from '../../test/upstream';
 
-const secretKey = 'sb_secret_test_key_regeneration';
 const sent: RegenerationMessage[] = [];
 const queue = {
   sendBatch: vi.fn(async (messages: Iterable<{ body: RegenerationMessage }>) => {
@@ -18,26 +26,12 @@ const queue = {
   }),
 };
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
+const env = testEnv({
   SUPABASE_SECRET_KEY: secretKey,
   CORS_ORIGINS: 'http://localhost:5173',
   REGENERATION_QUEUE: queue,
-};
+});
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
-const membership = { user_id: user.id, organization_id: organizationId, role: 'specialist' };
 const jobId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
 const otherJobId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e50';
 const staleJobId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e51';
@@ -181,51 +175,32 @@ const recent = (rows: ReturnType<typeof runningRow>[]) => (_init: unknown, url: 
   const after = url.searchParams.get('requested_at')?.replace(/^gt\./, '');
   return Response.json(rows.filter((row) => !after || row.requested_at > after));
 };
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(
   handlers: Partial<
     Record<'behind' | 'jobs' | 'start' | 'deleteJob' | 'legalChanges' | 'running', Handler>
   > = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json(user);
-      case '/rest/v1/rpc/current_membership':
-        return Response.json([membership]);
-      case '/rest/v1/documents_behind': {
-        if (handlers.behind) return handlers.behind(init, url);
-        return pageOf(behindRows, init, url);
-      }
-      case '/rest/v1/template_version_legal_changes':
-        return (
-          handlers.legalChanges?.(init, url) ??
-          Response.json([
-            {
-              template_version_id: decisionVersionId,
-              legal_changes: { id: changeId, legal_acts: { name: 'H.G. 1425/2006' } },
-            },
-          ])
-        );
-      case '/rest/v1/rpc/start_regeneration_job':
-        return handlers.start?.(init, url) ?? Response.json(jobRow);
-      case '/rest/v1/regeneration_jobs':
-        if (method === 'DELETE') {
-          return handlers.deleteJob?.(init, url) ?? new Response(null, { status: 204 });
-        }
-        return (
-          handlers.jobs?.(init, url) ??
-          (url.searchParams.has('finished_at')
-            ? (handlers.running?.(init, url) ??
-              recent([runningRow(jobId, 'decision_training', user.id)])(init, url))
-            : Response.json(jobRow))
-        );
-      default:
-        throw new Error(`Unexpected upstream request: ${method} ${url}`);
-    }
+  mockSignedInUpstream({
+    '/rest/v1/documents_behind': ({ init, url }) =>
+      handlers.behind ? handlers.behind(init, url) : pageOf(behindRows, init, url),
+    '/rest/v1/template_version_legal_changes': ({ init, url }) =>
+      handlers.legalChanges?.(init, url) ??
+      Response.json([
+        {
+          template_version_id: decisionVersionId,
+          legal_changes: { id: changeId, legal_acts: { name: 'H.G. 1425/2006' } },
+        },
+      ]),
+    '/rest/v1/rpc/start_regeneration_job': ({ init, url }) =>
+      handlers.start?.(init, url) ?? Response.json(jobRow),
+    'DELETE /rest/v1/regeneration_jobs': ({ init, url }) =>
+      handlers.deleteJob?.(init, url) ?? new Response(null, { status: 204 }),
+    '/rest/v1/regeneration_jobs': ({ init, url }) =>
+      handlers.jobs?.(init, url) ??
+      (url.searchParams.has('finished_at')
+        ? (handlers.running?.(init, url) ??
+          recent([runningRow(jobId, 'decision_training', user.id)])(init, url))
+        : Response.json(jobRow)),
   });
 }
 
@@ -239,28 +214,16 @@ const authorization = (call: Parameters<typeof fetch>) =>
   new Headers(call[1]?.headers).get('Authorization');
 
 const request = (path: string, method = 'GET', body?: unknown, bindings = env) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    bindings
-  );
+  apiRequest(path, { method, body }, bindings);
+
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   queue.sendBatch.mockClear();
   sent.length = 0;
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
