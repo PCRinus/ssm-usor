@@ -16,6 +16,7 @@ import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { sheetPadding } from '@/components/page-spacing';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -77,20 +78,9 @@ export function AuthorizationsCard({
       {saved.isPending ? (
         <Skeleton className="h-72 w-full" />
       ) : saved.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={saved.isFetching}
-              onClick={() => void saved.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
-        >
+        <LoadFailed busy={saved.isFetching} onRetry={() => void saved.refetch()}>
           Nu am putut încărca abilitările.
-        </Notice>
+        </LoadFailed>
       ) : (
         // Keyed by what is saved, so the form starts again from what the server holds.
         <AuthorizationsForm
