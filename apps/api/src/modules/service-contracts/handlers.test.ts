@@ -540,15 +540,25 @@ describe('POST /clients/{clientId}/service-contract/generate', () => {
   });
 
   it('tells a draft that would now print something else from one that would not', async () => {
-    const printed = (number: number) => ({
-      ...documentRow,
-      document_revisions: [{ ...draftRow, data_snapshot: { contract: { number } } }],
+    mockUpstream({ documents: documents([], { ...documentRow, document_revisions: [] }) });
+    expect((await generate()).status).toBe(200);
+    const { data_snapshot: snapshot } = callsTo('/rest/v1/document_revisions', 'POST')[0]!.body as {
+      data_snapshot: Record<string, unknown>;
+    };
+    const generated = [
+      { ...documentRow, document_revisions: [{ ...draftRow, data_snapshot: snapshot }] },
+    ];
+    const draftOutdated = async () =>
+      serviceContractResponseSchema.parse(await (await request()).json()).draftOutdated;
+
+    mockUpstream({ documents: () => Response.json(generated) });
+    expect(await draftOutdated()).toBe(false);
+
+    mockUpstream({
+      documents: () => Response.json(generated),
+      contracts: () => Response.json([{ ...contractRow, contract_number: 52 }]),
     });
-    const request = () => apiRequest(`/clients/${clientId}/service-contract`, {}, env);
-    mockUpstream({ documents: () => Response.json([printed(51)]) });
-    const same = serviceContractResponseSchema.parse(await (await request()).json());
-    // The snapshot of the test holds only the number, and the rest of `contract` differs.
-    expect(same.draftOutdated).toBe(true);
+    expect(await draftOutdated()).toBe(true);
 
     mockUpstream({ documents: () => Response.json([{ ...documentRow }]) });
     const uploaded = serviceContractResponseSchema.parse(await (await request()).json());
