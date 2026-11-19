@@ -136,8 +136,6 @@ jobs:
 
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v3
-        with:
-          version: 2.117.0
 
       # The three slow parts do not depend on one another: the Supabase containers, the download
       # of the PDF converter's image (the one apps/pdf deploys, so issuing makes real PDFs), and

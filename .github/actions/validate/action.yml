@@ -27,8 +27,6 @@ runs:
     - name: Set up Supabase CLI
       if: inputs.mode == 'full' && inputs.database == 'true'
       uses: supabase/setup-cli@v3
-      with:
-        version: 2.117.0
 
     # Pulling and starting the containers takes about a minute and a half in which the runner
     # would otherwise wait. It goes on beside the checks below and is collected before the

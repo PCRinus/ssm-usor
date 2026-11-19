@@ -6,9 +6,10 @@ it does not download hosted users or data. No Supabase login or project linking 
 
 ## Start and seed
 
-Prerequisites: Node 24, pnpm, Docker Desktop running, and the Supabase CLI on your PATH.
-This setup was verified with CLI **2.117.0** and uses its publishable/secret keys.
-See the [Supabase CLI installation guide](https://supabase.com/docs/guides/local-development/cli/getting-started).
+Prerequisites: Node 24, pnpm and Docker Desktop running. The Supabase CLI is a pinned
+development dependency, so `pnpm install` brings the version CI uses, and every `pnpm` script
+runs that one. A `supabase` typed straight into the shell runs whatever your PATH holds, which
+may be another version; use `pnpm exec supabase …` instead.
 
 From the repository root:
 
@@ -213,8 +214,8 @@ continues the sheet, validates every signature and writes the PDFs to the folder
 employee in the portal and the agreement for the employer as the client administrator, over
 HTTP, then validates the stored sheet and agreement and prints the evidence. Both need:
 
-- the local stack running and the Supabase CLI on the PATH: they read its address and keys from
-  `supabase status`, and refuse any other;
+- the local stack running: they read its address and keys from `supabase status`, and refuse
+  any other;
 - `pnpm seed:local` and `pnpm templates:register:local` done, and a seeded employee with no
   training records (and, for `signing:check:local`, no participant);
 - `pnpm dev:pdf` up, with the two URLs above exported.
