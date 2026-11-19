@@ -4,12 +4,16 @@ import { describe, expect, it } from 'vitest';
 
 import {
   type ClientDocumentDetailsResponse,
+  type ClientFireSafetyResponse,
+  type FireEquipmentListResponse,
+  type FireInstallationListResponse,
   getGetClientDocumentDetailsQueryKey,
+  type ImportListResponse,
 } from '@/api/generated/api';
 import { bodiesOf, fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
-import { clientId, clientRecord, jobPositionRecord } from '@/test/records';
+import { clientId, clientRecord, fireSafetyRecord, jobPositionRecord } from '@/test/records';
 
 type Details = ClientDocumentDetailsResponse['documentDetails'];
 type DetailsInput = Omit<Details, 'legalRepresentativeEmployee'>;
@@ -81,9 +85,24 @@ function mockApi({
   save = undefined as Route | undefined,
 } = {}) {
   let current: unknown = details;
-  mockRoutes((init, { pathname }) => {
+  mockRoutes((init, { pathname, search }) => {
     const method = init?.method ?? 'GET';
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === `/clients/${clientId}/fire-safety`) {
+      return Response.json({
+        fireSafety: fireSafetyRecord(),
+        exists: false,
+      } satisfies ClientFireSafetyResponse);
+    }
+    if (pathname === `/clients/${clientId}/fire-equipment`) {
+      return Response.json({ items: [] } satisfies FireEquipmentListResponse);
+    }
+    if (pathname === `/clients/${clientId}/fire-installations`) {
+      return Response.json({ items: [] } satisfies FireInstallationListResponse);
+    }
+    if (`${pathname}${search}` === `/imports?clientId=${clientId}&kind=client&status=confirmed`) {
+      return Response.json({ items: [] } satisfies ImportListResponse);
+    }
     if (pathname === `/clients/${clientId}/owner-notes` && method === 'GET') {
       return Response.json({ notes: { body: '', updatedAt: null } });
     }

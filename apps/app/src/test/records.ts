@@ -1,4 +1,5 @@
 import type {
+  ClientFireSafetyResponseFireSafety,
   ClientResponseClient,
   EmployeeListResponseItemsItem,
   EmployeeListResponseItemsItemPortal,
@@ -228,4 +229,24 @@ export function employeeListItem(
 
 export function pageOf<T>(items: T[], { page = 1, pageSize = 25, total = items.length } = {}) {
   return { items, page, pageSize, total };
+}
+
+export function fireSafetyRecord(
+  overrides: Partial<ClientFireSafetyResponseFireSafety> = {}
+): ClientFireSafetyResponseFireSafety {
+  return {
+    periodicTrainingHours: null,
+    administrativeTrainingIntervalMonths: null,
+    workerTrainingIntervalMonths: null,
+    trainingFirstMonth: null,
+    trainingDayFrom: null,
+    trainingDayTo: null,
+    smokingPolicy: null,
+    smokingPlace: null,
+    wasteKinds: [],
+    wasteContractor: null,
+    wasteCollectors: null,
+    hasThirdParties: false,
+    ...overrides,
+  };
 }
