@@ -1181,6 +1181,7 @@ describe('searching and filtering the risk library', () => {
     expect(empty.textContent).toContain('Nicio evaluare încă');
     expect(empty.textContent).toContain('Importul documentației unui client adaugă aici');
     expect(empty.textContent).toContain('Salvează în bibliotecă');
+    expect(empty.textContent).toContain('Evaluare nouă');
     expect(screen.getAllByTestId('risk-profile-new')).toHaveLength(1);
     expect(within(empty).getByTestId('risk-profile-new')).toBeTruthy();
     expect(screen.queryByTestId('risk-library-search')).toBeNull();
