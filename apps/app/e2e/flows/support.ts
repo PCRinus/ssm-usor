@@ -19,7 +19,8 @@ import {
   captchaToken,
   e2ePassword,
   mailbox,
-  removeTestOrganization,
+  refuseLeftovers,
+  removeTestRun,
   runAddresses,
   stackClient,
 } from '@ssm-usor/spa-runtime/testing/e2e-stack';
@@ -933,15 +934,12 @@ export async function emailedLink(to: string, kind: string) {
   return email.url;
 }
 
-// Every refusal is reported after the rest is cleaned up, so one leftover does not leave the
-// other organizations behind with it.
 export async function cleanUp() {
-  const failures: string[] = [];
-  for (const id of created.organizations) {
-    await removeTestOrganization(admin, id).catch((cause: Error) =>
-      failures.push(`organization ${id}, ${cause.message}`)
-    );
-  }
+  const failures = await removeTestRun(admin, {
+    organizations: created.organizations,
+    users: created.users,
+    isOfRun,
+  });
   const keptVersions: typeof created.templateVersions = [];
   for (const version of created.templateVersions) {
     const removed = await admin.from('document_template_versions').delete().eq('id', version.id);
@@ -961,25 +959,12 @@ export async function cleanUp() {
     const removed = await admin.from('releases').delete().in('tag', created.releases);
     if (removed.error) failures.push(`releases: ${removed.error.message}`);
   }
-  // Accounts created through the UI are found by this run's address suffix.
-  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (error) failures.push(`listing the accounts: ${error.message}`);
-  const mine = (data?.users ?? []).filter((user) => isOfRun(user.email));
-  for (const id of new Set([...created.users, ...mine.map((user) => user.id)])) {
-    const removed = await admin.auth.admin.deleteUser(id);
-    // A flow that deleted its account has done the work already.
-    if (removed.error && removed.error.status !== 404) {
-      failures.push(`account ${id}: ${removed.error.message}`);
-    }
-  }
   // Spec files share this module in a worker, and each cleans up after itself.
   created.users = [];
   created.organizations = [];
   created.templateVersions = keptVersions;
   created.releases = [];
-  if (failures.length > 0) {
-    throw new Error(`The clean-up left rows in the local stack:\n${failures.join('\n')}`);
-  }
+  refuseLeftovers(failures);
 }
 
 // Only the section on show renders its rows; `number` is the binder's. The flows run at
