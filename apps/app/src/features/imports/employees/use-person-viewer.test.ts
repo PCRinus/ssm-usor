@@ -61,6 +61,20 @@ describe('the viewer state', () => {
     expect(state.viewer?.mode).toMatchObject({ field: 'hiredAt', queue: ['cnp', 'hiredAt'] });
   });
 
+  it('lights the spot on the photo it was asked for, not the one shown before', () => {
+    const state = viewerReducer(open(photoViewer), {
+      type: 'show',
+      photo: 'p2',
+      section: 'data',
+      spot: 'trainings[1]',
+      highlight: null,
+      openChoices: [],
+    });
+    const citing = () => [];
+    expect(viewerSpot(state.viewer, 'p2', citing)).toBe('trainings[1]');
+    expect(viewerSpot(state.viewer, 'p1', citing)).toBeNull();
+  });
+
   it('stays on a choice when a page is shown without one', () => {
     const state = viewerReducer(open(choiceViewer), {
       type: 'show',
