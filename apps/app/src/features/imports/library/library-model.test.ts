@@ -5,6 +5,7 @@ import {
   flagLines,
   identicalSentence,
   instructionPending,
+  isExpired,
   isOpenPart,
   type LibraryPart,
   partDescription,
@@ -188,6 +189,15 @@ describe('the task on the hub', () => {
     expect(partDescription(part({ expiresAt: '2026-11-09T10:00:00Z' }), true, now)).toBe(
       'A expirat pe 9 noiembrie, la 14 zile după crearea clientului.'
     );
+  });
+
+  it('stays open until the moment it expires, and expires at that moment', () => {
+    const expiresAt = '2026-11-19T10:00:00.000Z';
+    const last = Date.parse(expiresAt) - 1;
+    expect(isOpenPart({ status: 'to_review', expiresAt }, last)).toBe(true);
+    expect(isExpired({ status: 'to_review', expiresAt }, last)).toBe(false);
+    expect(isExpired({ status: 'to_review', expiresAt }, Date.parse(expiresAt))).toBe(true);
+    expect(isOpenPart({ status: 'to_review', expiresAt }, Date.parse(expiresAt))).toBe(false);
   });
 
   it('counts the identical ones in a sentence', () => {
