@@ -1,4 +1,5 @@
 import {
+  capitalized,
   foldText,
   type InstructionBlock,
   type InstructionCategory,
@@ -91,8 +92,6 @@ const keptAsWritten = (word: string) =>
   /\d/u.test(word) ||
   /\p{L}\.\p{L}/u.test(word) ||
   (/\p{Ll}/u.test(word) && (word.match(/\p{Lu}/gu)?.length ?? 0) >= 2);
-
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 function sentenceCase(text: string) {
   const words = text.split(/\s+/u).filter(Boolean);

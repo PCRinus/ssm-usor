@@ -1,4 +1,4 @@
-import { foldText, riskLevel } from '@ssm-usor/contracts';
+import { capitalized, foldText, riskLevel } from '@ssm-usor/contracts';
 
 import { foldName, namesCompany } from './match';
 import {
@@ -108,7 +108,7 @@ export function entryName(written: string) {
     .replace(/\s+/gu, ' ');
   if (!upperCase(tidy)) return tidy;
   const lower = lowerCaseKeepingCapitals(tidy);
-  return lower.charAt(0).toUpperCase() + lower.slice(1);
+  return capitalized(lower);
 }
 
 // The database's limits on an entry's and a client-level evaluation's name.
