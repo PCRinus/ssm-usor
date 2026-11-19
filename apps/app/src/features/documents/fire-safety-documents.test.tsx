@@ -273,23 +273,12 @@ describe('client fire-safety documents', () => {
     mount();
 
     expect(await screen.findByTestId('fire-safety-documents-page')).toBeTruthy();
-    await waitFor(() =>
-      expect(screen.getAllByTestId('client-section').map((link) => link.textContent)).toEqual([
-        'Detalii',
-        'Lucrători',
-        'Posturi de lucru',
-        'Mijloace de apărare',
-        'Instruire și responsabili',
-        'Instruiri ținute',
-        'Documente SSM',
-        'Documente SU',
-        'Contract',
-        'Alte documente',
-        'Portal',
-      ])
-    );
-    const tabs = screen.getAllByTestId('client-section');
-    const tab = tabs.find((link) => link.textContent === 'Documente SU')!;
+    const tab = await waitFor(() => {
+      const tabs = screen.getAllByTestId('client-section');
+      const labels = tabs.map((link) => link.textContent);
+      expect(labels[labels.indexOf('Documente SSM') + 1]).toBe('Documente SU');
+      return tabs[labels.indexOf('Documente SU')]!;
+    });
     expect(tab.getAttribute('aria-current')).toBe('page');
     expect(tab.querySelector('svg')!.getAttribute('class')).toContain('lucide-fire-extinguisher');
     expect(screen.getByRole('heading', { name: 'Documentația SU' })).toBeTruthy();

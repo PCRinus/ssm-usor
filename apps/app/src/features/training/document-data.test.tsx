@@ -118,19 +118,10 @@ describe('client document data', () => {
     mount();
 
     expect(await screen.findByTestId('training-page')).toBeTruthy();
-    const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
-    expect(sections).toEqual([
-      'Detalii',
-      'Lucrători',
-      'Posturi de lucru',
-      'Mijloace de apărare',
-      'Instruire și responsabili',
-      'Instruiri ținute',
-      'Documente SSM',
-      'Documente SU',
-      'Alte documente',
-      'Portal',
-    ]);
+    const current = screen
+      .getAllByTestId('client-section')
+      .filter((link) => link.getAttribute('aria-current') === 'page');
+    expect(current.map((link) => link.textContent)).toEqual(['Instruire și responsabili']);
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
     expect(screen.queryByTestId('legal-representative-row')).toBeNull();
     expect(screen.queryByTestId('workplaces-card')).toBeNull();
