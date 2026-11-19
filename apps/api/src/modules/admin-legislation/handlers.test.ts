@@ -9,26 +9,19 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAdminApp } from '../../admin-app';
+import { accessTokenAt } from '../../lib/access-token.fixture';
 import { apiRequest } from '../../test/request';
 import {
   routeUpstream,
   stubFetch,
   testEnv,
   testSecretKey,
+  testUser,
   type UpstreamCall,
   upstreamCalls,
 } from '../../test/upstream';
 
-const admin = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'mircea@example.ro',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email', role: 'admin' },
-  user_metadata: {},
-};
+const admin = { ...testUser, app_metadata: { provider: 'email', role: 'admin' } };
 const member = { ...admin, app_metadata: { provider: 'email' } };
 
 const changeId = 'd1d1d1d1-0000-4000-8000-000000000001';
@@ -36,8 +29,7 @@ const versionId = 'a1a1a1a1-0000-4000-8000-000000000001';
 
 const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey });
 
-const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
-const token = `${encode({ alg: 'ES256', typ: 'JWT' })}.${encode({ sub: admin.id, aal: 'aal2' })}.c2ln`;
+const token = accessTokenAt('aal2', admin.id);
 
 const act = { id: 'oug-195-2002', name: 'O.U.G. 195/2002', portal_id: 41006 };
 

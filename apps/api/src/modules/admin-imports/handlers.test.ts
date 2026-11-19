@@ -7,6 +7,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAdminApp } from '../../admin-app';
+import { accessTokenAt } from '../../lib/access-token.fixture';
 import { apiRequest } from '../../test/request';
 import {
   routeUpstream,
@@ -14,19 +15,11 @@ import {
   testEnv,
   testOrganizationId as organizationId,
   testSecretKey,
+  testUser,
   upstreamCalls,
 } from '../../test/upstream';
 
-const admin = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'mircea@example.ro',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email', role: 'admin' },
-  user_metadata: {},
-};
+const admin = { ...testUser, app_metadata: { provider: 'email', role: 'admin' } };
 const member = { ...admin, app_metadata: { provider: 'email' } };
 
 const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
@@ -37,8 +30,7 @@ const folder = `${organizationId}/${importId}`;
 
 const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey });
 
-const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
-const token = `${encode({ alg: 'ES256', typ: 'JWT' })}.${encode({ sub: admin.id, aal: 'aal2' })}.c2ln`;
+const token = accessTokenAt('aal2', admin.id);
 
 const listRow = {
   import_id: importId,
