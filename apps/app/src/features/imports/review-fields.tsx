@@ -824,7 +824,7 @@ function AnafRow({
       ) : (
         <KindLine
           icon={<TriangleAlert aria-hidden="true" />}
-          tone={anaf.picked === null ? 'warning' : undefined}
+          tone={anaf.picked === 'anaf' ? undefined : 'warning'}
         >
           Documentele dau altă denumire decât ANAF pentru CUI-ul {cui}
         </KindLine>
@@ -971,7 +971,7 @@ function ValueRow({
   );
   const registered = context.registered;
   const mismatch =
-    requiredPaths.has(state.path) && !context.states['client.legalName']?.anaf
+    requiredPaths.has(state.path) && context.states['client.legalName']?.anaf?.picked !== null
       ? anafMismatch(context.proposal, context.changes, registered)
       : null;
   const anafName =

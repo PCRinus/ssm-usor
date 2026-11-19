@@ -1321,7 +1321,8 @@ export function anafMismatch(
   const cui = fieldState(proposal, changes, 'client.cui').value;
   if (cui !== null && bareCui(cui) !== registered.cui) return null;
   const state = fieldState(proposal, changes, 'client.legalName', undefined, registered);
-  if (state.anaf) return state.anaf.picked === null ? registered : null;
+  if (state.anaf?.picked === null) return registered;
+  if (state.anaf?.picked === 'anaf') return null;
   const name = state.value;
   // Here only another firm's name is worth the warning; ANAF's spelling is offered above.
   if (name === null || sameCompany(String(name), registered.legalName)) return null;

@@ -156,6 +156,53 @@ describe("the posts another company's passages bring", () => {
   });
 });
 
+describe("a new client's name the documents give otherwise than ANAF", () => {
+  const identity = (changes: Changes, documents: string, anafName: string) => {
+    const proposal = proposalFixture();
+    proposal.client.legalName.options[0]!.value = documents;
+    proposal.client.contactEmail = { options: [] };
+    const registered: RegisteredCompany = { cui: '31458207', legalName: anafName, inactive: false };
+    const detail = readyDetail({ proposal, registeredCompany: { ...registered, vatPayer: true } });
+    const states = fieldStates(proposal, changes, () => undefined, registered);
+    return {
+      summary: sectionDescription(
+        'identity',
+        detail as unknown as ImportDetail,
+        proposal,
+        changes,
+        states
+      ),
+      status: sectionStatuses(proposal, changes, [], states, registered).identity,
+    };
+  };
+  const documentsPicked: Changes = { fields: { 'client.legalName': { option: 0 } }, items: {} };
+  const otherFirm = ['Brutăria Spicul Auriu SRL', 'PANIFICAȚIA NOUĂ SRL'] as const;
+
+  it("still warns once the member picks the documents' name, which ANAF gives another firm", () => {
+    expect(identity(documentsPicked, ...otherFirm)).toEqual({
+      summary: 'La ANAF, CUI-ul aparține altei firme. Reprezentant legal: 2 variante în documente.',
+      status: { kind: 'check' },
+    });
+  });
+
+  it("says the CUI is checked once the member picks ANAF's name", () => {
+    const anafPicked: Changes = {
+      fields: { 'client.legalName': { value: 'PANIFICAȚIA NOUĂ SRL' } },
+      items: {},
+    };
+    expect(identity(anafPicked, ...otherFirm).summary).toMatch(
+      /^Denumire și CUI verificate la ANAF\./
+    );
+  });
+
+  it("says the CUI is checked when the documents' name picked only writes the legal form otherwise", () => {
+    expect(
+      identity(documentsPicked, 'SPN STANCIUC', 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC')
+        .summary
+    ).toMatch(/^Denumire și CUI verificate la ANAF\./);
+  });
+});
+
 describe('the summary of each section on the hub', () => {
   it('sums up the identity by what ANAF says of the CUI, then the choices left', () => {
     expect(describeSection('identity', proposalFixture())).toBe(
