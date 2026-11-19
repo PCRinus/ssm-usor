@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
-import { afterEach, beforeEach, vi } from 'vitest';
+import { afterEach, beforeEach, expect, vi } from 'vitest';
 
 import { type AdminRuntime, createAdminRuntime } from '@/app/admin-runtime';
 import App from '@/app/App';
@@ -71,6 +71,10 @@ export type AdminRoute = (
 
 export const fetchMock = vi.fn<typeof fetch>();
 
+const unexpectedRequests: string[] = [];
+
+export const takeUnexpectedRequests = () => unexpectedRequests.splice(0);
+
 export function mockAdminApi(route: AdminRoute) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
@@ -80,9 +84,10 @@ export function mockAdminApi(route: AdminRoute) {
     if (url.pathname === '/api/impersonation' && method === 'GET') {
       return Response.json({ impersonation: null });
     }
-    if (url.pathname === '/api/me') {
+    if (url.pathname === '/api/me' && method === 'GET') {
       return Response.json({ id: session.user.id, email: session.user.email });
     }
+    unexpectedRequests.push(`${method} ${url.pathname}`);
     throw new Error(`Unexpected request: ${method} ${url.pathname}`);
   });
 }
@@ -95,6 +100,9 @@ export function installAdminFetch() {
   afterEach(() => {
     disposeAdmins();
     vi.unstubAllGlobals();
+    // React Query retries a failed request and the page shows its error state, so a throw alone
+    // never fails the test.
+    expect(takeUnexpectedRequests(), 'requests nobody routed').toEqual([]);
   });
 }
 

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { adminRequests, installAdminFetch, mockAdminApi } from './admin-app';
+import {
+  adminRequests,
+  installAdminFetch,
+  mockAdminApi,
+  takeUnexpectedRequests,
+} from './admin-app';
 
 installAdminFetch();
 
@@ -26,6 +31,14 @@ describe('the admin API mock', () => {
     await expect(fetch(`${api}/api/imports`)).rejects.toThrow(
       'Unexpected request: GET /api/imports'
     );
+    await expect(fetch(`${api}/api/me`, { method: 'POST' })).rejects.toThrow(
+      'Unexpected request: POST /api/me'
+    );
+    expect(takeUnexpectedRequests()).toEqual([
+      'DELETE /api/impersonation',
+      'GET /api/imports',
+      'POST /api/me',
+    ]);
   });
 
   it('lets a route answer for the shell', async () => {
