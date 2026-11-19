@@ -250,3 +250,25 @@ export async function everyRow<T>(
     if ((data ?? []).length < pageSize) return rows;
   }
 }
+
+type Saved<T> = PromiseLike<{ data: T; error: PostgrestError | null }>;
+
+// Not an upsert: PostgREST's would also set the keys, which members may not update.
+export async function saveByKey<T>(save: {
+  update: () => Saved<T>;
+  insert: () => Saved<T>;
+  refusal: (error: PostgrestError, step: 'update' | 'insert') => Error;
+}): Promise<NonNullable<T>> {
+  const updated = await save.update();
+  if (updated.error) throw save.refusal(updated.error, 'update');
+  if (updated.data) return updated.data;
+  const inserted = await save.insert();
+  if (inserted.error?.code === '23505') {
+    // Another first save got there in between.
+    const again = await save.update();
+    if (again.error) throw save.refusal(again.error, 'update');
+    if (again.data) return again.data;
+  }
+  if (inserted.error) throw save.refusal(inserted.error, 'insert');
+  return inserted.data!;
+}

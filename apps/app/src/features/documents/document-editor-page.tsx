@@ -18,6 +18,7 @@ import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
+import { commonFailure } from '@/lib/api-errors';
 
 import type { DocumentEditorHandle } from './document-editor';
 import type { ClientDocument } from './document-labels';
@@ -177,7 +178,8 @@ export function DocumentEditorView({
           ? 'Ciorna nu mai există: a fost emisă sau ștearsă între timp. Descarcă fișierul ca să nu pierzi modificările.'
           : cause instanceof ApiHttpError && cause.status === 401
             ? 'Sesiunea nu mai este validă. Descarcă fișierul ca să nu pierzi modificările, apoi autentifică-te din nou.'
-            : 'Nu am putut salva documentul. Verifică conexiunea și încearcă din nou.'
+            : (commonFailure(cause) ??
+              'Nu am putut salva documentul. Verifică conexiunea și încearcă din nou.')
       );
     }
   }, [dirty, documentId, editable, saveDraft, source]);

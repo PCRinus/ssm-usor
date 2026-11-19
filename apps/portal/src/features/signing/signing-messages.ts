@@ -78,5 +78,3 @@ export const spentCodeMessages: Record<CodeReason, MessageDescriptor> = {
 export const tooManyItemsMessage = msg`Cu un cod semnezi cel mult 30 de documente. Debifează câteva și cere din nou codul.`;
 
 export const signInAgainMessage = msg`Sesiunea ta în portal a expirat. Ieși din cont și intră din nou.`;
-
-export const unreachableMessage = msg`Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou.`;

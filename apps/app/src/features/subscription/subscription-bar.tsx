@@ -4,7 +4,7 @@ import { Link } from '@tanstack/react-router';
 import { Clock, Lock, MessageSquareText, TriangleAlert, X } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
-import { dateToIso } from '@/lib/dates';
+import { todayIso } from '@/lib/dates';
 
 import { smsBarFor, stopOf } from './sms-copy';
 import { barFor, ownerActionFor, subscriptionPath } from './subscription-copy';
@@ -19,7 +19,7 @@ type Dismissable = keyof typeof dismissedKeys;
 // closed (the trial's last day, SMS past what is included) ignore it.
 function dismissedToday(bar: Dismissable) {
   try {
-    return localStorage.getItem(dismissedKeys[bar]) === dateToIso(new Date());
+    return localStorage.getItem(dismissedKeys[bar]) === todayIso();
   } catch {
     return false;
   }
@@ -27,7 +27,7 @@ function dismissedToday(bar: Dismissable) {
 
 function dismissForToday(bar: Dismissable) {
   try {
-    localStorage.setItem(dismissedKeys[bar], dateToIso(new Date()));
+    localStorage.setItem(dismissedKeys[bar], todayIso());
   } catch {
     // Private browsing without storage: the bar closes for this page view only.
   }

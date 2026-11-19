@@ -1,3 +1,4 @@
+import { readOnlyReason } from '@ssm-usor/contracts';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -7,6 +8,7 @@ import {
   getListClientSignatureRequestsQueryKey,
   getListMySignaturesQueryKey,
 } from '@/api/generated/api';
+import { readOnlyMessage, sessionExpiredMessage } from '@/lib/api-errors';
 import { todayIso } from '@/lib/dates';
 import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
@@ -792,6 +794,34 @@ describe("a client's trainings held", () => {
     await waitFor(() => expect(screen.queryByTestId('training-dialog')).toBeNull());
   });
 
+  it('tells an expired session why the training form did not load', async () => {
+    mockApi({
+      [`GET /clients/${clientId}/job-positions`]: () =>
+        Response.json({ error: 'unauthorized', message: 'Expired' }, { status: 401 }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('trainings-record'));
+    expect((await screen.findByTestId('training-dialog-load-error')).textContent).toBe(
+      sessionExpiredMessage
+    );
+  });
+
+  it('tells an expired session why the training form did not load, whatever else failed', async () => {
+    mockApi({
+      [`GET /clients/${clientId}/job-positions`]: () =>
+        Response.json({ error: 'not_found', message: 'Gone' }, { status: 404 }),
+      [`GET ${employeesPath}`]: () =>
+        Response.json({ error: 'unauthorized', message: 'Expired' }, { status: 401 }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('trainings-record'));
+    expect((await screen.findByTestId('training-dialog-load-error')).textContent).toBe(
+      sessionExpiredMessage
+    );
+  });
+
   it('puts a signer refusal on the signer field in its own words', async () => {
     mockApi({
       [`POST ${trainingsPath}`]: () =>
@@ -912,6 +942,35 @@ describe("a client's trainings held", () => {
     expect((await screen.findByTestId('training-delete-error')).textContent).toBe(
       'Nu am putut șterge instruirea. Verifică conexiunea și încearcă din nou.'
     );
+  });
+
+  it.each([
+    [
+      'an expired session',
+      () => Response.json({ error: 'unauthorized', message: 'Expired' }, { status: 401 }),
+      sessionExpiredMessage,
+    ],
+    [
+      'a read-only account',
+      () =>
+        Response.json(
+          { error: 'forbidden', message: 'Read-only', reason: readOnlyReason },
+          { status: 403 }
+        ),
+      readOnlyMessage,
+    ],
+  ])('tells %s why the training was not deleted', async (_, refusal, message) => {
+    mockApi({
+      [`GET ${trainingsPath}`]: () => Response.json(page([heldWith(popescu, taranu)])),
+      [`DELETE ${trainingsPath}/${trainingId}`]: refusal,
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('trainings-row-menu'));
+    await user.click(await screen.findByTestId('trainings-delete'));
+    const dialog = await screen.findByTestId('training-delete-dialog');
+    await user.click(within(dialog).getByTestId('training-delete-confirm'));
+    expect((await screen.findByTestId('training-delete-error')).textContent).toBe(message);
   });
 
   it('counts 25 attendees with "de", in the list and when deleting', async () => {

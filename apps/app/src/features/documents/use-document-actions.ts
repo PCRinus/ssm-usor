@@ -37,7 +37,7 @@ export type Confirming = {
   action: 'regenerate' | 'issue' | 'issueUnfilled' | 'upload' | 'delete';
   document: ClientDocument;
 } | null;
-export type Refusal = { document: ClientDocument; missing: MissingDocumentData[] };
+type Refusal = { document: ClientDocument; missing: MissingDocumentData[] };
 
 export function documentActionFailure(cause: unknown, document: ClientDocument): string | Refusal {
   const body = apiErrorBody(cause);
@@ -226,7 +226,6 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
   }
 
   return {
-    apiRequest: request,
     busy,
     printing,
     archiving,

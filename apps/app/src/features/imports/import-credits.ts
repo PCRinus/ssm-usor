@@ -10,6 +10,8 @@ import {
   type SubscriptionSummary,
 } from '@ssm-usor/contracts';
 
+import { dayMonthFormat } from '@/lib/dates';
+
 export const creditsLabel = (value: number) => countOf(value, 'credit AI', 'credite AI');
 
 const scannedPagesLabel = (value: number) => countOf(value, 'pagină scanată', 'pagini scanate');
@@ -17,9 +19,7 @@ const scannedPagesLabel = (value: number) => countOf(value, 'pagină scanată', 
 const photosCount = (value: number) =>
   value === 1 ? 'o fotografie' : countOf(value, 'fotografie', 'fotografii');
 
-const dayFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long' });
-
-export const creditsDay = (iso: string) => dayFormat.format(new Date(iso));
+export const creditsDay = (iso: string) => dayMonthFormat.format(new Date(iso));
 
 export interface CreditsBalance {
   // The month's credits and the gift's together; below zero after a reading that found more

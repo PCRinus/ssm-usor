@@ -31,6 +31,7 @@ import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
+import { timeFormat } from '@/lib/dates';
 
 import { AgreementWarning } from './agreement-warning';
 import {
@@ -51,8 +52,6 @@ import { invalidateSignatures } from './signature-queries';
 type SignatureRequest = SigningRequest;
 
 const codeLength = 6;
-
-const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit' });
 
 // The refusal names the request that no longer waits by its place in the list sent.
 function namedRequests(cause: unknown, requests: readonly SignatureRequest[]) {

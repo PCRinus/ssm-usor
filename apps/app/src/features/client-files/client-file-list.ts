@@ -1,6 +1,4 @@
-import { sortOrderSchema } from '@ssm-usor/contracts';
 import { FilePlus2, FileType } from 'lucide-react';
-import { z } from 'zod';
 
 import type { DataTableSort } from '@/components/data-table/columns';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
@@ -9,6 +7,7 @@ import {
   listFilterSearch,
   listQuerySearchSchema,
 } from '@/components/list-filters/url';
+import { listSortSearchSchema } from '@/components/list-filters/use-list-search';
 import { normalizeSearch } from '@/lib/normalize-search';
 
 import {
@@ -36,8 +35,7 @@ export type ClientFileFilterKey = (typeof clientFileFilterKeys)[number];
 // choice as on every list.
 export const clientFileListSearch = {
   q: listQuerySearchSchema,
-  sort: z.enum(clientFileSortKeys).optional().catch(undefined),
-  order: sortOrderSchema.optional().catch(undefined),
+  ...listSortSearchSchema(clientFileSortKeys).shape,
   type: filterSearchSchema(fileKindKeys),
   added: filterSearchSchema(addedWays),
 };

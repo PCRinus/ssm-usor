@@ -426,7 +426,7 @@ function PickInstructionsDialog({
           {modules.isPending ? (
             <Skeleton className="h-32 w-full" />
           ) : modules.isError ? (
-            <Notice variant="destructive">Nu am putut încărca biblioteca.</Notice>
+            <LoadFailed error={modules.error}>Nu am putut încărca biblioteca.</LoadFailed>
           ) : (modules.data?.items.length ?? 0) === 0 ? (
             <Notice
               variant="info"

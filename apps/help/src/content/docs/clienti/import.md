@@ -105,9 +105,10 @@ sources:
   - packages/import/src/employee-match.ts
   - packages/import/src/employee-checks.ts
   - packages/contracts/src/home-address.ts
+  - packages/contracts/src/employee-import-rules.ts
+  - packages/contracts/src/client-import-rules.ts
   - apps/app/src/features/imports/start-ways.tsx
-  - apps/app/src/features/imports/import-upload-dialog.tsx
-  - apps/app/src/features/imports/upload-selection.ts
+  - apps/app/src/features/imports/use-upload-form.ts
   - apps/app/src/features/imports/review-hub.tsx
   - apps/app/src/features/imports/review-section-page.tsx
   - apps/app/src/features/imports/import-action-bar.tsx

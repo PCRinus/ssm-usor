@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { sessionExpiredMessage } from '@/lib/api-errors';
 import { installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { clientId, importDetail, importId } from '@/test/import-fixture';
@@ -211,5 +212,30 @@ describe('a confirmed client import with nothing left open', () => {
       'A expirat pe 19 noiembrie, la 14 zile după crearea clientului.'
     );
     expect(partsOf('import-done-part')).toEqual(['instructions_su']);
+  });
+});
+
+describe('a confirmed client import whose parts fail to load', () => {
+  it('tells an expired session why', async () => {
+    const detail = importDetail({
+      status: 'confirmed',
+      confirmedAt,
+      client: { id: clientId, legalName },
+      companyName: legalName,
+      libraryParts: [{ part: 'instructions_ssm', status: 'to_review', expiresAt }],
+    });
+    mockApi((init, url) => {
+      if (url.pathname === `/imports/${importId}`) return Response.json({ import: detail });
+      if (url.pathname === `/imports/${importId}/library-parts`) {
+        return Response.json({ error: 'unauthorized', message: 'Expired' }, { status: 401 });
+      }
+      if (url.pathname === '/imports') return Response.json({ items: [] });
+      return undefined;
+    });
+    mount();
+
+    expect((await screen.findByTestId('import-library-error')).textContent).toBe(
+      sessionExpiredMessage
+    );
   });
 });

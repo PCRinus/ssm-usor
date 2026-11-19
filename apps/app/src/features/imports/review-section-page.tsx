@@ -22,15 +22,10 @@ import {
   ResponsibleSection,
   WorkplacesSection,
 } from './review-items';
-import {
-  type SectionId,
-  sectionIds,
-  sectionLabels,
-  type SectionStatus,
-  vatPayerInForce,
-} from './review-model';
+import { type SectionId, sectionIds, sectionLabels, vatPayerInForce } from './review-model';
 import { LinkButton, StatusTag } from './review-parts';
 import { sectionReviewHints } from './review-summary';
+import { type SectionStatus } from './review-types';
 import { SourceDialog, type SourceRequest } from './source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from './source-query';
 import { useImportAttention } from './use-import-attention';

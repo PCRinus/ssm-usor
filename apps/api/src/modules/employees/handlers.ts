@@ -4,6 +4,7 @@ import {
   type CreateEmployeeRequest,
   type Employee,
   type EmployeeAttentionFilter,
+  employeeConflictReasons,
   employeeInviteesLimit,
   type EmployeeListFilters,
   type EmployeeListItem,
@@ -199,14 +200,24 @@ function employeeFields(body: CreateEmployeeRequest) {
   };
 }
 
-function conflictMessage(detail: string | undefined) {
+function conflictError(detail: string | undefined) {
   if (detail?.includes('employees_client_cnp_key')) {
-    return 'A current employee of this client already has this CNP.';
+    return new ApiError(
+      'conflict',
+      'A current employee of this client already has this CNP.',
+      undefined,
+      employeeConflictReasons.cnpTaken
+    );
   }
   if (detail?.includes('employees_client_employee_number_key')) {
-    return 'A current employee of this client already has this number.';
+    return new ApiError(
+      'conflict',
+      'A current employee of this client already has this number.',
+      undefined,
+      employeeConflictReasons.numberTaken
+    );
   }
-  return 'This employee conflicts with an existing one.';
+  return new ApiError('conflict', 'This employee conflicts with an existing one.');
 }
 
 const listViewColumns =
@@ -598,7 +609,7 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
     .single();
   if (error) {
     throw error.code === '23505'
-      ? new ApiError('conflict', conflictMessage(error.message))
+      ? conflictError(error.message)
       : fromDatabaseError(error, 'create employee');
   }
   noticeEmployeesOverStepLater(c);
@@ -653,7 +664,7 @@ export const updateEmployeeStatus: RouteHandler<typeof updateEmployeeStatusRoute
     .maybeSingle();
   if (error) {
     throw error.code === '23505'
-      ? new ApiError('conflict', conflictMessage(error.message))
+      ? conflictError(error.message)
       : fromDatabaseError(error, 'update employee status');
   }
   if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
@@ -720,7 +731,7 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
     .maybeSingle();
   if (error) {
     throw error.code === '23505'
-      ? new ApiError('conflict', conflictMessage(error.message))
+      ? conflictError(error.message)
       : fromDatabaseError(error, 'update employee');
   }
   if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');

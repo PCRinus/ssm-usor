@@ -1,4 +1,4 @@
-import { countOf } from '@ssm-usor/contracts';
+import { capitalized, countOf } from '@ssm-usor/contracts';
 
 const timeZone = 'Europe/Bucharest';
 
@@ -43,8 +43,6 @@ const monthNames = [
   'decembrie',
 ];
 
-const capitalised = (text: string) => text.charAt(0).toLocaleUpperCase('ro-RO') + text.slice(1);
-
 export function greetingAt(now: Date) {
   const hour = Number(hourFormat.format(now));
   if (hour < 12) return 'Bună dimineața';
@@ -69,7 +67,7 @@ export function summaryLine(todo: number, overdue: number) {
   return `${mine}, iar ${clients}.`;
 }
 
-export const formatToday = (now: Date) => capitalised(todayFormat.format(now));
+export const formatToday = (now: Date) => capitalized(todayFormat.format(now));
 
 export const formatDueDay = (isoDate: string) =>
   dueDayFormat.format(new Date(`${isoDate}T00:00:00Z`));

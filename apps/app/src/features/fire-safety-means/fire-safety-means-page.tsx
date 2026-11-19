@@ -30,6 +30,7 @@ import { EmptyState } from '@/components/empty-state';
 import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { type FireSafetyMeansFocus, useFocusRequest } from '@/features/missing-data/focus';
+import { commonFailure } from '@/lib/api-errors';
 
 import { BuildingDialog, type BuildingEditing } from './building-dialog';
 import { EquipmentDialog, type EquipmentEditing } from './equipment-dialog';
@@ -124,9 +125,6 @@ export function FireSafetyMeansPage({
     field: readOnly || !withoutExtinguisher ? undefined : 'fire-equipment-agent',
   });
 
-  const busyDeleting =
-    deleteEquipment.isPending || deleteInstallation.isPending || deleteMaintenanceItem.isPending;
-
   async function confirmDelete(target: NonNullable<Deleting>) {
     setError(null);
     try {
@@ -150,7 +148,8 @@ export function FireSafetyMeansPage({
           ? 'Mijlocul nu mai există la acest client; lista a fost reîncărcată.'
           : status === 409
             ? 'Clientul este arhivat; datele lui nu se mai schimbă.'
-            : 'Nu am putut șterge. Verifică conexiunea și încearcă din nou.'
+            : (commonFailure(cause) ??
+              'Nu am putut șterge. Verifică conexiunea și încearcă din nou.')
       );
     }
     setDeleting(null);
@@ -380,12 +379,11 @@ export function FireSafetyMeansPage({
       {deleting && (
         <ConfirmDialog
           open
-          busy={busyDeleting}
           testId="fire-means-delete"
           title={deletingTitles[deleting.what]}
           confirmLabel="Șterge"
           pendingLabel="Se șterge…"
-          onConfirm={() => void confirmDelete(deleting)}
+          onConfirm={() => confirmDelete(deleting)}
           onClose={() => setDeleting(null)}
         >
           <span className="font-medium text-foreground">{deletingName}</span>

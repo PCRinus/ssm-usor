@@ -105,6 +105,7 @@ database:
   - '.github/workflows/**'
   - 'supabase/config.toml'
   - 'supabase/migrations/**'
+  - 'supabase/tests/**'
 # The built-in Word templates are uploaded to Storage and registered from main. The deployment
 # workflow compares with the last deployment, so a run that is superseded hands these on.
 templates:

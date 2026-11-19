@@ -32,7 +32,6 @@ export function usePortalAccessActions(
   const revokeAccess = useRevokeClientParticipant({ request });
   const refresh = useRefreshParticipants(clientId);
   const [pending, setPending] = useState<Pending | null>(null);
-  const revoking = revokeInvitation.isPending || revokeAccess.isPending;
 
   async function resendInvitation(
     invitationId: string,
@@ -73,14 +72,13 @@ export function usePortalAccessActions(
   const dialog: ReactNode = (
     <ConfirmDialog
       open={pending !== null}
-      busy={revoking}
       testId={
         pending?.kind === 'invitation' ? 'participant-invitation-revoke' : 'participant-revoke'
       }
       title={pending?.kind === 'invitation' ? 'Revoci invitația?' : 'Revoci accesul la portal?'}
       confirmLabel={pending?.kind === 'invitation' ? 'Revocă invitația' : 'Revocă accesul'}
       pendingLabel="Se revocă…"
-      onConfirm={() => void confirmRevoke()}
+      onConfirm={confirmRevoke}
       onClose={() => setPending(null)}
     >
       {pending?.kind === 'invitation' ? (

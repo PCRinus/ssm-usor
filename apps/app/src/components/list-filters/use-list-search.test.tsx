@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createQueryClient } from '@/lib/query-client';
 
 import { PendingCountLabel } from './pending-count-label';
-import { listPageSearchSchema, useListSearch } from './use-list-search';
+import { listPageSearchSchema, listSortSearchSchema, useListSearch } from './use-list-search';
 
 const schema = listPageSearchSchema(['name', 'heldOn']);
 
@@ -22,6 +22,17 @@ describe('listPageSearchSchema', () => {
 
   it('reads a search of digits as text', () => {
     expect(schema.parse({ q: 1590082 }).q).toBe('1590082');
+  });
+});
+
+describe('listSortSearchSchema', () => {
+  it('keeps a known sort and order and drops the rest, for a list sorted where it is read', () => {
+    const sorted = listSortSearchSchema(['name', 'heldOn']);
+    expect(sorted.parse({ sort: 'name', order: 'asc', page: 2 })).toEqual({
+      sort: 'name',
+      order: 'asc',
+    });
+    expect(sorted.parse({ sort: 'salary', order: 'up' })).toEqual({});
   });
 });
 

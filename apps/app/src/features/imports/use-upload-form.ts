@@ -71,6 +71,7 @@ export function useUploadForm({
       : choosing
         ? creditsRefusal(balance, creditsNeeded(selection, totals))
         : null;
+  const canSubmit = choosing && totals.count > 0 && !over && !opening && refusal === null;
   useRefuseStrayDrops();
 
   async function add(picked: Promise<PickedFile[]> | PickedFile[]) {
@@ -93,7 +94,7 @@ export function useUploadForm({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (totals.count === 0 || over || opening || refusal) return;
+    if (!canSubmit) return;
     void upload(selection.files, { ids: addedSheets.map((sheet) => sheet.id), bytes: addedBytes });
   }
 
@@ -134,6 +135,7 @@ export function useUploadForm({
     busy,
     choosing,
     refusal,
+    canSubmit,
     balance,
     isOwner,
     onSubmit,

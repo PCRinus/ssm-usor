@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from '@lingui/core';
 import { msg, plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useSecondsLeft } from '@ssm-usor/spa-runtime/countdown';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Label } from '@ssm-usor/ui/components/label';
@@ -28,7 +29,6 @@ import { useReloadContext } from '@/features/reload/reload-store';
 import { TrainingMaterial } from '@/features/training/training-material';
 import { useFormatDuration } from '@/lib/format';
 import { useApiRequest } from '@/lib/request';
-import { useCountdown } from '@/lib/use-countdown';
 
 import { AgreementPdfButton } from './agreement-pdf-button';
 import {
@@ -206,7 +206,8 @@ function ChooseStep({
   const [choice, setChoice] = useState<ReadonlySet<string> | null>(initialChoice);
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<SessionFailure | null>(null);
-  const { secondsLeft, restart } = useCountdown();
+  const [retryUntil, setRetryUntil] = useState<number | null>(null);
+  const secondsLeft = useSecondsLeft(retryUntil);
 
   if (isPending) return <PageLoading />;
   if (isError) return <PageFailed onRetry={refetch} />;
@@ -268,7 +269,7 @@ function ChooseStep({
       if (isClientOutdatedError(cause)) return;
       const next = sessionFailureOf(cause);
       setFailure(next);
-      if (next.retryAfterSeconds > 0) restart(next.retryAfterSeconds);
+      if (next.retryAfterSeconds > 0) setRetryUntil(Date.now() + next.retryAfterSeconds * 1000);
       if (apiErrorReason(cause) === 'signing_item_not_found') {
         setChoice(new Set(chosen));
         void invalidateSigningQueries(queryClient);
@@ -440,7 +441,8 @@ function CodeStep({
   });
   const codeInput = useRef<HTMLInputElement>(null);
   const wantsFocus = useRef(true);
-  const { secondsLeft, restart } = useCountdown(sentAt + resendDelaySeconds * 1000);
+  const [resendUntil, setResendUntil] = useState(sentAt + resendDelaySeconds * 1000);
+  const secondsLeft = useSecondsLeft(resendUntil);
   const spent = error?.kind === 'spent';
 
   // The field is enabled again only in the render that follows the request.
@@ -495,7 +497,9 @@ function CodeStep({
       }
       const failure = sessionFailureOf(cause);
       setResend({ busy: false, failure });
-      if (failure.retryAfterSeconds > 0) restart(failure.retryAfterSeconds);
+      if (failure.retryAfterSeconds > 0) {
+        setResendUntil(Date.now() + failure.retryAfterSeconds * 1000);
+      }
     }
   }
 

@@ -427,7 +427,8 @@ once. Issuing, saving and deleting a draft ask first, because they touch files b
 Employee routes are nested under the client. The handler first looks the client up as the
 caller, so a client of another organization is indistinguishable from a missing one and both
 answer `404 not_found`. Adding an employee to an archived client answers `409 conflict`, and
-so does a CNP or employee number already used by an active employee of that client. The list
+so does a CNP or employee number already used by an active employee of that client, with the
+reason `employee_cnp_taken` or `employee_number_taken`. The list
 omits the CNP and, without `?status=`, returns current employees; archived rows
 are never listed. Lists are paginated with page numbers (`page` from 1, `pageSize` up to 100,
 25 by default) and sorted by one whitelisted key at a time (employees:

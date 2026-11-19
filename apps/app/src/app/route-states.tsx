@@ -14,7 +14,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { ApiHttpError } from '@/api/http';
 import { EmptyState } from '@/components/empty-state';
 import { isCodeFileError, openReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
-import { sessionExpiredMessage } from '@/lib/api-errors';
+import { isSessionExpired, noOrganizationMessage, sessionExpiredMessage } from '@/lib/api-errors';
 
 import { appVersion } from './build-version';
 import { useShellReportProblem } from './report-problem-context';
@@ -75,11 +75,9 @@ function StandalonePage({ children }: { children: ReactNode }) {
 }
 
 function errorDescription(error: unknown, explainForbidden: boolean) {
-  if (error instanceof ApiHttpError && error.status === 401) {
-    return sessionExpiredMessage;
-  }
+  if (isSessionExpired(error)) return sessionExpiredMessage;
   if (explainForbidden && error instanceof ApiHttpError && error.status === 403) {
-    return 'Contul tău nu face parte dintr-o organizație. Contactează adminul.';
+    return noOrganizationMessage;
   }
   return 'Cel mai des e o întrerupere scurtă a conexiunii. Verifică internetul și reîncarcă pagina. Dacă problema continuă, raportează-ne-o.';
 }

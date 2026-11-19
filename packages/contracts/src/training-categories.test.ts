@@ -7,6 +7,7 @@ import {
   staffCategoriesWithPosts,
   startingTrainingIntervals,
   trainingIntervalChoices,
+  trainingIntervalLabel,
 } from './training-categories';
 
 const cook = {
@@ -81,5 +82,13 @@ describe('the training intervals', () => {
         settled: null,
       })
     ).toEqual({ months: 3, starting: true });
+  });
+});
+
+describe('a training interval in words', () => {
+  it('reads as it does inside a sentence', () => {
+    expect(trainingIntervalLabel(1)).toBe('lunar');
+    expect(trainingIntervalLabel(3)).toBe('la 3 luni');
+    expect(trainingIntervalLabel(12)).toBe('la 12 luni');
   });
 });

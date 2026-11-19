@@ -21,7 +21,7 @@ import { rowClickProps } from '@/components/data-table/row-click';
 import { RowActionsMenu } from '@/components/row-actions-menu';
 import { SectionCard } from '@/components/section-card';
 import { type Workplace, workplaceAddress } from '@/features/clients/workplace-schema';
-import { dateToIso, formatRoDate } from '@/lib/dates';
+import { formatRoDate, todayIso } from '@/lib/dates';
 
 import { ExtinguisherCode } from './extinguisher-code';
 import {
@@ -83,7 +83,7 @@ export function WorkplaceMeansCard({
   const extinguishers = equipment.filter((unit) => unit.kind === 'extinguisher').length;
   const hint = extinguisherHint(extinguishers, workplace);
   const description = [workplace.activity, workplaceAddress(workplace)].filter(Boolean).join(' · ');
-  const today = dateToIso(new Date());
+  const today = todayIso();
 
   const fromTen = currentEmployeeCount >= 10;
 

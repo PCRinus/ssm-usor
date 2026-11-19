@@ -1,3 +1,5 @@
+import type { ApiErrorReason, ApiErrorResponse } from '@ssm-usor/contracts';
+
 export interface ApiRequestOptions extends RequestInit {
   baseUrl?: string;
   getAccessToken?: () => string | null | Promise<string | null>;
@@ -17,19 +19,17 @@ export type ErrorType<T> = ApiHttpError<T> | Error;
 
 // The body is whatever JSON the response carried, or undefined when it carried none, so every
 // field is read as optional.
-export function apiErrorBody<T extends object = Record<string, unknown>>(
-  cause: unknown
-): Partial<T> | undefined {
+export function apiErrorBody(cause: unknown): Partial<ApiErrorResponse> | undefined {
   if (!(cause instanceof ApiHttpError)) return undefined;
   const body: unknown = cause.body;
   return typeof body === 'object' && body !== null && !Array.isArray(body)
-    ? (body as Partial<T>)
+    ? (body as Partial<ApiErrorResponse>)
     : undefined;
 }
 
-export function apiErrorReason(cause: unknown): string | undefined {
-  const reason = apiErrorBody<{ reason: unknown }>(cause)?.reason;
-  return typeof reason === 'string' ? reason : undefined;
+export function apiErrorReason(cause: unknown): ApiErrorReason | undefined {
+  const reason: unknown = apiErrorBody(cause)?.reason;
+  return typeof reason === 'string' ? (reason as ApiErrorReason) : undefined;
 }
 
 export function isClientOutdatedError(
@@ -38,7 +38,7 @@ export function isClientOutdatedError(
   return (
     error instanceof ApiHttpError &&
     error.status === 426 &&
-    apiErrorBody<{ error: unknown }>(error)?.error === 'client_outdated'
+    apiErrorBody(error)?.error === 'client_outdated'
   );
 }
 

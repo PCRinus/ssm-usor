@@ -9,14 +9,6 @@ import {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Eye, LoaderCircle, PenLine } from 'lucide-react';
 import { useState } from 'react';
@@ -28,9 +20,9 @@ import {
 } from '@/api/generated/api';
 import { apiErrorReason } from '@/api/http';
 import { useApi } from '@/api/use-api';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { FileLinkButton } from '@/components/file-link-button';
 import { maskPeople } from '@/components/mask-people';
-import { Notice } from '@/components/notice';
 import {
   signingFailure,
   slotStateBadgeClasses,
@@ -218,36 +210,22 @@ function PaperSlotDialog({
   }
 
   return (
-    <Dialog open={slot !== null} onOpenChange={(open) => !open && !mark.isPending && close()}>
-      {slot && (
-        <DialogContent data-testid="tests-sheet-paper-dialog" className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Marchezi „{signerSlotLabels[slot]}” semnat pe hârtie?</DialogTitle>
-            <DialogDescription>
-              Pentru fișa de test tipărită și semnată de mână
-              {slot === 'examiner' && result.examiner && maskPeople` de ${result.examiner.name}`}. O
-              cerere de semnare electronică în așteptare pentru această rubrică se anulează.
-            </DialogDescription>
-          </DialogHeader>
-          {error && (
-            <Notice variant="destructive" data-testid="tests-sheet-paper-error">
-              {error}
-            </Notice>
-          )}
-          <DialogFooter className="mt-2">
-            <Button variant="ghost" disabled={mark.isPending} onClick={close}>
-              Renunță
-            </Button>
-            <Button
-              data-testid="tests-sheet-paper-confirm"
-              disabled={mark.isPending}
-              onClick={() => void confirm(slot)}
-            >
-              {mark.isPending ? 'Se salvează…' : 'Marchează semnat pe hârtie'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      )}
-    </Dialog>
+    slot && (
+      <ConfirmDialog
+        open
+        error={error}
+        destructive={false}
+        testId="tests-sheet-paper"
+        title={`Marchezi „${signerSlotLabels[slot]}” semnat pe hârtie?`}
+        confirmLabel="Marchează semnat pe hârtie"
+        pendingLabel="Se salvează…"
+        onConfirm={() => confirm(slot)}
+        onClose={close}
+      >
+        Pentru fișa de test tipărită și semnată de mână
+        {slot === 'examiner' && result.examiner && maskPeople` de ${result.examiner.name}`}. O
+        cerere de semnare electronică în așteptare pentru această rubrică se anulează.
+      </ConfirmDialog>
+    )
   );
 }

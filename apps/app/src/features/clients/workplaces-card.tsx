@@ -25,7 +25,7 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useFocusRequest, type WorkplacesFocus } from '@/features/missing-data/focus';
 import { commonFailure } from '@/lib/api-errors';
-import { dateToIso } from '@/lib/dates';
+import { todayIso } from '@/lib/dates';
 
 import { SheetAction } from './details/sheet-action';
 import { workplaceColumns } from './workplace-columns';
@@ -91,7 +91,7 @@ export function WorkplacesCard({
             equipment.data && installations.data
               ? { equipment: equipment.data.items, installations: installations.data.items }
               : null,
-            dateToIso(new Date())
+            todayIso()
           )
         : undefined,
     [workplaces.data, fireSettled, equipment.data, installations.data]
@@ -250,13 +250,12 @@ export function WorkplacesCard({
       {archiving && (
         <ConfirmDialog
           open
-          busy={archive.isPending}
           destructive={false}
           testId="workplace-archive"
           title="Arhivezi punctul de lucru?"
           confirmLabel="Arhivează"
           pendingLabel="Se arhivează…"
-          onConfirm={() => void archiveWorkplace(archiving)}
+          onConfirm={() => archiveWorkplace(archiving)}
           onClose={() => setArchiving(null)}
         >
           <span className="font-medium text-foreground">{archiving.name}</span> nu va mai apărea în

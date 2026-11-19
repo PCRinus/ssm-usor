@@ -14,7 +14,7 @@ import { Notice } from '@/components/notice';
 // Closing while the action runs would lose the failure message the caller shows here.
 export function ConfirmDialog({
   open,
-  busy,
+  busy = false,
   testId,
   title,
   confirmLabel,
@@ -27,7 +27,8 @@ export function ConfirmDialog({
   children,
 }: {
   open: boolean;
-  busy: boolean;
+  // Busy from elsewhere too, beside the promise `onConfirm` returns.
+  busy?: boolean;
   // The stem of `${testId}-dialog`, `${testId}-confirm` and `${testId}-error`.
   testId: string;
   title: ReactNode;
@@ -41,15 +42,22 @@ export function ConfirmDialog({
   onClose: () => void;
   children: ReactNode;
 }) {
-  const [running, setRunning] = useState(false);
-  const pending = busy || running;
+  const [running, setRunning] = useState<symbol | null>(null);
+  const [shownOpen, setShownOpen] = useState(open);
+  // A caller that stays mounted may still be refreshing after the last confirm when it opens again.
+  if (open !== shownOpen) {
+    setShownOpen(open);
+    if (open) setRunning(null);
+  }
+  const pending = busy || running !== null;
 
   async function confirm() {
-    setRunning(true);
+    const run = Symbol();
+    setRunning(run);
     try {
       await onConfirm();
     } finally {
-      setRunning(false);
+      setRunning((current) => (current === run ? null : current));
     }
   }
 

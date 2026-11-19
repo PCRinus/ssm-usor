@@ -6,6 +6,7 @@ import {
   useListFoundSheets,
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
+import { shortDayMonthFormat } from '@/lib/dates';
 
 export type FoundSheet = FoundSheetsResponse['items'][number]['sheets'][number];
 export type FoundBatch = FoundSheetsResponse['items'][number];
@@ -21,10 +22,8 @@ export function useFoundSheets(clientId: string, enabled = true) {
   });
 }
 
-const dayMonth = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short' });
-
 export const foundOn = (batch: Pick<FoundBatch, 'confirmedAt'>) =>
-  dayMonth.format(new Date(batch.confirmedAt));
+  shortDayMonthFormat.format(new Date(batch.confirmedAt));
 
 export function foundIn(sheets: Pick<FoundSheet, 'uploadPath'>[]) {
   const tops = new Set(sheets.map((sheet) => sheet.uploadPath.split('/')[0]!));

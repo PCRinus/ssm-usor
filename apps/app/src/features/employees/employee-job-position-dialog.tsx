@@ -29,6 +29,7 @@ import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
+import { commonFailure } from '@/lib/api-errors';
 
 type Employee = EmployeeResponse['employee'];
 
@@ -118,7 +119,8 @@ function Form({
             ? 'Postul ales nu mai există la acest client. Alege altul.'
             : cause instanceof ApiHttpError && cause.status === 404
               ? 'Lucrătorul nu mai există la acest client.'
-              : 'Nu am putut schimba postul de lucru. Verifică conexiunea și încearcă din nou.',
+              : (commonFailure(cause) ??
+                'Nu am putut schimba postul de lucru. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });

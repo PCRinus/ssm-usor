@@ -1,7 +1,13 @@
 import type { LegalAmendedUnit, LegalChangeOutcome } from '@ssm-usor/contracts';
 
 import type { DocumentsBehindResponseItemsItemNewestVersionKind } from '@/api/generated/api';
-import { isoToDate } from '@/lib/dates';
+import {
+  dayMonthFormat,
+  isoToDate,
+  longDateFormat,
+  shortDayMonthFormat,
+  timeFormat,
+} from '@/lib/dates';
 
 export const portalPage = (portalId: number) =>
   `https://legislatie.just.ro/Public/DetaliiDocument/${portalId}`;
@@ -12,26 +18,14 @@ export const kindLabels: Record<DocumentsBehindResponseItemsItemNewestVersionKin
   layout: 'Aranjare în pagină',
 };
 
-const dayFormat = new Intl.DateTimeFormat('ro-RO', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
-
-const dayMonthFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long' });
-
-const shortDayFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short' });
-
-const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit' });
-
-export const formatDayOf = (isoTimestamp: string) => dayFormat.format(new Date(isoTimestamp));
+export const formatDayOf = (isoTimestamp: string) => longDateFormat.format(new Date(isoTimestamp));
 export const formatTimeOf = (isoTimestamp: string) => timeFormat.format(new Date(isoTimestamp));
 
 // Read in local time, so a date-only value never moves to the day before.
 export function shortDayOf(isoDate: string) {
   const date = isoToDate(isoDate);
   return date
-    ? { day: shortDayFormat.format(date), year: String(date.getFullYear()) }
+    ? { day: shortDayMonthFormat.format(date), year: String(date.getFullYear()) }
     : { day: isoDate, year: '' };
 }
 
@@ -39,7 +33,7 @@ export function formatDayThisYear(isoTimestamp: string, now: number) {
   const date = new Date(isoTimestamp);
   return date.getFullYear() === new Date(now).getFullYear()
     ? dayMonthFormat.format(date)
-    : dayFormat.format(date);
+    : longDateFormat.format(date);
 }
 
 const superscriptDigits = '⁰¹²³⁴⁵⁶⁷⁸⁹';
