@@ -95,7 +95,7 @@ function PickerBody({
       <span id={labelId} className="text-sm font-medium">
         Clientul
       </span>
-      <div className="overflow-hidden rounded-lg border">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-xs">
         <div className="border-b p-2">
           <SearchInput
             value={q}
@@ -109,15 +109,15 @@ function PickerBody({
         <div
           role="radiogroup"
           aria-labelledby={labelId}
-          className="grid max-h-[min(18rem,45svh)] gap-0.5 overflow-y-auto p-1"
+          className="grid max-h-[min(18rem,45svh)] overflow-y-auto"
         >
           {clients.isSuccess && items.length === 0 && (
-            <p className="px-3 py-4 text-sm text-muted-foreground">
+            <p className="px-4 py-4 text-sm text-muted-foreground">
               {q ? `Niciun client nu se potrivește cu „${q}”.` : 'Nu ai încă niciun client activ.'}
             </p>
           )}
           {clients.isError && (
-            <p className="px-3 py-4 text-sm text-destructive">
+            <p className="px-4 py-4 text-sm text-destructive">
               Nu am putut încărca clienții. Încearcă din nou.
             </p>
           )}
@@ -126,7 +126,7 @@ function PickerBody({
             return (
               <label
                 key={client.id}
-                className="relative grid cursor-pointer grid-cols-[minmax(0,1fr)_1rem] items-center gap-x-3 rounded-md px-3 py-2 hover:bg-muted/60 has-checked:bg-muted has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50"
+                className="relative grid cursor-pointer grid-cols-[minmax(0,1fr)_1.125rem] items-center gap-x-3 border-b px-4 py-2.5 last:border-b-0 hover:bg-secondary/60 has-checked:bg-secondary has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 has-focus-visible:ring-inset"
               >
                 <input
                   type="radio"
@@ -144,14 +144,22 @@ function PickerBody({
                     {countOf(client.currentEmployeeCount, 'lucrător', 'lucrători')}
                   </span>
                 </span>
-                {selected && <Check aria-hidden="true" className="size-4" />}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'grid size-[1.125rem] place-items-center rounded-full border-2',
+                    selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border'
+                  )}
+                >
+                  {selected && <Check className="size-3" strokeWidth={3} />}
+                </span>
               </label>
             );
           })}
           {capped && (
             <p
               data-testid="imports-client-capped"
-              className="px-3 py-2 text-[13px] text-muted-foreground"
+              className="px-4 py-2.5 text-[13px] text-muted-foreground"
             >
               Se văd primii {countOf(items.length, 'client', 'clienți')}. Caută-l pe cel pe care
               nu-l găsești.
