@@ -5,7 +5,12 @@ import { foldText } from './fold-text';
 import { sameHomeAddress } from './home-address';
 import type { EmployeeImportFieldName } from './imports';
 import { foldName } from './name-match';
-import { inMinutesRange, type TrainingDomain, type TrainingPhase } from './trainings';
+import {
+  inMinutesRange,
+  supplementaryTrainingReasons,
+  type TrainingDomain,
+  type TrainingPhase,
+} from './trainings';
 
 // The confirm and the review in the app both run these, so the review shows what confirming takes
 // (ADR 032).
@@ -210,6 +215,41 @@ export function rowExaminer(
     examinerName: examiner('examinerName', 'trainerName'),
     examinerJobTitle: examiner('examinerJobTitle', 'trainerJobTitle'),
   };
+}
+
+const filled = (value: unknown) =>
+  value !== null && value !== undefined && !(typeof value === 'string' && value.trim() === '');
+
+type TrainingRowField = 'heldOn' | 'durationMinutes' | 'supplementaryReason';
+
+export type TrainingRowProblem = { field: TrainingRowField; problem: 'missing' | 'invalid' };
+
+export function trainingRowProblems(
+  values: Readonly<Record<TrainingRowField, unknown>>,
+  phase: TrainingPhase,
+  today: string
+): TrainingRowProblem[] {
+  const { heldOn, durationMinutes, supplementaryReason } = values;
+  // A paper training holds what its sheet writes: only its day is needed (ADR 042).
+  const required: TrainingRowField[] =
+    phase === 'supplementary' ? ['heldOn', 'supplementaryReason'] : ['heldOn'];
+  const problems: TrainingRowProblem[] = required
+    .filter((field) => !filled(values[field]))
+    .map((field) => ({ field, problem: 'missing' }));
+  if (filled(heldOn) && (!isoDate.test(String(heldOn)) || String(heldOn) > today)) {
+    problems.push({ field: 'heldOn', problem: 'invalid' });
+  }
+  if (filled(durationMinutes) && !inMinutesRange(durationMinutes)) {
+    problems.push({ field: 'durationMinutes', problem: 'invalid' });
+  }
+  if (
+    phase === 'supplementary' &&
+    filled(supplementaryReason) &&
+    !(supplementaryTrainingReasons as readonly unknown[]).includes(supplementaryReason)
+  ) {
+    problems.push({ field: 'supplementaryReason', problem: 'invalid' });
+  }
+  return problems;
 }
 
 type HeldRowValues = {

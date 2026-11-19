@@ -6,7 +6,6 @@ import {
   foldText,
   heldTrainingKey,
   hiringTestRowIds,
-  inMinutesRange,
   isValidCnp,
   minutesRange,
   personIncludedByDefault,
@@ -17,6 +16,7 @@ import {
   trainingDomainLabels,
   type TrainingPhase,
   trainingPhaseLabels,
+  trainingRowProblems,
 } from '@ssm-usor/contracts';
 
 import type {
@@ -457,8 +457,6 @@ function missingLabel(row: SheetRow, values: RowValues, missing: string[]) {
     : `Completează ${missing.join(', ')} la instruirea ${rowDate(row, values)}`;
 }
 
-// A paper training holds what its sheet writes: its trainer, material and duration may stay
-// empty (ADR 042).
 const rowFieldLabels: Partial<Record<keyof RowValues, string>> = {
   heldOn: 'data',
   supplementaryReason: 'motivul',
@@ -811,10 +809,12 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
     const values = rowValues(changes, row);
     let dateAsked = false;
     if (!row.testOnly && rowIncluded(changes, row, matched)) {
-      const missing = (Object.keys(rowFieldLabels) as (keyof RowValues)[]).filter(
-        (name) =>
-          (name !== 'supplementaryReason' || row.phase === 'supplementary') && !filled(values[name])
+      const problems = trainingRowProblems(values, row.phase, context.today);
+      const missing = problems.flatMap(({ field, problem }) =>
+        problem === 'missing' ? [field] : []
       );
+      const invalid = (name: keyof RowValues) =>
+        problems.some(({ field, problem }) => field === name && problem === 'invalid');
       if (missing.length > 0) {
         dateAsked = missing.includes('heldOn');
         decisions.push({
@@ -828,7 +828,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
           tag: `Lipsește ${rowFieldLabels[missing[0]!]} la o instruire`,
           tone: 'destructive',
         });
-      } else if (values.durationMinutes !== null && !inMinutesRange(values.durationMinutes)) {
+      } else if (invalid('durationMinutes')) {
         decisions.push({
           key: `row-${row.id}`,
           anchor: 'trainings',
@@ -836,7 +836,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
           tag: 'O instruire cu durata de corectat',
           tone: 'destructive',
         });
-      } else if (values.heldOn !== null && values.heldOn > context.today) {
+      } else if (invalid('heldOn')) {
         dateAsked = true;
         decisions.push({
           key: `row-${row.id}`,
