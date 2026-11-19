@@ -4,6 +4,9 @@ description: Ce s-a schimbat în aplicație, când apare fereastra cu noutățil
 sidebar:
   label: Actualizări
   order: 1
+topics:
+  - id: actualizari.lista
+    heading: Lista de actualizări
 sources:
   - docs/architecture/adr-026-updates-and-release-review.md
   - docs/architecture/adr-040-client-contract-and-reload-prompts.md
@@ -33,7 +36,9 @@ Un cont nou nu vede ferestre despre versiunile apărute înainte să fie creat.
 
 ## Lista de actualizări
 
-Pagina **Actualizări** arată toate versiunile, de la cea mai nouă, grupate pe luni. Cele pe care nu le-ai citit au semnul **Necitită**, iar **Marchează toate ca citite** le marchează pe toate deodată. Pagina unei versiuni are noutățile, fiecare cu locul din aplicație unde o găsești, apoi îmbunătățirile și remedierile.
+Pagina **Actualizări** arată versiunile unei singure luni, de la cea mai nouă. Când o deschizi din meniu, vezi luna cea mai recentă. Alegi altă lună din meniul cu numele lunii, sus în pagină, sau treci la luna următoare ori la cea anterioară cu butoanele de sub versiuni. În lista de luni și pe aceste butoane, lunile cu versiuni necitite arată câte sunt, de exemplu „2 necitite”.
+
+Versiunile pe care nu le-ai citit au semnul **Necitită**. **Marchează toate ca citite** le marchează pe toate deodată, din toate lunile, nu doar pe cele din luna afișată. Pagina unei versiuni are noutățile, fiecare cu locul din aplicație unde o găsești, apoi îmbunătățirile și remedierile.
 
 Ce ai citit se păstrează în contul tău, așa că nu revezi aceleași noutăți pe alt calculator sau în alt browser.
 

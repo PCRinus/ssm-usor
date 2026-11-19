@@ -1957,15 +1957,21 @@ toast, and with nothing unread it sends nothing.
   shows again on the next load. **Vezi detaliile** dismisses it and opens the release's page.
   Under 768 px (`useIsMobile`) it is a bottom sheet with a smaller tag, the feature titles alone
   and no count. It never opens on `/actualizari` or a release page, which show the same thing.
-- The sidebar's footer holds "Actualizări", above "Ajutor" and "Raportează o problemă", with a
-  lime badge ("2 noi") while releases are unread; the icon rail hides the badge. The page footer's
+- The sidebar's footer holds "Actualizări" (the `megaphone` icon; `sparkles` marks AI features),
+  above "Ajutor" and "Raportează o problemă", with a lime badge ("2 noi") while releases are unread; the icon rail hides the badge. The page footer's
   "Versiune 2026.10.24" links to that release's page when the build's `VITE_RELEASE_TAG` has a
   row in the list, and stays plain text otherwise, as on non-prod and local builds.
-- `/actualizari` lists every release newest first, grouped by month: the tag and weekday beside
-  a card with the headline, the lead, counts per section ("2 noi", "3 îmbunătățiri",
-  "1 remediere") and a "Necitită" mark. **Marchează toate ca citite** shows while something is
-  unread. With no release yet it says "Nicio actualizare încă."
-- `/actualizari/<tag>` (tab title: the tag) has the sand header, with the back arrow to the list,, then **Ce e nou** as cards with
+- `/actualizari` shows one month of releases, newest first: the tag and weekday beside a card
+  with the headline, the lead, counts per section ("2 noi", "3 îmbunătățiri", "1 remediere") and
+  a "Necitită" mark. The month is the `luna` search param (`2026-11`, the Bucharest month of
+  `publishedAt`); without it, or with a month that has no release, the newest month shows. A
+  month menu beside the title and links to the newer and older month under the list switch it,
+  each month naming its unread count ("2 necitite"). The release page's back arrow and its link
+  to the list open the release's month. The line about the first release closes only the oldest
+  month. **Marchează toate ca citite** shows while something is unread, in any month. The help
+  icon beside the title opens the help topic `actualizari.lista`. With no release yet it says
+  "Nicio actualizare încă."
+- `/actualizari/<tag>` (tab title: the tag) has the sand header, with the back arrow to the list, then **Ce e nou** as cards with
   the title, the paragraph and "Unde o găsești: …", **Îmbunătățiri** and **Remedieri** as plain
   lists, links to the sections when there is more than one ("Pe această pagină" beside the text
   on desktop, chips above it on a phone), and links to the previous release and to the list.

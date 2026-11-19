@@ -22,6 +22,12 @@ const weekdayFormat = new Intl.DateTimeFormat('ro-RO', {
   timeZone,
 });
 const monthFormat = new Intl.DateTimeFormat('ro-RO', { month: 'long', year: 'numeric', timeZone });
+// en-CA writes the year and month as `2026-11`.
+const monthKeyFormat = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  timeZone,
+});
 const listFormat = new Intl.ListFormat('ro-RO', { type: 'conjunction' });
 const yearFormat = new Intl.DateTimeFormat('ro-RO', { year: 'numeric', timeZone });
 
@@ -34,6 +40,11 @@ export function formatReleaseMonth(isoTimestamp: string) {
   const month = monthFormat.format(new Date(isoTimestamp));
   return capitalized(month);
 }
+
+export const releaseMonthKey = (isoTimestamp: string) =>
+  monthKeyFormat.format(new Date(isoTimestamp));
+
+export const unreadCount = (count: number) => countOf(count, 'necitită', 'necitite');
 
 export function formatReleaseDayBeside(isoTimestamp: string, besideIsoTimestamp: string) {
   const sameYear =

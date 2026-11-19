@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-10-24
+- Amended 2026-11-19: the list page shows one month at a time, chosen from a month menu or the links to the newer and older month, since a release every few days made one page too long. Its sidebar icon is a megaphone; the sparkles now mark AI features.
 
 ## Context
 
