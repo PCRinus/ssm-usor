@@ -327,6 +327,30 @@ describe('client documents', () => {
     expect(screen.queryByTestId('generate-missing-place')).toBeNull();
   });
 
+  it('stays open while the documents are being generated', async () => {
+    mockApi();
+    const answer = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    fetchMock.mockImplementation(async (input, init) => {
+      if (new URL(String(input)).pathname === `/clients/${clientId}/documents/generate`) {
+        await held;
+      }
+      return answer(input, init);
+    });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('documents-generate'));
+    await user.click(await screen.findByTestId('generate-submit'));
+    await waitFor(() =>
+      expect(screen.getByTestId('generate-submit').textContent).toBe('Se generează…')
+    );
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('generate-documents-dialog')).toBeTruthy();
+    release();
+    await waitFor(() => expect(screen.queryByTestId('generate-documents-dialog')).toBeNull());
+  });
+
   it('hints at the missing risk evaluator, with the way to the authorizations for an owner', async () => {
     mockApi({ readiness: { ready: true, missing: [], hints: ['provider.riskEvaluator'] } });
     mount();
@@ -1104,7 +1128,7 @@ describe('client documents', () => {
 
     expect((await screen.findByTestId('document-open')).textContent).toBe('Deschide și modifică');
     await user.click(screen.getByTestId('document-regenerate'));
-    expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(
+    expect((await screen.findByTestId('document-dialog')).textContent).toContain(
       'modificările tale se pierd'
     );
   });
@@ -1306,7 +1330,7 @@ describe('client documents', () => {
 
     await openMenu(user, 'primul ajutor');
     await user.click(await screen.findByTestId('document-issue'));
-    expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain('PDF');
+    expect((await screen.findByTestId('document-dialog')).textContent).toContain('PDF');
     await user.click(screen.getByTestId('document-confirm'));
     expect((await screen.findByTestId('documents-error')).textContent).toContain(
       'documentul nu a fost emis'
@@ -1320,7 +1344,7 @@ describe('client documents', () => {
 
     await openMenu(user, 'primul ajutor');
     await user.click(await screen.findByTestId('document-issue'));
-    const dialog = await screen.findByTestId('document-confirm-dialog');
+    const dialog = await screen.findByTestId('document-dialog');
     expect(dialog.textContent).toContain('Un document emis nu se mai modifică');
     await user.click(screen.getByTestId('document-confirm'));
 
@@ -1347,7 +1371,7 @@ describe('client documents', () => {
     await user.click(await screen.findByTestId('document-confirm'));
 
     const confirm = await screen.findByRole('button', { name: 'Emite oricum' });
-    expect(screen.getByTestId('document-confirm-dialog').textContent).toContain('„DE COMPLETAT”');
+    expect(screen.getByTestId('document-dialog').textContent).toContain('„DE COMPLETAT”');
     expect(screen.queryByTestId('documents-error')).toBeNull();
     await user.click(confirm);
 
@@ -1401,7 +1425,7 @@ describe('client documents', () => {
     expect(within(row).getByTestId('document-edited').textContent).toBe('Modificat');
     expect(screen.getByTestId('document-regenerate')).toBeTruthy();
     await user.click(screen.getByTestId('document-upload'));
-    expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(
+    expect((await screen.findByTestId('document-dialog')).textContent).toContain(
       'ia locul ciornei'
     );
     await user.click(screen.getByTestId('document-confirm'));
@@ -1420,14 +1444,14 @@ describe('client documents', () => {
 
     await openMenu(user, 'primul ajutor');
     await user.click(await screen.findByTestId('document-regenerate'));
-    expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(
+    expect((await screen.findByTestId('document-dialog')).textContent).toContain(
       'Modificările făcute de mână în fișier se pierd'
     );
     await user.click(screen.getByTestId('document-confirm'));
     expect(await screen.findByText(/a fost generat din nou\./)).toBeTruthy();
     expect(requests(`/documents/${firstAidId}/regenerate`, 'POST')).toHaveLength(1);
 
-    await waitFor(() => expect(screen.queryByTestId('document-confirm-dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('document-dialog')).toBeNull());
     await openMenu(user, 'primul ajutor');
     await user.click(await screen.findByTestId('document-delete-draft'));
     await user.click(await screen.findByTestId('document-confirm'));
@@ -1448,11 +1472,11 @@ describe('client documents', () => {
 
     await openMenu(user, 'primul ajutor');
     await user.click(await screen.findByTestId('document-regenerate'));
-    expect((await screen.findByTestId('document-confirm-dialog')).textContent).toContain(
+    expect((await screen.findByTestId('document-dialog')).textContent).toContain(
       'Ca să le păstrezi, alege „Modifică documentul emis”'
     );
     await user.keyboard('{Escape}');
-    await waitFor(() => expect(screen.queryByTestId('document-confirm-dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('document-dialog')).toBeNull());
 
     await openMenu(user, 'primul ajutor');
     await user.click(await screen.findByTestId('document-start-draft'));

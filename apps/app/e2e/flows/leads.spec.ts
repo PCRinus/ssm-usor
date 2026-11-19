@@ -195,10 +195,10 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
 
   await expect(page.getByTestId('contract-edited')).toBeVisible();
   await page.getByTestId('contract-issue').click();
-  await page.getByTestId('contract-confirm').click();
+  await page.getByTestId('contract-action-confirm').click();
   // The other two prices still read "DE COMPLETAT".
-  await expect(page.getByTestId('contract-confirm-dialog')).toContainText('prețurile');
-  await page.getByTestId('contract-confirm').click();
+  await expect(page.getByTestId('contract-action-dialog')).toContainText('prețurile');
+  await page.getByTestId('contract-action-confirm').click();
   await expect(page.getByTestId('contract-issued')).toHaveText('Emis · rev. 1');
 
   await page.goto('/oferte');

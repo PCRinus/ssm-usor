@@ -452,7 +452,7 @@ test('a Word file uploaded over a draft replaces it, and after issuing starts th
   await expect(plan.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
   let chooser = page.waitForEvent('filechooser');
   await act(page, plan, 'document-upload');
-  await expect(page.getByTestId('document-confirm-dialog')).toContainText('ia locul ciornei');
+  await expect(page.getByTestId('document-dialog')).toContainText('ia locul ciornei');
   await page.getByTestId('document-confirm').click();
   await (await chooser).setFiles(wordFile);
   await expect(plan.getByTestId('document-edited')).toHaveText('Modificat');
@@ -469,7 +469,7 @@ test('a Word file uploaded over a draft replaces it, and after issuing starts th
 
   chooser = page.waitForEvent('filechooser');
   await act(page, plan, 'document-upload');
-  await expect(page.getByTestId('document-confirm-dialog')).toContainText('ia locul ciornei');
+  await expect(page.getByTestId('document-dialog')).toContainText('ia locul ciornei');
   await page.getByTestId('document-confirm').click();
   await (await chooser).setFiles(wordFile);
   await expect(page.getByText(/a fost încărcat ca ciornă/).last()).toBeVisible();

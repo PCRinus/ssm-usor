@@ -413,11 +413,11 @@ describe('the service contract of a lead', () => {
     expect(screen.getByTestId('contract-edited')).toBeTruthy();
     await user.click(screen.getByTestId('contract-draft-actions'));
     await user.click(await screen.findByTestId('contract-generate'));
-    expect((await screen.findByTestId('contract-confirm-dialog')).textContent).toContain(
+    expect((await screen.findByTestId('contract-action-dialog')).textContent).toContain(
       'Prețurile și celelalte modificări făcute de mână în ea se pierd'
     );
     expect(requests(`/clients/${leadId}/service-contract/generate`, 'POST')).toHaveLength(0);
-    await user.click(screen.getByTestId('contract-confirm'));
+    await user.click(screen.getByTestId('contract-action-confirm'));
     await waitFor(() =>
       expect(requests(`/clients/${leadId}/service-contract/generate`, 'POST')).toHaveLength(1)
     );
@@ -440,12 +440,12 @@ describe('the service contract of a lead', () => {
     mount();
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('contract-issue'));
-    await user.click(await screen.findByTestId('contract-confirm'));
+    await user.click(await screen.findByTestId('contract-action-confirm'));
     expect(
       (await screen.findByText('Contractul mai are text de completat')).textContent
     ).toBeTruthy();
-    expect(screen.getByTestId('contract-confirm-dialog').textContent).toContain('prețurile');
-    await user.click(screen.getByTestId('contract-confirm'));
+    expect(screen.getByTestId('contract-action-dialog').textContent).toContain('prețurile');
+    await user.click(screen.getByTestId('contract-action-confirm'));
     expect(await screen.findByText('Contractul a fost emis.')).toBeTruthy();
     expect(asked).toBe(2);
   });
@@ -507,6 +507,28 @@ describe('the service contract of a lead', () => {
 
     await user.click(screen.getByTestId('contract-details-cancel'));
     expect(screen.getByTestId('contract-details-summary')).toBeTruthy();
+  });
+
+  it('puts the focus back on "Modifică" when the edit is given up', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('contract-details-edit'));
+    await user.click(screen.getByTestId('contract-details-cancel'));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('contract-details-edit'))
+    );
+  });
+
+  it('opens the saved details at the field a missing-data row points to', async () => {
+    mockApi();
+    mount(`/oferte/${leadId}?focus=contract-representative-name`);
+
+    await waitFor(() =>
+      expect(document.activeElement?.id).toBe('contract-clientRepresentativeName')
+    );
+    expect(screen.getByTestId('service-contract-form')).toBeTruthy();
   });
 
   it('shows a contract left without any revision as not generated, and does not break', async () => {
@@ -697,10 +719,10 @@ describe('the signed copy', () => {
     );
     await user.click(screen.getByTestId('contract-signed-actions'));
     await user.click(await screen.findByTestId('contract-signed-remove'));
-    expect((await screen.findByTestId('contract-confirm-dialog')).textContent).toContain(
+    expect((await screen.findByTestId('contract-action-dialog')).textContent).toContain(
       'Contractul emis rămâne neschimbat'
     );
-    await user.click(screen.getByTestId('contract-confirm'));
+    await user.click(screen.getByTestId('contract-action-confirm'));
     expect(await screen.findByText('Exemplarul semnat a fost eliminat.')).toBeTruthy();
     expect(requests(`/documents/${documentId}/signed-copy`, 'DELETE')).toHaveLength(1);
   });
