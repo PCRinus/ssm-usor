@@ -11,29 +11,35 @@ import { createQueryClient } from '@/lib/query-client';
 const encode = (value: unknown) =>
   btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-const session = {
-  access_token: `${encode({ alg: 'HS256' })}.${encode({ sub: 'user-1', aal: 'aal2' })}.signature`,
-  refresh_token: 'refresh-token',
-  expires_in: 3600,
-  token_type: 'bearer',
-  user: {
-    id: 'user-1',
-    app_metadata: { role: 'admin' },
-    user_metadata: {},
-    aud: 'authenticated',
-    created_at: '2026-11-04T08:00:00Z',
-    email: 'mircea@example.ro',
-    factors: [
-      {
-        id: 'factor-1',
-        factor_type: 'totp',
-        status: 'verified',
-        created_at: '2026-11-04T08:00:00Z',
-        updated_at: '2026-11-04T08:00:00Z',
-      },
-    ],
-  },
-} as Session;
+export function adminSession(aal: 'aal1' | 'aal2', factor?: 'verified' | 'unverified'): Session {
+  return {
+    access_token: `${encode({ alg: 'HS256' })}.${encode({ sub: 'user-1', aal })}.signature`,
+    refresh_token: 'refresh-token',
+    expires_in: 3600,
+    token_type: 'bearer',
+    user: {
+      id: 'user-1',
+      app_metadata: { role: 'admin' },
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: '2026-11-04T08:00:00Z',
+      email: 'mircea@example.ro',
+      factors: factor
+        ? [
+            {
+              id: 'factor-1',
+              factor_type: 'totp',
+              status: factor,
+              created_at: '2026-11-04T08:00:00Z',
+              updated_at: '2026-11-04T08:00:00Z',
+            },
+          ]
+        : [],
+    },
+  } as Session;
+}
+
+const session = adminSession('aal2', 'verified');
 
 export const authClient = {
   getSession: vi.fn(async () => ({ data: { session }, error: null })),
@@ -50,9 +56,9 @@ export const authClient = {
 
 const runtimes: AdminRuntime[] = [];
 
-export function mountAdmin(path: string) {
+export function mountAdmin(path: string, client: AuthClient = authClient) {
   const runtime = createAdminRuntime(
-    authClient,
+    client,
     createQueryClient(),
     createMemoryHistory({ initialEntries: [path] }),
     'http://localhost:5176'

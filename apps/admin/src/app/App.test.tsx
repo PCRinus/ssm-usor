@@ -1,48 +1,16 @@
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
-import { createMemoryHistory } from '@tanstack/react-router';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthClient } from '@/features/auth/auth-store';
-import { createQueryClient } from '@/lib/query-client';
-
-import { type AdminRuntime, createAdminRuntime } from './admin-runtime';
-import App from './App';
-
-const encode = (value: unknown) =>
-  btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-const token = (aal: 'aal1' | 'aal2') =>
-  `${encode({ alg: 'HS256' })}.${encode({ sub: 'user-1', aal })}.signature`;
-
-function session(aal: 'aal1' | 'aal2', factor?: 'verified' | 'unverified'): Session {
-  return {
-    access_token: token(aal),
-    refresh_token: 'refresh-token',
-    expires_in: 3600,
-    token_type: 'bearer',
-    user: {
-      id: 'user-1',
-      app_metadata: { role: 'admin' },
-      user_metadata: {},
-      aud: 'authenticated',
-      created_at: '2026-11-04T08:00:00Z',
-      email: 'mircea@example.ro',
-      factors: factor
-        ? [
-            {
-              id: 'factor-1',
-              factor_type: 'totp',
-              status: factor,
-              created_at: '2026-11-04T08:00:00Z',
-              updated_at: '2026-11-04T08:00:00Z',
-            },
-          ]
-        : [],
-    },
-  } as Session;
-}
+import {
+  adminSession,
+  fetchMock,
+  installAdminFetch,
+  mockAdminApi,
+  mountAdmin,
+} from '@/test/admin-app';
 
 function fakeClient(initial: Session | null, afterSignIn: Session, afterVerify: Session) {
   let current = initial;
@@ -91,38 +59,19 @@ function fakeClient(initial: Session | null, afterSignIn: Session, afterVerify: 
   return client;
 }
 
-const fetchMock = vi.fn<typeof fetch>();
-const runtimes: AdminRuntime[] = [];
+installAdminFetch();
 
-function mount(client: AuthClient, path = '/') {
-  const runtime = createAdminRuntime(
-    client,
-    createQueryClient(),
-    createMemoryHistory({ initialEntries: [path] }),
-    'http://localhost:5176'
-  );
-  runtimes.push(runtime);
-  render(<App runtime={runtime} />);
-  return runtime;
-}
-
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  runtimes.splice(0).forEach((runtime) => runtime.dispose());
-  vi.unstubAllGlobals();
-});
+beforeEach(() => mockAdminApi(() => undefined));
 
 describe('the admin sign-in', () => {
   it('enrols an authenticator after the first password sign-in, then opens the home page', async () => {
-    fetchMock.mockResolvedValue(
-      Response.json({ id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'mircea@example.ro' })
+    mockAdminApi((url) =>
+      url.pathname === '/api/me'
+        ? Response.json({ id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'mircea@example.ro' })
+        : undefined
     );
-    const client = fakeClient(null, session('aal1'), session('aal2', 'verified'));
-    mount(client);
+    const client = fakeClient(null, adminSession('aal1'), adminSession('aal2', 'verified'));
+    mountAdmin('/', client);
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('email'), 'mircea@example.ro');
@@ -156,28 +105,36 @@ describe('the admin sign-in', () => {
     expect((await screen.findByTestId('admin-email')).textContent).toContain('mircea@example.ro');
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toBe('http://localhost:5176/api/me');
-    expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${token('aal2')}`);
+    expect(new Headers(init?.headers).get('Authorization')).toBe(
+      `Bearer ${adminSession('aal2').access_token}`
+    );
     expect(init?.credentials).toBe('same-origin');
   });
 
   it('removes a factor left unverified before enrolling again', async () => {
-    const client = fakeClient(session('aal1', 'unverified'), session('aal1'), session('aal2'));
-    mount(client, '/enrol');
+    const client = fakeClient(
+      adminSession('aal1', 'unverified'),
+      adminSession('aal1'),
+      adminSession('aal2')
+    );
+    mountAdmin('/enrol', client);
 
     await screen.findByTestId('enrol-qr');
     expect(client.mfa.unenroll).toHaveBeenCalledWith({ factorId: 'factor-1' });
   });
 
   it('asks for a code when the account already has an authenticator', async () => {
-    fetchMock.mockResolvedValue(
-      Response.json({ id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'mircea@example.ro' })
+    mockAdminApi((url) =>
+      url.pathname === '/api/me'
+        ? Response.json({ id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'mircea@example.ro' })
+        : undefined
     );
     const client = fakeClient(
-      session('aal1', 'verified'),
-      session('aal1', 'verified'),
-      session('aal2', 'verified')
+      adminSession('aal1', 'verified'),
+      adminSession('aal1', 'verified'),
+      adminSession('aal2', 'verified')
     );
-    mount(client, '/');
+    mountAdmin('/', client);
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('code'), '123456');
@@ -193,11 +150,11 @@ describe('the admin sign-in', () => {
 
   it('keeps an aal1 session away from the home page', async () => {
     const client = fakeClient(
-      session('aal1', 'verified'),
-      session('aal1', 'verified'),
-      session('aal2', 'verified')
+      adminSession('aal1', 'verified'),
+      adminSession('aal1', 'verified'),
+      adminSession('aal2', 'verified')
     );
-    const runtime = mount(client, '/');
+    const runtime = mountAdmin('/', client);
 
     await screen.findByTestId('verify-page');
     expect(runtime.router.state.location.pathname).toBe('/verify');
@@ -205,11 +162,17 @@ describe('the admin sign-in', () => {
   });
 
   it('tells an account without the admin claim that it has no access', async () => {
-    fetchMock.mockResolvedValue(
-      Response.json({ error: 'forbidden', message: 'Admins only.' }, { status: 403 })
+    mockAdminApi((url) =>
+      url.pathname === '/api/me'
+        ? Response.json({ error: 'forbidden', message: 'Admins only.' }, { status: 403 })
+        : undefined
     );
-    const client = fakeClient(session('aal2', 'verified'), session('aal1'), session('aal2'));
-    mount(client, '/');
+    const client = fakeClient(
+      adminSession('aal2', 'verified'),
+      adminSession('aal1'),
+      adminSession('aal2')
+    );
+    mountAdmin('/', client);
     const user = userEvent.setup();
 
     expect((await screen.findByTestId('no-admin-access')).textContent).toContain(
@@ -223,7 +186,7 @@ describe('the admin sign-in', () => {
 });
 
 it('shows the sign-in as unavailable when the build has no Supabase settings', async () => {
-  mount(null as unknown as AuthClient);
+  mountAdmin('/', null as unknown as AuthClient);
   await waitFor(() =>
     expect(screen.getByTestId('auth-unavailable').textContent).toContain('Sign-in is unavailable')
   );
