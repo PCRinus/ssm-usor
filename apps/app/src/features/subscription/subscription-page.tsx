@@ -1,6 +1,7 @@
 import {
   type BillingChoice,
   type BillingOverview,
+  formatCount,
   type PaidPlan,
   readOnlyDays,
   selfServeLimits,
@@ -23,7 +24,7 @@ import { useMe } from '@/features/account/use-me';
 import { formatRoDate } from '@/lib/dates';
 
 import { billingErrorMessage } from './billing-errors';
-import { addDays, cardBrand, employeesLabel, formatCount, formatEuro } from './billing-format';
+import { addDays, cardBrand, employeesLabel, formatEuro } from './billing-format';
 import { BillingCard } from './billing-ui';
 import { CancelDialog } from './cancel-dialog';
 import { ChangeDialog } from './change-dialog';

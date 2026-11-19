@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts/romanian';
 import type {
   ParticipantInvitationSms,
   SignatureRequestSms,
@@ -120,9 +121,7 @@ export function signingCodeText({ to, code, expiresInMinutes }: SigningCodeSms) 
 
 function trainings(count: number, language: Language) {
   if (language === 'en') return count === 1 ? '1 training' : `${count} trainings`;
-  if (count === 1) return 'o instruire';
-  const tail = count % 100;
-  return tail === 0 || tail >= 20 ? `${count} de instruiri` : `${count} instruiri`;
+  return count === 1 ? 'o instruire' : countOf(count, 'instruire', 'instruiri');
 }
 
 export function signatureRequestText({ to, count, signUrl, place }: SignatureRequestSms) {

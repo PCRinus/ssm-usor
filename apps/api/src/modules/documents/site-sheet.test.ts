@@ -125,14 +125,14 @@ describe('the site sheet', () => {
 
     it('from exact counts, past the thousand rows a request returns', () => {
       expect(headcountOf(tied(1450, 50))).toBe(
-        '1500 de angajați în total; Clădirea 1 (Sediul social) – 50; Clădirea 2 (Atelier Ghiroda) – 1450'
+        '1.500 de angajați în total; Clădirea 1 (Sediul social) – 50; Clădirea 2 (Atelier Ghiroda) – 1.450'
       );
       expect(
         headcountOf({
           currentEmployeeCount: 1500,
           currentEmployeesByWorkplace: { [workshopId]: 1000 },
         })
-      ).toBe('1500 de angajați în total; numărul estimativ pe fiecare clădire: DE COMPLETAT');
+      ).toBe('1.500 de angajați în total; numărul estimativ pe fiecare clădire: DE COMPLETAT');
     });
 
     it('leaves the gap while employees work on a mobile site, which is no building', () => {

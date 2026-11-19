@@ -21,7 +21,8 @@ import { Notice } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useMe } from '@/features/account/use-me';
-import { formatDay, roleLabels } from '@/features/organization/labels';
+import { roleLabels } from '@/features/organization/labels';
+import { formatDay } from '@/lib/dates';
 
 import {
   createAccountSchema,

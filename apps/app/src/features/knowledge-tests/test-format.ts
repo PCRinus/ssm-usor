@@ -1,4 +1,4 @@
-import { clientConflictReasons, testErrorReasons } from '@ssm-usor/contracts';
+import { clientConflictReasons, countOf, testErrorReasons } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
 
 import {
@@ -10,7 +10,6 @@ import {
   type TestBankResponse,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
-import { roCount } from '@/features/employees/employee-format';
 import { commonFailure } from '@/lib/api-errors';
 
 export type BankTest = TestBankResponse['tests'][number];
@@ -19,7 +18,7 @@ export type BankQuestion = BankTest['questions'][number];
 export const belowMinimumMessage = 'Un test trebuie să păstreze cel puțin zece întrebări active.';
 
 export function sittingRules(bank: Pick<TestBankResponse, 'sittingSize' | 'passMarkPercent'>) {
-  return `${roCount(bank.sittingSize, 'întrebare', 'întrebări')} pe test, extrase la întâmplare · prag de promovare ${bank.passMarkPercent} %`;
+  return `${countOf(bank.sittingSize, 'întrebare', 'întrebări')} pe test, extrase la întâmplare · prag de promovare ${bank.passMarkPercent} %`;
 }
 
 export function bankTestCounts(
@@ -30,9 +29,9 @@ export function bankTestCounts(
   return [
     test.activeCount === 0
       ? 'Nicio întrebare activă'
-      : roCount(test.activeCount, 'întrebare activă', 'întrebări active'),
+      : countOf(test.activeCount, 'întrebare activă', 'întrebări active'),
     test.activeCount <= minimum && `minimum ${minimum}`,
-    hidden > 0 && roCount(hidden, 'ascunsă', 'ascunse'),
+    hidden > 0 && countOf(hidden, 'ascunsă', 'ascunse'),
   ]
     .filter(Boolean)
     .join(' · ');

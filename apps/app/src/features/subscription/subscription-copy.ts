@@ -1,4 +1,4 @@
-import type { SubscriptionPlan, SubscriptionSummary } from '@ssm-usor/contracts';
+import { countOf, type SubscriptionPlan, type SubscriptionSummary } from '@ssm-usor/contracts';
 
 import { dateToIso, formatRoDate } from '@/lib/dates';
 
@@ -51,10 +51,7 @@ export function daysLeftLabel(days: number) {
   return daysCount(days);
 }
 
-function daysCount(days: number) {
-  const tens = days % 100;
-  return tens === 0 || tens >= 20 ? `${days} de zile` : `${days} zile`;
-}
+const daysCount = (days: number) => countOf(days, 'zi', 'zile');
 
 export type SealKind = 'trial' | 'readOnly' | SubscriptionPlan;
 

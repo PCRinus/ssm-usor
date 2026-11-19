@@ -4246,7 +4246,7 @@ describe('the fire-safety set', () => {
           }
       );
       expect(report!.fire.annualReport.trainingRecords.map((paragraph) => paragraph.text)).toEqual([
-        'Potrivit evidenței instruirilor, în anul 2025 s-a efectuat: 1 instructaj periodic, în luna martie, la care au participat 1001 angajați.',
+        'Potrivit evidenței instruirilor, în anul 2025 s-a efectuat: 1 instructaj periodic, în luna martie, la care au participat 1.001 angajați.',
         'În același an, potrivit rezultatelor consemnate, testul anual a fost promovat de 1 angajat.',
       ]);
       const pages = calls('/rest/v1/training_records').map(

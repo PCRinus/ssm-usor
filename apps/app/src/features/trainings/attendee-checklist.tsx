@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
@@ -5,7 +6,6 @@ import { Search } from 'lucide-react';
 import { useState } from 'react';
 
 import { Masked } from '@/components/replay';
-import { roCount } from '@/features/employees/employee-format';
 import { normalizeSearch } from '@/lib/normalize-search';
 
 export interface AttendeeOption {
@@ -88,7 +88,7 @@ export function AttendeeChecklist({
         </Button>
       </div>
       <p className="text-xs text-muted-foreground" data-testid="training-attendees-count">
-        {roCount(value.length, 'participant ales', 'participanți aleși')} din {options.length}
+        {countOf(value.length, 'participant ales', 'participanți aleși')} din {options.length}
       </p>
       {visible.length === 0 ? (
         <p className="py-3 text-center text-sm text-muted-foreground">

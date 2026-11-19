@@ -1,4 +1,5 @@
 import type { SmsUsageNoticeEmail } from '@ssm-usor/contracts/mail';
+import { countOf } from '@ssm-usor/contracts/romanian';
 import type { CSSProperties } from 'react';
 
 import { color } from '../theme';
@@ -32,11 +33,7 @@ function monthRange(periodStart: string, periodEnd: string) {
   return `${sameYear ? dayMonth.format(start) : fullDate.format(start)} – ${fullDate.format(last)}`;
 }
 
-export function codes(count: number) {
-  if (count === 1) return 'un cod';
-  const tail = count % 100;
-  return tail === 0 || tail >= 20 ? `${count} de coduri` : `${count} coduri`;
-}
+export const codes = (count: number) => (count === 1 ? 'un cod' : countOf(count, 'cod', 'coduri'));
 
 // Intl's ro-RO writes "EUR"; the app and the pricing page write "€".
 export function euro(cents: number) {

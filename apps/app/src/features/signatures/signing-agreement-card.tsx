@@ -39,7 +39,7 @@ import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
-import { formatDay } from '@/features/participants/participant-format';
+import { formatDay } from '@/lib/dates';
 import { saveFile } from '@/lib/save-file';
 
 import {

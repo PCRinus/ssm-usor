@@ -1,6 +1,5 @@
+import { countOf } from '@ssm-usor/contracts';
 import type { ReactNode } from 'react';
-
-import { roCount } from '@/features/employees/employee-format';
 
 import type { BlockerLink } from './review-model';
 import { Tag } from './review-parts';
@@ -9,17 +8,17 @@ const kinds = [
   {
     codes: ['missing', 'unknown_reference'],
     tone: 'destructive' as const,
-    label: (count: number) => roCount(count, 'dată lipsă', 'date lipsă'),
+    label: (count: number) => countOf(count, 'dată lipsă', 'date lipsă'),
   },
   {
     codes: ['choice'],
     tone: 'warning' as const,
-    label: (count: number) => roCount(count, 'alegere', 'alegeri'),
+    label: (count: number) => countOf(count, 'alegere', 'alegeri'),
   },
   {
     codes: ['invalid'],
     tone: 'destructive' as const,
-    label: (count: number) => roCount(count, 'valoare de corectat', 'valori de corectat'),
+    label: (count: number) => countOf(count, 'valoare de corectat', 'valori de corectat'),
   },
 ];
 

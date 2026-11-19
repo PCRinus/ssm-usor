@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -28,7 +29,6 @@ import { type MouseEvent, type ReactNode, useState } from 'react';
 import { replayMask } from '@/app/observability/replay-masking';
 import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
-import { roCount } from '@/features/employees/employee-format';
 
 import { useClientFileList } from './client-file-context';
 import {
@@ -211,7 +211,7 @@ function FolderNameCell({
         <CellNote>
           {fileCountLabel(folder.files.length)}
           {inner > 0 &&
-            (inner === 1 ? ' într-un folder' : ` în ${roCount(inner, 'folder', 'foldere')}`)}
+            (inner === 1 ? ' într-un folder' : ` în ${countOf(inner, 'folder', 'foldere')}`)}
         </CellNote>
         {progress && (
           <CellNote className="mt-1" aria-live="polite">

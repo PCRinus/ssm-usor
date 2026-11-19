@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
@@ -7,7 +8,7 @@ import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
 
 import { detailsIdOf, useBehindTable } from './behind-table-context';
-import { countOf, kindLabels } from './legislation-labels';
+import { kindLabels } from './legislation-labels';
 import {
   behindInstructions,
   behindTemplate,

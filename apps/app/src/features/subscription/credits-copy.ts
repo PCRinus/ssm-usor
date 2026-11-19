@@ -1,8 +1,5 @@
-import type { BillingCreditsUsage } from '@ssm-usor/contracts';
+import { type BillingCreditsUsage, countOf, formatCount } from '@ssm-usor/contracts';
 
-import { roCount } from '@/features/employees/employee-format';
-
-import { formatCount } from './billing-format';
 import type { MeterTone } from './sms-copy';
 import { contactEmail, roDate } from './subscription-copy';
 
@@ -12,13 +9,7 @@ export const creditsExplained =
   'Cu creditele AI, inteligența artificială citește documentele și fișele pe care le încarci. Documentele unui client folosesc 25 de credite AI, plus unul pentru fiecare pagină scanată; fiecare fotografie a unei fișe folosește unul.';
 
 /** "1 credit AI", "12 credite AI", "300 de credite AI", "10.000 de credite AI". */
-export function creditsCount(count: number) {
-  if (count === 1) return '1 credit AI';
-  const tail = count % 100;
-  return count !== 0 && (tail === 0 || tail >= 20)
-    ? `${formatCount(count)} de credite AI`
-    : `${formatCount(count)} credite AI`;
-}
+export const creditsCount = (count: number) => countOf(count, 'credit AI', 'credite AI');
 
 /**
  * Whose credits these are: a trial's last the whole trial; a tester's renew each month with a hard
@@ -106,7 +97,7 @@ export function creditsMeterFor(credits: BillingCreditsUsage, reader: CreditsRea
       const near =
         credits.state === 'near'
           ? reader.kind === 'paid'
-            ? `Mai ai ${formatCount(available)}, cât pentru vreo ${roCount(Math.floor(available / 25), 'client', 'clienți')}. `
+            ? `Mai ai ${formatCount(available)}, cât pentru vreo ${countOf(Math.floor(available / 25), 'client', 'clienți')}. `
             : `Mai ai ${formatCount(available)}. `
           : '';
       if (reader.kind === 'trial') {

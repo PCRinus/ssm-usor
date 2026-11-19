@@ -1,5 +1,6 @@
+import { countOf } from '@ssm-usor/contracts';
+
 import { Masked } from '@/components/replay';
-import { roCount } from '@/features/employees/employee-format';
 
 import { photosLabel } from '../import-format';
 import { joinNames } from './review-format';
@@ -74,7 +75,7 @@ export function importedSentence(notice: EmployeesImported) {
     ) : null;
   return (
     <>
-      {`Azi, din ${photosLabel(notice.photos)}, cu ${roCount(notice.trainingsHeld, 'instruire ținută', 'instruiri ținute')}.`}
+      {`Azi, din ${photosLabel(notice.photos)}, cu ${countOf(notice.trainingsHeld, 'instruire ținută', 'instruiri ținute')}.`}
       {completed && leavers ? (
         <>
           {' '}

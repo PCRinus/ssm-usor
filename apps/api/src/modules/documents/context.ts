@@ -1,4 +1,5 @@
 import {
+  countOf,
   decisionTypeKeys,
   type EquipmentAllocation,
   fireSafetyTypeKeysFromTenEmployees,
@@ -19,7 +20,7 @@ import {
   trainingMonths,
 } from '@ssm-usor/contracts';
 
-import { collator, countOf, listed, printedDate, romanianDay } from '../../lib/romanian';
+import { collator, listed, printedDate, romanianDay } from '../../lib/romanian';
 import { filled } from '../../lib/text';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
 import { type ContextParts, gapRules } from './gaps';

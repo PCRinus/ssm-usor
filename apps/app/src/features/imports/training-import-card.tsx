@@ -1,4 +1,4 @@
-import type { StaffCategory, TrainingDomain } from '@ssm-usor/contracts';
+import { countOf, type StaffCategory, type TrainingDomain } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
@@ -14,7 +14,6 @@ import {
 import { type ReactNode, useId, useState } from 'react';
 
 import { Segmented } from '@/components/segmented';
-import { roCount } from '@/features/employees/employee-format';
 import { dayOrderProblem, monthNames } from '@/features/training/document-details-schema';
 import { TrainingScheduleFields } from '@/features/training/schedule-fields';
 import {
@@ -745,7 +744,7 @@ export function TrainingImportCard({
                 ? null
                 : pending === 1
                   ? 'Mai ai un lucru de făcut'
-                  : `Mai ai ${roCount(pending, 'lucru', 'lucruri')} de făcut`
+                  : `Mai ai ${countOf(pending, 'lucru', 'lucruri')} de făcut`
             }
             testId="review-group-pending"
           />

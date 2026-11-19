@@ -1,4 +1,5 @@
 import {
+  countOf,
   sortOrderSchema,
   trainingPhaseLabels,
   trainingPhases,
@@ -11,7 +12,6 @@ import { z } from 'zod';
 
 import type { ListFilterFacet, ListFilterOption } from '@/components/list-filters/types';
 import { filterSearchSchema, periodSearchSchema } from '@/components/list-filters/url';
-import { roCount } from '@/features/employees/employee-format';
 
 export const trainingFilterKeys = ['phase', 'signatures', 'mode', 'period'] as const;
 export type TrainingFilterKey = (typeof trainingFilterKeys)[number];
@@ -100,4 +100,4 @@ export const ownTrainingFacets: ListFilterFacet<OwnTrainingFilterKey>[] = [
   },
 ];
 
-export const trainingNoun = (count: number) => roCount(count, 'instruire', 'instruiri');
+export const trainingNoun = (count: number) => countOf(count, 'instruire', 'instruiri');

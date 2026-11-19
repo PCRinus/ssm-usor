@@ -1,4 +1,5 @@
 import {
+  countOf,
   type InstructionCategory,
   type SplitFlag,
   splitFlagMessages,
@@ -20,7 +21,6 @@ import { useDeferredValue, useMemo, useState } from 'react';
 
 import { replayShow } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
-import { roCount } from '@/features/employees/employee-format';
 
 import { blocksFromBody, type DraftBlock } from './instruction-draft';
 import { articleCountLabel } from './instruction-schema';
@@ -172,7 +172,7 @@ function PasteContent({
             <p className="text-sm font-medium" data-testid="paste-summary">
               {articles === 0
                 ? 'Niciun articol'
-                : `${articleCountLabel(articles)}${result.body.blocks.length > articles ? `, ${result.body.blocks.length - articles === 1 ? 'un titlu' : roCount(result.body.blocks.length - articles, 'titlu', 'titluri')} de secțiune` : ''}`}
+                : `${articleCountLabel(articles)}${result.body.blocks.length > articles ? `, ${result.body.blocks.length - articles === 1 ? 'un titlu' : countOf(result.body.blocks.length - articles, 'titlu', 'titluri')} de secțiune` : ''}`}
             </p>
             {result.title && (
               <p className="text-sm text-muted-foreground" data-testid="paste-title">

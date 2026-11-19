@@ -1,4 +1,9 @@
-import type { BuiltInDocumentTypeKey, DocumentSet } from '@ssm-usor/contracts';
+import {
+  type BuiltInDocumentTypeKey,
+  countOf,
+  type DocumentSet,
+  formatCount,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
@@ -25,7 +30,6 @@ import { documentsLink } from '@/features/documents/document-sets';
 import { BehindClients } from './behind-clients';
 import { behindColumns } from './behind-columns';
 import { BehindTableContext, detailsIdOf, rowStateOf } from './behind-table-context';
-import { countOf } from './legislation-labels';
 import { RegenerateConfirmDialog } from './regenerate-confirm-dialog';
 import {
   type BehindType,
@@ -256,7 +260,7 @@ function RegenerationProgress({ jobs }: { jobs: JobProgress[] }) {
       <p className="flex items-center gap-2 text-sm font-semibold">
         <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
         {total > 0
-          ? `Se regenerează: ${handled} din ${countOf(total, 'document', 'documente')}`
+          ? `Se regenerează: ${formatCount(handled)} din ${countOf(total, 'document', 'documente')}`
           : 'Se regenerează…'}
       </p>
       <Progress
@@ -312,7 +316,8 @@ function RegenerationResult({
               data-testid="regeneration-result-counts"
               className="text-base font-semibold"
             >
-              Regenerarea s-a încheiat: {done} din {countOf(total, 'document', 'documente')}
+              Regenerarea s-a încheiat: {formatCount(done)} din{' '}
+              {countOf(total, 'document', 'documente')}
             </h2>
             {done > 0 && (
               <p className="text-sm text-muted-foreground">

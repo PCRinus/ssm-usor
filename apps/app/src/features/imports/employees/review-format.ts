@@ -1,4 +1,5 @@
-import { roCount } from '@/features/employees/employee-format';
+import { countOf } from '@ssm-usor/contracts';
+
 import { formatRoDate } from '@/lib/dates';
 
 import { filesLabel, pagesLabel, photosLabel } from '../import-format';
@@ -23,10 +24,10 @@ export const pageFileName = (page: Pick<SheetPage, 'label'>) =>
     .at(-1) ?? page.label;
 
 export const peopleLabel = (count: number) =>
-  count === 1 ? 'o persoană' : roCount(count, 'persoană', 'persoane');
+  count === 1 ? 'o persoană' : countOf(count, 'persoană', 'persoane');
 
 export const trainingsLabel = (count: number) =>
-  count === 1 ? 'o instruire' : roCount(count, 'instruire', 'instruiri');
+  count === 1 ? 'o instruire' : countOf(count, 'instruire', 'instruiri');
 
 export const onlyPhotos = (files: { mimeType: string }[]) =>
   files.every((file) => file.mimeType.startsWith('image/'));

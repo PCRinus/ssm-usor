@@ -1,4 +1,5 @@
 import {
+  countOf,
   formatEmployeeName,
   signerSlotLabels,
   type SortOrder,
@@ -22,8 +23,7 @@ import { DataTable } from '@/components/data-table/data-table';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
-import { formatDate, roCount } from '@/features/employees/employee-format';
-import { formatDay } from '@/features/participants/participant-format';
+import { formatDate, formatDay } from '@/lib/dates';
 
 import { AgreementWarning } from './agreement-warning';
 import { requestDocument } from './signature-format';
@@ -31,7 +31,7 @@ import { requestDocument } from './signature-format';
 type SignatureRequest = SignatureRequestListResponseItemsItem;
 type SortKey = 'employee' | 'issuedAt';
 
-const pendingLabel = (count: number) => `${roCount(count, 'semnătură', 'semnături')} în așteptare`;
+const pendingLabel = (count: number) => `${countOf(count, 'semnătură', 'semnături')} în așteptare`;
 
 const collator = new Intl.Collator('ro');
 const dayMs = 24 * 60 * 60 * 1000;
@@ -39,7 +39,7 @@ const dayMs = 24 * 60 * 60 * 1000;
 function waitingFor(issuedAt: string) {
   const days = Math.floor((Date.now() - Date.parse(issuedAt)) / dayMs);
   if (days < 1) return 'de azi';
-  return days === 1 ? 'de o zi' : `de ${roCount(days, 'zi', 'zile')}`;
+  return days === 1 ? 'de o zi' : `de ${countOf(days, 'zi', 'zile')}`;
 }
 
 const byEmployee = (a: SignatureRequest, b: SignatureRequest) =>

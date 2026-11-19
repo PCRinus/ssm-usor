@@ -1,4 +1,5 @@
 import {
+  countOf,
   instructionCategoryLabels,
   type InstructionDomain,
   instructionDomains,
@@ -46,24 +47,21 @@ export function groupHint(group: InstructionModuleGroup) {
 export function moduleCountLabel(count: number) {
   if (count === 0) return 'Nicio instrucțiune';
   if (count === 1) return 'O instrucțiune';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de instrucțiuni` : `${count} instrucțiuni`;
+  return countOf(count, 'instrucțiune', 'instrucțiuni');
 }
 
 /** "un post", "3 posturi", "20 de posturi". */
 export function positionCountLabel(count: number) {
   if (count === 0) return 'Niciun post';
   if (count === 1) return 'Un post';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de posturi` : `${count} posturi`;
+  return countOf(count, 'post', 'posturi');
 }
 
 /** "12 articole", the articles of the module's text. */
 export function articleCountLabel(count: number) {
   if (count === 0) return 'Fără articole numerotate';
   if (count === 1) return 'Un articol';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de articole` : `${count} articole`;
+  return countOf(count, 'articol', 'articole');
 }
 
 export function instructionStateLabel(instructionCount: number) {

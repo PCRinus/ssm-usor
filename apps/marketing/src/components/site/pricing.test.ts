@@ -1,5 +1,6 @@
 import {
   billingPlans,
+  countOf,
   creditsExtra,
   paidPlans,
   selfServeLimits,
@@ -15,6 +16,7 @@ import {
   cardStates,
   compare,
   type CompareRow,
+  count,
   eur,
   extras,
   maxUsers,
@@ -368,4 +370,14 @@ describe('extras on the pricing page', () => {
     expect(answer()).toContain('pachet de 100 de credite AI');
     expect(calculator.extra).toContain('pachet de 100 de credite AI');
   });
+});
+
+describe('a count on the pricing page', () => {
+  it.each([0, 1, 2, 19, 20, 25, 100, 101, 119, 120, 1000, 1200, 1201])(
+    'puts "de" before the noun of %i where the app does',
+    (n) => {
+      const takesDe = (text: string) => text.endsWith(' de lucrători');
+      expect(takesDe(count(n, 'lucrători'))).toBe(takesDe(countOf(n, 'lucrător', 'lucrători')));
+    }
+  );
 });

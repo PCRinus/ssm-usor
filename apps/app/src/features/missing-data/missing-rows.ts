@@ -1,4 +1,5 @@
 import {
+  countOf,
   type DocumentSet,
   type JobPositionDecision,
   type MissingDocumentData,
@@ -143,12 +144,8 @@ export type MissingGroup = {
   rows: MissingRow[];
 };
 
-// Romanian puts "de" between a number and its noun from 20 on, except 101 to 119 and the like.
-export function missingCountLabel(count: number) {
-  const tens = count % 100;
-  if (count === 1) return '1 dată de completat';
-  return tens === 0 || tens >= 20 ? `${count} de date de completat` : `${count} date de completat`;
-}
+export const missingCountLabel = (count: number) =>
+  countOf(count, 'dată de completat', 'date de completat');
 
 export const countRows = (groups: readonly MissingGroup[]) =>
   groups.reduce((total, group) => total + group.rows.length, 0);

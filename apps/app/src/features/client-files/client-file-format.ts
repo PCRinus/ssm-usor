@@ -2,6 +2,7 @@ import {
   clientFileErrorReasons,
   clientFileExtensions,
   type ClientFileType,
+  countOf,
   maxClientFileBytes,
 } from '@ssm-usor/contracts';
 import {
@@ -81,11 +82,8 @@ export function formatFileSize(bytes: number) {
 
 export const formatUploadDate = (createdAt: string) => formatRoDate(dateToIso(new Date(createdAt)));
 
-export function fileCountLabel(count: number) {
-  if (count === 1) return 'un fișier';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de fișiere` : `${count} fișiere`;
-}
+export const fileCountLabel = (count: number) =>
+  count === 1 ? 'un fișier' : countOf(count, 'fișier', 'fișiere');
 
 const refusals = {
   [clientFileErrorReasons.typeNotAllowed]:

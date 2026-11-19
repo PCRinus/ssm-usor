@@ -1,4 +1,4 @@
-import { importLimits, importStartCredits } from '@ssm-usor/contracts';
+import { countOf, importLimits, importStartCredits } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -18,7 +18,6 @@ import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { useAuth } from '@/features/auth/auth-context';
-import { roCount } from '@/features/employees/employee-format';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
 import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
@@ -62,7 +61,7 @@ const sizeLabel = (bytes: number) =>
   bytes >= 1024 ** 3 ? `${gigabytes.format(bytes / 1024 ** 3)} GB` : formatFileSize(bytes);
 
 const pagesAndPhotos = (count: number) =>
-  count === 1 ? 'o fotografie sau pagină' : roCount(count, '', 'fotografii și pagini');
+  count === 1 ? 'o fotografie sau pagină' : countOf(count, '', 'fotografii și pagini');
 
 const listJoin = (parts: string[]) =>
   parts.length > 1 ? `${parts.slice(0, -1).join(', ')} și ${parts.at(-1)}` : (parts[0] ?? '');

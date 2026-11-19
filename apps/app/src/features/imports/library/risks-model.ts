@@ -1,4 +1,5 @@
 import {
+  countOf,
   foldText,
   isUnacceptableRiskLevel,
   type PreventionMeasureKind,
@@ -19,7 +20,6 @@ import type {
   RisksProposalSheetsItemFactorsItem,
   RisksProposalUnmatchedPlanRowsItem,
 } from '@/api/generated/api';
-import { roCount } from '@/features/employees/employee-format';
 import { missingMeasureText } from '@/features/risk-evaluations/risk-evaluation-schema';
 
 import { leftOutByMember } from '../include-rule';
@@ -441,9 +441,9 @@ const pendingLines: Record<Pending, string> = {
 export const pendingLine = (pending: readonly Pending[]) =>
   pending.length > 1 ? `Mai ai ${pending.length} lucruri de făcut` : pendingLines[pending[0]!];
 
-export const sheetsLabel = (count: number) => roCount(count, 'fișă', 'fișe');
-export const factorsLabel = (count: number) => roCount(count, 'factor', 'factori');
-export const evaluationsLabel = (count: number) => roCount(count, 'evaluare', 'evaluări');
+export const sheetsLabel = (count: number) => countOf(count, 'fișă', 'fișe');
+export const factorsLabel = (count: number) => countOf(count, 'factor', 'factori');
+export const evaluationsLabel = (count: number) => countOf(count, 'evaluare', 'evaluări');
 
 export function leftSentence(states: readonly SheetState[], open: number) {
   const incomplete = states.reduce((sum, state) => sum + state.incomplete, 0);
@@ -570,7 +570,7 @@ export const existingChoiceLabels: Record<ExistingChoice, string> = {
 function clientTarget(state: SheetState) {
   const writing = state.targets.filter((target) => target.choice !== 'keep').length;
   if (writing > 1)
-    return { sheet: `fișele celor ${roCount(writing, 'post', 'posturi')}`, plural: true };
+    return { sheet: `fișele celor ${countOf(writing, 'post', 'posturi')}`, plural: true };
   return writing === 1 ? { sheet: 'fișa postului', plural: false } : null;
 }
 
@@ -590,7 +590,7 @@ export function usedOutcome(state: SheetState) {
 
 export function similarCounts(match: NonNullable<RiskSheet['match']>) {
   return `${joinNames([
-    roCount(match.pairs.length, 'factor la fel', 'factori la fel'),
+    countOf(match.pairs.length, 'factor la fel', 'factori la fel'),
     ...(match.onlyInPack.length > 0 ? [`${match.onlyInPack.length} doar în pachet`] : []),
     ...(match.onlyInLibrary.length > 0
       ? [`${match.onlyInLibrary.length} doar în evaluarea ta`]
@@ -691,7 +691,7 @@ export function existingOutcome(choice: ExistingChoice, factors: number) {
     case 'replace':
       return factors === 1
         ? 'Factorul existent se șterge, iar locul lui îl iau cei din pachet.'
-        : `Cei ${roCount(factors, 'factor existent', 'factori existenți')} se șterg, iar locul lor îl iau cei din pachet.`;
+        : `Cei ${countOf(factors, 'factor existent', 'factori existenți')} se șterg, iar locul lor îl iau cei din pachet.`;
     case 'keep':
       return 'Fișa rămâne cum e: factorii din pachet nu ajung pe ea.';
   }
@@ -856,7 +856,7 @@ export function planRowsLine(state: SheetState) {
   const found =
     count === 1
       ? `Un rând din documente e pentru ${target}, dar nu l-am putut lega de niciun factor de pe fișă.`
-      : `${roCount(count, 'rând', 'rânduri')} din documente sunt pentru ${target}, dar nu le-am putut lega de niciun factor de pe fișă.`;
+      : `${countOf(count, 'rând', 'rânduri')} din documente sunt pentru ${target}, dar nu le-am putut lega de niciun factor de pe fișă.`;
   if (added === 0) return found;
   return count === 1
     ? `${found} L-ai adăugat ca factor.`
@@ -877,13 +877,10 @@ export const looseCells = (text: string) =>
 export const rowQuote = (text: string) =>
   rowCells(text).reduce((longest, cell) => (cell.length > longest.length ? cell : longest), '');
 
-const newLabel = (count: number) =>
-  count === 1 ? 'una nouă' : `${count} ${count % 100 >= 20 || count % 100 === 0 ? 'de ' : ''}noi`;
+const newLabel = (count: number) => (count === 1 ? 'una nouă' : countOf(count, 'nouă', 'noi'));
 
 const similarLabel = (count: number) =>
-  count === 1
-    ? 'una asemănătoare'
-    : `${count} ${count % 100 >= 20 || count % 100 === 0 ? 'de ' : ''}asemănătoare`;
+  count === 1 ? 'una asemănătoare' : countOf(count, 'asemănătoare', 'asemănătoare');
 
 export function risksPartDescription(part: RisksPart, clientConfirmed: boolean, now = Date.now()) {
   if (isExpired(part, now)) {

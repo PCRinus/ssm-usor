@@ -1,4 +1,6 @@
 import {
+  countNoun,
+  countOf,
   employeesOverStepReason,
   importErrorReasons,
   trainingDomainLabels,
@@ -42,7 +44,6 @@ import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
-import { roCount, roNoun } from '@/features/employees/employee-format';
 import {
   employeeImportOverStepMessage,
   refreshEmployeesOverStep,
@@ -222,15 +223,15 @@ export function EmployeeConfirmDialog({
         <DialogHeader>
           <DialogTitle>
             {left.length > 0
-              ? `Creezi lucrătorii fără ${left.length === 1 ? 'cel neverificat' : `cei ${roCount(left.length, 'neverificat', 'neverificați')}`}?`
+              ? `Creezi lucrătorii fără ${left.length === 1 ? 'cel neverificat' : `cei ${countOf(left.length, 'neverificat', 'neverificați')}`}?`
               : `Creezi lucrătorii clientului ${clientName}?`}
           </DialogTitle>
           <DialogDescription>
             {left.length > 0
-              ? `${checkedCount} din ${roCount(total, 'persoană', 'persoane')} sunt verificate.`
+              ? `${checkedCount} din ${countOf(total, 'persoană', 'persoane')} sunt verificate.`
               : total === 1
                 ? 'Persoana de pe fișe e verificată.'
-                : `Toate cele ${roCount(total, 'persoană', 'persoane')} de pe fișe sunt verificate.`}{' '}
+                : `Toate cele ${countOf(total, 'persoană', 'persoane')} de pe fișe sunt verificate.`}{' '}
             Preluăm ce ai verificat; orice poți modifica după, din pagina fiecărui lucrător.
           </DialogDescription>
         </DialogHeader>
@@ -241,7 +242,7 @@ export function EmployeeConfirmDialog({
               title={
                 left.length === 1
                   ? 'O persoană nu e verificată'
-                  : `${roCount(left.length, 'persoană', 'persoane')} nu sunt verificate`
+                  : `${countOf(left.length, 'persoană', 'persoane')} nu sunt verificate`
               }
               data-testid="employee-confirm-left"
             >
@@ -267,7 +268,7 @@ export function EmployeeConfirmDialog({
               <Line
                 icon={<UserPlus className="size-4" />}
                 count={summary.created.length}
-                label={roNoun(summary.created.length, 'lucrător nou', 'lucrători noi')}
+                label={countNoun(summary.created.length, 'lucrător nou', 'lucrători noi')}
                 detail="Cu postul ales pentru fiecare."
               />
             )}
@@ -283,7 +284,7 @@ export function EmployeeConfirmDialog({
               <Line
                 icon={<UserMinus className="size-4" />}
                 count={summary.leavers.length}
-                label={roNoun(summary.leavers.length, 'fost lucrător', 'foști lucrători')}
+                label={countNoun(summary.leavers.length, 'fost lucrător', 'foști lucrători')}
                 detail={maskPeople`${join(summary.leavers.map(nameOf))}, cu instruirile lor. Apar la Foști.`}
               />
             )}
@@ -291,15 +292,15 @@ export function EmployeeConfirmDialog({
               <Line
                 icon={<CalendarCheck className="size-4" />}
                 count={summary.trainingsHeld}
-                label={roNoun(summary.trainingsHeld, 'instruire ținută', 'instruiri ținute')}
-                detail={`${roCount(summary.rows, 'rând', 'rânduri')} de pe fișe, transcrise de pe fișa pe hârtie. Rândurile cu aceeași zi, același instructor și același fel de instruire devin o singură instruire, cu toți participanții ei.`}
+                label={countNoun(summary.trainingsHeld, 'instruire ținută', 'instruiri ținute')}
+                detail={`${countOf(summary.rows, 'rând', 'rânduri')} de pe fișe, transcrise de pe fișa pe hârtie. Rândurile cu aceeași zi, același instructor și același fel de instruire devin o singură instruire, cu toți participanții ei.`}
               />
             )}
             {ssmSu.length > 0 && (
               <Line
                 icon={<BadgeCheck className="size-4" />}
                 count={summary.tests.ssm + summary.tests.su}
-                label={roNoun(
+                label={countNoun(
                   summary.tests.ssm + summary.tests.su,
                   'test la angajare verificat pe fișă',
                   'teste la angajare verificate pe fișă'
@@ -311,7 +312,7 @@ export function EmployeeConfirmDialog({
               <Line
                 icon={<FileImage className="size-4" />}
                 count={summary.files}
-                label={roNoun(summary.files, 'fotografie', 'fotografii')}
+                label={countNoun(summary.files, 'fotografie', 'fotografii')}
                 detail={`La fișierele fiecărui lucrător, lângă instruirile transcrise din ele.${summary.filesLeft > 0 ? ` ${photosLabel(summary.filesLeft)} ${summary.filesLeft === 1 ? 'rămâne' : 'rămân'} deoparte.` : ''}`}
               />
             )}
@@ -338,7 +339,7 @@ export function EmployeeConfirmDialog({
                   warn
                   icon={<TriangleAlert className="size-4" />}
                   count={summary.noContact.length}
-                  label={roNoun(
+                  label={countNoun(
                     summary.noContact.length,
                     'lucrător fără email sau telefon',
                     'lucrători fără email sau telefon'
@@ -351,7 +352,7 @@ export function EmployeeConfirmDialog({
                   warn
                   icon={<TriangleAlert className="size-4" />}
                   count={summary.untested.length}
-                  label={roNoun(
+                  label={countNoun(
                     summary.untested.length,
                     'test la angajare neverificat pe fișă',
                     'teste la angajare neverificate pe fișă'
@@ -364,7 +365,7 @@ export function EmployeeConfirmDialog({
                   warn
                   icon={<TriangleAlert className="size-4" />}
                   count={summary.noCommute.length}
-                  label={roNoun(
+                  label={countNoun(
                     summary.noCommute.length,
                     'lucrător fără traseul de deplasare',
                     'lucrători fără traseul de deplasare'
@@ -377,7 +378,7 @@ export function EmployeeConfirmDialog({
                   warn
                   icon={<TriangleAlert className="size-4" />}
                   count={summary.unusual.length}
-                  label={roNoun(
+                  label={countNoun(
                     summary.unusual.length,
                     'valoare neobișnuită, preluată cum ai lăsat-o',
                     'valori neobișnuite, preluate cum le-ai lăsat'

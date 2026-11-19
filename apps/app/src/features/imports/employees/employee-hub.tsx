@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -8,7 +9,6 @@ import type { ImportDetail } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { ClientFact } from '@/features/clients/client-fact';
-import { roCount } from '@/features/employees/employee-format';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
 import { ImportActionBar } from '../import-action-bar';
@@ -63,25 +63,25 @@ export function EmployeeHub({
     postsOpen > 0 && {
       section: postsSectionId,
       tone: counts.posts.decide > 0 ? 'destructive' : 'warning',
-      count: roCount(postsOpen, 'post', 'posturi'),
+      count: countOf(postsOpen, 'post', 'posturi'),
       rest: counts.posts.decide > 0 ? 'de hotărât' : 'de confirmat',
     },
     workplacesOpen > 0 && {
       section: workplacesSectionId,
       tone: counts.workplaces.decide > 0 ? 'destructive' : 'warning',
-      count: roCount(workplacesOpen, 'loc de muncă', 'locuri de muncă'),
+      count: countOf(workplacesOpen, 'loc de muncă', 'locuri de muncă'),
       rest: 'de ales',
     },
     counts.people.deciding > 0 && {
       section: peopleSectionId,
       tone: 'destructive',
-      count: roCount(counts.people.deciding, 'persoană', 'persoane'),
+      count: countOf(counts.people.deciding, 'persoană', 'persoane'),
       rest: 'cu ceva de hotărât',
     },
     counts.photos.toAssign > 0 && {
       section: unplacedSectionId,
       tone: 'warning',
-      count: roCount(counts.photos.toAssign, 'fotografie', 'fotografii'),
+      count: countOf(counts.photos.toAssign, 'fotografie', 'fotografii'),
       rest: 'de atribuit',
     },
   ].filter((issue): issue is Issue => issue !== false);

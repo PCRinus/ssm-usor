@@ -1,4 +1,5 @@
 import {
+  countOf,
   type InstructionBody,
   instructionCategoriesByDomain,
   type InstructionCategory,
@@ -16,7 +17,6 @@ import type {
   InstructionsProposalPositionsItem,
   InstructionsProposalUnreadItem,
 } from '@/api/generated/api';
-import { roCount } from '@/features/employees/employee-format';
 
 export type LibraryPart = InstructionsLibraryPart;
 export type LibraryPost = ImportLibraryPartsResponse['posts'][number];
@@ -177,7 +177,7 @@ export const identicalInstructions = (instructions: readonly ProposedInstruction
 
 export const categoriesOf = (domain: InstructionDomain) => instructionCategoriesByDomain[domain];
 
-export const instructionsLabel = (count: number) => roCount(count, 'instrucțiune', 'instrucțiuni');
+export const instructionsLabel = (count: number) => countOf(count, 'instrucțiune', 'instrucțiuni');
 
 export function identicalSentence(count: number) {
   return count === 1
@@ -185,13 +185,10 @@ export function identicalSentence(count: number) {
     : `${instructionsLabel(count)} din pachet sunt deja în biblioteca ta`;
 }
 
-const newLabel = (count: number) =>
-  count === 1 ? 'una nouă' : `${count} ${count % 100 >= 20 || count % 100 === 0 ? 'de ' : ''}noi`;
+const newLabel = (count: number) => (count === 1 ? 'una nouă' : countOf(count, 'nouă', 'noi'));
 
 const similarLabel = (count: number) =>
-  count === 1
-    ? 'una asemănătoare'
-    : `${count} ${count % 100 >= 20 || count % 100 === 0 ? 'de ' : ''}asemănătoare`;
+  count === 1 ? 'una asemănătoare' : countOf(count, 'asemănătoare', 'asemănătoare');
 
 export function partDescription(part: LibraryPart, clientConfirmed: boolean, now = Date.now()) {
   if (isExpired(part, now)) {

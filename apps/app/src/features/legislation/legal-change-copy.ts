@@ -1,6 +1,6 @@
-import type { DocumentSet, LegalChangeOutcome } from '@ssm-usor/contracts';
+import { countOf, type DocumentSet, type LegalChangeOutcome } from '@ssm-usor/contracts';
 
-import { countOf, listOf, unitLabel } from './legislation-labels';
+import { listOf, unitLabel } from './legislation-labels';
 import { documentsTabOf } from './legislation-sections';
 
 type ChangeDocument = { typeKey: string; title: string; set: DocumentSet };

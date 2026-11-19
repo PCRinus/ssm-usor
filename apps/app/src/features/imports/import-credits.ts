@@ -1,6 +1,8 @@
 import {
   type BillingCreditsUsage,
+  countOf,
   type CreditsShort,
+  formatCount,
   type ImportCredits,
   importCredits,
   type ImportKind,
@@ -8,21 +10,12 @@ import {
   type SubscriptionSummary,
 } from '@ssm-usor/contracts';
 
-import { formatCount } from '@/features/subscription/billing-format';
+export const creditsLabel = (value: number) => countOf(value, 'credit AI', 'credite AI');
 
-const takesDe = (value: number) => {
-  const tail = Math.abs(value) % 100;
-  return value !== 0 && (tail === 0 || tail >= 20);
-};
-
-export const creditsLabel = (value: number) =>
-  value === 1 ? '1 credit AI' : `${formatCount(value)} ${takesDe(value) ? 'de ' : ''}credite AI`;
-
-const scannedPagesLabel = (value: number) =>
-  value === 1 ? '1 pagină scanată' : `${value} ${takesDe(value) ? 'de ' : ''}pagini scanate`;
+const scannedPagesLabel = (value: number) => countOf(value, 'pagină scanată', 'pagini scanate');
 
 const photosCount = (value: number) =>
-  value === 1 ? 'o fotografie' : `${value} ${takesDe(value) ? 'de ' : ''}fotografii`;
+  value === 1 ? 'o fotografie' : countOf(value, 'fotografie', 'fotografii');
 
 const dayFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long' });
 
@@ -199,7 +192,7 @@ export function shortText(
 }
 
 const photosAndPages = (value: number) =>
-  `${value} ${takesDe(value) ? 'de ' : ''}fotografii și pagini`;
+  countOf(value, 'fotografii și pagini', 'fotografii și pagini');
 
 export function noneText(kind: ImportKind, balance: CreditsBalance | null) {
   const used = !balance

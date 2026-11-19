@@ -1,6 +1,9 @@
-import { type BillingOverview, billingPlans, type OrganizationSeats } from '@ssm-usor/contracts';
-
-import { roCount } from '@/features/employees/employee-format';
+import {
+  type BillingOverview,
+  billingPlans,
+  countOf,
+  type OrganizationSeats,
+} from '@ssm-usor/contracts';
 
 import { currentChoice, hasLiveSubscription, viewOf } from './use-billing';
 
@@ -47,7 +50,7 @@ export function seatsOfOverview(overview: BillingOverview): OrganizationSeats {
   };
 }
 
-export const userNoun = (count: number) => roCount(count, 'utilizator', 'utilizatori');
+export const userNoun = (count: number) => countOf(count, 'utilizator', 'utilizatori');
 
 export const seatsLabel = ({ taken, limit }: MemberSeats) =>
   limit === null ? userNoun(taken) : `${taken} din ${userNoun(limit)}`;
@@ -56,8 +59,8 @@ export const seatsLabel = ({ taken, limit }: MemberSeats) =>
 // number of users larger than the table.
 export const membersLabel = ({ members, invitations }: MemberSeats) =>
   [
-    roCount(members, 'membru', 'membri'),
-    invitations > 0 && roCount(invitations, 'invitație în așteptare', 'invitații în așteptare'),
+    countOf(members, 'membru', 'membri'),
+    invitations > 0 && countOf(invitations, 'invitație în așteptare', 'invitații în așteptare'),
   ]
     .filter(Boolean)
     .join(' · ');

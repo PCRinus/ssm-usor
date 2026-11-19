@@ -1,4 +1,4 @@
-import { documentSetOf } from '@ssm-usor/contracts';
+import { countOf, documentSetOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,7 +24,7 @@ import { LegalChangeBack } from './legal-change-back';
 import { appliedSentence, behindText, reachOf, underReviewSentence } from './legal-change-copy';
 import { AmendedUnits, ChangedPassages } from './legal-change-details';
 import { LegalChangePending } from './legal-change-pending';
-import { countOf, formatDayOf, portalPage } from './legislation-labels';
+import { formatDayOf, portalPage } from './legislation-labels';
 import { documentsTabOf } from './legislation-sections';
 import { RegenerateConfirmDialog } from './regenerate-confirm-dialog';
 import {

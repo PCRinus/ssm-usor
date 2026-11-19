@@ -3,12 +3,10 @@ import './document-editor.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
 import { DocxEditor, type DocxEditorRef, useDocumentSearch } from '@docx-editor.dev/react';
-import { unfilledMark } from '@ssm-usor/contracts';
+import { countOf, unfilledMark } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { TriangleAlert } from 'lucide-react';
 import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from 'react';
-
-import { roCount } from '@/features/employees/employee-format';
 
 import { editorStrings } from './editor-strings.ro';
 
@@ -53,7 +51,7 @@ function UnfilledNavigator() {
       onClick={next}
     >
       <TriangleAlert aria-hidden="true" />
-      {roCount(matches.length, 'loc', 'locuri')} de completat
+      {countOf(matches.length, 'loc', 'locuri')} de completat
       <span className="font-normal">
         {activeIndex < 0 ? '· arată' : `· ${activeIndex + 1} din ${matches.length}`}
       </span>

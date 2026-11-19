@@ -8,9 +8,10 @@ import {
   type ExtraKind,
   extraUnitCents,
   extraUnitsWithin,
+  formatCount,
 } from '@ssm-usor/contracts';
 
-import { formatCount, formatEuro } from './billing-format';
+import { formatEuro } from './billing-format';
 import { creditsCount } from './credits-copy';
 import { codesLabel, type MeterTone } from './sms-copy';
 import { roDate } from './subscription-copy';

@@ -5,6 +5,7 @@ import {
   openAddress,
   renewalMs,
 } from '@ssm-usor/api-http/file-link';
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
@@ -34,7 +35,6 @@ import { Masked } from '@/components/replay';
 import { SearchInput } from '@/components/search-input';
 import { useMe } from '@/features/account/use-me';
 import type { Client } from '@/features/clients/client-form-schema';
-import { roCount } from '@/features/employees/employee-format';
 
 import { clientFileColumns } from './client-file-columns';
 import { ClientFileList, type ClientFileListContext } from './client-file-context';
@@ -312,7 +312,7 @@ export function ClientFilesCard({
                   {shown.narrowed ? (
                     <>
                       <b className="font-semibold text-foreground">{shown.count}</b> din{' '}
-                      {phone ? all : roCount(all, 'fișier', 'fișiere')}
+                      {phone ? all : countOf(all, 'fișier', 'fișiere')}
                     </>
                   ) : (
                     fileCountLabel(all)

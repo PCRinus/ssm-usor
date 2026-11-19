@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Progress } from '@ssm-usor/ui/components/progress';
@@ -14,7 +15,6 @@ import {
 import { openedFromRecord, openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
 import { useAuth } from '@/features/auth/auth-context';
-import { roCount } from '@/features/employees/employee-format';
 import { useBulkInvite } from '@/features/participants/use-bulk-invite';
 import { uninvitedOf, useImportInvitees } from '@/features/participants/use-import-invitees';
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
@@ -238,7 +238,7 @@ function OpenImportCard({
         <Progress
           value={people.total ? ((people.checked + people.setAside) / people.total) * 100 : 0}
           className="h-1.5 max-w-md"
-          aria-label={`${people.checked} din ${roCount(people.total, 'persoană', 'persoane')} verificate`}
+          aria-label={`${people.checked} din ${countOf(people.total, 'persoană', 'persoane')} verificate`}
         />
         <p className="text-sm text-muted-foreground">
           Din {photosLabel(item.fileCount)}. Ce ai verificat e salvat; lucrătorii se creează când
@@ -399,7 +399,7 @@ function ImportedNoticeCard({
             {notice
               ? notice.created === 1
                 ? 'Un lucrător creat din fișe'
-                : `${roCount(notice.created, 'lucrător creat', 'lucrători creați')} din fișe`
+                : `${countOf(notice.created, 'lucrător creat', 'lucrători creați')} din fișe`
               : `Lucrători importați din fișe pe ${dayMonth.format(new Date(item.confirmedAt ?? item.createdAt))}`}
           </h3>
           <p className="text-sm text-muted-foreground">
@@ -407,7 +407,7 @@ function ImportedNoticeCard({
               ? importedSentence(notice)
               : uninvited === 1
                 ? 'Un lucrător adus de import nu e încă invitat în portal.'
-                : `${roCount(uninvited, 'lucrător', 'lucrători')} aduși de import nu sunt încă invitați în portal.`}
+                : `${countOf(uninvited, 'lucrător', 'lucrători')} aduși de import nu sunt încă invitați în portal.`}
           </p>
         </div>
         <Button variant="ghost" size="sm" data-testid="employees-imported-hide" onClick={onHide}>
@@ -426,7 +426,7 @@ function ImportedNoticeCard({
               <li>
                 {allWithoutContact
                   ? 'Fișele nu au email sau telefon: le scrii în dialogul de invitare.'
-                  : `${roCount(noContact, 'lucrător nu are', 'lucrători nu au')} email sau telefon: le scrii în dialogul de invitare.`}
+                  : `${countOf(noContact, 'lucrător nu are', 'lucrători nu au')} email sau telefon: le scrii în dialogul de invitare.`}
               </li>
             )}
             {notice && notice.noCommute.length > 0 && (

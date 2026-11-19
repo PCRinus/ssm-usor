@@ -1,4 +1,5 @@
 import {
+  countOf,
   type DocumentSet,
   fireSafetyDocumentTitles,
   occupationalSafetyDocumentTitles,
@@ -12,8 +13,6 @@ import type {
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { instructionChangeText } from '@/features/documents/behind-labels';
 import { commonFailure } from '@/lib/api-errors';
-
-import { countOf } from './legislation-labels';
 
 export type BehindType = DocumentsBehindResponseItemsItem;
 export type BehindClient = DocumentsBehindResponseItemsItemClientsItem;

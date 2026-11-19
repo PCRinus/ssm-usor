@@ -1,10 +1,8 @@
-import { trainingDomainLabels } from '@ssm-usor/contracts';
+import { countOf, trainingDomainLabels } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { ArrowRight, Check, ChevronRight } from 'lucide-react';
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
-
-import { roCount } from '@/features/employees/employee-format';
 
 import type { ImportSaveState } from '../import-action-bar';
 import { StatusTag, Tag } from '../review-parts';
@@ -149,7 +147,7 @@ export function ViewerChoice({
             {fieldLabels[field]}
           </h3>
           <p className="text-[13px] text-muted-foreground">
-            Fișele scriu {roCount(count, 'variantă', 'variante')}
+            Fișele scriu {countOf(count, 'variantă', 'variante')}
           </p>
         </div>
         <ChoiceCards

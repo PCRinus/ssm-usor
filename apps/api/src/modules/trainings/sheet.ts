@@ -1,6 +1,7 @@
 import {
   type CommuteMean,
   commuteMeanLabels,
+  countOf,
   type EmployeeTrainingRecord,
   foldText,
   type KnowledgeTest,
@@ -17,7 +18,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { fileNameWords } from '../../lib/content-disposition';
-import { countOf, listed, printedDate, runOn, withoutFinalStop } from '../../lib/romanian';
+import { listed, printedDate, runOn, withoutFinalStop } from '../../lib/romanian';
 import { gapRules } from '../documents/gaps';
 
 /**

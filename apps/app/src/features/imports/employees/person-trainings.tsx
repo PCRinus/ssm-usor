@@ -1,4 +1,5 @@
 import {
+  countOf,
   type SupplementaryTrainingReason,
   supplementaryTrainingReasonLabels,
   supplementaryTrainingReasons,
@@ -27,7 +28,6 @@ import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { maskPeople } from '@/components/mask-people';
 import { Masked } from '@/components/replay';
-import { roCount } from '@/features/employees/employee-format';
 import { notOnSheet } from '@/features/trainings/training-format';
 import { formatRoDate } from '@/lib/dates';
 
@@ -610,7 +610,7 @@ function DomainSection({
             <span className="font-normal text-muted-foreground tabular-nums">
               {domain.periodic.length === 1
                 ? 'un rând'
-                : roCount(domain.periodic.length, 'rând', 'rânduri')}
+                : countOf(domain.periodic.length, 'rând', 'rânduri')}
             </span>
           </h3>
           <ul className="col-span-full grid grid-cols-subgrid">
@@ -652,7 +652,7 @@ function DomainSection({
             <span>
               {domain.inApp.length === 1
                 ? 'O instruire de pe fișă e deja în aplicație'
-                : `${roCount(domain.inApp.length, 'instruire', 'instruiri')} de pe fișă sunt deja în aplicație`}
+                : `${countOf(domain.inApp.length, 'instruire', 'instruiri')} de pe fișă sunt deja în aplicație`}
             </span>
             <span className="text-muted-foreground">
               cu aceeași dată și același fel. Nu le adăugăm a doua oară.
@@ -944,9 +944,9 @@ function AfterImport({
           {trainingDomainLabels[latest.row.domain]} din {dateLabel(latest.heldOn)} o{' '}
           {together === 1
             ? 'mai are pe fișă un coleg'
-            : `au pe fișe încă ${roCount(together, 'coleg', 'colegi')}`}
+            : `au pe fișe încă ${countOf(together, 'coleg', 'colegi')}`}
           , cu același instructor. În Instruiri ținute devine o singură instruire, cu{' '}
-          {roCount(together + 1, 'participant', 'participanți')}.
+          {countOf(together + 1, 'participant', 'participanți')}.
         </p>
       )}
     </section>

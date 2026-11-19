@@ -19,10 +19,10 @@ import { FormSection } from '@/components/form-section';
 import { Notice } from '@/components/notice';
 import { sheetPadding } from '@/components/page-spacing';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { todayIso } from '@/features/employees/employee-format';
 import { type AuthorizationsFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { commonFailure } from '@/lib/api-errors';
+import { todayIso } from '@/lib/dates';
 
 import {
   authorizationsFormSchema,

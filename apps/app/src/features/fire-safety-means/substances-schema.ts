@@ -1,4 +1,5 @@
 import {
+  countOf,
   type FireSubstanceDetail,
   fireSubstanceDetailLabels,
   fireSubstanceDetails,
@@ -30,9 +31,7 @@ export const substancesChoices: {
 /** "Nicio substanță", "1 substanță", "3 substanțe", "20 de substanțe". */
 export function substanceCountLabel(count: number) {
   if (count === 0) return 'Nicio substanță';
-  if (count === 1) return '1 substanță';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de substanțe` : `${count} substanțe`;
+  return countOf(count, 'substanță', 'substanțe');
 }
 
 export const substanceDetailMaxLengths: Record<FireSubstanceDetail, number> = {
@@ -170,15 +169,12 @@ export function mergeSafetySheetDraft(
   return { filled, offers };
 }
 
-const takesDe = (count: number) => count % 100 === 0 || count % 100 >= 20;
-
 /** "1 câmp", "3 câmpuri", "20 de câmpuri". */
-export const fieldCountLabel = (count: number) =>
-  count === 1 ? '1 câmp' : `${count} ${takesDe(count) ? 'de ' : ''}câmpuri`;
+export const fieldCountLabel = (count: number) => countOf(count, 'câmp', 'câmpuri');
 
 /** "un cod", "3 coduri", "20 de coduri". */
 export const codeCountLabel = (count: number) =>
-  count === 1 ? 'un cod' : `${count} ${takesDe(count) ? 'de ' : ''}coduri`;
+  count === 1 ? 'un cod' : countOf(count, 'cod', 'coduri');
 
 export const filledSentence = (count: number) =>
   count === 1

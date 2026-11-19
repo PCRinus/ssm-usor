@@ -1,8 +1,9 @@
 import type { ParticipantChannel, PortalAccessState, PortalLanguage } from '@ssm-usor/contracts';
 
 import { formatPhone } from '@/features/imports/phone-diff';
+import { formatDay } from '@/lib/dates';
 
-import { channelLabels, formatDay, languageLabels } from './participant-format';
+import { channelLabels, languageLabels } from './participant-format';
 
 export const portalAccessLabels: Record<PortalAccessState, string> = {
   active: 'Are acces',

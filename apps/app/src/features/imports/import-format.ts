@@ -1,8 +1,7 @@
-import { importErrorReasons, type ImportKind } from '@ssm-usor/contracts';
+import { countOf, importErrorReasons, type ImportKind } from '@ssm-usor/contracts';
 
 import type { ImportUsage } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
-import { roCount } from '@/features/employees/employee-format';
 import { commonFailure } from '@/lib/api-errors';
 
 import { refusalSentence } from './import-credits';
@@ -10,16 +9,16 @@ import { refusalSentence } from './import-credits';
 export { formatFileSize } from '@/features/client-files/client-file-format';
 
 export const filesLabel = (count: number) =>
-  count === 1 ? 'un fișier' : roCount(count, '', 'fișiere');
+  count === 1 ? 'un fișier' : countOf(count, '', 'fișiere');
 
 export const photosLabel = (count: number) =>
-  count === 1 ? 'o fotografie' : roCount(count, '', 'fotografii');
+  count === 1 ? 'o fotografie' : countOf(count, '', 'fotografii');
 
 export const pagesLabel = (count: number) =>
-  count === 1 ? 'o pagină' : roCount(count, '', 'pagini');
+  count === 1 ? 'o pagină' : countOf(count, '', 'pagini');
 
 export const documentsLabel = (count: number) =>
-  count === 1 ? 'un document' : roCount(count, '', 'documente');
+  count === 1 ? 'un document' : countOf(count, '', 'documente');
 
 export const documentKindLabels: Record<string, string> = {
   decision: 'Decizie',
@@ -131,9 +130,9 @@ export function uploadSummary(files: UploadedFile[]) {
   const parts = folders.map((folder) =>
     folder.toLowerCase().endsWith('.zip') ? folder : `folderul ${folder}`
   );
-  if (pdfs > 0) parts.push(pdfs === 1 ? 'un PDF' : roCount(pdfs, '', 'PDF-uri'));
+  if (pdfs > 0) parts.push(pdfs === 1 ? 'un PDF' : countOf(pdfs, '', 'PDF-uri'));
   if (words > 0)
-    parts.push(words === 1 ? 'un document Word' : `${roCount(words, '', 'documente')} Word`);
+    parts.push(words === 1 ? 'un document Word' : `${countOf(words, '', 'documente')} Word`);
   if (photos > 0) parts.push(photosLabel(photos));
   return joinRo(parts);
 }

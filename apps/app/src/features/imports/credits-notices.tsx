@@ -1,4 +1,4 @@
-import { type ImportKind, welcomeCreditsFor } from '@ssm-usor/contracts';
+import { formatCount, type ImportKind, welcomeCreditsFor } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
@@ -7,7 +7,6 @@ import type { ReactNode } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
-import { formatCount } from '@/features/subscription/billing-format';
 
 import {
   type CreditsBalance,

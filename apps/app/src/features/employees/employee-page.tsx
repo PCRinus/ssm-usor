@@ -9,8 +9,9 @@ import { Shaped } from '@/components/replay';
 import { useAuth } from '@/features/auth/auth-context';
 import { EmployeePortalCard } from '@/features/participants/employee-portal-card';
 import { SigningAgreementCard } from '@/features/signatures/signing-agreement-card';
+import { formatDate, todayIso } from '@/lib/dates';
 
-import { formatDate, formatTenure, todayIso } from './employee-format';
+import { formatTenure } from './employee-format';
 import { EmployeeJobPositionDialog } from './employee-job-position-dialog';
 import { EmployeePending } from './employee-pending';
 import { useEmployee } from './use-employee';

@@ -52,11 +52,11 @@ import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { todayIso } from '@/features/employees/employee-format';
 import { signingMessage } from '@/features/signatures/signature-format';
 import { matchSigner } from '@/features/signatures/signer-match';
 import { SignerSelect } from '@/features/signatures/signer-select';
 import { commonFailure } from '@/lib/api-errors';
+import { todayIso } from '@/lib/dates';
 
 import { AttendeeChecklist, type AttendeeOption } from './attendee-checklist';
 import {

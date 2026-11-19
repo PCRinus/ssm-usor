@@ -1,4 +1,4 @@
-import { defaultPageSize, legalActDomains, sortOrderSchema } from '@ssm-usor/contracts';
+import { countOf, defaultPageSize, legalActDomains, sortOrderSchema } from '@ssm-usor/contracts';
 import { CircleDot, Layers } from 'lucide-react';
 import { z } from 'zod';
 
@@ -6,7 +6,6 @@ import type { LegalActListResponseItemsItem } from '@/api/generated/api';
 import type { DataTableSort } from '@/components/data-table/columns';
 import type { ListFilterFacet } from '@/components/list-filters/types';
 import { filterSearchSchema } from '@/components/list-filters/url';
-import { roCount } from '@/features/employees/employee-format';
 
 export type WatchedAct = LegalActListResponseItemsItem;
 
@@ -58,7 +57,7 @@ export type WatchedActListSearch = Partial<z.output<typeof watchedActListSearch>
 
 export const watchedActPageSize = defaultPageSize;
 
-export const actNoun = (count: number) => roCount(count, 'act', 'acte');
+export const actNoun = (count: number) => countOf(count, 'act', 'acte');
 
 export function watchedActFacets(
   acts: readonly WatchedAct[] | undefined

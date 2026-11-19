@@ -1,13 +1,14 @@
-import type {
-  DashboardTrainingCounts,
-  TrainingDomain,
-  TrainingStateFilter,
+import {
+  countNoun,
+  countOf,
+  type DashboardTrainingCounts,
+  type TrainingDomain,
+  type TrainingStateFilter,
 } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Flame, GraduationCap } from 'lucide-react';
 
-import { countOf, nounFor } from './dashboard-format';
 import { DashboardItem, focusRing } from './dashboard-item';
 import { dashboardLinks } from './dashboard-links';
 
@@ -58,7 +59,11 @@ export function TrainingRow({
         surface="bare"
         count={counts.overdue}
         alert={counts.overdue > 0}
-        label={nounFor(counts.overdue, `instruire ${name} depășită`, `instruiri ${name} depășite`)}
+        label={countNoun(
+          counts.overdue,
+          `instruire ${name} depășită`,
+          `instruiri ${name} depășite`
+        )}
         target={dashboardLinks.trainingState('overdue', domain)}
         chevron={false}
         testId={`dashboard-trainings-${domain}-overdue`}

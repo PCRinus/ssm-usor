@@ -6,7 +6,7 @@ import {
   getListClientSignatureRequestsQueryKey,
   getListMySignaturesQueryKey,
 } from '@/api/generated/api';
-import { todayIso } from '@/features/employees/employee-format';
+import { todayIso } from '@/lib/dates';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 import { fullText } from '@/test/text';

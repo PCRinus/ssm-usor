@@ -1,4 +1,5 @@
 import {
+  countOf,
   type EvaluationProfileErrorReason,
   evaluationProfileSortKeys,
   globalRiskLevelFilters,
@@ -68,9 +69,7 @@ export function profileTotalsLabel(
 
 export function profileCountLabel(count: number) {
   if (count === 0) return 'Nicio evaluare';
-  if (count === 1) return '1 evaluare';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de evaluări` : `${count} evaluări`;
+  return countOf(count, 'evaluare', 'evaluări');
 }
 
 export function profileFailure(cause: unknown, fallback: string) {

@@ -1,4 +1,5 @@
 import {
+  countOf,
   defaultExposure,
   gravityConsequence,
   isOverAcceptableLimit,
@@ -76,23 +77,20 @@ export const acceptableLimitLabel = formatGlobalLevel(maxAcceptableGlobalRiskLev
 export function factorCountLabel(count: number) {
   if (count === 0) return 'Niciun factor';
   if (count === 1) return 'Un factor';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de factori` : `${count} factori`;
+  return countOf(count, 'factor', 'factori');
 }
 
 export function sheetCountLabel(count: number) {
   if (count === 0) return 'Nicio fișă';
   if (count === 1) return 'O fișă';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de fișe` : `${count} fișe`;
+  return countOf(count, 'fișă', 'fișe');
 }
 
 /** "niciunul inacceptabil", "unul inacceptabil", "3 inacceptabili". */
 export function unacceptableCountLabel(count: number) {
   if (count === 0) return 'niciunul inacceptabil';
   if (count === 1) return 'unul inacceptabil';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de inacceptabili` : `${count} inacceptabili`;
+  return countOf(count, 'inacceptabil', 'inacceptabili');
 }
 
 export function evaluationTitle(

@@ -38,9 +38,9 @@ import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { todayIso } from '@/features/employees/employee-format';
 import { invalidateSignatures } from '@/features/signatures/signature-queries';
 import { notOnSheet } from '@/features/trainings/training-format';
+import { todayIso } from '@/lib/dates';
 
 import { invalidateEmployeeTests, testFailure } from './test-format';
 

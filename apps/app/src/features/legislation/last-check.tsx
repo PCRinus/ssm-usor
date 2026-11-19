@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -8,7 +9,7 @@ import { type ReactNode, useId, useState } from 'react';
 import { getGetLatestLegalCheckRunQueryKey, useGetLatestLegalCheckRun } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
-import { countOf, formatDayThisYear, formatTimeOf } from './legislation-labels';
+import { formatDayThisYear, formatTimeOf } from './legislation-labels';
 import { groupFailures, groupHeading } from './run-failures';
 import { useLegalActs } from './use-legal-acts';
 

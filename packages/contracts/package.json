@@ -15,6 +15,10 @@
     "./sms": {
       "types": "./dist/sms.d.ts",
       "import": "./dist/sms.js"
+    },
+    "./romanian": {
+      "types": "./dist/romanian.d.ts",
+      "import": "./dist/romanian.js"
     }
   },
   "scripts": {

@@ -1,4 +1,9 @@
-import { employeesOverStepReason, importErrorReasons } from '@ssm-usor/contracts';
+import {
+  countNoun,
+  countOf,
+  employeesOverStepReason,
+  importErrorReasons,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -38,7 +43,6 @@ import {
 import { apiErrorBody } from '@/api/http';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
-import { roCount, roNoun } from '@/features/employees/employee-format';
 import {
   clientImportOverStepMessage,
   refreshEmployeesOverStep,
@@ -96,7 +100,7 @@ function Line({
         <span className="text-sm">
           {count !== undefined && <span className="mr-1 font-semibold tabular-nums">{count}</span>}
           <span className="font-medium">
-            {count === undefined ? label : roNoun(count, label, label)}
+            {count === undefined ? label : countNoun(count, label, label)}
           </span>
         </span>
         <span className="text-[13px] text-muted-foreground">{detail}</span>
@@ -165,7 +169,7 @@ export function ConfirmImportDialog({
         added: [
           ...addedFields.map((state) => state.label.toLowerCase()),
           ...lines.map((line) =>
-            line.count === undefined ? line.label : roCount(line.count, line.label, line.label)
+            line.count === undefined ? line.label : countOf(line.count, line.label, line.label)
           ),
         ],
         changed: replaced.map(
@@ -301,7 +305,7 @@ export function ConfirmImportDialog({
             {left > 0 && (
               <p className="text-muted-foreground">
                 Nu preluăm{' '}
-                {left === 1 ? 'un element' : `cele ${roCount(left, 'element', 'elemente')}`} de la
+                {left === 1 ? 'un element' : `cele ${countOf(left, 'element', 'elemente')}`} de la
                 alt client.
               </p>
             )}

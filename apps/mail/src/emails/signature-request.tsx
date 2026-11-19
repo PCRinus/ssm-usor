@@ -1,3 +1,5 @@
+import { countOf } from '@ssm-usor/contracts/romanian';
+
 import { Layout } from './_components/layout';
 import { Action, FallbackLink, Paragraph, Title } from './_components/text';
 
@@ -8,11 +10,8 @@ export type SignatureRequestProps = {
   place: 'portal' | 'app';
 };
 
-export function trainingsToSign(count: number) {
-  if (count === 1) return 'o instruire';
-  const tail = count % 100;
-  return tail === 0 || tail >= 20 ? `${count} de instruiri` : `${count} instruiri`;
-}
+export const trainingsToSign = (count: number) =>
+  count === 1 ? 'o instruire' : countOf(count, 'instruire', 'instruiri');
 
 export const subject = (count: number) => `Ai ${trainingsToSign(count)} de semnat în SSM Ușor`;
 

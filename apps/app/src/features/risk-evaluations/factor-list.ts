@@ -1,4 +1,4 @@
-import { riskLevel, sheetComponents, type WorkSystemComponent } from '@ssm-usor/contracts';
+import { countOf, riskLevel, sheetComponents, type WorkSystemComponent } from '@ssm-usor/contracts';
 
 import { type RiskFactor, sectionsOf } from './risk-evaluation-schema';
 
@@ -93,16 +93,13 @@ export function matrixCells(factors: readonly RiskFactor[]) {
 }
 
 export function cellCountLabel(count: number) {
-  if (count === 1) return '1 factor';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de factori` : `${count} factori`;
+  return countOf(count, 'factor', 'factori');
 }
 
 export function measureCountLabel(count: number) {
   if (count === 0) return 'Fără măsuri';
   if (count === 1) return 'o măsură';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de măsuri` : `${count} măsuri`;
+  return countOf(count, 'măsură', 'măsuri');
 }
 
 const sortLabels: Record<FactorSortKey, Record<'asc' | 'desc', string>> = {

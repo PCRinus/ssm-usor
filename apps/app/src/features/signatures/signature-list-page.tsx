@@ -1,4 +1,5 @@
 import {
+  countOf,
   defaultPageSize,
   formatEmployeeName,
   type SignatureListFilters,
@@ -42,7 +43,6 @@ import { listFilterSearch } from '@/components/list-filters/url';
 import { Masked } from '@/components/replay';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
-import { roCount } from '@/features/employees/employee-format';
 import { useEveryClient } from '@/features/employees/worker-filters';
 import { WorkersListError } from '@/features/employees/workers-list';
 
@@ -160,7 +160,7 @@ function overLimitMessage(chosen: Chosen, rows: number) {
     freed += count;
     sheets += 1;
   }
-  return `${limit} Deschide rândul și debifează ${sheets === 1 ? 'o fișă; pe ea o semnezi' : `${roCount(sheets, 'fișă', 'fișe')}; pe ele le semnezi`} apoi cu alt cod.`;
+  return `${limit} Deschide rândul și debifează ${sheets === 1 ? 'o fișă; pe ea o semnezi' : `${countOf(sheets, 'fișă', 'fișe')}; pe ele le semnezi`} apoi cu alt cod.`;
 }
 
 export function SignatureListPage() {
@@ -251,7 +251,7 @@ export function SignatureListPage() {
               <span className="text-muted-foreground">
                 {chosenRows === 1
                   ? 'dintr-un rând'
-                  : `din ${roCount(chosenRows, 'rând', 'rânduri')}`}
+                  : `din ${countOf(chosenRows, 'rând', 'rânduri')}`}
               </span>
             </p>
             <Button

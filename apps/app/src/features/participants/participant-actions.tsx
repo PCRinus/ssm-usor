@@ -15,9 +15,10 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { maskPeople } from '@/components/mask-people';
 import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
+import { formatDay } from '@/lib/dates';
 
 import { participantFailure } from './participant-errors';
-import { channelLabels, formatDay, formatTime, languageLabels } from './participant-format';
+import { channelLabels, formatTime, languageLabels } from './participant-format';
 import { useRefreshParticipants } from './use-refresh-participants';
 import { useTimeReached } from './use-time-reached';
 

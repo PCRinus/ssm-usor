@@ -5,6 +5,7 @@ import {
   type ClientSortKey,
   clientSortKeys,
   clientTrainingFilters,
+  countOf,
   countyCodes,
   defaultPageSize,
   documentationStates,
@@ -55,7 +56,6 @@ import {
 } from '@/features/clients/client-archive-dialog';
 import { clientColumns, type ClientRow } from '@/features/clients/client-columns';
 import { ClientDeleteDialog, type ClientToDelete } from '@/features/clients/client-delete-dialog';
-import { roCount } from '@/features/employees/employee-format';
 import { ImportListCard } from '@/features/imports/import-list-card';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { StartWays } from '@/features/imports/start-ways';
@@ -170,7 +170,7 @@ function clientFacets(isOwner: boolean): ListFilterFacet<FilterKey>[] {
 }
 
 const clientNoun = ['client', 'clienți'] as const;
-const clientCount = (count: number) => roCount(count, ...clientNoun);
+const clientCount = (count: number) => countOf(count, ...clientNoun);
 
 const tabs = [
   { status: undefined, label: 'Activi', testId: 'clients-filter-active' },

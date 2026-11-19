@@ -1,9 +1,12 @@
-import { type BillingChoiceProblem, billingChoiceProblemReasonSchema } from '@ssm-usor/contracts';
+import {
+  type BillingChoiceProblem,
+  billingChoiceProblemReasonSchema,
+  formatCount,
+} from '@ssm-usor/contracts';
 
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { commonFailure } from '@/lib/api-errors';
 
-import { formatCount } from './billing-format';
 import { contactEmail } from './subscription-copy';
 
 export function problemMessage(problem: BillingChoiceProblem) {

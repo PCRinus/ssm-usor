@@ -1,9 +1,9 @@
-import { roCount } from '@/features/employees/employee-format';
+import { countOf } from '@ssm-usor/contracts';
 
 import { CellEmpty, CellNote } from './cell-note';
 
 const clientsNote = (count: number) =>
-  count === 1 ? 'la un client' : `la ${roCount(count, 'client', 'clienți')}`;
+  count === 1 ? 'la un client' : `la ${countOf(count, 'client', 'clienți')}`;
 
 export function UsageCell({
   count,
@@ -19,7 +19,7 @@ export function UsageCell({
   if (count === 0) return <CellEmpty data-testid={testId} />;
   return (
     <span data-testid={testId} className="tabular-nums">
-      {roCount(count, ...noun)}
+      {countOf(count, ...noun)}
       <CellNote>{clientsNote(clientCount)}</CellNote>
     </span>
   );

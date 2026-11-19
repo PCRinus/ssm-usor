@@ -1,4 +1,5 @@
 import {
+  countOf,
   extinguisherCode,
   type FireBuildingClassification,
   fireBuildingClassifications,
@@ -58,9 +59,7 @@ export function unitTitle(unit: Pick<FireEquipment, 'kind' | 'agent' | 'capacity
 /** "Niciun stingător", "1 stingător", "3 stingătoare", "20 de stingătoare". */
 export function extinguisherCountLabel(count: number) {
   if (count === 0) return 'Niciun stingător';
-  if (count === 1) return '1 stingător';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de stingătoare` : `${count} stingătoare`;
+  return countOf(count, 'stingător', 'stingătoare');
 }
 
 const annexSix = 'anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)';

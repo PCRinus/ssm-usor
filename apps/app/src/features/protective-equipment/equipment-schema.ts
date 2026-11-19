@@ -1,4 +1,4 @@
-import { type EquipmentAllocation, equipmentAllocations } from '@ssm-usor/contracts';
+import { countOf, type EquipmentAllocation, equipmentAllocations } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { EquipmentEntryRequest, EquipmentListResponse } from '@/api/generated/api';
@@ -22,8 +22,7 @@ export const allocationHints: Record<EquipmentAllocation, string> = {
 export function entryCountLabel(count: number) {
   if (count === 0) return 'Niciun articol';
   if (count === 1) return 'Un articol';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de articole` : `${count} articole`;
+  return countOf(count, 'articol', 'articole');
 }
 
 export function equipmentStateLabel(
@@ -41,9 +40,7 @@ export function quantityLabel(entry: Pick<EquipmentEntry, 'quantity' | 'duration
 
 function durationLabel(months: number | null) {
   if (months === null) return 'consum';
-  if (months === 1) return '1 lună';
-  const tens = months % 100;
-  return tens === 0 || tens >= 20 ? `${months} de luni` : `${months} luni`;
+  return countOf(months, 'lună', 'luni');
 }
 
 const wholeNumber = (min: number, max: number, message: string) =>

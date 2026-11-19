@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Progress } from '@ssm-usor/ui/components/progress';
@@ -27,7 +28,6 @@ import { openedFromRecord } from '@/app/opener';
 import { TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
-import { roCount } from '@/features/employees/employee-format';
 
 import { AbandonImportDialog } from './abandon-import-dialog';
 import { refundedSentence } from './import-credits';
@@ -512,7 +512,7 @@ function countsAfterSorting(files: ImportFile[]) {
     parts.push(
       employees === 1
         ? 'o fișă de lucrător'
-        : roCount(employees, 'fișă de lucrător', 'fișe de lucrători')
+        : countOf(employees, 'fișă de lucrător', 'fișe de lucrători')
     );
   if (library > 0) parts.push(`${library} pentru bibliotecă`);
   if (aside > 0) parts.push(`${aside} ${aside === 1 ? 'neinclus' : 'neincluse'}`);

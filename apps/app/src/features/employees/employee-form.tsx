@@ -22,10 +22,10 @@ import { ClientFact } from '@/features/clients/client-fact';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
 import { type EmployeeFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
+import { todayIso } from '@/lib/dates';
 
 import { CommuteMeansCombobox } from './commute-means-combobox';
 import { type Employee, employeeErrorHelp, type EmployeeFormValues } from './employee-form-schema';
-import { todayIso } from './employee-format';
 import { EmployeeWorkplaceCombobox } from './employee-workplace-combobox';
 import { useEmployeeForm } from './use-employee-form';
 
