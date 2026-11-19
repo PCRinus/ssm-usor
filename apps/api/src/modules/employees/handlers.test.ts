@@ -286,34 +286,30 @@ describe('GET /clients/{clientId}/employees', () => {
   });
 
   it.each([
-    ['hiredAt', 'desc', 'hired_at.desc,last_name.desc,first_name.desc,id.asc'],
+    ['sort=hiredAt&order=desc', 'hired_at.desc,last_name.desc,first_name.desc,id.asc'],
     [
-      'ssmTraining',
-      undefined,
+      'sort=ssmTraining',
       'ssm_training_rank.asc.nullslast,ssm_training_due_on.asc.nullslast,last_name.asc,first_name.asc,id.asc',
     ],
     [
-      'ssmTraining',
-      'desc',
+      'sort=ssmTraining&order=desc',
       'ssm_training_rank.desc.nullslast,ssm_training_due_on.desc.nullslast,last_name.desc,first_name.desc,id.asc',
     ],
     [
-      'suTraining',
-      undefined,
+      'sort=suTraining',
       'su_training_rank.asc.nullslast,su_training_due_on.asc.nullslast,last_name.asc,first_name.asc,id.asc',
     ],
-    ['terminatedAt', undefined, 'terminated_at.asc.nullslast,last_name.asc,first_name.asc,id.asc'],
-    ['jobPosition', undefined, 'job_position_name.asc,last_name.asc,first_name.asc,id.asc'],
-    ['jobPosition', 'desc', 'job_position_name.desc,last_name.desc,first_name.desc,id.asc'],
-    ['portal', undefined, 'portal_rank.asc,last_name.asc,first_name.asc,id.asc'],
-    ['portal', 'desc', 'portal_rank.desc,last_name.desc,first_name.desc,id.asc'],
+    ['sort=terminatedAt', 'terminated_at.asc.nullslast,last_name.asc,first_name.asc,id.asc'],
+    ['sort=jobPosition', 'job_position_name.asc,last_name.asc,first_name.asc,id.asc'],
+    ['sort=jobPosition&order=desc', 'job_position_name.desc,last_name.desc,first_name.desc,id.asc'],
+    ['sort=portal', 'portal_rank.asc,last_name.asc,first_name.asc,id.asc'],
+    ['sort=portal&order=desc', 'portal_rank.desc,last_name.desc,first_name.desc,id.asc'],
   ])(
-    'sorts by %s %s with those without a value last and a stable tiebreaker',
-    async (sort, order, expected) => {
+    'orders the list for %s, those without a value last, by name and then id',
+    async (search, order) => {
       mockUpstream({});
-      const search = order ? `sort=${sort}&order=${order}` : `sort=${sort}`;
       expect((await request(`${employeesPath}?${search}`)).status).toBe(200);
-      expect(listQuery().get('order')).toBe(expected);
+      expect(listQuery().get('order')).toBe(order);
     }
   );
 
