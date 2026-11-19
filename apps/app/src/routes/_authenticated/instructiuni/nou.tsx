@@ -6,7 +6,6 @@ import {
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
 
-import { useAuth } from '@/features/auth/auth-context';
 import { NewInstructionPage } from '@/features/instructions/instruction-module-page';
 import { moduleFormSchema } from '@/features/instructions/instruction-schema';
 
@@ -34,7 +33,6 @@ export const Route = createFileRoute('/_authenticated/instructiuni/nou')({
 
 function NewInstructionRoute() {
   const start = Route.useSearch();
-  const { session } = useAuth();
   if ('invalid' in start) return null;
-  return <NewInstructionPage start={start} userId={session?.user.id ?? ''} />;
+  return <NewInstructionPage start={start} />;
 }

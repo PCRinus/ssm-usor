@@ -28,5 +28,5 @@ function PortalRoute() {
   // The shell renders this only for a signed-in user.
   if (!session) return null;
 
-  return <ClientPortalPage client={client} userId={session.user.id} />;
+  return <ClientPortalPage client={client} />;
 }

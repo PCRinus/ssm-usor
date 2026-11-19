@@ -34,7 +34,6 @@ function ClientDetailsPage() {
   const imports = useClientImportGroups(client.id);
   // The shell renders this only for a signed-in user.
   if (!session) return null;
-  const userId = session.user.id;
   const readOnly = client.archivedAt !== null;
 
   return (
@@ -45,18 +44,16 @@ function ClientDetailsPage() {
       ))}
       <CompanyPeoplePanel
         client={client}
-        userId={userId}
         readOnly={readOnly}
         companyFocus={focusAmong(focus, companyFocus)}
         representativeFocus={focusAmong(focus, legalRepresentativeFocus)}
       />
       <WorkplacesCard
         client={client}
-        userId={userId}
         readOnly={readOnly}
         focus={focusAmong(focus, workplacesFocus)}
       />
-      {isOwner && <NotesPanel clientId={client.id} userId={userId} readOnly={readOnly} />}
+      {isOwner && <NotesPanel clientId={client.id} readOnly={readOnly} />}
       <ClientImportsCard items={imports.past} now={imports.now} />
     </div>
   );

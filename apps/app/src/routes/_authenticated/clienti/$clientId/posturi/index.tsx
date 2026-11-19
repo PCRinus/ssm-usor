@@ -22,17 +22,8 @@ function JobPositionsPage() {
 
   return (
     <div data-testid="job-positions-page" className="grid gap-4">
-      <JobPositionsCard
-        clientId={client.id}
-        userId={session.user.id}
-        readOnly={client.archivedAt !== null}
-        focus={focus}
-      />
-      <ClientRiskEvaluationsCard
-        clientId={client.id}
-        userId={session.user.id}
-        readOnly={client.archivedAt !== null}
-      />
+      <JobPositionsCard clientId={client.id} readOnly={client.archivedAt !== null} focus={focus} />
+      <ClientRiskEvaluationsCard clientId={client.id} readOnly={client.archivedAt !== null} />
     </div>
   );
 }

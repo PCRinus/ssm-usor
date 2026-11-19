@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
 
-import { useAuth } from '@/features/auth/auth-context';
 import { LegalChanges } from '@/features/legislation/legal-changes';
 
 const anchoredChange = /^modificare-([0-9a-f-]{36})$/;
@@ -24,6 +23,5 @@ export const Route = createFileRoute('/_authenticated/legislatie/modificari')({
 });
 
 function LegalChangesRoute() {
-  const { session } = useAuth();
-  return <LegalChanges userId={session?.user.id ?? ''} />;
+  return <LegalChanges />;
 }

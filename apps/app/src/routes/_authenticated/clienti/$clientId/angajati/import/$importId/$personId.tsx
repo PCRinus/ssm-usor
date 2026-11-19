@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import { getGetImportQueryKey, getGetImportQueryOptions } from '@/api/generated/api';
+import { withUserId } from '@/api/use-api';
 import { EmployeeImportPersonPage } from '@/features/imports/employees/employee-import-page';
 import { changesOf, personName } from '@/features/imports/employees/employee-review-model';
 
@@ -10,12 +11,12 @@ export const Route = createFileRoute(
 )({
   params: { parse: (params) => ({ personId: z.string().min(1).max(80).parse(params.personId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     try {
       const { import: detail } = await queryClient.ensureQueryData(
         getGetImportQueryOptions(params.importId, {
           request: apiRequest,
-          query: { queryKey: [...getGetImportQueryKey(params.importId), userId] },
+          query: { queryKey: key(getGetImportQueryKey(params.importId)) },
         })
       );
       const review = detail.employees;

@@ -2,6 +2,7 @@ import { createFileRoute, notFound, Outlet } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import { getListJobPositionsQueryKey, getListJobPositionsQueryOptions } from '@/api/generated/api';
+import { withUserId } from '@/api/use-api';
 import { JobPositionError, JobPositionNotFound } from '@/features/job-positions/job-position-page';
 import { JobPositionPending } from '@/features/job-positions/job-position-pending';
 
@@ -12,11 +13,11 @@ export const Route = createFileRoute('/_authenticated/clienti/$clientId/posturi/
   staticData: { fullPage: true },
   params: { parse: (params) => ({ jobPositionId: z.uuid().parse(params.jobPositionId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     const { items } = await queryClient.ensureQueryData(
       getListJobPositionsQueryOptions(params.clientId, {
         request: apiRequest,
-        query: { queryKey: [...getListJobPositionsQueryKey(params.clientId), userId] },
+        query: { queryKey: key(getListJobPositionsQueryKey(params.clientId)) },
       })
     );
     const position = items.find((item) => item.id === params.jobPositionId);

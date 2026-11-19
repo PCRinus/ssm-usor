@@ -6,7 +6,7 @@ import {
   getGetEvaluationProfileQueryOptions,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { useAuth } from '@/features/auth/auth-context';
+import { withUserId } from '@/api/use-api';
 import {
   EvaluationProfileError,
   EvaluationProfileNotFound,
@@ -19,12 +19,12 @@ export const Route = createFileRoute('/_authenticated/evaluari-de-risc/$profileI
   validateSearch: factorListSearch,
   params: { parse: (params) => ({ profileId: z.uuid().parse(params.profileId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     try {
       const { profile } = await queryClient.ensureQueryData(
         getGetEvaluationProfileQueryOptions(params.profileId, {
           request: apiRequest,
-          query: { queryKey: [...getGetEvaluationProfileQueryKey(params.profileId), userId] },
+          query: { queryKey: key(getGetEvaluationProfileQueryKey(params.profileId)) },
         })
       );
       return { crumb: profile.name };
@@ -41,6 +41,5 @@ export const Route = createFileRoute('/_authenticated/evaluari-de-risc/$profileI
 
 function ProfilePage() {
   const { profileId } = Route.useParams();
-  const { session } = useAuth();
-  return <EvaluationProfilePage profileId={profileId} userId={session?.user.id ?? ''} />;
+  return <EvaluationProfilePage profileId={profileId} />;
 }

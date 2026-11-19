@@ -2,18 +2,19 @@ import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import { getGetImportQueryKey, getGetImportQueryOptions } from '@/api/generated/api';
+import { withUserId } from '@/api/use-api';
 import { ImportReviewScope } from '@/features/imports/import-review-scope';
 
 export const Route = createFileRoute('/_authenticated/clienti/import/$importId')({
   params: { parse: (params) => ({ importId: z.uuid().parse(params.importId) }) },
   staticData: { title: 'Import din documente' },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     try {
       const { import: detail } = await queryClient.ensureQueryData(
         getGetImportQueryOptions(params.importId, {
           request: apiRequest,
-          query: { queryKey: [...getGetImportQueryKey(params.importId), userId] },
+          query: { queryKey: key(getGetImportQueryKey(params.importId)) },
         })
       );
       return {

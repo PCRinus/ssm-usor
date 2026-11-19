@@ -20,7 +20,6 @@ function ClientContractEditorPage() {
     <ServiceContractEditor
       clientId={client.id}
       companyName={client.legalName}
-      userId={session.user.id}
       readOnly={client.archivedAt !== null}
       back={
         <BackLink
