@@ -1,6 +1,7 @@
 import {
   bulkInvitationFailureReasons,
   bulkInvitationSkipReasons,
+  capitalized,
   countOf,
   type ImportInvitee,
   participantErrorReasons,
@@ -18,8 +19,6 @@ export function sendLabel(count: number) {
   if (count === 0) return 'Trimite invitațiile';
   return count === 1 ? 'Trimite invitația' : `Trimite ${invitationCount(count)}`;
 }
-
-export const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** "Nicio invitație de trimis", "O invitație", "3 invitații, 1 rămâne neinvitat". */
 export function pendingSummary(toSend: number, leftOut: number) {

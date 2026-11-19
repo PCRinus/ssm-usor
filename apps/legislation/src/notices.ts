@@ -10,10 +10,10 @@ import {
   type ActOutcome,
   type ChangeAssessment,
   type ChangePassage,
+  type CheckedAct,
   type CheckRun,
   describeOutcome,
   describeRun,
-  type LegalAct,
   staleMessage,
 } from '@ssm-usor/legislation-check';
 
@@ -25,7 +25,7 @@ export type NoticeEnv = {
 };
 
 export type ChangeNotice = {
-  act: Pick<LegalAct, 'id' | 'name' | 'title' | 'portalId'>;
+  act: CheckedAct;
   consolidatedOn: string;
   // The portal's guess from the act's list of actions, for a change not assessed.
   amendingAct: string | null;

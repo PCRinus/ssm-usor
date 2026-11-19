@@ -296,7 +296,7 @@ export async function transition(
   }
 }
 
-export const failedPatch = (reason: string): ImportUpdate & { status: 'failed' } => ({
+const failedPatch = (reason: string): ImportUpdate & { status: 'failed' } => ({
   status: 'failed',
   failure_reason: reason,
   failed_at: new Date().toISOString(),

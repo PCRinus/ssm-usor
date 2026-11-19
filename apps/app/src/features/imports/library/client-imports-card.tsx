@@ -1,3 +1,4 @@
+import { capitalized } from '@ssm-usor/contracts';
 import { Link } from '@tanstack/react-router';
 import { Check, ChevronRight } from 'lucide-react';
 import { useId } from 'react';
@@ -6,17 +7,10 @@ import type { ImportListResponseItemsItem } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { HelpLink } from '@/components/help-link';
 import { Masked } from '@/components/replay';
+import { longDateFormat } from '@/lib/dates';
 
 import { filesLabel } from '../import-format';
 import { importOutcome } from './next-steps-model';
-
-const dayFormat = new Intl.DateTimeFormat('ro-RO', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
-
-const capitalized = (text: string) => `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 
 export function ClientImportsCard({
   items,
@@ -68,7 +62,7 @@ function ImportRow({ item, now }: { item: ImportListResponseItemsItem; now: numb
         className="-mx-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2 py-2.5 text-sm text-muted-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:flex-nowrap"
       >
         <span className="font-medium text-foreground" data-testid="client-import-date">
-          {dayFormat.format(new Date(item.confirmedAt ?? item.createdAt))}
+          {longDateFormat.format(new Date(item.confirmedAt ?? item.createdAt))}
         </span>
         <span className="order-last basis-full sm:order-none sm:basis-auto">
           {who ? (

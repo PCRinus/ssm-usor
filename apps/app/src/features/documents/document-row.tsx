@@ -31,6 +31,7 @@ import {
   type DocumentsBehindResponseItemsItemClientsItem,
   getDocumentDownload,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { FileMenuItem } from '@/components/file-menu-item';
@@ -77,7 +78,8 @@ export function DocumentRow({
   actions: DocumentActions;
 }) {
   const navigate = useNavigate();
-  const { apiRequest, busy, printing, setConfirming } = actions;
+  const { request: apiRequest } = useApi();
+  const { busy, printing, setConfirming } = actions;
   const current = document.draft ?? document.issued;
   const click = rowClickProps(
     () =>

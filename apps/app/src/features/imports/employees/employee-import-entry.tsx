@@ -18,6 +18,7 @@ import { Masked } from '@/components/replay';
 import { useBulkInvite } from '@/features/participants/use-bulk-invite';
 import { uninvitedOf, useImportInvitees } from '@/features/participants/use-import-invitees';
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
+import { shortDayMonthFormat } from '@/lib/dates';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
 import { importListPollMs, isRunning, isUploadUnderway, photosLabel } from '../import-format';
@@ -35,8 +36,6 @@ import { type FoundBatch, foundOn, useFoundSheets } from './found-sheets';
 import { FoundStrip } from './found-strip';
 
 export type StartImport = (way: 'found' | 'new') => void;
-
-const dayMonth = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short' });
 
 const allSheets = (batches: FoundBatch[]) => batches.flatMap((batch) => batch.sheets);
 
@@ -293,8 +292,8 @@ function OpenImportCard({
         {body}
         {item.expiresAt && (
           <p className="text-sm" data-testid="employee-import-expires">
-            Se păstrează până pe {dayMonth.format(new Date(item.expiresAt))} dacă nu mai lucrezi la
-            el.
+            Se păstrează până pe {shortDayMonthFormat.format(new Date(item.expiresAt))} dacă nu mai
+            lucrezi la el.
           </p>
         )}
       </div>
@@ -398,7 +397,7 @@ function ImportedNoticeCard({
               ? notice.created === 1
                 ? 'Un lucrător creat din fișe'
                 : `${countOf(notice.created, 'lucrător creat', 'lucrători creați')} din fișe`
-              : `Lucrători importați din fișe pe ${dayMonth.format(new Date(item.confirmedAt ?? item.createdAt))}`}
+              : `Lucrători importați din fișe pe ${shortDayMonthFormat.format(new Date(item.confirmedAt ?? item.createdAt))}`}
           </h3>
           <p className="text-sm text-muted-foreground">
             {notice

@@ -3,6 +3,7 @@ import { msg } from '@lingui/core/macro';
 
 import type { SignSessionResponse } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { unreachableMessage } from '@/lib/messages';
 
 import type { SigningItem } from './signing-items';
 import {
@@ -11,7 +12,6 @@ import {
   signInAgainMessage,
   spentCodeMessages,
   tooManyItemsMessage,
-  unreachableMessage,
 } from './signing-messages';
 import { type SmsRefusal, smsRefusalOf } from './sms-refusal';
 

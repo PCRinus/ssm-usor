@@ -26,3 +26,5 @@ export function printedDate(isoDate: string) {
   const [year, month, day] = isoDate.slice(0, 10).split('-');
   return `${day}.${month}.${year}`;
 }
+
+export const capitalized = (text: string) => text.charAt(0).toLocaleUpperCase('ro') + text.slice(1);

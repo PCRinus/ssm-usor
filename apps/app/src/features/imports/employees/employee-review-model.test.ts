@@ -24,7 +24,6 @@ import {
   includedOf,
   isWritten,
   leaving,
-  nextToCheck,
   notesOf,
   pagesOf,
   peopleGroups,
@@ -340,6 +339,33 @@ describe('what a person still needs', () => {
     expect(tags(contextOf(long), 'pop')).toEqual(['O instruire cu durata de corectat']);
     const commute = withField(emptyChanges(), 'pop', 'commuteMinutes', { value: 0 });
     expect(tags(contextOf(commute), 'pop')).toEqual(['Durata drumului de corectat']);
+  });
+
+  it('asks to correct a training day in the future or not a calendar day, as confirming does', () => {
+    const rowLabels = (heldOn: string) =>
+      decisionsOf(
+        contextOf(withRow(emptyChanges(), 'r3', () => ({ values: { heldOn } }))),
+        person('pop')
+      )
+        .filter((decision) => decision.key === 'row-r3')
+        .map(({ label, tag }) => [label, tag]);
+    expect(rowLabels('2999-01-02')).toEqual([
+      [
+        'Corectează data instruirii din 02.01.2999, care e în viitor',
+        'O instruire cu data în viitor',
+      ],
+    ]);
+    expect(rowLabels('02.01.2025')).toEqual([
+      [
+        'Corectează data instruirii periodice, care nu e o dată validă',
+        'O instruire cu data de corectat',
+      ],
+    ]);
+  });
+
+  it('leaves a training whose duration was emptied, as confirming does', () => {
+    const emptied = withRow(emptyChanges(), 'r3', () => ({ values: { durationMinutes: '' } }));
+    expect(tags(contextOf(emptied), 'pop')).toEqual([]);
   });
 
   it("points an existing employee's birth date that disagrees with the CNP to the comparison", () => {
@@ -688,13 +714,6 @@ describe('the people list', () => {
       { value: null }
     );
     expect(reopened({ ...fixed, changes: aside }).people.pop?.state).toBe('set_aside');
-  });
-
-  it('continues with the next person to check, from the start when none follows', () => {
-    const checked = withPersonChange(emptyChanges(), 'pop', () => ({ state: 'checked' }));
-    expect(nextToCheck(contextOf(checked))?.id).toBe('toma');
-    expect(nextToCheck(contextOf(checked), 'toma')?.id).toBe('lazar');
-    expect(nextToCheck(contextOf(checked), 'lazar')?.id).toBe('toma');
   });
 });
 

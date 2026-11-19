@@ -23,8 +23,6 @@ export const templateSets = [
   { set: 'other', folder: 'other/' },
 ] as const satisfies readonly { set: TemplateSet; folder: string }[];
 
-export type TemplateSetFolder = (typeof templateSets)[number];
-
 export interface ManifestEntry {
   /** Absent on a template that belongs to no set: a per-employee sheet (ADR 021). */
   number?: string;
@@ -52,11 +50,8 @@ const listedResolves = ({ resolves, ...change }: TemplateChange): ManifestEntry[
     ? change
     : { ...change, resolves: Array.isArray(resolves) ? resolves : [resolves] };
 
-export function manifestEntries(
-  base: URL = templatesUrl,
-  sets: readonly TemplateSetFolder[] = templateSets
-): TemplateEntry[] {
-  return sets.flatMap(({ set, folder }) => {
+export function manifestEntries(base: URL = templatesUrl): TemplateEntry[] {
+  return templateSets.flatMap(({ set, folder }) => {
     const { templates } = JSON.parse(
       readFileSync(new URL(`${folder}manifest.json`, base), 'utf8')
     ) as { templates: (Omit<ManifestEntry, 'change'> & { change?: TemplateChange })[] };

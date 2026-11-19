@@ -15,10 +15,10 @@ import {
   reviewedRowValue,
   rowExaminer,
   type SupplementaryTrainingReason,
-  supplementaryTrainingReasons,
   testResultMaterial,
   type TrainingDomain,
   type TrainingPhase,
+  trainingRowProblems,
 } from '@ssm-usor/contracts';
 
 import type { ExistingEmployee } from './employee-match';
@@ -587,36 +587,13 @@ export function toEmployeePayload(input: {
     const trainerJobTitle = value('trainerJobTitle');
     const material = value('material');
     const reason = value('supplementaryReason');
-    // A paper training holds what its sheet writes: only its day is needed (ADR 042).
-    const required: [string, unknown][] = [['heldOn', heldOn]];
-    if (sheetRow.phase === 'supplementary') required.push(['supplementaryReason', reason]);
-    let complete = true;
-    for (const [name, each] of required) {
-      if (!filled(each)) {
-        block(`${path}.${name}`, 'missing');
-        complete = false;
-      }
-    }
-    if (filled(heldOn) && (!isoDate.test(String(heldOn)) || String(heldOn) > today)) {
-      block(`${path}.heldOn`, 'invalid');
-      complete = false;
-    }
-    if (
-      filled(duration) &&
-      !(Number.isInteger(duration) && Number(duration) >= 1 && Number(duration) <= 600)
-    ) {
-      block(`${path}.durationMinutes`, 'invalid');
-      complete = false;
-    }
-    if (
-      sheetRow.phase === 'supplementary' &&
-      filled(reason) &&
-      !(supplementaryTrainingReasons as readonly unknown[]).includes(reason)
-    ) {
-      block(`${path}.supplementaryReason`, 'invalid');
-      complete = false;
-    }
-    if (!complete) return;
+    const problems = trainingRowProblems(
+      { heldOn, durationMinutes: duration, supplementaryReason: reason },
+      sheetRow.phase,
+      today
+    );
+    for (const { field, problem } of problems) block(`${path}.${field}`, problem);
+    if (problems.length > 0) return;
     // A person's two rows of one domain, phase and day are one training of theirs.
     const key = `${sheetRow.domain}|${sheetRow.phase}|${heldOn}`;
     if (seen.has(key)) return;

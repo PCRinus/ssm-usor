@@ -1,7 +1,9 @@
+import { type DiffSegment, wordDiff } from '@ssm-usor/document-engine/token-diff';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Fragment } from 'react';
 
-import { type DiffSegment, wordDiff } from './word-diff';
+// Past this many cells the table outgrows a tab's patience; an article is a few hundred words.
+const maxCells = 4_000_000;
 
 const deletedClass =
   'rounded-xs bg-red-100 text-red-900 line-through decoration-red-700/70 dark:bg-red-950 dark:text-red-200';
@@ -46,7 +48,7 @@ export function WordDiff({
       </p>
     );
   }
-  const parts = wordDiff(before, after);
+  const parts = wordDiff(before, after, { maxCells });
   if (!parts) {
     return (
       <div data-testid={testId} className="space-y-2">

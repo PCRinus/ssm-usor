@@ -1,5 +1,6 @@
 import {
   type BulkInvitationOutcome,
+  capitalized,
   type ImportInvitee,
   type ParticipantChannel,
   typedInvitationAddress,
@@ -35,7 +36,6 @@ import { wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import {
   bulkSmsBlockMessages,
-  capitalized,
   formerEmployeesSentence,
   invitationCount,
   nameOf,

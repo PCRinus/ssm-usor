@@ -43,6 +43,7 @@ describe('formatTrainingDuration', () => {
       '1 oră și 30 de minute',
       '2 ore',
     ]);
+    expect(formatTrainingDuration(61)).toBe('1 oră și 1 minut');
   });
 });
 

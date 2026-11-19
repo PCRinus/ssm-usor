@@ -4,7 +4,6 @@ import { createContext, useContext } from 'react';
 // at their root.
 export const CloseLabelContext = createContext('Închide');
 
-export function useCloseLabel(label?: string) {
-  const fallback = useContext(CloseLabelContext);
-  return label ?? fallback;
+export function useCloseLabel() {
+  return useContext(CloseLabelContext);
 }

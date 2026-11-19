@@ -1,12 +1,13 @@
 import {
   countOf,
   decodeCnp,
-  employeeImportTextLimits,
   employeeImportValueAllowed,
+  employeeTextLimitsOf,
   foldText,
   heldTrainingKey,
   hiringTestRowIds,
   isValidCnp,
+  minutesRange,
   personIncludedByDefault,
   resolveEmployeeImportField,
   reviewedRowValue,
@@ -15,6 +16,7 @@ import {
   trainingDomainLabels,
   type TrainingPhase,
   trainingPhaseLabels,
+  trainingRowProblems,
 } from '@ssm-usor/contracts';
 
 import type {
@@ -455,8 +457,6 @@ function missingLabel(row: SheetRow, values: RowValues, missing: string[]) {
     : `Completează ${missing.join(', ')} la instruirea ${rowDate(row, values)}`;
 }
 
-// A paper training holds what its sheet writes: its trainer, material and duration may stay
-// empty (ADR 042).
 const rowFieldLabels: Partial<Record<keyof RowValues, string>> = {
   heldOn: 'data',
   supplementaryReason: 'motivul',
@@ -489,9 +489,6 @@ function fieldAnchor(
 
 const isoDate = /^\d{4}-\d{2}-\d{2}$/;
 
-const inMinutesRange = (value: unknown) =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 600;
-
 function invalidField(
   context: Pick<ReviewContext, 'changes'>,
   person: Person,
@@ -507,8 +504,11 @@ function invalidField(
     tone: 'destructive',
   });
   if (employeeImportValueAllowed(name, value)) return null;
-  if (name === 'commuteMinutes') return decision(`Corectează ${lower}: între 1 și 600 de minute`);
-  const limits = employeeImportTextLimits(name);
+  if (name === 'commuteMinutes')
+    return decision(
+      `Corectează ${lower}: între ${minutesRange.min} și ${minutesRange.max} de minute`
+    );
+  const limits = employeeTextLimitsOf(name);
   if (!limits || typeof value !== 'string') return decision(`Corectează ${lower}`);
   return decision(
     value.trim().length < limits[0]
@@ -809,10 +809,12 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
     const values = rowValues(changes, row);
     let dateAsked = false;
     if (!row.testOnly && rowIncluded(changes, row, matched)) {
-      const missing = (Object.keys(rowFieldLabels) as (keyof RowValues)[]).filter(
-        (name) =>
-          (name !== 'supplementaryReason' || row.phase === 'supplementary') && !filled(values[name])
+      const problems = trainingRowProblems(values, row.phase, context.today);
+      const missing = problems.flatMap(({ field, problem }) =>
+        problem === 'missing' ? [field] : []
       );
+      const invalid = (name: keyof RowValues) =>
+        problems.some(({ field, problem }) => field === name && problem === 'invalid');
       if (missing.length > 0) {
         dateAsked = missing.includes('heldOn');
         decisions.push({
@@ -826,21 +828,28 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
           tag: `Lipsește ${rowFieldLabels[missing[0]!]} la o instruire`,
           tone: 'destructive',
         });
-      } else if (values.durationMinutes !== null && !inMinutesRange(values.durationMinutes)) {
+      } else if (invalid('durationMinutes')) {
         decisions.push({
           key: `row-${row.id}`,
           anchor: 'trainings',
-          label: `Corectează durata instruirii din ${rowDate(row, values)}: între 1 și 600 de minute`,
+          label: `Corectează durata instruirii din ${rowDate(row, values)}: între ${minutesRange.min} și ${minutesRange.max} de minute`,
           tag: 'O instruire cu durata de corectat',
           tone: 'destructive',
         });
-      } else if (values.heldOn !== null && values.heldOn > context.today) {
+      } else if (invalid('heldOn')) {
         dateAsked = true;
         decisions.push({
           key: `row-${row.id}`,
           anchor: 'trainings',
-          label: `Corectează data instruirii din ${rowDate(row, values)}, care e în viitor`,
-          tag: 'O instruire cu data în viitor',
+          ...(isoDate.test(values.heldOn ?? '')
+            ? {
+                label: `Corectează data instruirii din ${rowDate(row, values)}, care e în viitor`,
+                tag: 'O instruire cu data în viitor',
+              }
+            : {
+                label: `Corectează data instruirii ${phaseGenitives[row.phase]}, care nu e o dată validă`,
+                tag: 'O instruire cu data de corectat',
+              }),
           tone: 'destructive',
         });
       }
@@ -1072,15 +1081,6 @@ export function hubCounts(context: ReviewContext, views: PersonView[]) {
       toAssign: unplaced.filter((page) => changes.pages[page.id] === undefined).length,
     },
   };
-}
-
-export function nextToCheck(context: ReviewContext, afterId?: string) {
-  const people = context.proposal.people;
-  const start = afterId ? people.findIndex((person) => person.id === afterId) + 1 : 0;
-  const ordered = [...people.slice(start), ...people.slice(0, start)];
-  return ordered.find(
-    (person) => person.id !== afterId && stateOf(context, person.id) === 'to_check'
-  );
 }
 
 export function withPersonChange(
@@ -1375,5 +1375,3 @@ export function confirmSummary(context: ReviewContext) {
     unusual,
   };
 }
-
-export const phaseLabel = (phase: TrainingPhase) => trainingPhaseLabels[phase];

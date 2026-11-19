@@ -1,3 +1,5 @@
+import { capitalized } from '@ssm-usor/contracts';
+
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { commonFailure } from '@/lib/api-errors';
 
@@ -29,5 +31,3 @@ export function saveFailure(
   if (common) return { message: common };
   return { message: `Nu am putut salva ${what}. Verifică conexiunea și încearcă din nou.` };
 }
-
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);

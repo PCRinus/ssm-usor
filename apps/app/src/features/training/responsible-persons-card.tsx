@@ -293,13 +293,12 @@ export function ResponsiblePersonsCard({
       {archiving && (
         <ConfirmDialog
           open
-          busy={archive.isPending}
           destructive={false}
           testId="responsible-archive"
           title="Scoți persoana din listă?"
           confirmLabel="Scoate din listă"
           pendingLabel="Se scoate…"
-          onConfirm={() => void archivePerson(archiving)}
+          onConfirm={() => archivePerson(archiving)}
           onClose={() => setArchiving(null)}
         >
           <span className="font-medium text-foreground" {...replayMask}>

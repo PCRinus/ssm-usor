@@ -115,7 +115,7 @@ const documentXml = (source: Uint8Array) =>
  * A copied passage's paragraphs, as indices among every `<w:p>`, found the way the import and
  * `copied-passages.test.ts` find them: in the body outside tables, by the raw text of the runs.
  */
-export function copiedPassageRange(source: Uint8Array, first: string, last: string) {
+function copiedPassageRange(source: Uint8Array, first: string, last: string) {
   const xml = documentXml(source);
   const tables = [...xml.matchAll(/<w:tbl>[\s\S]*?<\/w:tbl>/g)].map(
     (table) => [table.index, table.index + table[0].length] as const

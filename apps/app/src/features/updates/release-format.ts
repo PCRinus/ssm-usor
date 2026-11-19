@@ -1,4 +1,4 @@
-import { countOf } from '@ssm-usor/contracts';
+import { capitalized, countOf } from '@ssm-usor/contracts';
 
 import type { Release } from '@/api/generated/api';
 
@@ -32,7 +32,7 @@ export const formatReleaseWeekday = (isoTimestamp: string) =>
 
 export function formatReleaseMonth(isoTimestamp: string) {
   const month = monthFormat.format(new Date(isoTimestamp));
-  return month.charAt(0).toLocaleUpperCase('ro-RO') + month.slice(1);
+  return capitalized(month);
 }
 
 export function formatReleaseDayBeside(isoTimestamp: string, besideIsoTimestamp: string) {

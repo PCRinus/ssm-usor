@@ -1,6 +1,7 @@
 import {
   type ApiErrorReason,
   type ApiErrorResponse,
+  capitalized,
   importErrorReasons,
 } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
@@ -121,7 +122,7 @@ export function usePartConfirm({
 
 // `these` is the part's plural with its article, `one` a single item: „instrucțiunile”, „o instrucțiune”.
 export function partConfirmReasons({ these, one }: { these: string; one: string }) {
-  const These = `${these.charAt(0).toUpperCase()}${these.slice(1)}`;
+  const These = capitalized(these);
   return {
     [importErrorReasons.clientUnconfirmed]: `Confirmă întâi clientul: ${these} se aplică la posturile lui.`,
     [importErrorReasons.partExpired]:

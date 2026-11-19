@@ -1,4 +1,5 @@
 import { legalAmendmentOperations } from '@ssm-usor/contracts';
+import { type DiffSegment, wordDiff } from '@ssm-usor/document-engine/token-diff';
 import { Button } from '@ssm-usor/ui/components/button';
 import { ChevronDown } from 'lucide-react';
 import { Fragment, useId, useMemo, useState } from 'react';
@@ -8,7 +9,6 @@ import type {
   LegalChangeDetailResponseChangePassagesItem as Passage,
 } from '@/api/generated/api';
 
-import { type DiffSegment, wordDiff } from './law-diff';
 import { listOf, operationLabels, unitLabel, withSuperscripts } from './legislation-labels';
 
 const unitsShown = 8;

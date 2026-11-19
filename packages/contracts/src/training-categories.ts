@@ -12,6 +12,10 @@ export const trainingIntervalChoices: Record<
   su: { execution: [1, 2, 3, 4, 5, 6], technical_administrative: [1, 2, 3, 4, 5, 6] },
 };
 
+/** "la 2 luni", as it reads inside a sentence or a table cell. */
+export const trainingIntervalLabel = (months: number) =>
+  months === 1 ? 'lunar' : `la ${months} luni`;
+
 export const legalMaxTrainingInterval = (domain: TrainingDomain, category: StaffCategory) =>
   trainingIntervalChoices[domain][category].at(-1)!;
 

@@ -33,6 +33,14 @@ export const trainingPhaseLabels: Record<TrainingPhase, string> = {
   supplementary: 'Periodică suplimentară',
 };
 
+export const minutesRange = { min: 1, max: 600 } as const;
+
+export const inMinutesRange = (value: unknown) =>
+  typeof value === 'number' &&
+  Number.isInteger(value) &&
+  value >= minutesRange.min &&
+  value <= minutesRange.max;
+
 /** The cases of H.G. 1425/2006 art. 98. */
 export const supplementaryTrainingReasons = [
   'absence_over_thirty_days',
@@ -136,7 +144,7 @@ export const trainingRequestSchema = z
     domain: trainingDomainSchema,
     phase: trainingPhaseSchema,
     heldOn: z.iso.date(),
-    durationMinutes: z.int().min(1).max(600).nullish(),
+    durationMinutes: z.int().min(minutesRange.min).max(minutesRange.max).nullish(),
     material: z.string().trim().min(1).max(4000).nullish(),
     trainer: trainingTrainerRequestSchema,
     verifier: trainingPersonRequestSchema.nullish(),

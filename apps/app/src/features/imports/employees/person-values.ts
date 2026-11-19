@@ -1,7 +1,9 @@
 import {
   commuteMeansLabels,
   employeeImportValuesDiffer,
+  inMinutesRange,
   isValidCnp,
+  minutesRange,
   parseCommuteMeansKey,
 } from '@ssm-usor/contracts';
 
@@ -78,9 +80,9 @@ export function fieldProblem(name: FieldName, value: string, initial = '') {
   if (
     name === 'commuteMinutes' &&
     text !== '' &&
-    !(/^\d+$/.test(text) && Number(text) >= 1 && Number(text) <= 600)
+    !(/^\d+$/.test(text) && inMinutesRange(Number(text)))
   ) {
-    return 'Scrie un număr de minute între 1 și 600.';
+    return `Scrie un număr de minute între ${minutesRange.min} și ${minutesRange.max}.`;
   }
   if (name === 'cnp' && value !== initial && text !== '' && !isValidCnp(text)) {
     return 'CNP-ul nu e valid. Verifică cele 13 cifre.';

@@ -1,4 +1,4 @@
-import { countOf, isValidCnp } from '@ssm-usor/contracts';
+import { capitalized, countOf, isValidCnp } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -318,7 +318,7 @@ export function CnpDecision({
       title="CNP-ul"
       subtitle={
         digit !== null && digit < ordinals.length
-          ? `${ordinals[digit]!.charAt(0).toUpperCase()}${ordinals[digit]!.slice(1)} cifră nu se citește`
+          ? `${capitalized(ordinals[digit]!)} cifră nu se citește`
           : 'Cel de pe fișă nu e valid'
       }
     >

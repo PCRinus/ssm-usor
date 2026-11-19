@@ -9,6 +9,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { later } from '../../lib/later';
 import { reportAlert, reportAlertMinutes } from './import-alerts';
+import { notFound } from './import-queries';
 import type { reportImportLibraryPartRoute, reportImportRoute } from './routes';
 
 async function reportedImport(c: Context<ApiEnv>, importId: string) {
@@ -18,7 +19,7 @@ async function reportedImport(c: Context<ApiEnv>, importId: string) {
     .eq('id', importId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find reported import');
-  if (!data) throw new ApiError('not_found', 'This import does not exist in your organization.');
+  if (!data) throw notFound();
   return data;
 }
 

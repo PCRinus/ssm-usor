@@ -18,6 +18,7 @@ import {
   type SensitiveGroupsState,
   staffCategoriesWithPosts,
   type StaffCategory,
+  trainingIntervalLabel,
   trainingMonths,
 } from '@ssm-usor/contracts';
 
@@ -867,11 +868,8 @@ export function annexedModules(
     }));
 }
 
-/** "la 3 luni", "lunar"; a post whose category has no interval prints a dash. */
-function intervalLabel(months: number | null) {
-  if (months === null) return '—';
-  return months === 1 ? 'lunar' : `la ${months} luni`;
-}
+const intervalLabel = (months: number | null) =>
+  months === null ? '—' : trainingIntervalLabel(months);
 
 /**
  * Whether a document belongs in this client's set. Decision 1.5 only does from 10 current

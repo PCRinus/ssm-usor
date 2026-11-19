@@ -613,6 +613,10 @@ describe('POST /imports/{importId}/library-parts/{part}/retry', () => {
     const response = await request(`${parts}/risk_evaluations/retry`, 'POST');
 
     expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      reason: 'import_unavailable',
+      message: 'Importul din documente nu este disponibil acum.',
+    });
     const [failed] = callsTo('/rest/v1/import_library_parts').filter(
       (call) => call.method === 'PATCH'
     );

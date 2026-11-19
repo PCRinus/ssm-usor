@@ -114,7 +114,7 @@ export function MemberActions({
         title="Elimini membrul din organizație?"
         confirmLabel="Elimină"
         pendingLabel="Se elimină…"
-        onConfirm={() => void removeMember()}
+        onConfirm={removeMember}
         onClose={() => setConfirming(false)}
       >
         <Masked className="font-medium text-foreground">{name}</Masked> nu va mai avea acces la

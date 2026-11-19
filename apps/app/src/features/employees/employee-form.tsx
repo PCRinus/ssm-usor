@@ -1,4 +1,4 @@
-import { bloodGroups, formatEmployeeName, rhFactors } from '@ssm-usor/contracts';
+import { bloodGroups, formatEmployeeName, minutesRange, rhFactors } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
@@ -12,6 +12,7 @@ import { keepOpener } from '@/app/opener';
 import { useReturnOnClick } from '@/app/use-return-to-opener';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { DatePicker } from '@/components/date-picker';
+import { describedBy } from '@/components/described-by';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
 import { Notice } from '@/components/notice';
@@ -27,9 +28,6 @@ import { CommuteMeansCombobox } from './commute-means-combobox';
 import { type Employee, employeeErrorHelp, type EmployeeFormValues } from './employee-form-schema';
 import { EmployeeWorkplaceCombobox } from './employee-workplace-combobox';
 import { useEmployeeForm } from './use-employee-form';
-
-const describedBy = (id: string, error: unknown, hint?: boolean) =>
-  error ? `${id}-error` : hint ? `${id}-hint` : undefined;
 
 // The employee form, for adding a person and for correcting what was entered about one. Whether
 // they still work there is not here: that is a status change, on their page.
@@ -613,8 +611,8 @@ export function EmployeeForm({
                 data-testid="employee-commute-minutes"
                 type="number"
                 inputMode="numeric"
-                min={1}
-                max={600}
+                min={minutesRange.min}
+                max={minutesRange.max}
                 step={1}
                 className="h-11"
                 {...register('commuteMinutes')}

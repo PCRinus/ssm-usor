@@ -27,10 +27,7 @@ export const manifestEntrySchema = z.object({
   change: z.object({
     kind: templateVersionKindSchema,
     note: z.string().trim().min(2).max(500),
-    resolves: z
-      .union([resolvedChangeSchema, z.array(resolvedChangeSchema).min(1)])
-      .transform((value) => (Array.isArray(value) ? value : [value]))
-      .optional(),
+    resolves: z.array(resolvedChangeSchema).min(1).optional(),
   }),
 });
 

@@ -5,7 +5,12 @@ import { foldText } from './fold-text';
 import { sameHomeAddress } from './home-address';
 import type { EmployeeImportFieldName } from './imports';
 import { foldName } from './name-match';
-import type { TrainingDomain, TrainingPhase } from './trainings';
+import {
+  inMinutesRange,
+  supplementaryTrainingReasons,
+  type TrainingDomain,
+  type TrainingPhase,
+} from './trainings';
 
 // The confirm and the review in the app both run these, so the review shows what confirming takes
 // (ADR 032).
@@ -14,7 +19,9 @@ type FieldValue = string | number;
 
 const isoDate = /^\d{4}-\d{2}-\d{2}$/;
 
-const limitOf = (name: EmployeeImportFieldName): readonly [number, number] | undefined =>
+export const employeeTextLimitsOf = (
+  name: EmployeeImportFieldName
+): readonly [number, number] | undefined =>
   (employeeTextLimits as Partial<Record<EmployeeImportFieldName, readonly [number, number]>>)[name];
 
 export function employeeImportValueAllowed(name: EmployeeImportFieldName, value: FieldValue) {
@@ -22,7 +29,7 @@ export function employeeImportValueAllowed(name: EmployeeImportFieldName, value:
   if (name === 'bloodGroup') return (bloodGroups as readonly FieldValue[]).includes(value);
   if (name === 'rhFactor') return (rhFactors as readonly FieldValue[]).includes(value);
   if (name === 'commuteMinutes') {
-    return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 600;
+    return inMinutesRange(value);
   }
   if (name === 'birthDate' || name === 'hiredAt' || name === 'leftOn') {
     return typeof value === 'string' && isoDate.test(value);
@@ -30,12 +37,10 @@ export function employeeImportValueAllowed(name: EmployeeImportFieldName, value:
   if (name === 'commuteMeans') {
     return typeof value === 'string' && parseCommuteMeansKey(value) !== null;
   }
-  const limits = limitOf(name);
+  const limits = employeeTextLimitsOf(name);
   if (!limits || typeof value !== 'string') return typeof value === 'string';
   return value.trim().length >= limits[0] && value.trim().length <= limits[1];
 }
-
-export const employeeImportTextLimits = limitOf;
 
 export const employeeImportValuesDiffer = (
   name: EmployeeImportFieldName,
@@ -210,6 +215,41 @@ export function rowExaminer(
     examinerName: examiner('examinerName', 'trainerName'),
     examinerJobTitle: examiner('examinerJobTitle', 'trainerJobTitle'),
   };
+}
+
+const filled = (value: unknown) =>
+  value !== null && value !== undefined && !(typeof value === 'string' && value.trim() === '');
+
+type TrainingRowField = 'heldOn' | 'durationMinutes' | 'supplementaryReason';
+
+export type TrainingRowProblem = { field: TrainingRowField; problem: 'missing' | 'invalid' };
+
+export function trainingRowProblems(
+  values: Readonly<Record<TrainingRowField, unknown>>,
+  phase: TrainingPhase,
+  today: string
+): TrainingRowProblem[] {
+  const { heldOn, durationMinutes, supplementaryReason } = values;
+  // A paper training holds what its sheet writes: only its day is needed (ADR 042).
+  const required: TrainingRowField[] =
+    phase === 'supplementary' ? ['heldOn', 'supplementaryReason'] : ['heldOn'];
+  const problems: TrainingRowProblem[] = required
+    .filter((field) => !filled(values[field]))
+    .map((field) => ({ field, problem: 'missing' }));
+  if (filled(heldOn) && (!isoDate.test(String(heldOn)) || String(heldOn) > today)) {
+    problems.push({ field: 'heldOn', problem: 'invalid' });
+  }
+  if (filled(durationMinutes) && !inMinutesRange(durationMinutes)) {
+    problems.push({ field: 'durationMinutes', problem: 'invalid' });
+  }
+  if (
+    phase === 'supplementary' &&
+    filled(supplementaryReason) &&
+    !(supplementaryTrainingReasons as readonly unknown[]).includes(supplementaryReason)
+  ) {
+    problems.push({ field: 'supplementaryReason', problem: 'invalid' });
+  }
+  return problems;
 }
 
 type HeldRowValues = {

@@ -154,7 +154,7 @@ const pathOrder = new Intl.Collator('ro', { numeric: true });
 
 // A page without a name is placed after the one before it, so the order is the one a phone or a
 // scanner numbers its files in: `Scan 2` before `Scan 10`. The rows record no upload position.
-export async function sheetPagesOf(
+async function sheetPagesOf(
   deps: Pick<PipelineDeps, 'objects'>,
   files: ImportFileRow[]
 ): Promise<SheetPageInput[]> {
