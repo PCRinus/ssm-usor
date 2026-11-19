@@ -17,6 +17,7 @@ import {
   type TrainingPhase,
   trainingPhaseLabels,
   trainingRowProblems,
+  uncapitalized,
 } from '@ssm-usor/contracts';
 
 import type {
@@ -968,10 +969,8 @@ const ownDecisions = (view: Pick<PersonView, 'decisions'>) =>
 
 const abbreviation = /^(?:Rh|CNP)\b/;
 
-const lowerFirst = (label: string) =>
-  /^\p{Lu}\p{Ll}/u.test(label) && !abbreviation.test(label)
-    ? label[0]!.toLowerCase() + label.slice(1)
-    : label;
+const inSentence = (label: string) =>
+  /^\p{Lu}\p{Ll}/u.test(label) && !abbreviation.test(label) ? uncapitalized(label) : label;
 
 const joinAnd = (parts: string[]) =>
   parts.length > 1 ? `${parts.slice(0, -1).join(', ')} și ${parts.at(-1)}` : (parts[0] ?? '');
@@ -982,7 +981,7 @@ export function decisionSummary(view: Pick<PersonView, 'decisions'>) {
     .filter((decision) => decision.key.startsWith('choice-'))
     .map((decision, index) => {
       const label = fieldLabels[decision.key.slice('choice-'.length) as FieldName];
-      return index === 0 ? label : lowerFirst(label);
+      return index === 0 ? label : inSentence(label);
     });
   const parts: string[] = [];
   for (const decision of own) {

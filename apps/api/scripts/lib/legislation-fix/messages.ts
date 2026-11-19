@@ -2,7 +2,7 @@ import { clip, codeBlock, diffBlock, type DiscordMessage, noPreview } from '@ssm
 import type { LineChange } from '@ssm-usor/document-engine/legal-quote';
 
 import { changeKey, type ChangePassage, type OpenChange } from './changes';
-import type { Reading } from './model';
+import { readable, type Reading } from './model';
 
 export interface AppliedQuote {
   file: string;
@@ -41,9 +41,6 @@ const formOf = (change: OpenChange) => `${change.act.name}, form of ${change.con
 
 const linked = (name: string, portalId: number | null) =>
   portalId === null ? name : `[${name}](${portalPage(portalId)})`;
-
-const readable = (label: string) =>
-  (label.charAt(0).toLowerCase() + label.slice(1)).replaceAll('Art.', 'art.');
 
 const ourDiff = (quote: AppliedQuote) =>
   diffBlock(quote.changes.map((line) => ({ before: line.before ?? '', after: line.after ?? '' })));

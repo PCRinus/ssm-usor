@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { capitalized, countNoun, countOf, formatCount, printedDate } from './romanian';
+import {
+  capitalized,
+  countNoun,
+  countOf,
+  formatCount,
+  printedDate,
+  uncapitalized,
+} from './romanian';
 
 describe('a printed date', () => {
   it('is day first, with dots, from a date or the date part of a timestamp', () => {
@@ -68,5 +75,17 @@ describe('a sentence start', () => {
     expect(capitalized('în curs')).toBe('În curs');
     expect(capitalized('Deja mare')).toBe('Deja mare');
     expect(capitalized('')).toBe('');
+  });
+});
+
+describe('a phrase carried into a sentence', () => {
+  it('lower-cases the first letter, diacritics included, and leaves the rest', () => {
+    expect(uncapitalized('Grupa de factori')).toBe('grupa de factori');
+    expect(uncapitalized('Ștergere')).toBe('ștergere');
+    expect(uncapitalized('Țesător')).toBe('țesător');
+    expect(uncapitalized('Încă un rând')).toBe('încă un rând');
+    expect(uncapitalized('Art. 5 din Legea 319')).toBe('art. 5 din Legea 319');
+    expect(uncapitalized('3 rânduri')).toBe('3 rânduri');
+    expect(uncapitalized('')).toBe('');
   });
 });
