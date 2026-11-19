@@ -1,66 +1,28 @@
+import '@/test/api-mock';
+
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  useGetPortalEmployeeData,
-  useGetPortalMe,
-  useGetPortalSigningAgreementState,
-  useGetPortalTests,
-  useGetPortalTrainingSheets,
-  useListPortalClientSignatureRequests,
-  useListPortalSignatureRequests,
-  useListPortalSigningAgreements,
-  useListPortalTrainingRecords,
-  useSetPortalLanguage,
-} from '@/api/generated/api';
+import { useGetPortalMe, useGetPortalTests, useSetPortalLanguage } from '@/api/generated/api';
 import {
   disposeRuntimes,
-  employeeData,
   fakeAuthClient,
   fakeSession,
+  mockQuery,
   mountPortal,
   participation,
   portalTests,
-  queryResult,
-  trainingRecords,
+  stubEmployeePortal,
 } from '@/test/portal';
 
 import { browserLocale } from './locale';
 
-vi.mock('@/api/generated/api', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/api/generated/api')>()),
-  useGetPortalSigningAgreementState: vi.fn(),
-  useListPortalClientSignatureRequests: vi.fn(),
-  useListPortalSignatureRequests: vi.fn(),
-  useListPortalSigningAgreements: vi.fn(),
-  useGetPortalMe: vi.fn(),
-  useListPortalTrainingRecords: vi.fn(),
-  useGetPortalTests: vi.fn(),
-  useGetPortalEmployeeData: vi.fn(),
-  useGetPortalTrainingSheets: vi.fn(),
-  useSetPortalLanguage: vi.fn(),
-}));
-
 const mutate = vi.fn();
 
 beforeEach(() => {
-  vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-    queryResult({ agreement: null, unavailable: null })
-  );
-  vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
-  vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
-  vi.mocked(useGetPortalTests).mockReturnValue(queryResult(portalTests()));
-  vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
-  vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
-    queryResult({
-      ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
-      su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
-    })
-  );
+  stubEmployeePortal();
+  mockQuery(useGetPortalTests, portalTests());
   mutate.mockReset();
   vi.mocked(useSetPortalLanguage).mockReturnValue({ mutate } as never);
 });
@@ -101,9 +63,7 @@ describe('the browser rule', () => {
 
   it("lets the participation's language win over the sign-in choice", async () => {
     localStorage.setItem('ssm-usor.portal.language', 'ro');
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({ participations: [participation({ language: 'en' })] })
-    );
+    mockQuery(useGetPortalMe, { participations: [participation({ language: 'en' })] });
     mountPortal(signedIn(), '/');
 
     const summary = await screen.findByTestId('training-summary-ssm');
