@@ -246,6 +246,32 @@ export async function signingAgreementDocx(
   };
 }
 
+async function storedAgreement(db: DataClient, ids: { clientId: string; employeeId: string }) {
+  const stored = await db
+    .from('employee_signing_agreements')
+    .select('storage_path')
+    .eq('employee_id', ids.employeeId)
+    .eq('client_id', ids.clientId)
+    .maybeSingle();
+  if (stored.error) throw fromDatabaseError(stored.error, 'stored signing agreement');
+  if (!stored.data?.storage_path) return null;
+  const employee = await db
+    .from('employees')
+    .select('last_name, first_name')
+    .eq('id', ids.employeeId)
+    .eq('client_id', ids.clientId)
+    .maybeSingle();
+  if (employee.error) throw fromDatabaseError(employee.error, 'agreement employee');
+  if (!employee.data) throw noSuchEmployee();
+  return {
+    storagePath: stored.data.storage_path,
+    fileName: agreementFileName({
+      lastName: employee.data.last_name,
+      firstName: employee.data.first_name,
+    }),
+  };
+}
+
 /**
  * The stored agreement once a party has signed it, read with the secret key after the caller's own
  * read of the row; else drawn up on the spot.
@@ -256,28 +282,11 @@ export async function signingAgreementPdf(
   ids: { clientId: string; employeeId: string },
   readTemplate: (storagePath: string) => Promise<Uint8Array>
 ) {
-  const stored = await db
-    .from('employee_signing_agreements')
-    .select('storage_path')
-    .eq('employee_id', ids.employeeId)
-    .eq('client_id', ids.clientId)
-    .maybeSingle();
-  if (stored.error) throw fromDatabaseError(stored.error, 'stored signing agreement');
-  if (stored.data?.storage_path) {
-    const employee = await db
-      .from('employees')
-      .select('last_name, first_name')
-      .eq('id', ids.employeeId)
-      .eq('client_id', ids.clientId)
-      .maybeSingle();
-    if (employee.error) throw fromDatabaseError(employee.error, 'agreement employee');
-    if (!employee.data) throw noSuchEmployee();
+  const stored = await storedAgreement(db, ids);
+  if (stored) {
     return {
-      pdf: await createAdminFileStore(c).readDocument(stored.data.storage_path),
-      fileName: agreementFileName({
-        lastName: employee.data.last_name,
-        firstName: employee.data.first_name,
-      }),
+      pdf: await createAdminFileStore(c).readDocument(stored.storagePath),
+      fileName: stored.fileName,
     };
   }
   const pdf = requirePdfConverter(c);
@@ -290,14 +299,8 @@ export async function storedAgreementLink(
   db: DataClient,
   ids: { clientId: string; employeeId: string }
 ): Promise<FileLinkResponse> {
-  const stored = await db
-    .from('employee_signing_agreements')
-    .select('storage_path')
-    .eq('employee_id', ids.employeeId)
-    .eq('client_id', ids.clientId)
-    .maybeSingle();
-  if (stored.error) throw fromDatabaseError(stored.error, 'stored signing agreement');
-  if (!stored.data?.storage_path) {
+  const stored = await storedAgreement(db, ids);
+  if (!stored) {
     throw new ApiError(
       'not_found',
       'Nobody has signed the agreement electronically, so it has no stored file.',
@@ -305,24 +308,13 @@ export async function storedAgreementLink(
       'agreement_not_stored'
     );
   }
-  const employee = await db
-    .from('employees')
-    .select('last_name, first_name')
-    .eq('id', ids.employeeId)
-    .eq('client_id', ids.clientId)
-    .maybeSingle();
-  if (employee.error) throw fromDatabaseError(employee.error, 'agreement employee');
-  if (!employee.data) throw noSuchEmployee();
   // Ten minutes: the page keeps the link on a real anchor and renews it before then; a phone may
   // sleep in between.
   const expiresInSeconds = 600;
   return {
     // The route has authorized this agreement, through member policies or the participation.
-    url: await createAdminFileStore(c).documentLink(stored.data.storage_path, expiresInSeconds),
-    fileName: agreementFileName({
-      lastName: employee.data.last_name,
-      firstName: employee.data.first_name,
-    }),
+    url: await createAdminFileStore(c).documentLink(stored.storagePath, expiresInSeconds),
+    fileName: stored.fileName,
     expiresInSeconds,
   };
 }
