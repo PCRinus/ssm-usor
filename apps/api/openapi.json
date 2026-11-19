@@ -10248,6 +10248,10 @@
                 "title": {
                   "type": "string"
                 },
+                "set": {
+                  "type": "string",
+                  "enum": ["occupational_safety", "fire_safety"]
+                },
                 "newestVersion": {
                   "type": "object",
                   "properties": {
@@ -10265,6 +10269,22 @@
                     }
                   },
                   "required": ["version", "kind", "note"]
+                },
+                "legalChanges": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "actName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["id", "actName"]
+                  }
                 },
                 "runningJobId": {
                   "type": "string",
@@ -10317,6 +10337,15 @@
                           },
                           "required": ["code", "title", "newestVersionAt"]
                         }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": ["draft", "issued"]
+                      },
+                      "issueDate": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date"
                       }
                     },
                     "required": [
@@ -10326,16 +10355,96 @@
                       "version",
                       "editedDraft",
                       "behindTemplate",
-                      "instructionChanges"
+                      "instructionChanges",
+                      "status",
+                      "issueDate"
                     ]
                   }
                 }
               },
-              "required": ["typeKey", "title", "newestVersion", "runningJobId", "clients"]
+              "required": [
+                "typeKey",
+                "title",
+                "set",
+                "newestVersion",
+                "legalChanges",
+                "runningJobId",
+                "clients"
+              ]
             }
           }
         },
         "required": ["items"]
+      },
+      "DocumentsBehindSummary": {
+        "type": "object",
+        "properties": {
+          "counts": {
+            "type": "object",
+            "properties": {
+              "occupational_safety": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "fire_safety": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": ["occupational_safety", "fire_safety"]
+          },
+          "running": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "typeKey": {
+                  "type": "string"
+                },
+                "set": {
+                  "type": "string",
+                  "enum": ["occupational_safety", "fire_safety"]
+                },
+                "requestedBy": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "done": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "skipped": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "failed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "id",
+                "typeKey",
+                "set",
+                "requestedBy",
+                "total",
+                "done",
+                "skipped",
+                "failed"
+              ]
+            }
+          }
+        },
+        "required": ["counts", "running"]
       },
       "RegenerationJobResponse": {
         "type": "object",
@@ -10520,6 +10629,78 @@
           }
         },
         "required": ["typeKey"]
+      },
+      "SetRegenerationResponse": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "typeKey": {
+                  "type": "string"
+                },
+                "set": {
+                  "type": "string",
+                  "enum": ["occupational_safety", "fire_safety"]
+                },
+                "requestedBy": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "done": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "skipped": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "failed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "id",
+                "typeKey",
+                "set",
+                "requestedBy",
+                "total",
+                "done",
+                "skipped",
+                "failed"
+              ]
+            }
+          },
+          "notStarted": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["jobs", "notStarted"]
+      },
+      "StartSetRegenerationRequest": {
+        "type": "object",
+        "properties": {
+          "set": {
+            "type": "string",
+            "enum": ["occupational_safety", "fire_safety"]
+          }
+        },
+        "required": ["set"]
       },
       "DocumentReadinessResponse": {
         "type": "object",
@@ -22773,7 +22954,7 @@
         },
         "required": ["items"]
       },
-      "LegalChangeListResponse": {
+      "OpenLegalChangeListResponse": {
         "type": "object",
         "properties": {
           "items": {
@@ -22799,174 +22980,133 @@
                       "nullable": true,
                       "minimum": 0,
                       "exclusiveMinimum": true
+                    },
+                    "subject": {
+                      "type": "string",
+                      "nullable": true
                     }
                   },
-                  "required": ["id", "name", "portalId"]
-                },
-                "seenAt": {
-                  "type": "string",
-                  "format": "date-time"
+                  "required": ["id", "name", "portalId", "subject"]
                 },
                 "consolidatedOn": {
                   "type": "string",
                   "format": "date"
                 },
-                "amendingAct": {
+                "seenAt": {
                   "type": "string",
-                  "nullable": true
-                },
-                "resolution": {
-                  "type": "string",
-                  "enum": ["open", "no_impact", "template_version"]
-                },
-                "resolvedAt": {
-                  "type": "string",
-                  "nullable": true,
                   "format": "date-time"
-                },
-                "resolvedByNote": {
-                  "type": "string",
-                  "nullable": true
                 },
                 "outcome": {
                   "type": "string",
                   "nullable": true,
                   "enum": ["no_impact", "quote_differs", "needs_review", null]
                 },
-                "comparedWith": {
-                  "type": "string",
-                  "nullable": true,
-                  "format": "date"
-                },
-                "assessedAt": {
-                  "type": "string",
-                  "nullable": true,
-                  "format": "date-time"
-                },
-                "amendingActs": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "adoptedOn": {
-                        "type": "string",
-                        "nullable": true,
-                        "format": "date"
-                      }
-                    },
-                    "required": ["name", "adoptedOn"]
-                  }
-                },
-                "amendedUnits": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "unit": {
-                        "type": "string"
-                      },
-                      "operation": {
-                        "type": "string",
-                        "enum": ["modified", "supplemented", "inserted", "repealed", "other"]
-                      },
-                      "date": {
-                        "type": "string",
-                        "format": "date"
-                      },
-                      "amendingAct": {
-                        "type": "string",
-                        "nullable": true
-                      }
-                    },
-                    "required": ["unit", "operation", "date", "amendingAct"]
-                  }
-                },
-                "passages": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      "templateFile": {
-                        "type": "string"
-                      },
-                      "document": {
+                "touched": {
+                  "type": "object",
+                  "properties": {
+                    "documents": {
+                      "type": "array",
+                      "items": {
                         "type": "object",
-                        "nullable": true,
                         "properties": {
                           "typeKey": {
                             "type": "string"
                           },
                           "title": {
                             "type": "string"
+                          },
+                          "set": {
+                            "type": "string",
+                            "enum": ["occupational_safety", "fire_safety"]
                           }
                         },
-                        "required": ["typeKey", "title"]
-                      },
-                      "citationForm": {
-                        "type": "string",
-                        "enum": ["quote", "reference"]
-                      },
-                      "locator": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "unit": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": ["changed", "added", "repealed", "missing", "uncompared"]
-                      },
-                      "oldText": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "newText": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "hunks": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "old": {
-                              "type": "string"
-                            },
-                            "new": {
-                              "type": "string"
-                            },
-                            "before": {
-                              "type": "string"
-                            },
-                            "after": {
-                              "type": "string"
-                            }
-                          },
-                          "required": ["old", "new", "before", "after"]
-                        }
+                        "required": ["typeKey", "title", "set"]
                       }
                     },
-                    "required": [
-                      "id",
-                      "templateFile",
-                      "document",
-                      "citationForm",
-                      "locator",
-                      "unit",
-                      "status",
-                      "oldText",
-                      "newText",
-                      "hunks"
-                    ]
+                    "units": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": ["documents", "units"]
+                },
+                "citedBy": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "typeKey": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "set": {
+                        "type": "string",
+                        "enum": ["occupational_safety", "fire_safety"]
+                      }
+                    },
+                    "required": ["typeKey", "title", "set"]
                   }
+                }
+              },
+              "required": ["id", "act", "consolidatedOn", "seenAt", "outcome", "touched", "citedBy"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "AppliedLegalChangeListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "act": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "portalId": {
+                      "type": "integer",
+                      "nullable": true,
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "subject": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": ["id", "name", "portalId", "subject"]
+                },
+                "consolidatedOn": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "seenAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "appliedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "note": {
+                  "type": "string",
+                  "nullable": true
                 },
                 "updatedDocuments": {
                   "type": "array",
@@ -22978,33 +23118,420 @@
                       },
                       "title": {
                         "type": "string"
+                      },
+                      "set": {
+                        "type": "string",
+                        "enum": ["occupational_safety", "fire_safety"]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "exclusiveMinimum": true
+                      },
+                      "note": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "registeredAt": {
+                        "type": "string",
+                        "format": "date-time"
                       }
                     },
-                    "required": ["typeKey", "title"]
+                    "required": ["typeKey", "title", "set", "version", "note", "registeredAt"]
                   }
+                },
+                "behind": {
+                  "type": "object",
+                  "properties": {
+                    "documents": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "clients": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "types": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "typeKey": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "set": {
+                            "type": "string",
+                            "enum": ["occupational_safety", "fire_safety"]
+                          },
+                          "documents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true
+                          },
+                          "clients": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true
+                          }
+                        },
+                        "required": ["typeKey", "title", "set", "documents", "clients"]
+                      }
+                    }
+                  },
+                  "required": ["documents", "clients", "types"]
                 }
               },
               "required": [
                 "id",
                 "act",
-                "seenAt",
                 "consolidatedOn",
-                "amendingAct",
-                "resolution",
-                "resolvedAt",
-                "resolvedByNote",
-                "outcome",
-                "comparedWith",
-                "assessedAt",
-                "amendingActs",
-                "amendedUnits",
-                "passages",
-                "updatedDocuments"
+                "seenAt",
+                "appliedAt",
+                "note",
+                "updatedDocuments",
+                "behind"
               ]
             }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
           }
         },
-        "required": ["items"]
+        "required": ["items", "page", "pageSize", "total"]
+      },
+      "LegalChangeDetailResponse": {
+        "type": "object",
+        "properties": {
+          "change": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "act": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "portalId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "subject": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": ["id", "name", "portalId", "subject"]
+              },
+              "seenAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "consolidatedOn": {
+                "type": "string",
+                "format": "date"
+              },
+              "amendingAct": {
+                "type": "string",
+                "nullable": true
+              },
+              "resolution": {
+                "type": "string",
+                "enum": ["open", "no_impact", "template_version"]
+              },
+              "resolvedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "resolvedByNote": {
+                "type": "string",
+                "nullable": true
+              },
+              "outcome": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["no_impact", "quote_differs", "needs_review", null]
+              },
+              "comparedWith": {
+                "type": "string",
+                "nullable": true,
+                "format": "date"
+              },
+              "assessedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "amendingActs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "adoptedOn": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date"
+                    },
+                    "portalId": {
+                      "type": "integer",
+                      "nullable": true,
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    }
+                  },
+                  "required": ["name", "adoptedOn", "portalId"]
+                }
+              },
+              "amendedUnits": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "unit": {
+                      "type": "string"
+                    },
+                    "operation": {
+                      "type": "string",
+                      "enum": ["modified", "supplemented", "inserted", "repealed", "other"]
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "amendingAct": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": ["unit", "operation", "date", "amendingAct"]
+                }
+              },
+              "passages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "templateFile": {
+                      "type": "string"
+                    },
+                    "document": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "typeKey": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["typeKey", "title"]
+                    },
+                    "citationForm": {
+                      "type": "string",
+                      "enum": ["quote", "reference"]
+                    },
+                    "locator": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "unit": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["changed", "added", "repealed", "missing", "uncompared"]
+                    },
+                    "oldText": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "newText": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "hunks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "old": {
+                            "type": "string"
+                          },
+                          "new": {
+                            "type": "string"
+                          },
+                          "before": {
+                            "type": "string"
+                          },
+                          "after": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["old", "new", "before", "after"]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "templateFile",
+                    "document",
+                    "citationForm",
+                    "locator",
+                    "unit",
+                    "status",
+                    "oldText",
+                    "newText",
+                    "hunks"
+                  ]
+                }
+              },
+              "updatedDocuments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "typeKey": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "set": {
+                      "type": "string",
+                      "enum": ["occupational_safety", "fire_safety"]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "note": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "registeredAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": ["typeKey", "title", "set", "version", "note", "registeredAt"]
+                }
+              },
+              "citedBy": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "typeKey": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "set": {
+                      "type": "string",
+                      "enum": ["occupational_safety", "fire_safety"]
+                    }
+                  },
+                  "required": ["typeKey", "title", "set"]
+                }
+              },
+              "behind": {
+                "type": "object",
+                "properties": {
+                  "documents": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "clients": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "types": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "typeKey": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "set": {
+                          "type": "string",
+                          "enum": ["occupational_safety", "fire_safety"]
+                        },
+                        "documents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "exclusiveMinimum": true
+                        },
+                        "clients": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "exclusiveMinimum": true
+                        }
+                      },
+                      "required": ["typeKey", "title", "set", "documents", "clients"]
+                    }
+                  }
+                },
+                "required": ["documents", "clients", "types"]
+              }
+            },
+            "required": [
+              "id",
+              "act",
+              "seenAt",
+              "consolidatedOn",
+              "amendingAct",
+              "resolution",
+              "resolvedAt",
+              "resolvedByNote",
+              "outcome",
+              "comparedWith",
+              "assessedAt",
+              "amendingActs",
+              "amendedUnits",
+              "passages",
+              "updatedDocuments",
+              "citedBy",
+              "behind"
+            ]
+          }
+        },
+        "required": ["change"]
       },
       "LatestLegalCheckRunResponse": {
         "type": "object",
@@ -35741,7 +36268,7 @@
             }
           },
           "404": {
-            "description": "The client does not exist in this organization",
+            "description": "The client does not exist in the organization",
             "content": {
               "application/json": {
                 "schema": {
@@ -35854,7 +36381,7 @@
             }
           },
           "404": {
-            "description": "The client does not exist in this organization",
+            "description": "The client does not exist in the organization",
             "content": {
               "application/json": {
                 "schema": {
@@ -37154,7 +37681,7 @@
             }
           },
           "404": {
-            "description": "The client does not exist in this organization",
+            "description": "The client does not exist in the organization",
             "content": {
               "application/json": {
                 "schema": {
@@ -42577,7 +43104,7 @@
       "get": {
         "operationId": "listDocumentsBehind",
         "summary": "List the organization's documents behind their template or their instructions, by document type",
-        "description": "A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.",
+        "description": "A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: its set, the template's newest version and the legal changes that version answers (with the act's name), the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether that revision is a `draft` or `issued` and the date it carries, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.",
         "security": [
           {
             "bearerAuth": []
@@ -42647,11 +43174,85 @@
         }
       }
     },
+    "/documents/behind/summary": {
+      "get": {
+        "operationId": "getDocumentsBehindSummary",
+        "summary": "Count the documents behind per set, and list the regenerations under way",
+        "description": "What the navigation and the dashboard show on every page, without the list: the count per set of the rows `GET /documents/behind` lists (one per client and document type, drafts edited by hand included), and the organization's unfinished regeneration jobs of the last hour, each with its type, its set, the member who started it and its counts, so a page can follow every job with this one request.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The counts and the jobs under way",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentsBehindSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/behind/regenerate": {
       "post": {
         "operationId": "startDocumentRegeneration",
         "summary": "Regenerate one document type for every client behind it",
-        "description": "Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is skipped, since regenerating would discard the edits; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind, and `regeneration_running` while a job of the same type is under way.",
+        "description": "Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is left out, since regenerating would discard the edits, and skipped should it be edited before its turn; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind or every one behind is a draft edited by hand, and `regeneration_running` while a job of the same type is under way.",
         "security": [
           {
             "bearerAuth": []
@@ -42730,6 +43331,100 @@
           },
           "503": {
             "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/behind/regenerate-all": {
+      "post": {
+        "operationId": "startSetRegeneration",
+        "summary": "Regenerate every document type of a set for every client behind it",
+        "description": "Starts one job per document type of the set with a client to regenerate, as `POST /documents/behind/regenerate` does for one type; a type already regenerating keeps its job. Answers every job of the set under way afterwards, with its counts, and in `notStarted` the types that did not start because the queue failed after some jobs had; those stay behind. A job unfinished after an hour no longer counts as under way: starting closes it, as `start_regeneration_job` does. `409` with the reason `nothing_behind` when nothing in the set can be regenerated, only drafts edited by hand, and `regeneration_running` when every type that could be is already regenerating; `503` when no job could be queued.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartSetRegenerationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The jobs of the set under way",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetRegenerationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nothing to regenerate, or every type is already regenerating; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No job could be queued",
             "content": {
               "application/json": {
                 "schema": {
@@ -43169,7 +43864,7 @@
             }
           },
           "409": {
-            "description": "Data is missing, or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "Data is missing, or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43773,7 +44468,7 @@
             }
           },
           "409": {
-            "description": "Data is missing, the client is archived, or the type has no template; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "Data is missing, the client is archived (reason `client_archived`), or the type has no template; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43993,7 +44688,7 @@
             }
           },
           "409": {
-            "description": "The document already has a draft (`draft_exists`), has nothing issued, or its client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The document already has a draft (`draft_exists`), has nothing issued, or its client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44437,7 +45132,7 @@
             }
           },
           "409": {
-            "description": "Nothing is issued (`not_issued`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "Nothing is issued (`not_issued`), or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44532,7 +45227,7 @@
             }
           },
           "409": {
-            "description": "There is no signed copy, or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "There is no signed copy, or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44637,7 +45332,7 @@
             }
           },
           "409": {
-            "description": "There is no received copy (`no_received_copy`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "There is no received copy (`no_received_copy`), or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44823,7 +45518,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or the document has to be generated first; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), or the document has to be generated first; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -49938,11 +50633,11 @@
         }
       }
     },
-    "/legislation/changes": {
+    "/legislation/changes/open": {
       "get": {
-        "operationId": "listLegalChanges",
-        "summary": "List the legal changes",
-        "description": "Newer consolidated forms of the watched acts, newest first, each with its act, how it was resolved, the outcome of comparing it with the form the templates were verified against, the units it amended and the cited passages it touched, with the law's text before and after. The same for every organization; not paginated.",
+        "operationId": "listOpenLegalChanges",
+        "summary": "List the legal changes under review",
+        "description": "The open legal changes, newest consolidated form first, each with its act and subject, the outcome of the comparison (null while unassessed), the documents and units of the cited passages it touched, and every document type citing the act. The same for every organization; not paginated.",
         "security": [
           {
             "bearerAuth": []
@@ -49950,11 +50645,11 @@
         ],
         "responses": {
           "200": {
-            "description": "The legal changes",
+            "description": "The open legal changes",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LegalChangeListResponse"
+                  "$ref": "#/components/schemas/OpenLegalChangeListResponse"
                 }
               }
             }
@@ -49971,6 +50666,219 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/legislation/changes/applied": {
+      "get": {
+        "operationId": "listAppliedLegalChanges",
+        "summary": "List the legal changes applied in documents",
+        "description": "The legal changes a template version answers, newest consolidated form first, 20 a page by default; changes resolved with no impact are left out. Each with its act and subject, when it was applied, the note of the version that answered it first and every document type whose template it updated, with that version and its note. `behind` counts the organization's documents of active clients still made from a template version older than the one that answers the change (a draft edited by hand included), in all and per document type with its set; regenerating those types, `POST /documents/behind/regenerate` for each, brings the change in.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of applied legal changes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppliedLegalChangeListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/legislation/changes/{changeId}": {
+      "get": {
+        "operationId": "getLegalChange",
+        "summary": "Get a legal change",
+        "description": "One legal change: its act and subject, how it was resolved, the outcome of comparing it with the form the templates were verified against, the units it amended with each amending act's portal page, the cited passages it touched with the law's text before and after, every document type citing the act, and the template versions that answer it with their notes. `behind` counts the organization's documents of active clients still made from a template version older than the one that answers the change (a draft edited by hand included), in all and per document type with its set; regenerating those types, `POST /documents/behind/regenerate` for each, brings the change in.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "changeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The legal change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalChangeDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such legal change",
             "content": {
               "application/json": {
                 "schema": {

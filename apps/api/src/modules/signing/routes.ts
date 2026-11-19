@@ -25,13 +25,14 @@ import { requireMembership } from '../../lib/membership';
 import {
   authErrors,
   bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
   errorContent,
   inPersonMembershipErrors,
   membershipErrors,
 } from '../../lib/openapi';
 import { requireParticipant } from '../../lib/participant';
 
-const clientParams = z.object({ clientId: z.uuid() });
 const recordParams = clientParams.extend({ recordId: z.uuid() });
 const employeeParams = clientParams.extend({ employeeId: z.uuid() });
 const participantParams = z.object({ participantId: z.uuid() });
@@ -104,7 +105,7 @@ export const listSignerCandidatesRoute = createRoute({
       content: json(signerCandidatesResponseSchema, 'SignerCandidatesResponse'),
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -221,7 +222,7 @@ export const listClientSignatureRequestsRoute = createRoute({
   responses: {
     200: { description: 'The requests', content: requestListContent },
     400: { description: 'Invalid path or state', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });

@@ -12,16 +12,17 @@ import {
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
+  errorContent,
+  membershipErrors,
+} from '../../lib/openapi';
 
-const clientParams = z.object({ clientId: z.uuid() });
 const trainingParams = clientParams.extend({ trainingId: z.uuid() });
 const employeeParams = clientParams.extend({ employeeId: z.uuid() });
 
-const noSuchClient = {
-  description: 'The client does not exist in the organization',
-  content: errorContent,
-};
 const noSuchTraining = {
   description: 'The client, or the training under it, does not exist',
   content: errorContent,
@@ -70,7 +71,7 @@ export const listTrainingsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path or query', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -96,7 +97,7 @@ export const getTrainingProposalRoute = createRoute({
       description: 'Invalid path or query, or a job position of another client',
       content: errorContent,
     },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -114,7 +115,7 @@ export const createTrainingRoute = createRoute({
   responses: {
     201: { description: 'The training with its records', content: trainingContent },
     400: invalidBody,
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: refusedClient,
     422: refusedSigners,
     ...membershipErrors,

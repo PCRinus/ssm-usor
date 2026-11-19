@@ -2,11 +2,12 @@ import { Badge } from '@ssm-usor/ui/components/badge';
 import { Link } from '@tanstack/react-router';
 import { ExternalLink } from 'lucide-react';
 
+import { openedHere } from '@/app/opener';
 import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
 import { roCount } from '@/features/employees/employee-format';
 import { formatRoDate } from '@/lib/dates';
 
-import { legalChangeAnchor, openChangeSentence, portalPage } from './legislation-labels';
+import { openChangeSentence, portalPage } from './legislation-labels';
 import { actState, actStateLabels, type WatchedAct } from './watched-act-list';
 
 export function ActName({ act }: { act: WatchedAct }) {
@@ -56,8 +57,9 @@ export function ActStatus({ act }: { act: WatchedAct }) {
         {sentence && act.openChange && (
           <CellNote>
             <Link
-              to="/legislatie/modificari"
-              hash={legalChangeAnchor(act.openChange.id)}
+              to="/legislatie/modificari/$changeId"
+              params={{ changeId: act.openChange.id }}
+              state={openedHere}
               data-testid="watched-act-change"
               className="underline underline-offset-2 hover:text-foreground"
             >

@@ -16,7 +16,7 @@ import type { Context } from 'hono';
 import { type AdminClient, createAdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, failureLabel } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import { builtInTemplates, merge } from '../documents/documents';
 import { signedOn } from '../signed-sheets/form';
@@ -525,9 +525,7 @@ export async function afterTestPass(c: Context<ApiEnv>, resultId: string) {
     const sheet = await ensureTestSheet(deps, resultId);
     if (sheet) await issueTestSheetRequests(deps, sheet, null);
   } catch (error) {
-    console.error(
-      `Test sheet of ${resultId} not drawn up: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
-    );
+    console.error(`Test sheet of ${resultId} not drawn up: ${failureLabel(error)}`);
   }
 }
 
@@ -618,9 +616,7 @@ async function issueQuietly(deps: TestSheetDeps, sheet: TestSheetRow, resultId: 
   try {
     await issueTestSheetRequests(deps, sheet, null);
   } catch (error) {
-    console.error(
-      `Test sheet requests of ${resultId} not issued: ${error instanceof ApiError ? (error.reason ?? error.code) : 'unknown'}`
-    );
+    console.error(`Test sheet requests of ${resultId} not issued: ${failureLabel(error)}`);
   }
 }
 

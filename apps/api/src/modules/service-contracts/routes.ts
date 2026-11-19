@@ -1,4 +1,4 @@
-import { createRoute, z } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   saveServiceContractRequestSchema,
   sendServiceContractRequestSchema,
@@ -8,9 +8,14 @@ import {
 import { requireAuth } from '../../lib/auth';
 import { refuseDuringImpersonation } from '../../lib/impersonation';
 import { requireMembership, requireOwner } from '../../lib/membership';
-import { bearerSecurity, errorContent, inPersonOwnerErrors, ownerErrors } from '../../lib/openapi';
-
-const clientParams = z.object({ clientId: z.uuid() });
+import {
+  bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
+  errorContent,
+  inPersonOwnerErrors,
+  ownerErrors,
+} from '../../lib/openapi';
 
 const responses = {
   200: {
@@ -21,7 +26,7 @@ const responses = {
       },
     },
   },
-  404: { description: 'The client does not exist in the organization', content: errorContent },
+  404: clientNotFoundResponse,
   ...ownerErrors,
 };
 

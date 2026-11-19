@@ -16,9 +16,14 @@ import {
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
+  errorContent,
+  membershipErrors,
+} from '../../lib/openapi';
 
-const clientParams = z.object({ clientId: z.uuid() });
 const employeeParams = clientParams.extend({ employeeId: z.uuid() });
 
 export const listEmployeesRoute = createRoute({
@@ -41,7 +46,7 @@ export const listEmployeesRoute = createRoute({
       },
     },
     400: { description: 'Invalid path or query', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -66,7 +71,7 @@ export const listEmployeeInviteesRoute = createRoute({
       },
     },
     400: { description: 'Invalid path or query', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -97,7 +102,7 @@ export const createEmployeeRoute = createRoute({
       },
     },
     400: { description: 'Invalid path or request body', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     409: {
       description:
         'The client is archived (reason `client_archived`), or a current employee of the client has the CNP or number',

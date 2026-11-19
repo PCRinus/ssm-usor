@@ -2,6 +2,7 @@ import { type ParticipantErrorReason, participantErrorReasons } from '@ssm-usor/
 
 import { fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
+import { clientNotFound } from '../clients/lookup';
 
 interface PostgrestError {
   code?: string | null;
@@ -12,7 +13,7 @@ const conflict = (message: string, reason: ParticipantErrorReason) =>
   new ApiError('conflict', message, undefined, reason);
 
 const notFound: Record<string, string> = {
-  client_not_found: 'This client does not exist in your organization.',
+  client_not_found: clientNotFound().message,
   employee_not_found: 'This employee does not exist under this client.',
   invitation_not_found: 'The invitation does not exist.',
 };

@@ -247,15 +247,6 @@ export function progressOf(files: Pick<ImportFileRow, 'state' | 'is_scan'>[]): I
 export const adminImportStore = (c: Context<ApiEnv>, admin: AdminClient = createAdminClient(c)) =>
   importStore(admin, blocksReporterOf(c));
 
-// Hono's executionCtx throws where the runtime gives none, as in tests.
-export function later(c: Context<ApiEnv>, work: Promise<unknown>) {
-  try {
-    c.executionCtx.waitUntil(work);
-  } catch {
-    void work;
-  }
-}
-
 export const proposalListOfTable: Record<ImportKind, Record<string, string>> = {
   client: {
     clients: 'client',

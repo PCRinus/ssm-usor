@@ -7,7 +7,7 @@ import {
 
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { uninvitedOfImports } from '../participants/handlers';
+import { uninvitedOfImports } from '../participants/standings';
 import { peopleCounts, personStates, storedEmployeeChanges } from './employees';
 import {
   conflict,

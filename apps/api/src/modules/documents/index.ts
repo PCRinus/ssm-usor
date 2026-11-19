@@ -8,6 +8,7 @@ import {
   getDocumentArchive,
   getDocumentDownload,
   getDocumentReadiness,
+  getDocumentsBehindSummary,
   getDocumentWord,
   getRegenerationJob,
   issueDocument,
@@ -19,6 +20,7 @@ import {
   saveDocumentDraftFile,
   startDocumentDraft,
   startDocumentRegeneration,
+  startSetRegeneration,
   uploadClientDocument,
 } from './handlers';
 import {
@@ -30,6 +32,7 @@ import {
   getDocumentArchiveRoute,
   getDocumentDownloadRoute,
   getDocumentReadinessRoute,
+  getDocumentsBehindSummaryRoute,
   getDocumentWordRoute,
   getRegenerationJobRoute,
   issueDocumentRoute,
@@ -41,6 +44,7 @@ import {
   saveDocumentDraftFileRoute,
   startDocumentDraftRoute,
   startDocumentRegenerationRoute,
+  startSetRegenerationRoute,
   uploadClientDocumentRoute,
 } from './routes';
 
@@ -48,7 +52,9 @@ export const documentsRouter = createRouter()
   // Before the routes of one document: `/documents/behind/regenerate` would otherwise be
   // taken for `/documents/{documentId}/regenerate` and refused as an invalid id.
   .openapi(listDocumentsBehindRoute, listDocumentsBehind)
+  .openapi(getDocumentsBehindSummaryRoute, getDocumentsBehindSummary)
   .openapi(startDocumentRegenerationRoute, startDocumentRegeneration)
+  .openapi(startSetRegenerationRoute, startSetRegeneration)
   .openapi(getRegenerationJobRoute, getRegenerationJob)
   .openapi(getDocumentReadinessRoute, getDocumentReadiness)
   .openapi(listClientDocumentsRoute, listClientDocuments)

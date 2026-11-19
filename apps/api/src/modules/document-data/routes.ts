@@ -16,16 +16,17 @@ import {
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership, requireOwner } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors, ownerErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
+  errorContent,
+  membershipErrors,
+  ownerErrors,
+} from '../../lib/openapi';
 
-const clientParams = z.object({ clientId: z.uuid() });
 const workplaceParams = clientParams.extend({ workplaceId: z.uuid() });
 const responsiblePersonParams = clientParams.extend({ responsiblePersonId: z.uuid() });
-
-const noSuchClient = {
-  description: 'The client does not exist in the organization',
-  content: errorContent,
-};
 
 const companyDetailsContent = {
   'application/json': {
@@ -165,7 +166,7 @@ export const getClientDocumentDetailsRoute = createRoute({
   responses: {
     200: { description: 'The document details', content: documentDetailsContent },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -195,7 +196,7 @@ export const updateClientDocumentDetailsRoute = createRoute({
   responses: {
     200: { description: 'The document details after the change', content: documentDetailsContent },
     400: { description: 'Invalid path or request body', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -220,7 +221,7 @@ export const listWorkplacesRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -236,7 +237,7 @@ export const createWorkplaceRoute = createRoute({
   responses: {
     201: { description: 'The created workplace', content: workplaceContent },
     400: { description: 'Invalid path or request body', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: {
       description:
         'The client is archived (reason `client_archived`), or it already has a registered office',
@@ -305,7 +306,7 @@ export const listResponsiblePersonsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -326,7 +327,7 @@ export const createResponsiblePersonRoute = createRoute({
       description: 'Invalid path or body, or an employee or a workplace that is not of this client',
       content: errorContent,
     },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: {
       description:
         "The client is archived (reason `client_archived`), the employee is already a responsible person, or a workers' representative is the client's legal representative",

@@ -1,6 +1,5 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
-  clientConflictReasons,
   type CreditsShort,
   type FoundSheet,
   importCredits,
@@ -18,15 +17,12 @@ import type { Context } from 'hono';
 
 import { type AdminClient, adminClient, createAdminClient } from '../../lib/admin-db';
 import { alertSender } from '../../lib/alerts';
-import {
-  archivedClientError,
-  createDataClient,
-  type DataClient,
-  fromDatabaseError,
-} from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
+import { later } from '../../lib/later';
+import { requireWritableClient } from '../clients/lookup';
 import { creditsStore } from '../credits/store';
 import { importCharges } from '../credits/usage';
 import { romanianDay } from '../documents/context';
@@ -38,7 +34,6 @@ import {
   creatorNames,
   decisionError,
   findImport,
-  later,
   listFilesOf,
   notFound,
   summaryColumns,
@@ -77,22 +72,7 @@ export const createImport: RouteHandler<typeof createImportRoute, ApiEnv> = asyn
   requireImportService(c);
   const { clientId, kind = 'client', addFoundSheets } = c.req.valid('json');
   const db = createDataClient(c);
-  if (clientId) {
-    const { data, error } = await db
-      .from('clients')
-      .select('id, stage, archived_at')
-      .eq('id', clientId)
-      .maybeSingle();
-    if (error) throw fromDatabaseError(error, 'find import client');
-    if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
-    if (data.archived_at) throw archivedClientError();
-    if (data.stage === 'lead') {
-      throw conflict(
-        'The company is still a lead; promote it first.',
-        clientConflictReasons.clientIsLead
-      );
-    }
-  }
+  if (clientId) await requireWritableClient(db, clientId, { lead: 'refused' });
   const found = addFoundSheets && clientId ? await offeredSheets(db, clientId) : [];
   if (addFoundSheets && found.length === 0) throw noFoundSheets();
   const admin = createAdminClient(c);

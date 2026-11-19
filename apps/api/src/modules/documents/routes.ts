@@ -8,6 +8,7 @@ import {
   documentDownloadResponseSchema,
   documentReadinessResponseSchema,
   documentsBehindResponseSchema,
+  documentsBehindSummarySchema,
   documentSetQuerySchema,
   documentUploadQuerySchema,
   generateDocumentsRequestSchema,
@@ -15,24 +16,26 @@ import {
   issueDocumentRequestSchema,
   regenerateDocumentRequestSchema,
   regenerationJobResponseSchema,
+  setRegenerationResponseSchema,
   startRegenerationRequestSchema,
+  startSetRegenerationRequestSchema,
 } from '@ssm-usor/contracts';
 
 import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
+  errorContent,
+  membershipErrors,
+} from '../../lib/openapi';
 
-const clientParams = z.object({ clientId: z.uuid() });
 const documentParams = z.object({ documentId: z.uuid() });
 const uploadParams = z.object({ clientId: z.uuid(), typeKey: builtInDocumentTypeKeySchema });
 const revisionParams = z.object({ documentId: z.uuid(), revisionId: z.uuid() });
 const jobParams = z.object({ jobId: z.uuid() });
-
-const noSuchClient = {
-  description: 'The client does not exist in the organization',
-  content: errorContent,
-};
 
 export const getDocumentReadinessRoute = createRoute({
   method: 'get',
@@ -54,7 +57,7 @@ export const getDocumentReadinessRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -80,7 +83,7 @@ export const listClientDocumentsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -116,8 +119,11 @@ export const generateClientDocumentsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path or body', content: errorContent },
-    404: noSuchClient,
-    409: { description: 'Data is missing, or the client is archived', content: errorContent },
+    404: clientNotFoundResponse,
+    409: {
+      description: 'Data is missing, or the client is archived (reason `client_archived`)',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });
@@ -220,7 +226,7 @@ export const getDocumentArchiveRoute = createRoute({
       },
     },
     400: { description: 'Invalid path, set or format', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: { description: 'No document has a file in this format', content: errorContent },
     ...membershipErrors,
   },
@@ -261,7 +267,8 @@ export const regenerateDocumentRoute = createRoute({
     400: { description: 'Invalid path or body', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'Data is missing, the client is archived, or the type has no template',
+      description:
+        'Data is missing, the client is archived (reason `client_archived`), or the type has no template',
       content: errorContent,
     },
     ...membershipErrors,
@@ -323,7 +330,7 @@ export const startDocumentDraftRoute = createRoute({
     404: noSuchDocument,
     409: {
       description:
-        'The document already has a draft (`draft_exists`), has nothing issued, or its client is archived',
+        'The document already has a draft (`draft_exists`), has nothing issued, or its client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -441,7 +448,8 @@ export const attachDocumentSignedCopyRoute = createRoute({
     400: { description: 'Invalid path, or not a PDF', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'Nothing is issued (`not_issued`), or the client is archived',
+      description:
+        'Nothing is issued (`not_issued`), or the client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -466,7 +474,8 @@ export const confirmDocumentSignedCopyRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'There is no received copy (`no_received_copy`), or the client is archived',
+      description:
+        'There is no received copy (`no_received_copy`), or the client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -486,7 +495,7 @@ export const removeDocumentSignedCopyRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'There is no signed copy, or the client is archived',
+      description: 'There is no signed copy, or the client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -517,9 +526,10 @@ export const uploadClientDocumentRoute = createRoute({
   responses: {
     200: { description: 'The document with the uploaded draft', content: documentContent },
     400: { description: 'Invalid path, or not a Word document', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: {
-      description: 'The client is archived, or the document has to be generated first',
+      description:
+        'The client is archived (reason `client_archived`), or the document has to be generated first',
       content: errorContent,
     },
     ...membershipErrors,
@@ -533,7 +543,7 @@ export const listDocumentsBehindRoute = createRoute({
   summary:
     "List the organization's documents behind their template or their instructions, by document type",
   description:
-    "A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.",
+    "A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: its set, the template's newest version and the legal changes that version answers (with the act's name), the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether that revision is a `draft` or `issued` and the date it carries, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   responses: {
@@ -561,7 +571,7 @@ export const startDocumentRegenerationRoute = createRoute({
   operationId: 'startDocumentRegeneration',
   summary: 'Regenerate one document type for every client behind it',
   description:
-    'Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is skipped, since regenerating would discard the edits; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind, and `regeneration_running` while a job of the same type is under way.',
+    'Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is left out, since regenerating would discard the edits, and skipped should it be edited before its turn; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind or every one behind is a draft edited by hand, and `regeneration_running` while a job of the same type is under way.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -582,6 +592,67 @@ export const startDocumentRegenerationRoute = createRoute({
       content: errorContent,
     },
     ...membershipErrors,
+  },
+});
+
+export const getDocumentsBehindSummaryRoute = createRoute({
+  method: 'get',
+  path: '/documents/behind/summary',
+  operationId: 'getDocumentsBehindSummary',
+  summary: 'Count the documents behind per set, and list the regenerations under way',
+  description:
+    "What the navigation and the dashboard show on every page, without the list: the count per set of the rows `GET /documents/behind` lists (one per client and document type, drafts edited by hand included), and the organization's unfinished regeneration jobs of the last hour, each with its type, its set, the member who started it and its counts, so a page can follow every job with this one request.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  responses: {
+    200: {
+      description: 'The counts and the jobs under way',
+      content: {
+        'application/json': {
+          schema: documentsBehindSummarySchema.meta({ id: 'DocumentsBehindSummary' }),
+        },
+      },
+    },
+    ...membershipErrors,
+  },
+});
+
+export const startSetRegenerationRoute = createRoute({
+  method: 'post',
+  path: '/documents/behind/regenerate-all',
+  operationId: 'startSetRegeneration',
+  summary: 'Regenerate every document type of a set for every client behind it',
+  description:
+    'Starts one job per document type of the set with a client to regenerate, as `POST /documents/behind/regenerate` does for one type; a type already regenerating keeps its job. Answers every job of the set under way afterwards, with its counts, and in `notStarted` the types that did not start because the queue failed after some jobs had; those stay behind. A job unfinished after an hour no longer counts as under way: starting closes it, as `start_regeneration_job` does. `409` with the reason `nothing_behind` when nothing in the set can be regenerated, only drafts edited by hand, and `regeneration_running` when every type that could be is already regenerating; `503` when no job could be queued.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: startSetRegenerationRequestSchema.meta({ id: 'StartSetRegenerationRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: 'The jobs of the set under way',
+      content: {
+        'application/json': {
+          schema: setRegenerationResponseSchema.meta({ id: 'SetRegenerationResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid body', content: errorContent },
+    409: {
+      description: 'Nothing to regenerate, or every type is already regenerating',
+      content: errorContent,
+    },
+    ...membershipErrors,
+    // After the shared 503, which it replaces for this route.
+    503: { description: 'No job could be queued', content: errorContent },
   },
 });
 

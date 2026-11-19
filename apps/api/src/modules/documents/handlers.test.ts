@@ -1287,7 +1287,9 @@ describe('POST /clients/{clientId}/documents/generate', () => {
     mockUpstream({
       clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
     });
-    expect((await generate()).status).toBe(409);
+    const response = await generate();
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
   });
 
   it('says so when no template is registered', async () => {
@@ -1532,6 +1534,9 @@ describe('GET /clients/{clientId}/documents/archive', () => {
     archive({ clients: () => Response.json(null) });
     const response = await request(`/clients/${clientId}/documents/archive`);
     expect(response.status).toBe(404);
+    expect(apiErrorResponseSchema.parse(await response.json()).message).toBe(
+      'This client does not exist in your organization.'
+    );
     expect(calls('/rest/v1/client_documents')).toHaveLength(0);
   });
 });
@@ -1662,6 +1667,16 @@ describe('POST /documents/{documentId}/regenerate', () => {
 
     mockUpstream({ documents: oneDocument([revisionRow]), templates: () => Response.json([]) });
     expect((await regenerate()).status).toBe(409);
+  });
+
+  it('refuses an archived client, with the reason', async () => {
+    mockUpstream({
+      documents: oneDocument([revisionRow]),
+      clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
+    });
+    const response = await regenerate();
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
   });
 
   const ofType = (typeKey: string) => ({
@@ -3029,9 +3044,7 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
     });
     const response = await upload('decision_first_aid');
     expect(response.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await response.json())).toMatchObject({
-      message: 'Documents are only uploaded for an active client.',
-    });
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
   });
 
