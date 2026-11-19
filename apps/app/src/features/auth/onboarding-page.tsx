@@ -84,7 +84,7 @@ type LookupState =
   | { status: 'error'; message: string };
 
 function OnboardingForm({ me, onCreated }: { me: MeResponse; onCreated: () => void }) {
-  const { request, queryClient } = useApi();
+  const { request, queryClient, key } = useApi();
   const { session } = useAuth();
   const navigate = useNavigate();
   const create = useCreateOrganization({ request });
@@ -92,7 +92,7 @@ function OnboardingForm({ me, onCreated }: { me: MeResponse; onCreated: () => vo
   const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
   const invitations = useListMyInvitations({
     request,
-    query: { queryKey: [...getListMyInvitationsQueryKey(), me.user.id] },
+    query: { queryKey: key(getListMyInvitationsQueryKey()) },
   });
   const form = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
