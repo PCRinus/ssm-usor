@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { LegalActListResponseItemsItem } from '@/api/generated/api';
 import type { DataTableSort } from '@/components/data-table/columns';
 import type { ListFilterFacet } from '@/components/list-filters/types';
-import { filterSearchSchema } from '@/components/list-filters/url';
+import { filterSearchSchema, listQuerySearchSchema } from '@/components/list-filters/url';
 
 export type WatchedAct = LegalActListResponseItemsItem;
 
@@ -44,11 +44,7 @@ export const watchedActListSearch = z.object({
   page: z.number().int().min(1).optional().catch(undefined),
   sort: z.enum(watchedActSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
-  // An act's number typed into the address, "?q=1425", arrives parsed as a number.
-  q: z
-    .preprocess((value) => (typeof value === 'number' ? String(value) : value), z.string().max(100))
-    .optional()
-    .catch(undefined),
+  q: listQuerySearchSchema,
   domain: filterSearchSchema(legalActDomains),
   status: filterSearchSchema(actStates),
 });

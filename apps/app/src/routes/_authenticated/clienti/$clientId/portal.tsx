@@ -2,7 +2,11 @@ import { portalAccessStates, sortOrderSchema } from '@ssm-usor/contracts';
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 import { z } from 'zod';
 
-import { filterSearchSchema, idFilterSearchSchema } from '@/components/list-filters/url';
+import {
+  filterSearchSchema,
+  idFilterSearchSchema,
+  listQuerySearchSchema,
+} from '@/components/list-filters/url';
 import { useAuth } from '@/features/auth/auth-context';
 import { workplaceFilterSearch } from '@/features/employees/worker-filters';
 import { ClientPortalPage } from '@/features/participants/client-portal-page';
@@ -11,7 +15,7 @@ const searchSchema = z.object({
   page: z.number().int().min(1).optional().catch(undefined),
   sort: z.enum(['name', 'portal']).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
-  q: z.string().max(100).optional().catch(undefined),
+  q: listQuerySearchSchema,
   portal: filterSearchSchema(portalAccessStates),
   jobPosition: idFilterSearchSchema(),
   workplace: workplaceFilterSearch,

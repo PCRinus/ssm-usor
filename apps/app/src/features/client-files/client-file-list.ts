@@ -4,7 +4,11 @@ import { z } from 'zod';
 
 import type { DataTableSort } from '@/components/data-table/columns';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
-import { filterSearchSchema, listFilterSearch } from '@/components/list-filters/url';
+import {
+  filterSearchSchema,
+  listFilterSearch,
+  listQuerySearchSchema,
+} from '@/components/list-filters/url';
 import { normalizeSearch } from '@/lib/normalize-search';
 
 import {
@@ -31,7 +35,7 @@ export type ClientFileFilterKey = (typeof clientFileFilterKeys)[number];
 // Every file is read whole, so the list sorts, searches and filters here; the address keeps the
 // choice as on every list.
 export const clientFileListSearch = {
-  q: z.string().max(100).optional().catch(undefined),
+  q: listQuerySearchSchema,
   sort: z.enum(clientFileSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
   type: filterSearchSchema(fileKindKeys),

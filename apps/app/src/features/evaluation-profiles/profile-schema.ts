@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 import type { EvaluationProfileListResponse, EvaluationProfileResponse } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
-import { filterSearchSchema } from '@/components/list-filters/url';
+import { filterSearchSchema, listQuerySearchSchema } from '@/components/list-filters/url';
 import {
   factorCountLabel,
   unacceptableCountLabel,
@@ -25,7 +25,7 @@ export const riskLibrarySearchSchema = z.object({
   sort: z.enum(evaluationProfileSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
   status: z.literal('archived').optional().catch(undefined),
-  q: z.string().max(100).optional().catch(undefined),
+  q: listQuerySearchSchema,
   level: filterSearchSchema(globalRiskLevelFilters),
   usage: filterSearchSchema(libraryUsageFilters),
 });

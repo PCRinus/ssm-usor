@@ -2,7 +2,7 @@ import { leadSortKeys, serviceContractStates, sortOrderSchema } from '@ssm-usor/
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
-import { filterSearchSchema } from '@/components/list-filters/url';
+import { filterSearchSchema, listQuerySearchSchema } from '@/components/list-filters/url';
 import { LeadsPage } from '@/features/clients/leads-page';
 
 const searchSchema = z.object({
@@ -10,7 +10,7 @@ const searchSchema = z.object({
   sort: z.enum(leadSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
   status: z.literal('archived').optional().catch(undefined),
-  q: z.string().max(100).optional().catch(undefined),
+  q: listQuerySearchSchema,
   contractState: filterSearchSchema(serviceContractStates),
 });
 

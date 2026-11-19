@@ -15,7 +15,7 @@ import type {
   InstructionModuleListResponse,
   PositionInstructionsResponse,
 } from '@/api/generated/api';
-import { filterSearchSchema } from '@/components/list-filters/url';
+import { filterSearchSchema, listQuerySearchSchema } from '@/components/list-filters/url';
 import type { JobPosition } from '@/features/job-positions/job-position-schema';
 
 export type InstructionModule = InstructionModuleListResponse['items'][number];
@@ -93,7 +93,7 @@ export const librarySearchSchema = z.object({
   sort: z.enum(instructionModuleSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
   status: z.literal('archived').optional().catch(undefined),
-  q: z.string().max(100).optional().catch(undefined),
+  q: listQuerySearchSchema,
   category: filterSearchSchema(instructionModuleGroups),
   usage: filterSearchSchema(libraryUsageFilters),
 });

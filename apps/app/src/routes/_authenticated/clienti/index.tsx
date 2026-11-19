@@ -46,7 +46,11 @@ import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/l
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import { type ListFilterFacet, type ListFilterValues } from '@/components/list-filters/types';
-import { filterSearchSchema, listFilterSearch } from '@/components/list-filters/url';
+import {
+  filterSearchSchema,
+  listFilterSearch,
+  listQuerySearchSchema,
+} from '@/components/list-filters/url';
 import { SearchInput } from '@/components/search-input';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
@@ -69,7 +73,7 @@ const searchSchema = z.object({
   sort: z.enum(clientSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
   status: z.literal('archived').optional().catch(undefined),
-  q: z.string().max(100).optional().catch(undefined),
+  q: listQuerySearchSchema,
   documentation: filterSearchSchema(documentationStates),
   fireSafetyDocumentation: filterSearchSchema(documentationStates),
   training: filterSearchSchema(clientTrainingFilters),

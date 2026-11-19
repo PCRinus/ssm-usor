@@ -2,6 +2,7 @@ import { employeeSortKeys, sortOrderSchema } from '@ssm-usor/contracts';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
+import { listQuerySearchSchema } from '@/components/list-filters/url';
 import { EmployeesPage } from '@/features/employees/employees-page';
 import {
   clientWorkerFilterSearch,
@@ -17,7 +18,7 @@ const searchSchema = z
     page: z.number().int().min(1).optional().catch(undefined),
     sort: z.enum(employeeSortKeys).optional().catch(undefined),
     order: sortOrderSchema.optional().catch(undefined),
-    q: z.string().max(100).optional().catch(undefined),
+    q: listQuerySearchSchema,
     import: z.literal(true).optional().catch(undefined),
     ...clientWorkerFilterSearch,
     ...legacyWorkerFilterSearch,

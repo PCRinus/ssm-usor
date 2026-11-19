@@ -11,7 +11,11 @@ import { CalendarRange, ClipboardList, NotebookPen, Signature } from 'lucide-rea
 import { z } from 'zod';
 
 import type { ListFilterFacet, ListFilterOption } from '@/components/list-filters/types';
-import { filterSearchSchema, periodSearchSchema } from '@/components/list-filters/url';
+import {
+  filterSearchSchema,
+  listQuerySearchSchema,
+  periodSearchSchema,
+} from '@/components/list-filters/url';
 
 export const trainingFilterKeys = ['phase', 'signatures', 'mode', 'period'] as const;
 export type TrainingFilterKey = (typeof trainingFilterKeys)[number];
@@ -33,7 +37,7 @@ export const clientTrainingsSearchSchema = z.object({
   page: z.number().int().min(1).optional().catch(undefined),
   sort: z.enum(trainingSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
-  q: z.string().max(100).optional().catch(undefined),
+  q: listQuerySearchSchema,
   signatures: filterSearchSchema(trainingSignatureStates),
   open: z.uuid().optional().catch(undefined),
   ...filterSearch,
