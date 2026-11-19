@@ -364,7 +364,7 @@ describe('the update dialog and the running build', () => {
     mockReleasesApi([newest, reminders]);
     mount();
     expect((await screen.findByTestId('nav-actualizari-badge')).textContent).toBe('2 noi');
-    await expect(screen.findByRole('dialog')).rejects.toThrow();
+    await expect(screen.findByRole('dialog', {}, { timeout: 1000 })).rejects.toThrow();
   });
 
   it('opens as before on a build without a release tag', async () => {
