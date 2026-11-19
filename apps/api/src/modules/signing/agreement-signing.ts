@@ -8,9 +8,9 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { pdfSigningServices, signedOn, signField } from '../../lib/pdf-signing';
 import { checkToSign } from '../../lib/signed-attributes';
+import { signingAgreementDocx } from './agreement';
 import { type AgreementStateRow, awaits } from './agreement-state';
 import { sessionEvidence } from './evidence';
-import { signingAgreementDocx } from './handlers';
 import type { createSigningIdentities } from './identities';
 import type { SigningSession } from './signing-sessions';
 
