@@ -1,19 +1,16 @@
 import { type BillingChoice, cataloguePrices, meteredProducts } from '@ssm-usor/contracts';
-import { vi } from 'vitest';
 
-import type { ApiEnv } from '../../lib/env';
+import { fetchMock, membershipRow, testEnv, testSecretKey, testUser } from '../../test/upstream';
 import { choiceLines } from './rules';
 import { createStripe } from './stripe';
 
-export const owner = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
+export const owner = { id: testUser.id, email: testUser.email };
 export const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 export const accountId = 'acct_1TestAccount';
 export const webhookSecret = 'whsec_test_secret';
 
-export const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+export const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   CORS_ORIGINS: 'https://app.example.ro',
   APP_ORIGIN: 'https://app.example.ro',
   STRIPE_SECRET_KEY: 'sk_test_fake_key',
@@ -21,9 +18,7 @@ export const env: ApiEnv['Bindings'] = {
   OBLIO_CLIENT_ID: 'facturi@example.ro',
   OBLIO_CLIENT_SECRET: 'oblio-secret',
   OBLIO_DOCUMENTS: 'invoice',
-};
-
-export const fetchMock = vi.fn<typeof fetch>();
+});
 
 type Row = Record<string, unknown>;
 
@@ -404,7 +399,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
       return json({ id: url.pathname.split('/').pop(), email: owner.email });
     }
     if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return json([{ ...fake.membership, organization_id: organizationId }]);
+      return json([membershipRow({ ...fake.membership, organization_id: organizationId })]);
     }
     if (url.pathname.startsWith('/storage/v1/object/sign/billing-invoices/')) {
       const path = url.pathname.replace('/storage/v1/object/sign/billing-invoices/', '');
