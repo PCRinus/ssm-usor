@@ -93,12 +93,12 @@ const me = useGetMe({
 
 `getGetMeQueryOptions({ request: apiRequest })` is also available for QueryClient calls and
 route loaders. Include the user ID in private-data query keys consistently: `useApi()` in
-`src/api/use-api.ts` gives the request options, the QueryClient, `ready` (signed in with an API
-URL) and `key()`, which appends the signed-in user's ID; loaders and other code outside React use
-`withUserId(userId)` from the same file. Use the same `key()` for a query and for every
-`setQueryData`/`getQueryData` on it, and invalidate by the unsuffixed generated key, which
-matches every user's entry. Never put access tokens in keys. Account changes clear the QueryClient and
-cancel in-flight work; token refresh keeps the current account's cached data.
+`src/api/use-api.ts` gives the request options, the QueryClient, `ready` (signed in with an
+API URL) and `key()`, which appends the signed-in user's ID; loaders and other code outside
+React use `withUserId(userId)` from the same file. Use the same `key()` for a query and for
+every `setQueryData`/`getQueryData` on it, and invalidate by the unsuffixed generated key,
+which matches every user's entry. Never put access tokens in keys. Account changes clear the
+QueryClient and cancel in-flight work; token refresh keeps the current account's cached data.
 
 The request adapter:
 
