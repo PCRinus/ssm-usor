@@ -210,6 +210,7 @@ function AuthorizationsForm({
                   onChange={field.onChange}
                   onBlur={field.onBlur}
                   max={todayIso()}
+                  keepUnfinished
                   disabled={locked}
                   invalid={Boolean(errors.authorizationCertificateDate)}
                   describedBy={
