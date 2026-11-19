@@ -322,6 +322,9 @@ describe('the processing page', () => {
     expect(requestsTo(`/imports/${importId}`, 'GET')).toHaveLength(1);
 
     await vi.advanceTimersByTimeAsync(pollMs);
+    await waitFor(() => expect(requestsTo(`/imports/${importId}`, 'GET')).toHaveLength(2), {
+      timeout: 200,
+    });
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Citim documentele' })
     ).toBeTruthy();
