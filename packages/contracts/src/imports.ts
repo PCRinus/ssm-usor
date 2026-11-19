@@ -712,6 +712,9 @@ export const foundSheetSchema = z.object({
   fileName: z.string(),
   mimeType: z.enum(sheetFileTypes),
   sizeBytes: z.int().min(1),
+  // A PDF's pages as the client import counted them, each charged when the employee import starts;
+  // null when they were not counted.
+  pageCount: z.int().nullable(),
 });
 
 export type FoundSheet = z.infer<typeof foundSheetSchema>;

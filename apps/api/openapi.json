@@ -18495,6 +18495,10 @@
                       "sizeBytes": {
                         "type": "integer",
                         "minimum": 1
+                      },
+                      "pageCount": {
+                        "type": "integer",
+                        "nullable": true
                       }
                     },
                     "required": [
@@ -18503,7 +18507,8 @@
                       "uploadPath",
                       "fileName",
                       "mimeType",
-                      "sizeBytes"
+                      "sizeBytes",
+                      "pageCount"
                     ]
                   }
                 }

@@ -338,6 +338,7 @@ describe('POST /imports for an employee import', () => {
 const foundRow = (n: number, overrides: Record<string, unknown> = {}) => ({
   id: fileId(n),
   upload_path: `Dosar/Fise/Poza ${n}.jpg`,
+  page_count: 1,
   imports: {
     id: clientImportId,
     kind: 'client',
@@ -401,6 +402,7 @@ describe('GET /clients/{clientId}/found-sheets', () => {
               fileName: 'Poza 1.jpg',
               mimeType: 'image/jpeg',
               sizeBytes: 2001,
+              pageCount: 1,
             },
           ],
         },
@@ -419,6 +421,20 @@ describe('GET /clients/{clientId}/found-sheets', () => {
     expect(found!.url.searchParams.get('client_file.owners_only')).toBe('eq.false');
     expect(taken!.url.searchParams.get('imports.kind')).toBe('eq.employees');
     expect(taken!.url.searchParams.get('imports.status')).toBe('not.in.(abandoned,failed)');
+  });
+
+  it('gives a found PDF its pages, which starting the employee import charges', async () => {
+    const pdf = (n: number, pages: number | null) =>
+      foundRow(n, {
+        upload_path: `Dosar/Fise/Fise ${n}.pdf`,
+        page_count: pages,
+        client_file: { ...foundRow(n).client_file, mime_type: 'application/pdf' },
+      });
+    mockUpstream(foundSheets([pdf(1, 4), pdf(2, null)], []));
+    const response = await request(`/clients/${clientId}/found-sheets`);
+
+    const body = (await response.json()) as { items: { sheets: { pageCount: number | null }[] }[] };
+    expect(body.items[0]!.sheets.map((sheet) => sheet.pageCount)).toEqual([4, null]);
   });
 
   it('offers a photograph found twice once, and not at all when an import holds a copy of it', async () => {

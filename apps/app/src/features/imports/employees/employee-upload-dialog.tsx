@@ -41,7 +41,7 @@ import {
 } from '../upload-parts';
 import { isPhoto, removeFiles, type SelectedFile, type Selection } from '../upload-selection';
 import { useUploadForm } from '../use-upload-form';
-import { type FoundBatch, foundIn, foundOn, useFoundSheets } from './found-sheets';
+import { type FoundBatch, foundIn, foundOn, foundSheetPages, useFoundSheets } from './found-sheets';
 import { FoundSheetView, FoundStrip, FoundThumb } from './found-strip';
 
 const limits = importLimits.employees;
@@ -118,13 +118,18 @@ function UploadForm({
   // `null` until the list arrives, when a dialog opened with them takes every batch.
   const addedIds = added ?? batches.flatMap((batch) => batch.sheets.map((sheet) => sheet.id));
   const addedSheets = batches.flatMap((batch) =>
-    batch.sheets.filter((sheet) => addedIds.includes(sheet.id))
+    batch.sheets
+      .filter((sheet) => addedIds.includes(sheet.id))
+      .map((sheet) => ({ ...sheet, pages: foundSheetPages(sheet) }))
   );
+  const isPdf = (file: { mimeType: string }) => file.mimeType === 'application/pdf';
+  const addedPdfs = addedSheets.filter(isPdf);
   const readOf = (chosen: Selection) => ({
-    photos: chosen.files.filter(isPhoto).length + addedSheets.length,
-    pdfPages: chosen.files
-      .filter((file) => file.mimeType === 'application/pdf')
-      .reduce((total, file) => total + file.pages, 0),
+    photos: chosen.files.filter(isPhoto).length + addedSheets.length - addedPdfs.length,
+    pdfPages: [...chosen.files.filter(isPdf), ...addedPdfs].reduce(
+      (total, file) => total + file.pages,
+      0
+    ),
   });
   const form = useUploadForm({
     kind: 'employees',
@@ -139,7 +144,7 @@ function UploadForm({
     form;
   const bytesLabel = `${totals.estimated ? 'cam ' : ''}${sizeLabel(totals.bytes)}`;
   const noPosts = positions.isSuccess && (positions.data?.items ?? []).length === 0;
-  const pdfs = selection.files.filter((file) => file.mimeType === 'application/pdf').length;
+  const pdfs = selection.files.filter(isPdf).length + addedPdfs.length;
   const nearLimits =
     totals.pages >= metersFrom * limits.scannedPages ||
     totals.bytes >= metersFrom * limits.totalBytes;

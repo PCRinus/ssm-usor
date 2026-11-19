@@ -20,8 +20,8 @@ import { busySteps, choosingSteps, heldSteps, useImportUpload } from './use-impo
 
 type Totals = ReturnType<typeof selectionTotals>;
 
-// Sheets the import takes from elsewhere, as the documentation's found sheets, each one page.
-type AddedSheet = { id: string; sizeBytes: number };
+// Sheets the import takes from elsewhere, as the documentation's found sheets.
+type AddedSheet = { id: string; sizeBytes: number; pages: number };
 
 const noSheets: AddedSheet[] = [];
 
@@ -60,7 +60,7 @@ export function useUploadForm({
   const addedBytes = addedSheets.reduce((total, sheet) => total + sheet.sizeBytes, 0);
   const totals = selectionTotals(selection, kind, {
     count: addedSheets.length,
-    pages: addedSheets.length,
+    pages: addedSheets.reduce((total, sheet) => total + sheet.pages, 0),
     bytes: addedBytes,
   });
   const over = totals.overFiles || totals.overBytes;

@@ -1688,6 +1688,7 @@ export const listFoundSheets: RouteHandler<typeof listFoundSheetsRoute, ApiEnv> 
       fileName: sheet.clientFile.original_file_name,
       mimeType: sheet.clientFile.mime_type as FoundSheet['mimeType'],
       sizeBytes: sheet.clientFile.size_bytes,
+      pageCount: sheet.pageCount,
     });
     byImport.set(sheet.importId, group);
   }
