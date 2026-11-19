@@ -27,8 +27,9 @@ import {
 import { createLastingAdminClient } from '../../lib/admin-db';
 import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, errorMessage } from '../../lib/errors';
 import { createExtractor } from '../../lib/extractor';
+import { isPdf } from '../../lib/pdf';
 import { requireWritableClient } from '../clients/lookup';
 import { creditsStore } from '../credits/store';
 import { safetySheetCharges } from '../credits/usage';
@@ -61,9 +62,6 @@ function sheetModel(env: ApiEnv['Bindings']) {
   if (!baseUrl || !token) return null;
   return createModelClient({ baseUrl, token, timeoutMilliseconds: attemptMilliseconds });
 }
-
-const isPdf = (bytes: Uint8Array) =>
-  bytes.length > 4 && String.fromCharCode(...bytes.subarray(0, 5)) === '%PDF-';
 
 export const tooLarge = () =>
   refused(safetySheetErrorReasons.tooLarge, 'The file is larger than a safety data sheet may be.');
@@ -180,7 +178,7 @@ export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> 
       () => true,
       (refund: unknown) => {
         console.error(
-          `Credits of safety sheet reading ${key} were not given back: ${refund instanceof Error ? refund.message : String(refund)}`
+          `Credits of safety sheet reading ${key} were not given back: ${errorMessage(refund)}`
         );
         return false;
       }

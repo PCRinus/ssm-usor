@@ -11,7 +11,7 @@ import type Stripe from 'stripe';
 
 import { createAdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, errorMessage } from '../../lib/errors';
 import {
   hasMetered,
   releaseSchedule,
@@ -72,7 +72,7 @@ async function restoreSchedule(
     });
   } catch (error) {
     console.error(
-      `SCHEDULED CHANGE NOT RESTORED for organization ${billing.organizationId}, subscription ${subscriptionId}: set ${JSON.stringify(choice)} for the renewal by hand. ${error instanceof Error ? error.message : String(error)}`
+      `SCHEDULED CHANGE NOT RESTORED for organization ${billing.organizationId}, subscription ${subscriptionId}: set ${JSON.stringify(choice)} for the renewal by hand. ${errorMessage(error)}`
     );
     throw new ApiError(
       'service_unavailable',

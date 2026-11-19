@@ -10,6 +10,7 @@ import type Stripe from 'stripe';
 
 import type { AdminClient } from '../../lib/admin-db';
 import { ApiError } from '../../lib/errors';
+import { sha256 } from '../../lib/hash';
 import {
   addInterval,
   type ChangeSplit,
@@ -357,13 +358,7 @@ async function customerOfOrganization(billing: StripeBilling, email: string) {
 }
 
 async function digest(value: unknown) {
-  const bytes = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(JSON.stringify(value))
-  );
-  return Array.from(new Uint8Array(bytes).slice(0, 12), (byte) =>
-    byte.toString(16).padStart(2, '0')
-  ).join('');
+  return (await sha256(JSON.stringify(value))).slice(0, 24);
 }
 
 const paidFor = new Set(['active', 'past_due', 'unpaid', 'paused']);

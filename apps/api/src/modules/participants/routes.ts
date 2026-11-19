@@ -19,12 +19,12 @@ import {
   bearerSecurity,
   clientNotFoundResponse,
   clientParams,
+  employeeParams,
   errorContent,
   inPersonMembershipErrors,
   membershipErrors,
 } from '../../lib/openapi';
 
-const employeeParams = clientParams.extend({ employeeId: z.uuid() });
 const invitationParams = z.object({ invitationId: z.uuid() });
 const participantParams = z.object({ participantId: z.uuid() });
 

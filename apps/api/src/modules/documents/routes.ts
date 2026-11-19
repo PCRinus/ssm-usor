@@ -36,7 +36,7 @@ import {
 } from '../../lib/openapi';
 
 const documentParams = z.object({ documentId: z.uuid() });
-const uploadParams = z.object({ clientId: z.uuid(), typeKey: builtInDocumentTypeKeySchema });
+const uploadParams = clientParams.extend({ typeKey: builtInDocumentTypeKeySchema });
 const revisionParams = z.object({ documentId: z.uuid(), revisionId: z.uuid() });
 const jobParams = z.object({ jobId: z.uuid() });
 

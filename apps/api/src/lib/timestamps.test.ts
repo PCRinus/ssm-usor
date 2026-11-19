@@ -10,6 +10,7 @@ describe('a database timestamp in the API', () => {
 
   it('stays null when there is none', () => {
     expect(toIsoOrNull(null)).toBeNull();
+    expect(toIsoOrNull(undefined)).toBeNull();
     expect(toIsoOrNull('2026-10-02T08:00:00.123456+00:00')).toBe('2026-10-02T08:00:00.123Z');
   });
 });

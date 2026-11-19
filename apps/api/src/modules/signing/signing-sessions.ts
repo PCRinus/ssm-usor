@@ -9,6 +9,7 @@ import type { Context } from 'hono';
 import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { sha256 } from '../../lib/hash';
 import { type SmsSender, smsSenderOf } from '../sms-usage/sender';
 
 // The API's own code, not Supabase's one-time passcode (ADR 023).
@@ -95,12 +96,8 @@ function signingCode() {
 }
 
 // The session id salts the hash, so a code's hash says nothing about the same code elsewhere.
-async function codeHash(sessionId: string, code: string) {
-  const digest = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(`${sessionId}:${code}`)
-  );
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+function codeHash(sessionId: string, code: string) {
+  return sha256(`${sessionId}:${code}`);
 }
 
 function sameText(a: string, b: string) {

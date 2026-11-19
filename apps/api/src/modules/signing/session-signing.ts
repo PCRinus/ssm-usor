@@ -14,7 +14,12 @@ import {
 import type { Context } from 'hono';
 
 import { createLastingAdminClient } from '../../lib/admin-db';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import {
+  archivedClientError,
+  createDataClient,
+  type DataClient,
+  fromDatabaseError,
+} from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createPortalReadClient, type Participation, participationOf } from '../../lib/participant';
@@ -185,11 +190,9 @@ async function createSession(
     place: signer.place,
   });
   if (!contact) {
-    throw new ApiError(
-      'conflict',
-      'There is neither an email nor a phone to send your signing code to.',
-      undefined,
-      signatureErrorReasons.signerHasNoAddress
+    throw ApiError.conflict(
+      signatureErrorReasons.signerHasNoAddress,
+      'There is neither an email nor a phone to send your signing code to.'
     );
   }
   const { sessionId, expiresAt } = await signingSessionsOf(c).create(
@@ -320,8 +323,6 @@ const failureReasonOf = (error: unknown): SigningItemFailureReason => {
 const requestNotPending = () =>
   new ApiError('conflict', undefined, undefined, 'request_not_pending');
 
-const clientArchived = () => new ApiError('conflict', undefined, undefined, 'client_archived');
-
 type RecordForSigning = RecordSigners & {
   employee_id: string;
   clients: { archived_at: string | null };
@@ -407,7 +408,7 @@ async function signRecordRequest(c: Context<ApiEnv>, request: RequestForSigning,
     .maybeSingle();
   if (record.error || !record.data) throw new ApiError('service_unavailable');
   const row = record.data as unknown as RecordForSigning;
-  if (row.clients.archived_at) throw clientArchived();
+  if (row.clients.archived_at) throw archivedClientError();
   const printed = printedSlot(slot, row);
 
   const ctx = signedSheetContext(c);
@@ -464,7 +465,7 @@ async function signTestSheetRequest(
     .maybeSingle();
   if (read.error || !read.data) throw new ApiError('service_unavailable');
   const sheet = read.data as unknown as SheetForSigning;
-  if (sheet.clients.archived_at) throw clientArchived();
+  if (sheet.clients.archived_at) throw archivedClientError();
   const printed = printedTestSheetSlot(slot, sheet);
   if (!printed.name) throw requestNotPending();
 

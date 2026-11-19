@@ -1,3 +1,5 @@
+import { printedDate } from '@ssm-usor/contracts';
+
 export const collator = new Intl.Collator('ro');
 
 export function listed(items: readonly string[]) {
@@ -34,11 +36,6 @@ export function definiteRole(role: string) {
   return `${match[1]}ul${match[2]}`;
 }
 
-export function printedDate(isoDate: string) {
-  const [year, month, day] = isoDate.split('-');
-  return `${day}.${month}.${year}`;
-}
-
 const romanianDayFormat = new Intl.DateTimeFormat('en', {
   year: 'numeric',
   month: '2-digit',
@@ -47,9 +44,11 @@ const romanianDayFormat = new Intl.DateTimeFormat('en', {
 });
 
 /** The ISO date a timestamp falls on in Romania, which the documents are dated by. */
-export function romanianDay(timestamp: string) {
+export function romanianDay(moment: Date | string) {
   const parts = Object.fromEntries(
-    romanianDayFormat.formatToParts(new Date(timestamp)).map((part) => [part.type, part.value])
+    romanianDayFormat.formatToParts(new Date(moment)).map((part) => [part.type, part.value])
   );
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
+
+export const printedDay = (moment: Date | string) => printedDate(romanianDay(moment));

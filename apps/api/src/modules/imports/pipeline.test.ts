@@ -15,9 +15,9 @@ import { strFromU8, strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AlertMessage } from '../../lib/alerts';
-import { sha256 } from '../../lib/docx';
 import type { ImportMessage } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { sha256 } from '../../lib/hash';
 import { cleanUpImports, cleanUpLine } from './cleanup';
 import { libraryFailureReason, libraryReasons, riskFailureReason, riskReasons } from './library';
 import {

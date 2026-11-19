@@ -80,22 +80,18 @@ interface PostgrestError {
 const archivedClientCode = 'CLA01';
 
 export const archivedClientError = () =>
-  new ApiError(
-    'conflict',
-    'The client is archived; nothing under it changes until it is restored.',
-    undefined,
-    clientConflictReasons.clientArchived
+  ApiError.conflict(
+    clientConflictReasons.clientArchived,
+    'The client is archived; nothing under it changes until it is restored.'
   );
 
 // Raised by the triggers that keep employees, positions, workplaces and documents off a lead.
 const leadCode = 'CLL01';
 
 export const clientIsLeadError = () =>
-  new ApiError(
-    'conflict',
-    'The company is still a lead; it has no safety records until it is promoted.',
-    undefined,
-    clientConflictReasons.clientIsLead
+  ApiError.conflict(
+    clientConflictReasons.clientIsLead,
+    'The company is still a lead; it has no safety records until it is promoted.'
   );
 
 // Raised by the triggers that keep a lead as it is on a plan without offers.

@@ -412,11 +412,9 @@ const secondRegisteredOffice = () =>
   new ApiError('conflict', 'This client already has a registered office.');
 
 const officeNeedsWorkplace = () =>
-  new ApiError(
-    'conflict',
-    'A registered office with no activity needs another active workplace of the client.',
-    undefined,
-    workplaceConflictReasons.officeNeedsWorkplace
+  ApiError.conflict(
+    workplaceConflictReasons.officeNeedsWorkplace,
+    'A registered office with no activity needs another active workplace of the client.'
   );
 
 function workplaceError(error: { code: string }, context: string) {
@@ -641,11 +639,9 @@ async function refuseLegalRepresentative(
       legalRepresentative
     )
   ) {
-    throw new ApiError(
-      'conflict',
-      `${person.fullName} is the client's legal representative and cannot also represent the workers.`,
-      undefined,
-      responsiblePersonConflictReasons.workersRepresentativeIsLegalRepresentative
+    throw ApiError.conflict(
+      responsiblePersonConflictReasons.workersRepresentativeIsLegalRepresentative,
+      `${person.fullName} is the client's legal representative and cannot also represent the workers.`
     );
   }
 }

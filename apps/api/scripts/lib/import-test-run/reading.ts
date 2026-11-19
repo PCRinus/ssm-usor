@@ -13,8 +13,8 @@ import {
   type Usage,
 } from '@ssm-usor/import';
 
-import { sha256 } from '../../../src/lib/docx';
 import type { ImportMessage } from '../../../src/lib/env';
+import { sha256 } from '../../../src/lib/hash';
 import type { CopyContext } from '../../../src/modules/imports/copies';
 import {
   ImportFailure,

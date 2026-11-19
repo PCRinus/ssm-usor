@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv, RegenerationMessage } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, errorMessage } from '../../lib/errors';
 import { adminFileStore, type FileStore } from '../../lib/files';
 import { regenerateDraft } from './generate';
 import type { Actor } from './rows';
@@ -56,7 +56,7 @@ export async function consumeRegenerationBatch(
       message.ack();
     } catch (error) {
       console.error(
-        `Regenerating client ${parsed.data.clientId} of job ${parsed.data.jobId} failed on delivery ${message.attempts}: ${describe(error)}`
+        `Regenerating client ${parsed.data.clientId} of job ${parsed.data.jobId} failed on delivery ${message.attempts}: ${errorMessage(error, 'unknown error')}`
       );
       message.retry({ delaySeconds: retryDelaySeconds });
     }
@@ -152,15 +152,11 @@ function failureDetail(error: unknown) {
     if (error.reason === clientConflictReasons.clientArchived) return details.archived;
     if (error.code === 'service_unavailable') return details.unavailable;
   }
-  return `Regenerarea a eșuat: ${describe(error)}`.slice(0, 1000);
+  return `Regenerarea a eșuat: ${errorMessage(error, 'unknown error')}`.slice(0, 1000);
 }
 
 function missingOf(error: unknown) {
   return error instanceof ApiError && error.reason === 'missing_document_data'
     ? error.missing
     : undefined;
-}
-
-function describe(error: unknown) {
-  return error instanceof Error ? error.message : 'unknown error';
 }

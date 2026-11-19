@@ -71,12 +71,15 @@ export function participationOf(c: Context<ApiEnv>, participantId: string): Part
   return participation;
 }
 
-export function participantEmployee(participation: Participation) {
+export function employeeOfParticipation(participation: Participation) {
   if (!participation.employeeId) {
     throw new ApiError('not_found', 'This participant is not an employee of the client.');
   }
   return { clientId: participation.clientId, employeeId: participation.employeeId };
 }
+
+export const participantEmployee = (c: Context<ApiEnv>, participantId: string) =>
+  employeeOfParticipation(participationOf(c, participantId));
 
 // A participant's token reads none of a client's tables, since policies cannot hide columns from
 // it (ADR 022). The portal reads with the secret key once requireParticipant has checked the

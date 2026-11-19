@@ -61,11 +61,9 @@ import { toEmployeeTests } from './status';
 const noSuchQuestion = () => new ApiError('not_found', 'This question does not exist.');
 
 const builtInRefused = () =>
-  new ApiError(
-    'conflict',
-    'O întrebare predefinită nu se modifică și nu se șterge: ascunde-o și scrie una proprie.',
-    undefined,
-    testErrorReasons.builtIn
+  ApiError.conflict(
+    testErrorReasons.builtIn,
+    'O întrebare predefinită nu se modifică și nu se șterge: ascunde-o și scrie una proprie.'
   );
 
 async function hiddenIds(db: DataClient, organizationId: string) {
@@ -291,8 +289,7 @@ export const getEmployeeTests: RouteHandler<typeof getEmployeeTestsRoute, ApiEnv
   return c.json({ ssm: ofDomain('ssm'), su: ofDomain('su') }, 200);
 };
 
-const notAwaiting = (message: string) =>
-  new ApiError('conflict', message, undefined, testErrorReasons.notAwaiting);
+const notAwaiting = (message: string) => ApiError.conflict(testErrorReasons.notAwaiting, message);
 
 async function hasPassedHiringTest(
   db: DataClient,

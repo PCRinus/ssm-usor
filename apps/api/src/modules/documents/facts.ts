@@ -9,7 +9,7 @@ import {
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import { romanianDay } from '../../lib/romanian';
 import { clientNotFound } from '../clients/lookup';
-import { bySortOrder } from '../risk-evaluations/evaluation';
+import { bySortOrder, preventionMeasureFieldColumns } from '../risk-evaluations/evaluation';
 import type { DocumentFacts, SsmSetFacts } from './context';
 import type { FireSafetySetFacts, FireYearRecords } from './fire-safety';
 import { loadTestQuestions } from './knowledge-tests';
@@ -558,21 +558,18 @@ export async function loadDocumentFacts(
   set: DocumentSet,
   periods: readonly number[] = []
 ): Promise<StoredDocumentFacts> {
-  const own =
-    set === 'fire_safety'
-      ? fireSafetyReads(db, clientId, preparer, periods).then((reads) => ({
-          set: 'fire_safety' as const,
-          reads,
-        }))
-      : occupationalSafetyReads(db, clientId, preparer).then((reads) => ({
-          set: 'occupational_safety' as const,
-          reads,
-        }));
-  const [shared, ownReads] = await Promise.all([sharedReads(db, clientId, preparer), own]);
-  const common = sharedFactsOf(shared);
-  return ownReads.set === 'fire_safety'
-    ? fireSafetyFactsOf(db, clientId, common, ownReads.reads)
-    : occupationalSafetyFactsOf(common, ownReads.reads);
+  if (set === 'fire_safety') {
+    const [reads, shared] = await Promise.all([
+      fireSafetyReads(db, clientId, preparer, periods),
+      sharedReads(db, clientId, preparer),
+    ]);
+    return fireSafetyFactsOf(db, clientId, sharedFactsOf(shared), reads);
+  }
+  const [reads, shared] = await Promise.all([
+    occupationalSafetyReads(db, clientId, preparer),
+    sharedReads(db, clientId, preparer),
+  ]);
+  return occupationalSafetyFactsOf(sharedFactsOf(shared), reads);
 }
 
 export async function loadRiskEvaluations(
@@ -582,7 +579,7 @@ export async function loadRiskEvaluations(
   const { data, error } = await db
     .from('risk_evaluations')
     .select(
-      'id, kind, job_position_id, name, means_of_production, work_environment, exposure, work_task, exposed_persons, risk_factors(id, component, factor_group, description, gravity_class, probability_class, actions, deadline, responsible_person, observations, sort_order, prevention_measures(id, kind, description, sort_order))'
+      `id, kind, job_position_id, name, means_of_production, work_environment, exposure, work_task, exposed_persons, risk_factors(id, component, factor_group, description, gravity_class, probability_class, actions, deadline, responsible_person, observations, sort_order, prevention_measures(${preventionMeasureFieldColumns}))`
     )
     .eq('client_id', clientId);
   if (error) throw fromDatabaseError(error, 'document facts: risk evaluations');

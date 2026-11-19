@@ -210,11 +210,9 @@ export async function storedSheetLink(
     throw new ApiError('not_found', 'The employee has no stored sheet of this number.');
   }
   if (!stored) {
-    throw new ApiError(
-      'conflict',
-      'The employee has several stored sheets: name one with `sequence`.',
-      undefined,
-      'several_sheets'
+    throw ApiError.conflict(
+      'several_sheets',
+      'The employee has several stored sheets: name one with `sequence`.'
     );
   }
   // Ten minutes: the page keeps the link on a real anchor and renews it before then; a phone may

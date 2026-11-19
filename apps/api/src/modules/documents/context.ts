@@ -11,6 +11,7 @@ import {
   type JobPositionDecision,
   jobPositionDecisions,
   type MissingDocumentData,
+  printedDate,
   requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
   type RiskEvaluationGap,
@@ -21,7 +22,7 @@ import {
   trainingMonths,
 } from '@ssm-usor/contracts';
 
-import { collator, listed, printedDate, romanianDay } from '../../lib/romanian';
+import { collator, listed, printedDay } from '../../lib/romanian';
 import { filled } from '../../lib/text';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
 import { type ContextParts, gapRules } from './gaps';
@@ -863,7 +864,7 @@ export function annexedModules(
       number: index + 1,
       title: module.title.trim(),
       versionId: module.version.id,
-      versionDate: printedDate(romanianDay(module.version.createdAt)),
+      versionDate: printedDay(module.version.createdAt),
     }));
 }
 

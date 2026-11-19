@@ -51,11 +51,9 @@ export async function renderSnapshotAnnexes(
   return annexes.map((annex) => {
     const body = bodies.get(annex.versionId);
     if (!body) {
-      throw new ApiError(
-        'conflict',
-        'An annexed instruction is no longer in the library; generate the document again.',
-        undefined,
-        'annex_not_in_library'
+      throw ApiError.conflict(
+        'annex_not_in_library',
+        'An annexed instruction is no longer in the library; generate the document again.'
       );
     }
     return renderInstructionAnnex(domain, body, annex.data);

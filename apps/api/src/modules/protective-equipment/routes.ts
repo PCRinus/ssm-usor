@@ -12,10 +12,14 @@ import {
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  errorContent,
+  jobPositionParams,
+  membershipErrors,
+} from '../../lib/openapi';
 
-const positionParams = z.object({ clientId: z.uuid(), jobPositionId: z.uuid() });
-const entryParams = positionParams.extend({ entryId: z.uuid() });
+const entryParams = jobPositionParams.extend({ entryId: z.uuid() });
 
 const noSuchJobPosition = {
   description: 'The job position does not exist under this client',
@@ -55,7 +59,7 @@ export const listEquipmentRoute = createRoute({
     'The entries of the position in the order they were added, with the position’s decision: `needsProtectiveEquipment` is null until decided, false when the post needs none, true while it has entries (ADR 011).',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: positionParams },
+  request: { params: jobPositionParams },
   responses: {
     200: { description: 'The entries and the decision', content: listContent },
     400: { description: 'Invalid path', content: errorContent },
@@ -73,7 +77,7 @@ export const createEquipmentEntryRoute = createRoute({
     'The first entry decides that the position needs equipment. Inventory carries a duration of use in months; a consumable carries none.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: positionParams, body: entryBody },
+  request: { params: jobPositionParams, body: entryBody },
   responses: {
     201: { description: 'The entry', content: entryContent },
     400: { description: 'Invalid path or request body', content: errorContent },
@@ -128,7 +132,7 @@ export const copyEquipmentRoute = createRoute({
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
-    params: positionParams,
+    params: jobPositionParams,
     body: {
       required: true,
       content: {
@@ -160,7 +164,7 @@ export const decideProtectiveEquipmentRoute = createRoute({
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
-    params: positionParams,
+    params: jobPositionParams,
     body: {
       required: true,
       content: {

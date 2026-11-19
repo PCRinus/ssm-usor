@@ -34,7 +34,7 @@ const fileWithinLimit = bodyLimit({
     );
   },
 });
-const fileParams = z.object({ clientId: z.uuid(), fileId: z.uuid() });
+const fileParams = clientParams.extend({ fileId: z.uuid() });
 
 const noSuchFile = {
   description: 'The file does not exist under this client, or the caller cannot see it',

@@ -29,9 +29,3 @@ export function requireDocx(bytes: Uint8Array) {
     throw new ApiError('validation_error', 'The file is not a Word document (.docx).');
   }
 }
-
-export async function sha256(bytes: Uint8Array) {
-  // A copy with a plain ArrayBuffer behind it, which is what the digest is typed to take.
-  const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(bytes));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}

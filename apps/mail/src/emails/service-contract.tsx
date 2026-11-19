@@ -1,3 +1,5 @@
+import { printedDate } from '@ssm-usor/contracts/romanian';
+
 import { Layout } from './_components/layout';
 import { Action, FallbackLink, Paragraph, Title } from './_components/text';
 
@@ -16,8 +18,6 @@ export type ServiceContractProps = {
 
 export const subject = (organizationName: string) =>
   `Contract de prestări servicii – ${organizationName}`;
-
-const printedDate = (isoDate: string) => isoDate.split('-').reverse().join('.');
 
 // Written to someone who has no account and did not ask for an email from us: formal, in the
 // provider's name. The contract is the attachment; the one thing to click brings the signed

@@ -751,6 +751,9 @@ importers:
 
   packages/document-engine:
     dependencies:
+      '@ssm-usor/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       docxtemplater:
         specifier: 3.69.3
         version: 3.69.3

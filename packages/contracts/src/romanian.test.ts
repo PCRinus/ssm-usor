@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { capitalized, countNoun, countOf, formatCount } from './romanian';
+import { capitalized, countNoun, countOf, formatCount, printedDate } from './romanian';
+
+describe('a printed date', () => {
+  it('is day first, with dots, from a date or the date part of a timestamp', () => {
+    expect(printedDate('2026-01-09')).toBe('09.01.2026');
+    expect(printedDate('1990-12-31T00:00:00+00:00')).toBe('31.12.1990');
+  });
+});
 
 describe('a count in words', () => {
   it('puts "de" between a number and its noun from 20 on, except 101 to 119 and the like', () => {

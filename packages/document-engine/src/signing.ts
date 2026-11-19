@@ -1,3 +1,5 @@
+import { printedDate } from '@ssm-usor/contracts/romanian';
+
 import texts from '../tools/import/signing.ro.json' with { type: 'json' };
 
 export const signingTypeKeys = {
@@ -55,11 +57,6 @@ const codeChannels: Record<SigningCodeChannel, string> = {
 };
 
 const text = (value: string | null | undefined) => value?.trim() ?? '';
-
-const printedDate = (isoDate: string) => {
-  const [year, month, day] = isoDate.slice(0, 10).split('-');
-  return `${day}.${month}.${year}`;
-};
 
 /**
  * The agreement names the client's representative in its parties, as the merge data's

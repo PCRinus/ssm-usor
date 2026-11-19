@@ -1,4 +1,4 @@
-import { createRoute, z } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   createEmployeeRequestSchema,
   employeeInviteesLimit,
@@ -20,11 +20,10 @@ import {
   bearerSecurity,
   clientNotFoundResponse,
   clientParams,
+  employeeParams,
   errorContent,
   membershipErrors,
 } from '../../lib/openapi';
-
-const employeeParams = clientParams.extend({ employeeId: z.uuid() });
 
 export const listEmployeesRoute = createRoute({
   method: 'get',

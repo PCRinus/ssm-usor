@@ -2,17 +2,14 @@ import { creditsExtra } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
 import { adminClient } from '../../lib/admin-db';
-import { type ApiEnv, subscriptionUrl } from '../../lib/env';
+import type { ApiEnv } from '../../lib/env';
+import { errorMessage } from '../../lib/errors';
 import { later } from '../../lib/later';
-import { type MeterDeps, meterReporter } from '../billing/meter-reports';
+import { meterReporter } from '../billing/meter-reports';
 import { stripeFor } from '../billing/stripe';
-import { noticeRecipient } from '../billing/usage-notices';
+import { noticeDepsFor } from '../billing/usage-notices';
 import type { CreditsHooks } from '../credits/store';
 import { createExtrasNotices, extrasNoticeDeps } from './notices';
-
-const describe = (error: unknown) => (error instanceof Error ? error.message : String(error));
-
-type Block = { id: string; boughtAt: Date; customerId: string };
 
 const blockMeter = meterReporter({
   table: 'credit_extra_blocks',
@@ -27,9 +24,6 @@ const blockMeter = meterReporter({
   },
 });
 
-export const reportBlock = (deps: MeterDeps, block: Block) =>
-  blockMeter.report(deps, { id: block.id, at: block.boughtAt, customerId: block.customerId });
-
 export const reportBlocks = blockMeter.sweep;
 
 export const scheduledBlockReports = blockMeter.scheduled;
@@ -40,13 +34,7 @@ export function blocksReporter(env: ApiEnv['Bindings']) {
     if (env.STRIPE_SECRET_KEY?.trim()) {
       await reportBlocks({ db, stripe: stripeFor(env).stripe }, { organizationId });
     }
-    const notices = createExtrasNotices(
-      extrasNoticeDeps(db, {
-        recipient: (id) => noticeRecipient(db, id),
-        mail: env.MAIL,
-        subscriptionUrl: () => subscriptionUrl(env),
-      })
-    );
+    const notices = createExtrasNotices(extrasNoticeDeps(db, noticeDepsFor(env, db)));
     await notices(organizationId, 'credits', new Date());
   };
 }
@@ -57,7 +45,9 @@ export function blocksReporterOf(c: Context<ApiEnv>): CreditsHooks {
   return {
     blocksBought: (organizationId) => {
       const work = report(organizationId).catch((error: unknown) => {
-        console.error(`Credit blocks of ${organizationId} not reported yet: ${describe(error)}`);
+        console.error(
+          `Credit blocks of ${organizationId} not reported yet: ${errorMessage(error)}`
+        );
       });
       later(c, work);
     },

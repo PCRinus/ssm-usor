@@ -3,6 +3,7 @@ import type Stripe from 'stripe';
 import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
+import { errorMessage } from '../../lib/errors';
 import { stripeFor } from './stripe';
 
 export type MeterDeps = { db: AdminClient; stripe: Stripe };
@@ -15,8 +16,6 @@ const meterWindowMs = 35 * 86_400_000;
 
 // A row's own report runs right after it is written; the daily retry leaves it that long first.
 const retryAfterMs = 10 * 60_000;
-
-const describe = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 type MeterSource =
   | { table: 'sms_sends'; at: 'sent_at'; match: { overage: true } }
@@ -101,7 +100,7 @@ export function meterReporter(
         if (await report(deps, { id: row.id, at: new Date(row[at]), customerId })) reported += 1;
       } catch (error) {
         failed += 1;
-        console.error(`${labels.item} ${row.id} not reported: ${describe(error)}`);
+        console.error(`${labels.item} ${row.id} not reported: ${errorMessage(error)}`);
       }
     }
     return { reported, failed };
@@ -118,7 +117,7 @@ export function meterReporter(
         console.log(`${labels.retried}: ${result.reported} reported, ${result.failed} failed.`);
       }
     } catch (error) {
-      console.error(`${labels.retryFailed}: ${describe(error)}`);
+      console.error(`${labels.retryFailed}: ${errorMessage(error)}`);
     }
   }
 

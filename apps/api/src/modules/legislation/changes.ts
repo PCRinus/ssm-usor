@@ -11,13 +11,13 @@ import {
   type LegalChangeResolution,
   type LegalChangeUpdatedDocument,
   type OpenLegalChange,
-  pageRange,
 } from '@ssm-usor/contracts';
 import { templateOfFile } from '@ssm-usor/document-engine/template-files';
 
 import { createDataClient, type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { listPage } from '../../lib/list-page';
 import { bundledActCitations, bundledCitingDocuments, documentOfType } from './act-citations';
 import {
   amendedUnitsOf,
@@ -193,23 +193,13 @@ export const listAppliedLegalChanges: RouteHandler<
       .order('consolidated_on', { ascending: false })
       .order('seen_at', { ascending: false })
       .order('id');
-  const { from, to } = pageRange(page, pageSize);
-  const { data, error, count } = await listed().range(from, to);
-  if (error?.code === 'PGRST103') {
-    // PostgREST refuses a range past the last row, and counts nothing then.
-    const recount = await listed().range(0, 0);
-    if (recount.error) throw fromDatabaseError(recount.error, 'count the applied legal changes');
-    return c.json(
-      {
-        items: [],
-        page,
-        pageSize,
-        total: recount.count ?? 0,
-      } satisfies AppliedLegalChangeListResponse,
-      200
-    );
-  }
-  if (error) throw fromDatabaseError(error, 'list the applied legal changes');
+  const { rows: data, total } = await listPage({
+    page,
+    pageSize,
+    rows: (from, to) => listed().range(from, to),
+    recount: () => listed().range(0, 0),
+    what: 'the applied legal changes',
+  });
 
   const updated = data.map((row) => updatedDocumentsOf(row.versions));
   const rows = await behindRows(db, c.get('membership').organizationId, [
@@ -225,7 +215,7 @@ export const listAppliedLegalChanges: RouteHandler<
     updatedDocuments: updated[index]!,
     behind: behindOf(updated[index]!, rows),
   }));
-  return c.json({ items, page, pageSize, total: count ?? items.length }, 200);
+  return c.json({ items, page, pageSize, total } satisfies AppliedLegalChangeListResponse, 200);
 };
 
 export const getLegalChange: RouteHandler<typeof getLegalChangeRoute, ApiEnv> = async (c) => {

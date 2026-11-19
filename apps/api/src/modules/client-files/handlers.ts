@@ -11,11 +11,12 @@ import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
-import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
+import { sha256 } from '../../lib/hash';
 import { requireOffersFor } from '../../lib/offers';
+import { sentColumns } from '../../lib/partial-update';
 import { requireClient, requireWritableClient } from '../clients/lookup';
 import { contentMatches, splitFileName, typeOfExtension } from './file-type';
 import type {
@@ -143,11 +144,9 @@ function requireChangeable(c: Context<ApiEnv>, row: FileRow) {
 }
 
 const leadOwnersOnly = () =>
-  new ApiError(
-    'conflict',
-    'The files of a lead are for owners only until it is promoted.',
-    undefined,
-    clientFileErrorReasons.leadOwnersOnly
+  ApiError.conflict(
+    clientFileErrorReasons.leadOwnersOnly,
+    'The files of a lead are for owners only until it is promoted.'
   );
 
 const refused = (reason: ApiErrorReason, message: string) =>
@@ -262,9 +261,10 @@ export const updateClientFile: RouteHandler<typeof updateClientFileRoute, ApiEnv
   const db = createDataClient(c);
   const current = await findFile(db, clientId, fileId);
   requireChangeable(c, current);
-  const changes: Database['public']['Tables']['client_files']['Update'] = {};
-  if (body.name !== undefined) changes.name = body.name;
-  if (body.note !== undefined) changes.note = body.note || null;
+  const changes = sentColumns({
+    name: body.name,
+    note: body.note === undefined ? undefined : body.note || null,
+  });
   if (Object.keys(changes).length === 0)
     return c.json({ file: await present(c, db, current) }, 200);
   const { data, error } = await db

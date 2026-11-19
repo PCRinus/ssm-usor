@@ -1,7 +1,14 @@
 import type { MailService } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type NoticeDeps, type NoticeRecipient, sendNoticeOnce } from './usage-notices';
+import { adminClient } from '../../lib/admin-db';
+import { env as billingEnv } from './upstream.fixture';
+import {
+  type NoticeDeps,
+  noticeDepsFor,
+  type NoticeRecipient,
+  sendNoticeOnce,
+} from './usage-notices';
 
 const organizationId = 'org-1';
 const periodStart = '2026-11-13T08:00:00.000Z';
@@ -120,5 +127,15 @@ describe('a notice sent once', () => {
 
     await expect(once()).rejects.toThrow('provider down');
     expect(console.error).toHaveBeenCalledWith('Notice sms_80 for org-1 stays recorded, unsent.');
+  });
+});
+
+describe("a Worker's notice dependencies", () => {
+  it('mail through its binding and link to the subscription page of its app', () => {
+    const mail = {} as MailService;
+    const env = { ...billingEnv, MAIL: mail };
+    const deps = noticeDepsFor(env, adminClient(env));
+    expect(deps.mail).toBe(mail);
+    expect(deps.subscriptionUrl()).toBe('https://app.example.ro/organizatie/abonament');
   });
 });

@@ -16,17 +16,19 @@ import type { Context } from 'hono';
 import { type AdminClient, createAdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import { fileNameWords } from '../../lib/content-disposition';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
-import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError, failureLabel } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
+import { sha256 } from '../../lib/hash';
 import {
+  arrayBufferOf,
   type PdfSigningServices,
   pdfSigningServices,
   rewriteVersioned,
   signField,
 } from '../../lib/pdf-signing';
 import { mergeBuiltIn } from '../../lib/templates';
+import { resultExaminer } from '../signing/printed-signers';
 import type { MarkedQuestion } from '../tests/rows';
 
 export const testSheetColumns =
@@ -91,12 +93,7 @@ const pdfUnavailable = () =>
   );
 
 const sheetBusy = () =>
-  new ApiError(
-    'conflict',
-    'The test sheet changed while it was being written. Try again.',
-    undefined,
-    'sheet_busy'
-  );
+  ApiError.conflict('sheet_busy', 'The test sheet changed while it was being written. Try again.');
 
 export const testSheetNotAvailable = () =>
   new ApiError(
@@ -110,8 +107,6 @@ function need<T>(service: T | null, unavailable: () => ApiError): T {
   if (!service) throw unavailable();
   return service;
 }
-
-const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
 
 const storagePathOf = (
   sheet: Pick<TestSheetRow, 'organization_id' | 'client_id' | 'employee_id' | 'test_result_id'>,
@@ -189,10 +184,7 @@ async function drawTestSheet(deps: TestSheetDeps, result: ResultRow) {
     score: attempt.data.score!,
     total: attempt.data.total,
     grade: testGradeLabels[result.grade],
-    examiner:
-      result.examiner_name && result.examiner_job_title
-        ? { name: result.examiner_name, jobTitle: result.examiner_job_title }
-        : null,
+    examiner: resultExaminer(result),
   });
   return (
     await mergeBuiltIn(admin, deps.sheets.files.readTemplate, testSheetTypeKey, data, 'test sheet')
@@ -214,7 +206,7 @@ export async function ensureTestSheet(
   const signer = need(sheets.signer, signerUnavailable);
   const pdf = await need(sheets.pdf, pdfUnavailable).convertForm(docx);
   const prepared = await signer.prepareSheet(
-    buffer(pdf),
+    arrayBufferOf(pdf),
     Object.values(testSheetFieldNames.signatures)
   );
   const filled = new Uint8Array(await signer.fillFields(prepared, examinerValues(result)));
@@ -310,7 +302,7 @@ export async function refillExaminer(deps: TestSheetDeps, resultId: string) {
   if (!result) return null;
   const signer = need(deps.sheets.signer, signerUnavailable);
   const { after } = await rewriteTestSheet(deps, sheet.id, async (_, bytes) => ({
-    bytes: new Uint8Array(await signer.fillFields(buffer(bytes), examinerValues(result))),
+    bytes: new Uint8Array(await signer.fillFields(arrayBufferOf(bytes), examinerValues(result))),
   }));
   return after;
 }
@@ -344,7 +336,9 @@ export async function applyTestSheetSignature(
     if (slot === 'examiner') {
       const result = await readResult(deps.admin, sheet.test_result_id);
       if (!result) throw new ApiError('not_found', 'The test result does not exist.');
-      bytes = new Uint8Array(await service.fillFields(buffer(bytes), examinerValues(result)));
+      bytes = new Uint8Array(
+        await service.fillFields(arrayBufferOf(bytes), examinerValues(result))
+      );
     }
     signedAt = deps.sheets.now();
     return {

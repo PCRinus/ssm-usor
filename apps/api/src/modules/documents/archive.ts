@@ -9,7 +9,7 @@ import { clientNotFound } from '../clients/lookup';
 import { withAnnexes } from './annexes';
 import { documentFileName } from './downloads';
 import { inSetOrder } from './present';
-import { type DocumentRow, readDocuments } from './rows';
+import { type DocumentRow, draftOf, issuedOf, readDocuments } from './rows';
 
 const setNames: Record<DocumentSet, string> = { occupational_safety: 'SSM', fire_safety: 'SU' };
 
@@ -24,9 +24,9 @@ type ArchivedFile = { name: string; read: () => Promise<Uint8Array> };
  * draft. A PDF is only ever the one made at issuing, so a document without one is left out.
  */
 function archivedRevision(document: DocumentRow, format: DocumentArchiveFormat) {
-  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  const issued = issuedOf(document);
   if (format === 'pdf') return issued?.pdf_path ? issued : null;
-  return issued ?? document.document_revisions.find((revision) => revision.status === 'draft');
+  return issued ?? draftOf(document);
 }
 
 /**
@@ -56,13 +56,11 @@ export async function documentArchive(
       return revision ? [{ document, revision }] : [];
     });
   if (entries.length === 0) {
-    throw new ApiError(
-      'conflict',
+    throw ApiError.conflict(
+      'nothing_to_archive',
       format === 'pdf'
         ? 'No document of this set has been issued with a PDF yet.'
-        : 'No document of this set has been generated yet.',
-      undefined,
-      'nothing_to_archive'
+        : 'No document of this set has been generated yet.'
     );
   }
 

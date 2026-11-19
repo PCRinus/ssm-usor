@@ -4,6 +4,9 @@ import type { Context } from 'hono';
 import type { ApiEnv } from './env';
 import { ApiError } from './errors';
 
+export const isPdf = (bytes: Uint8Array) =>
+  bytes.length > 4 && String.fromCharCode(...bytes.subarray(0, 5)) === '%PDF-';
+
 // Word to PDF happens outside this Worker (docs/pdf.md). Deployed, that is apps/pdf behind a
 // service binding, switched on by `PDF_CONVERSION=service`, which only the deployment sets:
 // under `wrangler dev` the binding exists too, but nothing answers it, because apps/pdf is
