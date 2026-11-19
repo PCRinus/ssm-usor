@@ -26,6 +26,7 @@ import {
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
@@ -102,24 +103,17 @@ export function FireSafetySection({
     return <Skeleton className="h-56 w-full rounded-xl" />;
   }
   if (fireSafety.isError || positions.isError || details.isError) {
-    const failed = fireSafety.isError ? fireSafety : positions.isError ? positions : details;
+    const failed = [fireSafety, positions, details].filter((query) => query.isError);
     return (
       <Card data-testid="fire-safety-unavailable">
         <CardContent>
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                disabled={failed.isFetching}
-                onClick={() => void failed.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            }
+          <LoadFailed
+            error={failed[0]?.error}
+            busy={failed.some((query) => query.isFetching)}
+            onRetry={() => failed.forEach((query) => void query.refetch())}
           >
             Nu am putut încărca instruirea SU.
-          </Notice>
+          </LoadFailed>
         </CardContent>
       </Card>
     );

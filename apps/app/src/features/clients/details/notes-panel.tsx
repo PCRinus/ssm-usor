@@ -11,6 +11,7 @@ import {
   useSaveClientOwnerNotes,
 } from '@/api/generated/api';
 import { replayMask } from '@/app/observability/replay-masking';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { FormActions, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
@@ -60,20 +61,13 @@ export function NotesPanel({
       ) : notes.isPending ? (
         <Skeleton className="h-10 w-full max-w-[70ch]" />
       ) : notes.data === undefined ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={notes.isFetching}
-              onClick={() => void notes.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={notes.error}
+          busy={notes.isFetching}
+          onRetry={() => void notes.refetch()}
         >
           Nu am putut încărca notițele.
-        </Notice>
+        </LoadFailed>
       ) : body ? (
         <p
           data-testid="owner-notes-text"

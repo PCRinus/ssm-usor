@@ -21,6 +21,7 @@ import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -91,20 +92,13 @@ export function ClientRiskEvaluationsCard({
       {evaluations.isPending ? (
         <Skeleton className="h-20 w-full" />
       ) : evaluations.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={evaluations.isFetching}
-              onClick={() => void evaluations.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={evaluations.error}
+          busy={evaluations.isFetching}
+          onRetry={() => void evaluations.refetch()}
         >
           Nu am putut încărca fișele de evaluare a riscurilor ale clientului.
-        </Notice>
+        </LoadFailed>
       ) : (
         <ul className="grid divide-y">
           {sensitiveGroups ? (

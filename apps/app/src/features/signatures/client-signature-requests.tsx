@@ -7,7 +7,6 @@ import {
   trainingPhaseLabels,
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
-import { Button } from '@ssm-usor/ui/components/button';
 import { Link, useRouteContext } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 
@@ -21,7 +20,7 @@ import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 import { Masked } from '@/components/replay';
 import { formatDate, formatDay } from '@/lib/dates';
 
@@ -177,20 +176,13 @@ export function ClientSignatureRequests({
       </div>
       {requests.isError ? (
         <div className="px-6 pb-6">
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                disabled={requests.isFetching}
-                onClick={() => void requests.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            }
+          <LoadFailed
+            error={requests.error}
+            busy={requests.isFetching}
+            onRetry={() => void requests.refetch()}
           >
             Nu am putut încărca semnăturile în așteptare.
-          </Notice>
+          </LoadFailed>
         </div>
       ) : requests.isSuccess && count === 0 ? (
         <p

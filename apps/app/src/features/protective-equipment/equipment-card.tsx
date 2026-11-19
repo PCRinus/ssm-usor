@@ -38,6 +38,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { RowActionsMenu } from '@/components/row-actions-menu';
 import { SectionCard } from '@/components/section-card';
@@ -192,20 +193,13 @@ export function EquipmentCard({
       {equipment.isPending ? (
         <Skeleton className="h-24 w-full" />
       ) : equipment.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={equipment.isFetching}
-              onClick={() => void equipment.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={equipment.error}
+          busy={equipment.isFetching}
+          onRetry={() => void equipment.refetch()}
         >
           Nu am putut încărca echipamentul postului.
-        </Notice>
+        </LoadFailed>
       ) : decision === false ? (
         <Notice
           variant="info"

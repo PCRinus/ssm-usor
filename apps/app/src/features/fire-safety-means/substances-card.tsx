@@ -25,6 +25,7 @@ import {
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { RowActionsMenu } from '@/components/row-actions-menu';
 import { SectionCard } from '@/components/section-card';
@@ -206,20 +207,13 @@ export function SubstancesCard({
       {substances.isPending ? (
         <Skeleton className="h-24 w-full" />
       ) : substances.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={substances.isFetching}
-              onClick={() => void substances.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={substances.error}
+          busy={substances.isFetching}
+          onRetry={() => void substances.refetch()}
         >
           Nu am putut încărca substanțele periculoase.
-        </Notice>
+        </LoadFailed>
       ) : (
         <>
           <fieldset className="grid gap-2" disabled={readOnly || decide.isPending}>

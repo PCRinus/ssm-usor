@@ -19,6 +19,7 @@ import { ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { sheetPadding } from '@/components/page-spacing';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -82,20 +83,13 @@ export function CompanyDetailsCard({
       {details.isPending ? (
         <Skeleton className="h-96 w-full" />
       ) : details.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={details.isFetching}
-              onClick={() => void details.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={details.error}
+          busy={details.isFetching}
+          onRetry={() => void details.refetch()}
         >
           Nu am putut încărca datele firmei.
-        </Notice>
+        </LoadFailed>
       ) : (
         // Keyed by what is saved, so the form starts again from what the server holds.
         <CompanyDetailsForm

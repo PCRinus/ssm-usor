@@ -5,6 +5,7 @@ import { Send } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetEmployeeParticipantQueryKey, useGetEmployeeParticipant } from '@/api/generated/api';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { Fact, FactList, SectionCard } from '@/components/section-card';
 import { AgreementWarning } from '@/features/signatures/agreement-warning';
@@ -76,20 +77,13 @@ export function EmployeePortalCard({
       {state.isPending ? (
         <Skeleton className="h-12 w-full" />
       ) : state.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={state.isFetching}
-              onClick={() => void state.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={state.error}
+          busy={state.isFetching}
+          onRetry={() => void state.refetch()}
         >
           Nu am putut încărca accesul la portal.
-        </Notice>
+        </LoadFailed>
       ) : participant ? (
         <ParticipantStatus participant={participant} onMessage={setMessage} />
       ) : invitation ? (

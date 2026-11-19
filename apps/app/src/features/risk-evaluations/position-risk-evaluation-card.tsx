@@ -14,6 +14,7 @@ import {
 } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { Fact, FactList, SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
@@ -99,20 +100,13 @@ export function PositionRiskEvaluationCard({
       {query.isPending ? (
         <Skeleton className="h-16 w-full" />
       ) : query.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={query.isFetching}
-              onClick={() => void query.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={query.error}
+          busy={query.isFetching}
+          onRetry={() => void query.refetch()}
         >
           Nu am putut încărca fișa de evaluare a riscurilor pentru acest post.
-        </Notice>
+        </LoadFailed>
       ) : !evaluation ? (
         <EmptyState
           data-testid="position-risk-empty"

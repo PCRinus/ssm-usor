@@ -7,7 +7,7 @@ import { Check, ChevronDown, CircleAlert, CircleX, Clock, LoaderCircle } from 'l
 import { type ReactNode, useId, useState } from 'react';
 
 import { getGetLatestLegalCheckRunQueryKey, useGetLatestLegalCheckRun } from '@/api/generated/api';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 
 import { formatDayThisYear, formatTimeOf } from './legislation-labels';
 import { groupFailures, groupHeading } from './run-failures';
@@ -88,22 +88,15 @@ export function LastCheck({ userId }: { userId: string }) {
   if (latest.isPending) return <Skeleton className="h-5 w-96 max-w-full" />;
   if (latest.isError) {
     return (
-      <Notice
-        variant="destructive"
-        data-testid="last-check-error"
-        action={
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={latest.isFetching}
-            onClick={() => void latest.refetch()}
-          >
-            Încearcă din nou
-          </Button>
-        }
+      <LoadFailed
+        error={latest.error}
+        testId="last-check-error"
+        size="sm"
+        busy={latest.isFetching}
+        onRetry={() => void latest.refetch()}
       >
         Nu am putut afla când a rulat ultima verificare.
-      </Notice>
+      </LoadFailed>
     );
   }
 

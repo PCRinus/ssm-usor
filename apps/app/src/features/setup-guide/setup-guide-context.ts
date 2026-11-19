@@ -14,6 +14,7 @@ export interface SetupGuideControls {
   guide: SetupGuide | undefined;
   isPending: boolean;
   isError: boolean;
+  error: unknown;
   retry: () => void;
   doneCount: number;
   complete: boolean;

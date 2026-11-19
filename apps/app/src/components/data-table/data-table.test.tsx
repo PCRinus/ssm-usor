@@ -69,6 +69,23 @@ describe('DataTable', () => {
     ).toEqual([1, 1]);
   });
 
+  it('holds a failure to the visible width of a table that scrolls sideways', () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={undefined}
+        rowKey={(row) => row.id}
+        status="error"
+        label="Rânduri"
+        error={<p>Nu am putut încărca rândurile.</p>}
+        empty={null}
+      />
+    );
+    const held = screen.getByText('Nu am putut încărca rândurile.').parentElement!;
+    expect(held.className).toContain('sticky');
+    expect(held.className).toContain('max-w-[100cqw]');
+  });
+
   it('opens a row under it, by click or keyboard, naming what it controls', async () => {
     render(
       <Table

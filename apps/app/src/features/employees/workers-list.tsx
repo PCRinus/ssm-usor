@@ -3,7 +3,7 @@ import { SearchX } from 'lucide-react';
 
 import { ApiHttpError } from '@/api/http';
 import { EmptyState } from '@/components/empty-state';
-import { sessionExpiredMessage } from '@/lib/api-errors';
+import { LoadFailed } from '@/components/load-failed';
 
 import { workerNoun } from './employee-format';
 
@@ -78,27 +78,18 @@ export function WorkersListError({
 }) {
   const status = error instanceof ApiHttpError ? error.status : undefined;
   return (
-    <>
-      <p data-testid={`${testId}-error`} role="alert" className="text-sm">
-        {status === 401
-          ? sessionExpiredMessage
-          : status === 403
-            ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
-            : status === 404 && notFound
-              ? notFound
-              : message}
-      </p>
-      {onRetry && (
-        <Button
-          data-testid={`${testId}-retry`}
-          variant="outline"
-          className="mt-4"
-          disabled={retrying}
-          onClick={onRetry}
-        >
-          Încearcă din nou
-        </Button>
-      )}
-    </>
+    <LoadFailed
+      error={error}
+      testId={`${testId}-error`}
+      retryTestId={`${testId}-retry`}
+      busy={retrying}
+      onRetry={onRetry}
+    >
+      {status === 403
+        ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
+        : status === 404 && notFound
+          ? notFound
+          : message}
+    </LoadFailed>
   );
 }

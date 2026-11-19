@@ -17,6 +17,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { NotFound, RouteError } from '@/app/route-states';
 import { TitleWithBack } from '@/components/back-link';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { formatRoDate } from '@/lib/dates';
 
@@ -56,21 +57,14 @@ export function LegalChangePage({ changeId, userId }: { changeId: string; userId
       <div className="flex">
         <LegalChangeBack />
       </div>
-      <Notice
-        variant="destructive"
-        data-testid="legal-change-load-error"
-        action={
-          <Button
-            variant="outline"
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-          >
-            Încearcă din nou
-          </Button>
-        }
+      <LoadFailed
+        error={query.error}
+        testId="legal-change-load-error"
+        busy={query.isFetching}
+        onRetry={() => void query.refetch()}
       >
         Nu am putut încărca modificarea.
-      </Notice>
+      </LoadFailed>
     </div>
   );
 }

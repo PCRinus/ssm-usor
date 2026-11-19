@@ -7,6 +7,7 @@ import { Ban, PenLine } from 'lucide-react';
 import { useState } from 'react';
 
 import type { RecordSignaturesResponseSlotsItem } from '@/api/generated/api';
+import { LoadFailed } from '@/components/load-failed';
 import { Masked } from '@/components/replay';
 import { formatDay } from '@/lib/dates';
 
@@ -75,16 +76,14 @@ export function RecordSignatures({
   if (query.isPending) return <Skeleton className="h-16 w-full" />;
   if (query.isError) {
     return (
-      <p data-testid="record-signatures-error" className="text-sm text-muted-foreground">
-        Nu am putut încărca semnăturile.{' '}
-        <button
-          type="button"
-          className="underline underline-offset-4 hover:text-foreground"
-          onClick={() => void query.refetch()}
-        >
-          Încearcă din nou
-        </button>
-      </p>
+      <LoadFailed
+        error={query.error}
+        testId="record-signatures-error"
+        busy={query.isFetching}
+        onRetry={() => void query.refetch()}
+      >
+        Nu am putut încărca semnăturile.
+      </LoadFailed>
     );
   }
   const slots = query.data.slots;

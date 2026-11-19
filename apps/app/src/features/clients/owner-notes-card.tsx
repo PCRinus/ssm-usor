@@ -10,6 +10,7 @@ import {
   useGetClientOwnerNotes,
   useSaveClientOwnerNotes,
 } from '@/api/generated/api';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 
@@ -54,20 +55,13 @@ export function OwnerNotesCard({
       {notes.isPending ? (
         <Skeleton className="h-32 w-full" />
       ) : notes.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={notes.isFetching}
-              onClick={() => void notes.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={notes.error}
+          busy={notes.isFetching}
+          onRetry={() => void notes.refetch()}
         >
           Nu am putut încărca notițele.
-        </Notice>
+        </LoadFailed>
       ) : (
         <>
           <Textarea

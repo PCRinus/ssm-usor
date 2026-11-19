@@ -14,7 +14,7 @@ import {
   useListOpenLegalChanges,
 } from '@/api/generated/api';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 import { Pager } from '@/components/pager';
 
 import {
@@ -55,23 +55,16 @@ export function LegalChanges({ userId }: { userId: string }) {
   }
   if (open.isError || applied.isError) {
     return (
-      <Notice
-        variant="destructive"
-        action={
-          <Button
-            variant="outline"
-            disabled={open.isFetching || applied.isFetching}
-            onClick={() => {
-              if (open.isError) void open.refetch();
-              if (applied.isError) void applied.refetch();
-            }}
-          >
-            Încearcă din nou
-          </Button>
-        }
+      <LoadFailed
+        error={open.error ?? applied.error}
+        busy={open.isFetching || applied.isFetching}
+        onRetry={() => {
+          if (open.isError) void open.refetch();
+          if (applied.isError) void applied.refetch();
+        }}
       >
         Nu am putut încărca modificările legislative.
-      </Notice>
+      </LoadFailed>
     );
   }
 

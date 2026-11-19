@@ -1,9 +1,8 @@
-import { Button } from '@ssm-usor/ui/components/button';
 import type { ReactNode } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { TitleWithBack } from '@/components/back-link';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 
 import { importErrorMessage } from './import-format';
 import { useImport } from './use-import';
@@ -32,18 +31,14 @@ export function ImportLoader({
     return (
       <div className="grid justify-items-start gap-4">
         <div className="flex">{back}</div>
-        <Notice
-          variant="destructive"
-          data-testid="import-error"
+        <LoadFailed
+          testId="import-error"
           className="w-full"
-          action={
-            <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
-              Încearcă din nou
-            </Button>
-          }
+          size="sm"
+          onRetry={() => void query.refetch()}
         >
           {importErrorMessage(query.error, 'Nu am putut încărca importul. Încearcă din nou.')}
-        </Notice>
+        </LoadFailed>
       </div>
     );
   }

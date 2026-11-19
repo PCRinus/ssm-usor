@@ -24,6 +24,7 @@ import {
   useListClientDocuments,
   useListDocumentsBehind,
 } from '@/api/generated/api';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
@@ -287,20 +288,13 @@ export function DocumentsCard<Set extends DocumentSet>({
           <PackHeader set={set} />
           <div className="px-4 pb-6 sm:px-6">
             {documents.isError ? (
-              <Notice
-                variant="destructive"
-                action={
-                  <Button
-                    variant="outline"
-                    disabled={documents.isFetching}
-                    onClick={() => void documents.refetch()}
-                  >
-                    Încearcă din nou
-                  </Button>
-                }
+              <LoadFailed
+                error={documents.error}
+                busy={documents.isFetching}
+                onRetry={() => void documents.refetch()}
               >
                 Nu am putut încărca documentele.
-              </Notice>
+              </LoadFailed>
             ) : (
               <Skeleton className="h-40 w-full" />
             )}

@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useRef } from 'react';
 
 import { getGetTrainingQueryKey, type TrainingResponse, useGetTraining } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
+import { LoadFailed } from '@/components/load-failed';
 import { Masked } from '@/components/replay';
 
 import { NotOnSheet } from './not-on-sheet';
@@ -55,16 +56,14 @@ export function TrainingDetails({
   });
   if (detail.isError) {
     return (
-      <p data-testid="training-details-error" className="text-sm text-muted-foreground">
-        Nu am putut încărca detaliile.{' '}
-        <button
-          type="button"
-          className="underline underline-offset-4 hover:text-foreground"
-          onClick={() => void detail.refetch()}
-        >
-          Încearcă din nou
-        </button>
-      </p>
+      <LoadFailed
+        error={detail.error}
+        testId="training-details-error"
+        busy={detail.isFetching}
+        onRetry={() => void detail.refetch()}
+      >
+        Nu am putut încărca detaliile.
+      </LoadFailed>
     );
   }
   if (!detail.data) {

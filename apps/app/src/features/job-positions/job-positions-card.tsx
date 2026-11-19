@@ -22,6 +22,7 @@ import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { commonFailure } from '@/lib/api-errors';
@@ -258,20 +259,13 @@ export function JobPositionsCard({
               })
             }
             error={
-              <Notice
-                variant="destructive"
-                action={
-                  <Button
-                    variant="outline"
-                    disabled={positions.isFetching}
-                    onClick={() => void positions.refetch()}
-                  >
-                    Încearcă din nou
-                  </Button>
-                }
+              <LoadFailed
+                error={positions.error}
+                busy={positions.isFetching}
+                onRetry={() => void positions.refetch()}
               >
                 Nu am putut încărca posturile de lucru.
-              </Notice>
+              </LoadFailed>
             }
             empty={
               <EmptyState

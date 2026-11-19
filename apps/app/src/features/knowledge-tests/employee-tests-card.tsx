@@ -18,6 +18,7 @@ import {
   getGetEmployeeTestsQueryKey,
   useGetEmployeeTests,
 } from '@/api/generated/api';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
@@ -116,21 +117,14 @@ export function EmployeeTestsCard({
       }
     >
       {tests.isError ? (
-        <Notice
-          variant="destructive"
-          data-testid="tests-error"
-          action={
-            <Button
-              variant="outline"
-              disabled={tests.isFetching}
-              onClick={() => void tests.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={tests.error}
+          testId="tests-error"
+          busy={tests.isFetching}
+          onRetry={() => void tests.refetch()}
         >
           Nu am putut încărca testele lucrătorului.
-        </Notice>
+        </LoadFailed>
       ) : !domainTests ? (
         <Skeleton className="h-24 w-full" aria-busy="true" />
       ) : (
