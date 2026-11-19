@@ -264,9 +264,11 @@ export function EmployeesPage() {
               )
             }
           >
-            {!readOnly && !(startsFromEmpty && isEmptyOrLoading(listStatus, unfilteredTotal)) && (
-              <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
-            )}
+            {!readOnly &&
+              !former &&
+              !(startsFromEmpty && isEmptyOrLoading(listStatus, unfilteredTotal)) && (
+                <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
+              )}
           </ListActions>
         </ListCardHeader>
         <AppliedFilters

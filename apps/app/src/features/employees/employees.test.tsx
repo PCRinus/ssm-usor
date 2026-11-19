@@ -298,6 +298,8 @@ describe('client employees list', () => {
     expect(screen.getByTestId('employees-filter-terminated').getAttribute('aria-current')).toBe(
       'page'
     );
+    expect(screen.queryByTestId('employees-add')).toBeNull();
+    expect(screen.queryByTestId('employees-import')).toBeNull();
     const [url] = requestsTo(employeesPath)[1]!;
     expect(new URL(String(url)).searchParams.get('status')).toBe('terminated');
   });
