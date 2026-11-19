@@ -1,14 +1,16 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
+import { fetchMock, installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientRecord, meRecord, organizationId, pageOf } from '@/test/records';
 
 const leadId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const documentId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
-const lead = {
+const lead = clientRecord({
   id: leadId,
   legalName: 'VELOCITA URBANA SRL',
   cui: '41760933',
@@ -21,15 +23,7 @@ const lead = {
   legalRepresentativeName: null,
   declaredEmployeeCount: 6,
   stage: 'lead',
-  contactName: null,
-  contactEmail: null,
-  contactPhone: null,
-  promotedAt: null,
-  serviceContractState: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 const saved = {
   contractNumber: 52,
   contractDate: '2026-09-21',
@@ -90,8 +84,6 @@ const details = (overrides: Record<string, unknown> = {}) => ({
 
 type Route = (init: RequestInit | undefined) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi(
   routes: Partial<
     Record<
@@ -104,87 +96,79 @@ function mockApi(
     offers?: boolean;
   } = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        profile: { fullName: 'Ana Ionescu', professionalTitle: null },
-        membership: {
-          organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'Safety' },
-          role: routes.role ?? 'owner',
-        },
-        features: { offers: routes.offers ?? true },
-      });
-    }
-    if (pathname === `/clients/${leadId}`) return Response.json({ client: routes.client ?? lead });
-    if (pathname === `/clients/${leadId}/owner-notes`) {
-      return Response.json({ notes: { body: '', updatedAt: null } });
-    }
-    if (pathname === `/clients/${leadId}/service-contract/generate`) {
-      return routes.generate?.(init) ?? Response.json(state({ document: contractDocument() }));
-    }
-    if (pathname === `/clients/${leadId}/service-contract/send`) {
-      return routes.send?.(init) ?? Response.json(state());
-    }
-    if (pathname === `/clients/${leadId}/service-contract`) {
-      return method === 'PUT'
-        ? (routes.save?.(init) ?? Response.json(state()))
-        : (routes.get?.(init) ?? Response.json(state()));
-    }
-    if (pathname === `/documents/${documentId}/signed-copy/confirm`) {
-      return routes.confirm?.(init) ?? Response.json({ document: contractDocument() });
-    }
-    if (pathname === `/documents/${documentId}/signed-copy`) {
-      return method === 'DELETE'
-        ? new Response(null, { status: 204 })
-        : (routes.attach?.(init) ?? Response.json({ document: contractDocument() }));
-    }
-    if (pathname === `/clients/${leadId}/promote`) {
-      return routes.promote?.(init) ?? Response.json({ client: lead });
-    }
-    if (pathname === `/documents/${documentId}/issue`) {
-      return routes.issue?.(init) ?? Response.json({ document: contractDocument() });
-    }
-    if (pathname.endsWith('/download')) {
-      return Response.json({
-        url: 'https://files.example.test/signed',
-        fileName: 'Contract.docx',
-        expiresInSeconds: 60,
-      });
-    }
-    if (pathname === '/signed') return new Response(new Uint8Array([80, 75, 3, 4]));
-    if (pathname === `/documents/${documentId}/print`) {
-      return new Response('%PDF-1.7', { headers: { 'Content-Type': 'application/pdf' } });
-    }
-    if (pathname === '/clients')
-      return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
-    if (pathname === `/clients/${leadId}/document-details`) {
-      return routes.details?.(init) ?? Response.json({ documentDetails: details() });
-    }
-    if (pathname === `/clients/${leadId}/workplaces`) return Response.json({ items: [] });
-    if (pathname === `/clients/${leadId}/files`) return Response.json({ items: [] });
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
+  const me = meRecord({
+    profile: {
+      fullName: 'Ana Ionescu',
+      professionalTitle: null,
+      termsVersion: null,
+      termsAcceptedAt: null,
+    },
+    membership: {
+      organization: { id: organizationId, name: 'Safety' },
+      role: routes.role ?? 'owner',
+    },
+    features: { offers: routes.offers ?? true },
   });
+  mockRoutes(
+    (init, { pathname }) => {
+      const method = init?.method ?? 'GET';
+      if (pathname === `/clients/${leadId}`)
+        return Response.json({ client: routes.client ?? lead });
+      if (pathname === `/clients/${leadId}/owner-notes`) {
+        return Response.json({ notes: { body: '', updatedAt: null } });
+      }
+      if (pathname === `/clients/${leadId}/service-contract/generate`) {
+        return routes.generate?.(init) ?? Response.json(state({ document: contractDocument() }));
+      }
+      if (pathname === `/clients/${leadId}/service-contract/send`) {
+        return routes.send?.(init) ?? Response.json(state());
+      }
+      if (pathname === `/clients/${leadId}/service-contract`) {
+        return method === 'PUT'
+          ? (routes.save?.(init) ?? Response.json(state()))
+          : (routes.get?.(init) ?? Response.json(state()));
+      }
+      if (pathname === `/documents/${documentId}/signed-copy/confirm`) {
+        return routes.confirm?.(init) ?? Response.json({ document: contractDocument() });
+      }
+      if (pathname === `/documents/${documentId}/signed-copy`) {
+        return method === 'DELETE'
+          ? new Response(null, { status: 204 })
+          : (routes.attach?.(init) ?? Response.json({ document: contractDocument() }));
+      }
+      if (pathname === `/clients/${leadId}/promote`) {
+        return routes.promote?.(init) ?? Response.json({ client: lead });
+      }
+      if (pathname === `/documents/${documentId}/issue`) {
+        return routes.issue?.(init) ?? Response.json({ document: contractDocument() });
+      }
+      if (pathname.endsWith('/download')) {
+        return Response.json({
+          url: 'https://files.example.test/signed',
+          fileName: 'Contract.docx',
+          expiresInSeconds: 60,
+        });
+      }
+      if (pathname === '/signed') return new Response(new Uint8Array([80, 75, 3, 4]));
+      if (pathname === `/documents/${documentId}/print`) {
+        return new Response('%PDF-1.7', { headers: { 'Content-Type': 'application/pdf' } });
+      }
+      if (pathname === '/clients') return Response.json(pageOf([]));
+      if (pathname === `/clients/${leadId}/document-details`) {
+        return routes.details?.(init) ?? Response.json({ documentDetails: details() });
+      }
+      if (pathname === `/clients/${leadId}/workplaces`) return Response.json({ items: [] });
+      if (pathname === `/clients/${leadId}/files`) return Response.json({ items: [] });
+    },
+    { me }
+  );
 }
 
-const requests = (path: string, method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === path && (init?.method ?? 'GET') === method
-  );
-
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
 afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
+
+installFetchMock();
 
 const mount = (path = `/oferte/${leadId}`) => mountApp(authFixture(makeSession()).client, path);
 
@@ -228,7 +212,7 @@ describe('the service contract of a lead', () => {
     await user.type(within(form).getByTestId('contract-clientRepresentativeName'), 'Adnana POPA');
     await user.click(within(form).getByTestId('contract-save'));
     expect(await screen.findByText('Detaliile contractului au fost salvate.')).toBeTruthy();
-    expect(requests(`/clients/${leadId}/service-contract`, 'PUT')).toHaveLength(1);
+    expect(requestsTo(`/clients/${leadId}/service-contract`, 'PUT')).toHaveLength(1);
     expect(await screen.findByTestId('contract-end')).toBeTruthy();
   });
 
@@ -288,11 +272,11 @@ describe('the service contract of a lead', () => {
     await waitFor(() => expect(document.activeElement?.id).toBe('countyCode'));
     expect(screen.getByTestId('company-form')).toBeTruthy();
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
-    const asked = requests(`/clients/${leadId}/service-contract`, 'GET').length;
+    const asked = requestsTo(`/clients/${leadId}/service-contract`, 'GET').length;
     await user.type(screen.getByTestId('client-address'), ' bis');
     await user.click(screen.getByTestId('company-save'));
     await waitFor(() =>
-      expect(requests(`/clients/${leadId}/service-contract`, 'GET').length).toBeGreaterThan(asked)
+      expect(requestsTo(`/clients/${leadId}/service-contract`, 'GET').length).toBeGreaterThan(asked)
     );
     expect(await screen.findByText('Datele firmei au fost salvate.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Înapoi la contract' })).toBeNull();
@@ -381,18 +365,20 @@ describe('the service contract of a lead', () => {
 
     await user.click(await screen.findByTestId('contract-draft-actions'));
     await user.click(await screen.findByTestId('contract-print-draft'));
-    await waitFor(() => expect(requests(`/documents/${documentId}/print`, 'POST')).toHaveLength(1));
+    await waitFor(() =>
+      expect(requestsTo(`/documents/${documentId}/print`, 'POST')).toHaveLength(1)
+    );
     expect(await screen.findByTestId('print-frame')).toBeTruthy();
 
     await user.click(screen.getByTestId('contract-issued-actions'));
     await user.click(await screen.findByTestId('contract-print-issued'));
     const issuedDownload = `/documents/${documentId}/revisions/${issuedId}/download`;
     await waitFor(() => expect(screen.getAllByTestId('print-frame')).toHaveLength(1));
-    const formats = (requests(issuedDownload, 'GET') as [string][]).map((call) =>
+    const formats = (requestsTo(issuedDownload, 'GET') as [string][]).map((call) =>
       new URL(String(call[0])).searchParams.get('format')
     );
     expect(formats).toContain('pdf');
-    expect(requests(`/documents/${documentId}/print`, 'POST')).toHaveLength(1);
+    expect(requestsTo(`/documents/${documentId}/print`, 'POST')).toHaveLength(1);
   });
 
   it('asks before generating over a draft, and marks one that the details have left behind', async () => {
@@ -416,10 +402,10 @@ describe('the service contract of a lead', () => {
     expect((await screen.findByTestId('contract-action-dialog')).textContent).toContain(
       'Prețurile și celelalte modificări făcute de mână în ea se pierd'
     );
-    expect(requests(`/clients/${leadId}/service-contract/generate`, 'POST')).toHaveLength(0);
+    expect(requestsTo(`/clients/${leadId}/service-contract/generate`, 'POST')).toHaveLength(0);
     await user.click(screen.getByTestId('contract-action-confirm'));
     await waitFor(() =>
-      expect(requests(`/clients/${leadId}/service-contract/generate`, 'POST')).toHaveLength(1)
+      expect(requestsTo(`/clients/${leadId}/service-contract/generate`, 'POST')).toHaveLength(1)
     );
   });
 
@@ -489,7 +475,7 @@ describe('the service contract of a lead', () => {
         error.id
       );
     }
-    expect(requests(`/clients/${leadId}/service-contract`, 'PUT')).toHaveLength(0);
+    expect(requestsTo(`/clients/${leadId}/service-contract`, 'PUT')).toHaveLength(0);
   });
 
   it('shows saved details as a summary, and the form again on "Modifică"', async () => {
@@ -724,7 +710,7 @@ describe('the signed copy', () => {
     );
     await user.click(screen.getByTestId('contract-action-confirm'));
     expect(await screen.findByText('Exemplarul semnat a fost eliminat.')).toBeTruthy();
-    expect(requests(`/documents/${documentId}/signed-copy`, 'DELETE')).toHaveLength(1);
+    expect(requestsTo(`/documents/${documentId}/signed-copy`, 'DELETE')).toHaveLength(1);
   });
 
   it('is not offered before the contract is issued', async () => {
@@ -871,7 +857,7 @@ describe('the contract of a client', () => {
     );
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
     expect(sections).not.toContain('Contract');
-    expect(requests(`/clients/${leadId}/service-contract`, 'GET')).toHaveLength(0);
+    expect(requestsTo(`/clients/${leadId}/service-contract`, 'GET')).toHaveLength(0);
   });
 });
 
@@ -886,7 +872,7 @@ describe('who signs the contract for the client', () => {
     });
   const bodyOfSave = () =>
     JSON.parse(
-      String(requests(`/clients/${leadId}/service-contract`, 'PUT')[0]![1]?.body)
+      String(requestsTo(`/clients/${leadId}/service-contract`, 'PUT')[0]![1]?.body)
     ) as Record<string, unknown>;
 
   it('starts from the legal representative of the client, and keeps it editable', async () => {
@@ -908,7 +894,7 @@ describe('who signs the contract for the client', () => {
 
     await user.click(within(form).getByTestId('contract-save'));
     await waitFor(() =>
-      expect(requests(`/clients/${leadId}/service-contract`, 'PUT')).toHaveLength(1)
+      expect(requestsTo(`/clients/${leadId}/service-contract`, 'PUT')).toHaveLength(1)
     );
     expect(bodyOfSave()).toMatchObject({
       clientRepresentativeName: 'Maria Popescu',
@@ -992,7 +978,7 @@ describe('who signs the contract for the client', () => {
     expect(await screen.findByText('Detaliile contractului au fost salvate.')).toBeTruthy();
     expect(bodyOfSave()).not.toHaveProperty('clientRepresentativeName');
     expect(bodyOfSave()).not.toHaveProperty('clientRepresentativeRole');
-    expect(requests(`/clients/${leadId}/document-details`, 'GET')).toHaveLength(0);
+    expect(requestsTo(`/clients/${leadId}/document-details`, 'GET')).toHaveLength(0);
   });
 });
 
