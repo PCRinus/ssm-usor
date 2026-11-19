@@ -37,6 +37,7 @@ import { FileLinkButton } from '@/components/file-link-button';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
+import { LoadFailed } from '@/components/load-failed';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -308,20 +309,9 @@ export function SigningAgreementCard({
       {query.isPending ? (
         <Skeleton className="h-8 w-full" />
       ) : query.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={query.isFetching}
-              onClick={() => void query.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
-        >
+        <LoadFailed busy={query.isFetching} onRetry={() => void query.refetch()}>
           Nu am putut încărca starea actului adițional.
-        </Notice>
+        </LoadFailed>
       ) : (
         <div className="grid gap-3">
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
