@@ -4,6 +4,7 @@ import {
   commuteMeans,
   commuteMeansOtherMaxLength,
   decodeCnp,
+  employeeTextLimits,
   isValidCnpInput,
   minutesRange,
   normalizeCnp,
@@ -45,6 +46,8 @@ export function employeeErrorHelp(error: FieldError | undefined) {
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
+const limitedText = (name: keyof typeof employeeTextLimits, message: (max: number) => string) =>
+  optionalText(employeeTextLimits[name][1], message(employeeTextLimits[name][1]));
 const isoDate = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 export const employeeFormSchema = z
@@ -52,18 +55,27 @@ export const employeeFormSchema = z
     lastName: z
       .string()
       .trim()
-      .min(1, 'Introdu numele de familie.')
-      .max(100, 'Numele poate avea cel mult 100 de caractere.'),
+      .min(employeeTextLimits.lastName[0], 'Introdu numele de familie.')
+      .max(
+        employeeTextLimits.lastName[1],
+        `Numele poate avea cel mult ${employeeTextLimits.lastName[1]} de caractere.`
+      ),
     firstName: z
       .string()
       .trim()
-      .min(1, 'Introdu prenumele.')
-      .max(100, 'Prenumele poate avea cel mult 100 de caractere.'),
+      .min(employeeTextLimits.firstName[0], 'Introdu prenumele.')
+      .max(
+        employeeTextLimits.firstName[1],
+        `Prenumele poate avea cel mult ${employeeTextLimits.firstName[1]} de caractere.`
+      ),
     cnp: z
       .string()
       .trim()
       .refine((value) => value === '' || isValidCnpInput(value), employeeMessages.cnpInvalid),
-    employeeNumber: optionalText(40, 'Marca poate avea cel mult 40 de caractere.'),
+    employeeNumber: limitedText(
+      'employeeNumber',
+      (max) => `Marca poate avea cel mult ${max} de caractere.`
+    ),
     email: z
       .string()
       .trim()
@@ -79,14 +91,29 @@ export const employeeFormSchema = z
     jobTitle: z
       .string()
       .trim()
-      .min(2, 'Introdu funcția din contract (cel puțin 2 caractere).')
-      .max(160, 'Funcția poate avea cel mult 160 de caractere.'),
+      .min(
+        employeeTextLimits.jobTitle[0],
+        `Introdu funcția din contract (cel puțin ${employeeTextLimits.jobTitle[0]} caractere).`
+      )
+      .max(
+        employeeTextLimits.jobTitle[1],
+        `Funcția poate avea cel mult ${employeeTextLimits.jobTitle[1]} de caractere.`
+      ),
     contractNumber: optionalText(50, 'Numărul contractului poate avea cel mult 50 de caractere.'),
     hiredAt: z.string().regex(isoDate, 'Alege data angajării.'),
     birthDate: z.string().refine(isOptionalIsoDate, 'Alege o dată validă.'),
-    birthPlace: optionalText(160, 'Locul nașterii poate avea cel mult 160 de caractere.'),
-    homeAddress: optionalText(240, 'Domiciliul poate avea cel mult 240 de caractere.'),
-    residenceAddress: optionalText(240, 'Adresa poate avea cel mult 240 de caractere.'),
+    birthPlace: limitedText(
+      'birthPlace',
+      (max) => `Locul nașterii poate avea cel mult ${max} de caractere.`
+    ),
+    homeAddress: limitedText(
+      'homeAddress',
+      (max) => `Domiciliul poate avea cel mult ${max} de caractere.`
+    ),
+    residenceAddress: limitedText(
+      'residenceAddress',
+      (max) => `Adresa poate avea cel mult ${max} de caractere.`
+    ),
     bloodGroup: z
       .string()
       .refine(
@@ -101,10 +128,16 @@ export const employeeFormSchema = z
       ),
     notes: optionalText(2000, 'Observațiile pot avea cel mult 2000 de caractere.'),
     workplaceId: z.string(),
-    qualification: optionalText(160, 'Calificarea poate avea cel mult 160 de caractere.'),
-    education: optionalText(160, 'Studiile pot avea cel mult 160 de caractere.'),
+    qualification: limitedText(
+      'qualification',
+      (max) => `Calificarea poate avea cel mult ${max} de caractere.`
+    ),
+    education: limitedText('education', (max) => `Studiile pot avea cel mult ${max} de caractere.`),
     authorizations: optionalText(500, 'Autorizațiile pot avea cel mult 500 de caractere.'),
-    commuteRoute: optionalText(1000, 'Traseul poate avea cel mult 1000 de caractere.'),
+    commuteRoute: limitedText(
+      'commuteRoute',
+      (max) => `Traseul poate avea cel mult ${max} de caractere.`
+    ),
     commuteMeans: z.array(z.enum(commuteMeans)),
     commuteMeansOther: optionalText(
       commuteMeansOtherMaxLength,
