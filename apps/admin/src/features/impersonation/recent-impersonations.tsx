@@ -50,9 +50,8 @@ export function RecentImpersonations() {
         testId="impersonations-table"
         label="Recent impersonations"
         columns={columns}
-        skeletonRows={2}
+        compact
         empty="You have not acted as a member yet."
-        emptyClassName="h-24"
         row={(item) => (
           <TableRow key={item.id} data-testid="impersonation-row" className="align-top">
             <TableCell className="min-w-36">
@@ -77,7 +76,6 @@ export function RecentImpersonations() {
           noun: { one: 'impersonation', many: 'impersonations' },
           testId: 'impersonations-pager',
           onPage: setPage,
-          onlyWhenSeveralPages: true,
         }}
       />
     </section>

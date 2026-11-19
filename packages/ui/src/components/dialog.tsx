@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@ssm-usor/ui/components/button';
 import { useCloseLabel } from '@ssm-usor/ui/components/close-label';
 import { cn } from 'cn';
 import { XIcon } from 'lucide-react';
@@ -43,15 +42,13 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
-  closeLabel,
   overlayClassName,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
-  closeLabel?: string;
   overlayClassName?: string;
 }) {
-  const close = useCloseLabel(closeLabel);
+  const close = useCloseLabel();
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay className={overlayClassName} />
@@ -103,30 +100,13 @@ function DialogBody({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function DialogFooter({
-  className,
-  showCloseButton = false,
-  closeLabel,
-  children,
-  ...props
-}: React.ComponentProps<'div'> & {
-  showCloseButton?: boolean;
-  closeLabel?: string;
-}) {
-  const close = useCloseLabel(closeLabel);
+function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="dialog-footer"
       className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)}
       {...props}
-    >
-      {children}
-      {showCloseButton && (
-        <DialogPrimitive.Close asChild>
-          <Button variant="outline">{close}</Button>
-        </DialogPrimitive.Close>
-      )}
-    </div>
+    />
   );
 }
 

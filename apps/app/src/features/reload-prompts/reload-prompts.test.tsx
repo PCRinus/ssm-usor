@@ -1,3 +1,4 @@
+import { versionCheckInterval } from '@ssm-usor/spa-runtime/version-watch';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiFetch } from '@/api/http';
 
 import { keptTextLifetime } from './kept-text';
-import { startVersionCheck, versionCheckInterval } from './new-version-toast';
+import { startVersionCheck } from './new-version-toast';
 import { isCodeFileError, openReloadDialog, resetReloadDialog } from './reload-dialog-store';
 import { browserPage } from './reload-page';
 import { ReloadPrompts } from './reload-prompts';

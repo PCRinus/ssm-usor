@@ -1,4 +1,5 @@
 import { currentPrivacyNoticeVersion } from '@ssm-usor/contracts';
+import { createQueryClient } from '@ssm-usor/spa-runtime/query-client';
 import type { Session } from '@supabase/supabase-js';
 import type { SkipToken, UseQueryResult } from '@tanstack/react-query';
 import { createMemoryHistory } from '@tanstack/react-router';
@@ -25,7 +26,6 @@ import { ApiHttpError } from '@/api/http';
 import App from '@/app/App';
 import { createPortalRuntime, type PortalRuntime } from '@/app/portal-runtime';
 import type { AuthClient } from '@/features/auth/auth-store';
-import { createQueryClient } from '@/lib/query-client';
 
 export function fakeSession(user: { email?: string; phone?: string } = {}): Session {
   return {

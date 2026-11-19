@@ -2,6 +2,7 @@ import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
+import { useSecondsLeft } from '@ssm-usor/spa-runtime/countdown';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
@@ -12,7 +13,7 @@ import { type FormEvent, type Ref, useEffect, useRef, useState } from 'react';
 import { PublicFrame } from '@/app/public-frame';
 import { CodeInput } from '@/components/code-input';
 import { deviceLocale, useActiveLocale } from '@/features/language/locale';
-import { useCountdown } from '@/lib/use-countdown';
+import { unreachableMessage } from '@/lib/messages';
 
 import { useAuth } from './auth-context';
 import type { CodeRequestResult, CodeVerificationResult, SignInAddress } from './auth-store';
@@ -21,8 +22,6 @@ import { parseSignInAddress } from './sign-in-address';
 // Supabase sends one code per address per minute and refuses a second request before.
 const resendDelaySeconds = 60;
 const codeLength = { min: 6, max: 8 };
-
-const unreachableMessage = msg`Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou.`;
 
 const requestFailures: Record<Exclude<CodeRequestResult, 'requested'>, MessageDescriptor> = {
   unreachable: unreachableMessage,
@@ -40,7 +39,8 @@ export function SignInPage() {
   const [target, setTarget] = useState<Target | null>(null);
   const [addressError, setAddressError] = useState<MessageDescriptor | null>(null);
   const [requesting, setRequesting] = useState(false);
-  const { secondsLeft, restart: restartCountdown } = useCountdown();
+  const [resendUntil, setResendUntil] = useState<number | null>(null);
+  const secondsLeft = useSecondsLeft(resendUntil);
   useActiveLocale(deviceLocale());
 
   async function request(next: Target) {
@@ -48,7 +48,7 @@ export function SignInPage() {
     const result = await withToken((token) => auth.requestCode(next.address, token));
     setRequesting(false);
     if (result !== 'requested') return requestFailures[result];
-    restartCountdown(resendDelaySeconds);
+    setResendUntil(Date.now() + resendDelaySeconds * 1000);
     return null;
   }
 

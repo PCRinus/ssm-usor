@@ -1,12 +1,12 @@
 import {
-  type AuthSnapshot,
+  type AuthError,
   createSessionStore,
   type SessionClient,
+  unreachable,
+  verifiedTotp,
 } from '@ssm-usor/spa-runtime/session';
 import type { Session } from '@supabase/supabase-js';
 import type { QueryClient } from '@tanstack/react-query';
-
-type AuthError = { message: string; code?: string; status?: number; name?: string };
 
 // Supabase Auth refuses a gated call without a Turnstile token once CAPTCHA is on (ADR 004).
 type CaptchaOptions = { captchaToken?: string };
@@ -89,15 +89,8 @@ export class SecondFactorError extends Error {
   }
 }
 
-const verifiedTotp = (session: Session) =>
-  session.user.factors?.find(
-    (factor) => factor.factor_type === 'totp' && factor.status === 'verified'
-  );
-
 export const hasSecondFactor = (session: Session | null) =>
   Boolean(session && verifiedTotp(session));
-
-export type { AuthSnapshot };
 
 export function createAuthStore(client: AuthClient | null, queryClient: QueryClient) {
   // The account whose session a recovery link signed in, until it sets its new password.
@@ -152,8 +145,7 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
     try {
       const { error } = await client.mfa.challengeAndVerify({ factorId: factor.id, code });
       if (error) {
-        // supabase-js reports a request that never got an answer with status 0.
-        if (error.status === 0) return 'unreachable';
+        if (unreachable(error)) return 'unreachable';
         if (error.status === 429) return 'rate-limited';
         return isSignedOut(error) ? 'signed-out' : 'invalid';
       }
