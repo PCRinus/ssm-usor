@@ -2,6 +2,11 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type {
+  FireEquipmentListResponse,
+  FireInstallationListResponse,
+  ImportListResponse,
+} from '@/api/generated/api';
 import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
 import { fetchMock, installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
@@ -110,10 +115,19 @@ function mockApi(
     features: { offers: routes.offers ?? true },
   });
   mockRoutes(
-    (init, { pathname }) => {
+    (init, { pathname, search }) => {
       const method = init?.method ?? 'GET';
       if (pathname === `/clients/${leadId}`)
         return Response.json({ client: routes.client ?? lead });
+      if (pathname === `/clients/${leadId}/fire-equipment`) {
+        return Response.json({ items: [] } satisfies FireEquipmentListResponse);
+      }
+      if (pathname === `/clients/${leadId}/fire-installations`) {
+        return Response.json({ items: [] } satisfies FireInstallationListResponse);
+      }
+      if (`${pathname}${search}` === `/imports?clientId=${leadId}&kind=client&status=confirmed`) {
+        return Response.json({ items: [] } satisfies ImportListResponse);
+      }
       if (pathname === `/clients/${leadId}/owner-notes`) {
         return Response.json({ notes: { body: '', updatedAt: null } });
       }
