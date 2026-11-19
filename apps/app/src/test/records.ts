@@ -1,4 +1,7 @@
 import type {
+  ClientDocumentDetailsResponseDocumentDetails,
+  ClientFireSafetyResponseFireSafety,
+  ClientListResponseItemsItem,
   ClientResponseClient,
   EmployeeListResponseItemsItem,
   EmployeeListResponseItemsItemPortal,
@@ -64,6 +67,22 @@ export function clientRecord(overrides: Partial<ClientResponseClient> = {}): Cli
     createdAt: stamp,
     updatedAt: stamp,
     archivedAt: null,
+    ...overrides,
+  };
+}
+
+export function clientListItem(
+  overrides: Partial<ClientListResponseItemsItem> = {}
+): ClientListResponseItemsItem {
+  return {
+    ...clientRecord(),
+    clientSince: stamp,
+    documentation: null,
+    fireSafetyDocumentation: null,
+    training: null,
+    canDelete: false,
+    serviceContractStateAt: null,
+    serviceContractReturnExpiresAt: null,
     ...overrides,
   };
 }
@@ -228,4 +247,44 @@ export function employeeListItem(
 
 export function pageOf<T>(items: T[], { page = 1, pageSize = 25, total = items.length } = {}) {
   return { items, page, pageSize, total };
+}
+
+export function fireSafetyRecord(
+  overrides: Partial<ClientFireSafetyResponseFireSafety> = {}
+): ClientFireSafetyResponseFireSafety {
+  return {
+    periodicTrainingHours: null,
+    administrativeTrainingIntervalMonths: null,
+    workerTrainingIntervalMonths: null,
+    trainingFirstMonth: null,
+    trainingDayFrom: null,
+    trainingDayTo: null,
+    smokingPolicy: null,
+    smokingPlace: null,
+    wasteKinds: [],
+    wasteContractor: null,
+    wasteCollectors: null,
+    hasThirdParties: false,
+    ...overrides,
+  };
+}
+
+export function documentDetailsRecord(
+  overrides: Partial<ClientDocumentDetailsResponseDocumentDetails> = {}
+): ClientDocumentDetailsResponseDocumentDetails {
+  return {
+    legalRepresentativeName: null,
+    legalRepresentativeRole: null,
+    legalRepresentativeEmployeeId: null,
+    legalRepresentativeEmployee: null,
+    periodicTrainingMinutes: null,
+    administrativeTrainingIntervalMonths: null,
+    administrativeTrainingNotApplicable: false,
+    workerTrainingIntervalMonths: null,
+    workerTrainingNotApplicable: false,
+    trainingFirstMonth: null,
+    trainingDayFrom: null,
+    trainingDayTo: null,
+    ...overrides,
+  };
 }

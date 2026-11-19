@@ -4,13 +4,23 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import type {
+  ClientDocumentDetailsResponse,
+  ResponsiblePersonListResponse,
+} from '@/api/generated/api';
+import type {
   RiskEvaluation,
   RiskFactor,
 } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { bodiesOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
-import { clientId, clientRecord, jobPositionRecord, pageOf } from '@/test/records';
+import {
+  clientId,
+  clientRecord,
+  documentDetailsRecord,
+  jobPositionRecord,
+  pageOf,
+} from '@/test/records';
 
 import { type EvaluationProfile, profileTotalsLabel } from './profile-schema';
 
@@ -179,6 +189,14 @@ function mockProfilesApi({
     const method = init?.method ?? 'GET';
     const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === `/clients/${clientId}/document-details`) {
+      return Response.json({
+        documentDetails: documentDetailsRecord(),
+      } satisfies ClientDocumentDetailsResponse);
+    }
+    if (pathname === `/clients/${clientId}/responsible-persons`) {
+      return Response.json({ items: [] } satisfies ResponsiblePersonListResponse);
+    }
     if (pathname === positionsPath) return Response.json({ items: [accountant] });
     if (pathname === '/risk-factor-suggestions') return Response.json({ items: [] });
     if (pathname === `${positionsPath}/${accountant.id}/risk-evaluation`) {

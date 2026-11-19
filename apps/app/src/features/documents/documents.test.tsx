@@ -4,7 +4,12 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { MeResponseMembershipRole } from '@/api/generated/api';
+import type {
+  FireEquipmentListResponse,
+  FireInstallationListResponse,
+  ImportListResponse,
+  MeResponseMembershipRole,
+} from '@/api/generated/api';
 import { fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
@@ -106,9 +111,18 @@ function mockApi({
   behind = [] as unknown[],
 } = {}) {
   mockRoutes(
-    (init, { pathname }) => {
+    (init, { pathname, search }) => {
       const method = init?.method ?? 'GET';
       if (pathname === `/clients/${clientId}`) return Response.json({ client });
+      if (pathname === `/clients/${clientId}/fire-equipment`) {
+        return Response.json({ items: [] } satisfies FireEquipmentListResponse);
+      }
+      if (pathname === `/clients/${clientId}/fire-installations`) {
+        return Response.json({ items: [] } satisfies FireInstallationListResponse);
+      }
+      if (`${pathname}${search}` === `/imports?clientId=${clientId}&kind=client&status=confirmed`) {
+        return Response.json({ items: [] } satisfies ImportListResponse);
+      }
       if (pathname === '/documents/behind') return Response.json({ items: behind });
       if (pathname === `/clients/${clientId}/documents`) {
         return Response.json({ items, lastGeneration, notApplicable, currentEmployeeCount });

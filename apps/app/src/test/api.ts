@@ -1,5 +1,5 @@
 import { setupStepIds } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, vi } from 'vitest';
+import { afterEach, beforeEach, expect, onTestFinished, vi } from 'vitest';
 
 import type {
   DashboardSummary,
@@ -51,6 +51,10 @@ const landingPageReads: Record<string, () => unknown> = {
 
 const defaultReads = { ...shellReads, ...landingPageReads };
 
+const unroutedRequests: string[] = [];
+
+export const takeUnroutedRequests = () => unroutedRequests.splice(0);
+
 export function mockApi(
   route: Route,
   { me = meRecord() }: { me?: MeResponse | Pick<MeResponse, 'user'> | null } = {}
@@ -63,6 +67,7 @@ export function mockApi(
     const method = init?.method ?? 'GET';
     const defaultRead = method === 'GET' ? defaultReads[`${url.pathname}${url.search}`] : undefined;
     if (defaultRead) return Response.json(defaultRead());
+    unroutedRequests.push(`${method} ${url.pathname}${url.search}`);
     throw new Error(`Unexpected request: ${method} ${url.pathname}`);
   });
 }
@@ -74,7 +79,14 @@ export function mockApi(
 export function installFetchMock() {
   beforeEach(() => {
     fetchMock.mockReset();
+    unroutedRequests.length = 0;
     vi.stubGlobal('fetch', fetchMock);
+    // React Query catches the refusal and the page shows its error state, so only this check fails
+    // the test. Not an afterEach: one that throws skips RTL's cleanup, and without isolation the
+    // next tests in the worker then find this page still mounted.
+    onTestFinished(() => {
+      expect([...new Set(takeUnroutedRequests())], 'requests nobody routed').toEqual([]);
+    });
   });
   afterEach(() => {
     disposeRuntimes();

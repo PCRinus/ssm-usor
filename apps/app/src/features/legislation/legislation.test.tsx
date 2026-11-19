@@ -2,11 +2,27 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { LatestLegalCheckRunResponseRun, MeResponse } from '@/api/generated/api';
+import type {
+  ClientDocumentDetailsResponse,
+  ClientFireSafetyResponse,
+  ClientResponse,
+  JobPositionListResponse,
+  LatestLegalCheckRunResponseRun,
+  MeResponse,
+  ResponsiblePersonListResponse,
+  WorkplaceListResponse,
+} from '@/api/generated/api';
 import { bodiesOf, bodyOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
-import { meRecord, meResponse, organizationId } from '@/test/records';
+import {
+  clientRecord,
+  documentDetailsRecord,
+  fireSafetyRecord,
+  meRecord,
+  meResponse,
+  organizationId,
+} from '@/test/records';
 
 import { summaryPollMs } from './regenerations-context';
 
@@ -539,6 +555,32 @@ function mockLegislationApi({
       if (pathname === '/documents/behind/regenerate-all' && method === 'POST') {
         started = true;
         return startAll();
+      }
+      const alfa = firstAidBehind.clients[0]!;
+      switch (pathname) {
+        case `/clients/${alfa.clientId}`:
+          return Response.json({
+            client: clientRecord({ id: alfa.clientId, legalName: alfa.clientName }),
+            canDelete: false,
+          } satisfies ClientResponse);
+        case `/clients/${alfa.clientId}/document-details`:
+          return Response.json({
+            documentDetails: documentDetailsRecord(),
+          } satisfies ClientDocumentDetailsResponse);
+        case `/clients/${alfa.clientId}/fire-safety`:
+          return Response.json({
+            fireSafety: fireSafetyRecord(),
+            exists: false,
+          } satisfies ClientFireSafetyResponse);
+        case `/clients/${alfa.clientId}/job-positions`:
+          return Response.json({ items: [] } satisfies JobPositionListResponse);
+        case `/clients/${alfa.clientId}/responsible-persons`:
+          return Response.json({ items: [] } satisfies ResponsiblePersonListResponse);
+        case `/clients/${alfa.clientId}/workplaces`:
+          return Response.json({
+            items: [],
+            unassignedEmployeeCount: 0,
+          } satisfies WorkplaceListResponse);
       }
       if (pathname === `/clients/${firstAidBehind.clients[0]!.clientId}/documents/readiness`) {
         return Response.json(readiness);

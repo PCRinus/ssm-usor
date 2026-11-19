@@ -4,9 +4,15 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  type ClientDocumentListResponse,
   type EmployeeListResponseItemsItem,
+  type EmployeeParticipantState,
+  type FoundSheetsResponse,
   getListClientSignatureRequestsQueryKey,
   getListMySignaturesQueryKey,
+  type ImportListResponse,
+  type SigningAgreementResponse,
+  type WorkplaceListResponse,
 } from '@/api/generated/api';
 import { trainingLocks } from '@/features/signatures/use-record-signatures';
 import { readOnlyMessage, sessionExpiredMessage } from '@/lib/api-errors';
@@ -232,6 +238,38 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         return Response.json({ items: [] });
       case `GET /clients/${clientId}/signature-requests`:
         return Response.json({ items: [] });
+      case `GET /clients/${clientId}/workplaces`:
+        return Response.json({
+          items: [],
+          unassignedEmployeeCount: 3,
+        } satisfies WorkplaceListResponse);
+      case `GET /clients/${clientId}/found-sheets`:
+        return Response.json({ items: [], total: 0 } satisfies FoundSheetsResponse);
+      case `GET /clients/${clientId}/documents`:
+        return Response.json({
+          items: [],
+          lastGeneration: null,
+          notApplicable: [],
+          currentEmployeeCount: 3,
+        } satisfies ClientDocumentListResponse);
+      case `GET ${employeePath}/participant`:
+        return Response.json({
+          participant: null,
+          invitation: null,
+        } satisfies EmployeeParticipantState);
+      case `GET ${employeePath}/signing-agreement/state`:
+        return Response.json({
+          agreement: null,
+          unavailable: null,
+        } satisfies SigningAgreementResponse);
+      case 'GET /imports':
+        if (
+          url.searchParams.get('clientId') === clientId &&
+          url.searchParams.get('kind') === 'employees'
+        ) {
+          return Response.json({ items: [] } satisfies ImportListResponse);
+        }
+        return undefined;
       default:
         if (/^GET \/clients\/[^/]+\/training-records\/[^/]+\/signatures$/.test(key)) {
           return Response.json({ recordId: url.pathname.split('/')[4], slots: [] });

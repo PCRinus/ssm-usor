@@ -2,11 +2,11 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { MeResponse } from '@/api/generated/api';
+import type { MeResponse, RegisterImportFilesResponse } from '@/api/generated/api';
 import { bodyOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { clientId, importId, positions, workplaces } from '@/test/employee-import-fixture';
-import { meWithCredits } from '@/test/import-fixture';
+import { importDetail, meWithCredits, summaryOf } from '@/test/import-fixture';
 import { mountApp } from '@/test/mount';
 import { clientRecord, meRecord } from '@/test/records';
 
@@ -65,6 +65,14 @@ const uploading = {
   abandonedAt: null,
 };
 
+const reading = importDetail({
+  kind: 'employees',
+  client: { id: clientId, legalName: client.legalName },
+  intoExistingClient: true,
+  companyName: null,
+  companyCui: null,
+});
+
 type Answer = () => Response | Promise<Response>;
 
 function mockUpload({
@@ -89,6 +97,27 @@ function mockUpload({
       if (url.pathname === '/imports') return Response.json({ items: [] });
       if (url.pathname === `/imports/${importId}/found-sheets`) return addFound();
       if (url.pathname === `/imports/${importId}/abandon`) return abandon();
+      if (url.pathname === `/imports/${importId}/files`) {
+        const { files } = JSON.parse(String(init?.body)) as { files: { uploadPath: string }[] };
+        return Response.json(
+          {
+            files: files.map((file, index) => ({
+              id: `f0000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+              uploadPath: file.uploadPath,
+              bucket: 'imports',
+              storagePath: `org/${importId}/${index + 1}`,
+            })),
+            skipped: [],
+          } satisfies RegisterImportFilesResponse,
+          { status: 201 }
+        );
+      }
+      if (url.pathname === `/imports/${importId}` && method === 'GET') {
+        return Response.json({ import: reading });
+      }
+      if (url.pathname === `/imports/${importId}/start`) {
+        return Response.json({ import: summaryOf(reading) });
+      }
       if (url.pathname === `/clients/${clientId}`) {
         return Response.json({ client, canDelete: false });
       }

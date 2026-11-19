@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { JobPositionListResponse } from '@/api/generated/api';
 import { bodiesOf, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
@@ -97,6 +98,9 @@ function mockApi({
       return Response.json({ documentDetails: details });
     }
     if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: workplaces });
+    if (pathname === `/clients/${clientId}/job-positions`) {
+      return Response.json({ items: [] } satisfies JobPositionListResponse);
+    }
     if (pathname === `/clients/${clientId}/fire-safety`) {
       return Response.json({ fireSafety: emptyFireSafety, exists: false });
     }
