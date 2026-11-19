@@ -230,8 +230,13 @@ export function DataTable<TData extends RowData>({
         >
           {status === 'error' ? (
             <TableRow className="hover:bg-transparent">
-              <TableCell colSpan={columnCount} className="h-48 px-5 text-center whitespace-normal">
-                {error}
+              <TableCell
+                colSpan={columnCount}
+                className="h-48 p-0 whitespace-normal first:pl-0 last:pr-0"
+              >
+                {/* Held to the visible width: in a table wider than the screen, the notice's
+                    button would otherwise sit out of view. */}
+                <div className="sticky left-0 max-w-[100cqw] px-(--table-inset)">{error}</div>
               </TableCell>
             </TableRow>
           ) : status === 'pending' ? (
