@@ -9,7 +9,6 @@ import {
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -33,7 +32,9 @@ import {
   useRecordPaperTestResult,
   useUpdateTestResult,
 } from '@/api/generated/api';
+import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
@@ -100,7 +101,7 @@ export function TestResultDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={target !== null} onClose={onClose}>
       {target && (
         <ProposedExaminer
           key={target.kind === 'examiner' ? target.result.id : 'paper'}
@@ -121,7 +122,7 @@ export function TestResultDialog({
           )}
         </ProposedExaminer>
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -197,6 +198,7 @@ function ResultForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = record.isPending || update.isPending;
+  useHoldOpen(busy);
   const test = useWatch({ control: form.control, name: 'test' });
   const tests = target.kind === 'paper' ? target.tests : [];
 

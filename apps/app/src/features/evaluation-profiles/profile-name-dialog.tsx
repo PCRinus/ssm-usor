@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -12,6 +11,8 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { useForm } from 'react-hook-form';
 
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -33,9 +34,9 @@ export function ProfileNameDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={naming !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={naming !== null} onClose={onClose}>
       {naming && <ProfileNameForm naming={naming} onClose={onClose} />}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -46,6 +47,7 @@ function ProfileNameForm({ naming, onClose }: { naming: ProfileNaming; onClose: 
   });
   const formRef = useRevealErrors(form);
   const { errors, isSubmitting: busy } = form.formState;
+  useHoldOpen(busy);
 
   const onSubmit = form.handleSubmit(async ({ name }) => {
     try {

@@ -32,7 +32,9 @@ import {
   useListClientFiles,
 } from '@/api/generated/api';
 import { openedFromRecord, openedHere } from '@/app/opener';
+import { useHoldOpen } from '@/components/close-guard';
 import { FileLinkButton } from '@/components/file-link-button';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { maskPeople } from '@/components/mask-people';
@@ -587,9 +589,9 @@ function PaperAgreementDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <FormDialog open={open} onClose={onClose}>
       {open && <PaperAgreementForm employee={employee} userId={userId} onClose={onClose} />}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -610,6 +612,7 @@ function PaperAgreementForm({
   });
   const [clientFileId, setClientFileId] = useState('');
   const [busy, setBusy] = useState(false);
+  useHoldOpen(busy);
   const [error, setError] = useState<string | null>(null);
 
   async function save() {

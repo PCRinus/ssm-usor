@@ -7,7 +7,6 @@ import {
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -21,6 +20,8 @@ import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { changeSubscription } from '@/api/generated/api';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Notice } from '@/components/notice';
 
 import { billingErrorMessage, problemMessage } from './billing-errors';
@@ -239,7 +240,7 @@ export function ChangeDialog({
   onDone?: () => void;
 }) {
   return (
-    <Dialog open={target !== null} onOpenChange={(next) => !next && onClose()}>
+    <FormDialog open={target !== null} onClose={onClose}>
       <DialogContent data-testid="change-dialog" className="sm:max-w-[560px]">
         {target && (
           <ChangeForm
@@ -251,7 +252,7 @@ export function ChangeDialog({
           />
         )}
       </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -271,6 +272,7 @@ function ChangeForm({
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const { preview } = useBillingPreview(target);
   const [pending, setPending] = useState(false);
+  useHoldOpen(pending);
   const [error, setError] = useState<string | null>(null);
   const kind = changeKind(current, target, inTrial);
   const data = preview.data;

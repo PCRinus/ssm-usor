@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { SensitiveGroupsState } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -19,6 +18,8 @@ import { z } from 'zod';
 
 import { getListRiskEvaluationsQueryKey, useListRiskEvaluations } from '@/api/generated/api';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -284,14 +285,15 @@ function AddEvaluationDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <FormDialog open={open} onClose={onClose}>
       {open && <AddEvaluationForm clientId={clientId} onClose={onClose} />}
-    </Dialog>
+    </FormDialog>
   );
 }
 
 function AddEvaluationForm({ clientId, onClose }: { clientId: string; onClose: () => void }) {
   const { start, pending, failure } = useStartEvaluation(clientId);
+  useHoldOpen(pending);
   const form = useForm<z.infer<typeof nameFormSchema>>({
     resolver: zodResolver(nameFormSchema),
     defaultValues: { name: '' },

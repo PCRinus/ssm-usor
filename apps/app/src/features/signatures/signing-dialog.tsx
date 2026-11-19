@@ -6,7 +6,6 @@ import {
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -26,6 +25,8 @@ import {
   useSignMySigningSession,
 } from '@/api/generated/api';
 import { apiErrorBody, apiErrorReason } from '@/api/http';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
@@ -81,9 +82,9 @@ export function SigningDialog({
   onGone?: (requestIds: string[]) => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <FormDialog open={open} onClose={onClose}>
       {open && <SigningFlow requests={requests} onClose={onClose} onGone={onGone} />}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -111,6 +112,7 @@ function SigningFlow({
   const codeInput = useRef<HTMLInputElement>(null);
   const wantsFocus = useRef(false);
   const busy = create.isPending || sign.isPending;
+  useHoldOpen(busy);
 
   // The field exists, and is no longer busy, only in the render that follows the request.
   useEffect(() => {
@@ -197,13 +199,7 @@ function SigningFlow({
   const count = trainingCount(requests.length);
 
   return (
-    <DialogContent
-      data-testid="signing-dialog"
-      data-step={step.kind}
-      className="sm:max-w-lg"
-      onInteractOutside={(event) => busy && event.preventDefault()}
-      onEscapeKeyDown={(event) => busy && event.preventDefault()}
-    >
+    <DialogContent data-testid="signing-dialog" data-step={step.kind} className="sm:max-w-lg">
       {step.kind === 'review' && (
         <>
           <DialogHeader>

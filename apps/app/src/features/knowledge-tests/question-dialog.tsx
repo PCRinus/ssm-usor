@@ -3,7 +3,6 @@ import type { KnowledgeTest, TrainingDomain } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -20,6 +19,8 @@ import { Plus, X } from 'lucide-react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 
 import { useCreateTestQuestion, useUpdateTestQuestion } from '@/api/generated/api';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field, FieldMessage } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -52,7 +53,7 @@ export function QuestionDialog({
   onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={editing !== null} onClose={onClose}>
       {editing && (
         <QuestionForm
           key={editing.kind === 'edit' ? editing.question.id : `new-${editing.test}`}
@@ -61,7 +62,7 @@ export function QuestionDialog({
           onCloseAutoFocus={onCloseAutoFocus}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -90,6 +91,7 @@ function QuestionForm({
   const { errors } = form.formState;
   const options = useFieldArray({ control: form.control, name: 'options' });
   const busy = create.isPending || update.isPending;
+  useHoldOpen(busy);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {

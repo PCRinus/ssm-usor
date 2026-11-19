@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { billingPlans } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -19,6 +18,8 @@ import { useCreateInvitation } from '@/api/generated/api';
 import { apiErrorBody, apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { openedHere } from '@/app/opener';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -67,7 +68,7 @@ export function InviteMemberDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <FormDialog open={open} onClose={onClose}>
       {/* Mounted per opening, so a reopened dialog starts empty. */}
       {open &&
         (seats?.full ? (
@@ -75,7 +76,7 @@ export function InviteMemberDialog({
         ) : (
           <InviteForm onClose={onClose} />
         ))}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -119,6 +120,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending;
+  useHoldOpen(busy);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {

@@ -9,7 +9,6 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
-  Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -36,6 +35,8 @@ import {
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field, FieldMessage, personalError } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
@@ -87,7 +88,7 @@ export function ResponsiblePersonDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={editing !== null} onClose={onClose}>
       {editing && (
         <ResponsiblePersonForm
           key={editing === 'new' ? 'new' : editing.id}
@@ -98,7 +99,7 @@ export function ResponsiblePersonDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -143,6 +144,7 @@ function ResponsiblePersonForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  useHoldOpen(busy);
   const contractTitle = person?.employeeJobTitle;
   const [typedTitle, employeeId, typedName] = useWatch({
     control: form.control,

@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -21,6 +20,8 @@ import {
   useUpdateFireMaintenanceItem,
 } from '@/api/generated/api';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -55,7 +56,7 @@ export function MaintenanceItemDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={editing !== null} onClose={onClose}>
       {editing && (
         <MaintenanceItemForm
           key={editing.item?.id ?? `new-${editing.workplaceId}`}
@@ -66,7 +67,7 @@ export function MaintenanceItemDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -94,6 +95,7 @@ function MaintenanceItemForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  useHoldOpen(busy);
 
   const onSubmit = form.handleSubmit(async (values) => {
     const data = toMaintenanceItemRequest(values);
