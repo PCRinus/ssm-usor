@@ -911,13 +911,6 @@ export async function accessTokenOf(email: string, withPassword = password) {
   return (await sessionOf(email, withPassword)).access_token;
 }
 
-// What the recovery email would carry, without sending one.
-export async function recoveryTokenHash(email: string) {
-  const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email });
-  if (error) throw error;
-  return data.properties.hashed_token;
-}
-
 export const emailsTo = (to: string, kind: string) => mailbox(process.env.E2E_API_URL!, to, kind);
 
 export async function emailedLink(to: string, kind: string) {
