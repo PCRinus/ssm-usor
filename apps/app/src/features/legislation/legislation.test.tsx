@@ -844,6 +844,32 @@ describe('the Legislație page', () => {
     );
   });
 
+  it('says a plain draft of a document behind is replaced', async () => {
+    mockLegislationApi({
+      behind: [
+        {
+          ...firstAidBehind,
+          clients: [
+            {
+              ...firstAidBehind.clients[0]!,
+              clientName: 'GAMA SERV SRL',
+              version: 2,
+              status: 'draft',
+              issueDate: null,
+            },
+          ],
+        },
+      ],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('behind-clients-toggle'));
+    expect(screen.getByTestId('behind-client').textContent).toBe(
+      'GAMA SERV SRLVersiunea 2Ciornăse înlocuiește'
+    );
+  });
+
   it('says what moved in the instructions of a document behind them alone', async () => {
     const themesBehind = {
       typeKey: 'training_themes',
