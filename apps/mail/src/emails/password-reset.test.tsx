@@ -36,6 +36,8 @@ describe('password reset', () => {
     [120, 'valabil 2 ore'],
     [15, 'valabil 15 minute'],
     [30, 'valabil 30 de minute'],
+    [1, 'valabil 1 minut '],
+    [101, 'valabil 101 minute'],
   ])('words a validity of %s minutes', async (minutes, text) => {
     const email = await sendReset(minutes);
 

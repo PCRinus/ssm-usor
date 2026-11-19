@@ -60,7 +60,7 @@ import { clientReadingFlags } from './reading-flags';
 import { checkSheets, keepSheets } from './sheet-steps';
 import { asJson, type ImportFileRow, type ImportFileUpdate } from './store';
 
-export function libraryPartsOf(files: ImportFileRow[]): ImportLibraryPart[] {
+function libraryPartsOf(files: ImportFileRow[]): ImportLibraryPart[] {
   const domains = new Set(
     files
       .filter((file) => isLibraryFile(file) && file.document_kind === 'own_instructions')

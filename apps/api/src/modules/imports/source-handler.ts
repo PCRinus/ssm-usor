@@ -2,22 +2,13 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import { type ImportSourceResponse, importSourceResponseSchema } from '@ssm-usor/contracts';
 import { placeQuote } from '@ssm-usor/import';
 
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
-import { listFilesOf, notFound } from './import-queries';
+import { importKindOf, listFilesOf } from './import-queries';
 import { isImage, pageLocationsPathOf, type PreparedPages, textPathOf } from './pipeline-files';
 import type { getImportSourceRoute } from './routes';
-
-// The source needs only the import's kind and to know it is the caller's; the detail's columns
-// carry the whole proposal.
-async function importKindOf(db: DataClient, importId: string) {
-  const { data, error } = await db.from('imports').select('kind').eq('id', importId).maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find import');
-  if (!data) throw notFound();
-  return data.kind;
-}
 
 // The member's own store may read only the objects a file's row names, so this read takes the
 // secret key's, for a page of a file the member's row query has just returned. A page not

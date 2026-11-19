@@ -27,7 +27,9 @@ const output = `${root}${outputArgument}/`;
 
 rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
-const files = [templates, `${templates}fire/`]
+const files = templateSets
+  .filter(({ set }) => set !== 'other')
+  .map(({ folder }) => `${templates}${folder}`)
   .filter((folder) => existsSync(folder))
   .flatMap((folder) =>
     readdirSync(folder)
@@ -36,12 +38,7 @@ const files = [templates, `${templates}fire/`]
   );
 // The per-employee templates are merged with an employee's data, not a client's.
 const employeeSamples = new Map<string, { label: string; data: Record<string, unknown> }[]>(
-  manifestEntries(
-    pathToFileURL(templates),
-    templateSets.filter(
-      ({ set, folder }) => set !== 'other' && existsSync(`${templates}${folder}manifest.json`)
-    )
-  )
+  manifestEntries(pathToFileURL(templates))
     .filter((entry) => entry.perEmployee)
     .map((entry) => [
       `${templates}${entry.path}`,

@@ -110,6 +110,8 @@ describe('sign-in code', () => {
     ['+40722123456', 60, 'valabil o ora'],
     ['+40722123456', 120, 'valabil 2 ore'],
     ['+40722123456', 30, 'valabil 30 de minute'],
+    ['+40722123456', 101, 'valabil 101 minute.'],
+    ['+40722123456', 130, 'valabil 130 de minute'],
     ['+447700900123', 60, 'valid for 1 hour'],
     ['+447700900123', 100, 'valid for 100 minutes'],
   ])('words the validity for %s and %s minutes', (to, expiresInMinutes, words) => {

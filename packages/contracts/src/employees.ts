@@ -6,7 +6,11 @@ import { listQuerySchema, listSearchSchema, pageSchema, repeatedQueryValue } fro
 import { participantChannelSchema, portalLanguageSchema } from './participant-channels';
 import { phoneSchema } from './phone';
 import { employeeTestsSchema, testStateFilterSchema } from './tests';
-import { employeeTrainingSchema, employeeTrainingStateFilterSchema } from './trainings';
+import {
+  employeeTrainingSchema,
+  employeeTrainingStateFilterSchema,
+  minutesRange,
+} from './trainings';
 
 const text = ([min, max]: readonly [number, number]) => z.string().trim().min(min).max(max);
 const optionalText = (min: number, max: number) => text([min, max]).nullish();
@@ -90,7 +94,7 @@ export const createEmployeeRequestSchema = z
     // Left out, none; repeated codes count once.
     commuteMeans: z.array(commuteMeanSchema).max(20).nullish(),
     commuteMeansOther: optionalText(1, commuteMeansOtherMaxLength),
-    commuteMinutes: z.number().int().min(1).max(600).nullish(),
+    commuteMinutes: z.number().int().min(minutesRange.min).max(minutesRange.max).nullish(),
   })
   .superRefine((body, ctx) => {
     if (body.birthDate && body.birthDate >= body.hiredAt) {
