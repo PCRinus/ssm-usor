@@ -26,6 +26,7 @@ import {
 } from '../../test/upstream';
 import { buildDocumentContext } from './context';
 import { bankQuestions, facts as contextFacts } from './context.fixture';
+import { buildFireSafetyContext, fireSafetyDocumentData } from './fire-safety';
 import { printedTest } from './knowledge-tests';
 import { sensitiveGroupsEvaluation, workshopEvaluation } from './risk-evaluations.fixture';
 
@@ -3253,6 +3254,13 @@ describe('the fire-safety set', () => {
     );
     expect(occupational).toContain('positions');
     for (const name of occupational) expect(merged[0]).not.toHaveProperty(name);
+    const ownKeys = Object.keys(
+      fireSafetyDocumentData(
+        buildFireSafetyContext({ ...contextFacts, fireOwnInstructions: null }),
+        'fire_registers'
+      )
+    );
+    expect(Object.keys(merged[0]!).sort()).toEqual(ownKeys.sort());
     expect(merged[0]).toMatchObject({ annexes: [], noAnnexes: true });
     expect(merged[0]).toMatchObject({ issueDate: '01.10.2026', ...printedFireSafety });
   });
