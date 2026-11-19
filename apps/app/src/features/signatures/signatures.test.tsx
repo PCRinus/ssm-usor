@@ -4,14 +4,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiHttpError } from '@/api/http';
 import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
-import { employeeTests, noTests, untrained } from '@/test/training-fixture';
+import { mountApp } from '@/test/mount';
+import {
+  clientId,
+  clientRecord,
+  employeeListItem,
+  employeeRecord,
+  jobPositionRecord,
+  pageOf,
+} from '@/test/records';
+import { employeeTests } from '@/test/training-fixture';
 
 import { signingFailure, signingSessionFailure } from './signature-format';
 import { matchSigner } from './signer-match';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const otherClientId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const welderId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
@@ -30,73 +38,28 @@ const trainingsPath = `/clients/${clientId}/trainings`;
 const signaturesPath = `/clients/${clientId}/training-records/${recordId}/signatures`;
 const agreementPath = `${employeePath}/signing-agreement`;
 
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Pop',
-  declaredEmployeeCount: 6,
-  stage: 'client',
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+const sampleClient = clientRecord({ legalRepresentativeName: 'Maria Pop' });
 
-const employee = {
+const employeeFields = {
   id: employeeId,
-  clientId,
   lastName: 'Popescu',
   firstName: 'Ion',
-  cnp: null,
-  employeeNumber: null,
   email: 'ion.popescu@example.com',
-  phone: null,
   jobTitle: 'Sudor',
   jobPosition: { id: welderId, name: 'Sudor' },
   hiredAt: '2020-03-01',
-  status: 'active',
-  terminatedAt: null,
-  birthDate: null,
-  birthPlace: null,
-  homeAddress: null,
-  bloodGroup: null,
-  rhFactor: null,
-  notes: null,
   workplace: null,
-  qualification: null,
-  education: null,
-  authorizations: null,
-  commuteRoute: null,
-  commuteMeans: [],
-  commuteMeansOther: null,
-  commuteMinutes: null,
-  training: untrained,
-  tests: noTests,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
 };
 
-const position = {
+const employee = employeeRecord(employeeFields);
+
+const position = jobPositionRecord({
   id: welderId,
-  clientId,
   name: 'Sudor',
-  staffCategory: 'execution',
-  workZone: null,
-  activities: null,
-  trainingIntervalMonths: null,
   employeeCount: 1,
-  needsProtectiveEquipment: null,
-  equipmentCount: 0,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
-};
+});
 
 const candidates = [
   {
@@ -291,22 +254,18 @@ function signaturePage(items: Record<string, unknown>[], overrides: Record<strin
 
 type Handler = (url: URL, init: RequestInit | undefined) => Response | Promise<Response>;
 
-const fetchMock = vi.fn<typeof fetch>();
 const saved: string[] = [];
 
 function mockApi(routes: Partial<Record<string, Handler>> = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
+  mockRoutes((init, url) => {
     const key = `${init?.method ?? 'GET'} ${url.pathname}`;
     const route = routes[key];
     if (route) return route(url, init);
     switch (key) {
-      case 'GET /me':
-        return Response.json({ user: { id: memberId, email: 'review@example.test' } });
       case `GET /clients/${clientId}`:
         return Response.json({ client: sampleClient });
       case `GET ${employeesPath}`:
-        return Response.json({ items: [employee], page: 1, pageSize: 100, total: 1 });
+        return Response.json(pageOf([employeeListItem(employeeFields)], { pageSize: 100 }));
       case `GET ${employeePath}`:
         return Response.json({ employee });
       case `GET ${employeePath}/training-records`:
@@ -343,28 +302,16 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
       case 'GET /me/signatures':
         return signaturePage([]);
       case 'GET /clients':
-        return Response.json({
-          items: [{ ...sampleClient }],
-          page: 1,
-          pageSize: 100,
-          total: 1,
-          unfilteredTotal: 1,
-        });
+        return Response.json({ ...pageOf([sampleClient], { pageSize: 100 }), unfilteredTotal: 1 });
     }
-    return Response.json({ error: 'not_found', message: 'Not mocked.' }, { status: 404 });
   });
 }
 
 const requests = (method: string, pathname: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        (init?.method ?? 'GET') === method && new URL(String(input)).pathname === pathname
-    )
-    .map(([input, init]) => ({
-      url: new URL(String(input)),
-      body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined,
-    }));
+  requestsTo(pathname, method).map(([input, init]) => ({
+    url: new URL(String(input)),
+    body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined,
+  }));
 
 const conflict = (reason: string) =>
   Response.json({ error: 'conflict', message: reason, reason }, { status: 409 });
@@ -386,9 +333,13 @@ async function recordMenuItem(testId: string) {
 const menuDisabled = async (testId: string) =>
   (await recordMenuItem(testId)).hasAttribute('data-disabled');
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+installFetchMock();
+
 beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
   saved.length = 0;
   vi.stubGlobal(
     'URL',
@@ -399,12 +350,6 @@ beforeEach(() => {
   ) {
     if (this.download) saved.push(this.download);
   });
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
 });
 
 describe('matchSigner', () => {
