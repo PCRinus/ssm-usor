@@ -8,7 +8,7 @@ import { adminFileStore } from './files';
 import { createPdfConverter, type PdfConverter } from './pdf';
 import { createSigner } from './signer';
 
-export type PdfSigningFiles = {
+type PdfSigningFiles = {
   readTemplate(path: string): Promise<Uint8Array>;
   readDocument(path: string): Promise<Uint8Array>;
   writeDocument(path: string, bytes: Uint8Array, options: { replace: boolean }): Promise<void>;

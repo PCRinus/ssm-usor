@@ -34,7 +34,6 @@ export function gapRules<Facts, Code extends string, Context extends object>({
       if (gaps.length > 0) throw new Error(`Missing document data: ${gaps.join(', ')}`);
       return contextWithout(facts, []) as Context;
     },
-    /** With `only`, the parts not named there are left out too. */
     buildPartial: (facts: Facts, typeKey?: string, only?: ReadonlySet<string>) =>
       contextWithout(facts, missing(facts, typeKey), only),
   };

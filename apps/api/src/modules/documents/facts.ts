@@ -30,7 +30,6 @@ export type FireStoredFacts = Omit<FireSafetySetFacts, Asked> & {
   clientArchived: boolean;
 };
 
-/** One documentation set's facts: a set reads none of what only the other set prints. */
 export type StoredDocumentFacts = SsmStoredFacts | FireStoredFacts;
 
 const moduleVersionsPath =

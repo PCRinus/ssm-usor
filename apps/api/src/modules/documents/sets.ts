@@ -78,13 +78,12 @@ export const setRules: {
   },
 };
 
-export type AskedFacts = Pick<DocumentFacts, 'issueDate' | 'firstDecisionNumber' | 'period'>;
+type AskedFacts = Pick<DocumentFacts, 'issueDate' | 'firstDecisionNumber' | 'period'>;
 
-export type BoundSetRules = {
+type BoundSetRules = {
   missing: (typeKey?: string) => MissingDocumentData[];
   concerns: (code: MissingDocumentData, printedNames: readonly string[]) => boolean;
   data: (typeKey: string, decisionNumber: number | null) => Record<string, unknown>;
-  /** The data under the names a document printed, without evaluating the rest of the context. */
   printedData: (
     typeKey: string,
     decisionNumber: number | null,
