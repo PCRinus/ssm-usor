@@ -20,9 +20,8 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError, failureLabel } from '../../lib/errors';
 import { listPage, orderedBy } from '../../lib/list-page';
-import { collator } from '../../lib/romanian';
+import { collator, romanianDay } from '../../lib/romanian';
 import { clientNotFound } from '../clients/lookup';
-import { romanianDay } from '../documents/context';
 import { signedSheetContext, syncTrainingRows } from '../signed-sheets/signed-sheets';
 import {
   issueSignatureRequests,

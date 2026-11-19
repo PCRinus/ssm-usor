@@ -6,6 +6,7 @@ import {
   type ImportCredits,
   importCredits,
   type ImportKind,
+  importStartCredits,
   type SubscriptionSummary,
 } from '@ssm-usor/contracts';
 
@@ -19,12 +20,6 @@ const photosCount = (value: number) =>
 const dayFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long' });
 
 export const creditsDay = (iso: string) => dayFormat.format(new Date(iso));
-
-export function startCreditsOf(kind: ImportKind, files: { photos: number; pages: number }) {
-  return kind === 'client'
-    ? importCredits.clientReading + files.photos * importCredits.perPage
-    : files.pages * importCredits.perPage;
-}
 
 export interface CreditsBalance {
   // The month's credits and the gift's together; below zero after a reading that found more
@@ -112,17 +107,17 @@ export const refusalFromApi = (short: CreditsShort): CreditsRefusal =>
 
 export function usesSentence(
   kind: ImportKind,
-  files: { photos: number; pages: number; pdfs: number }
+  files: { photos: number; pdfPages: number; pdfs: number }
 ) {
+  const needed = importStartCredits(kind, files);
   if (kind === 'employees') {
     const per = files.pdfs > 0 ? 'unul pe fotografie sau pagină' : 'unul pe fotografie';
-    return files.pages === 0
+    return needed === 0
       ? `Folosește un credit AI pe fotografie${files.pdfs > 0 ? ' sau pagină' : ''}.`
-      : files.pages === 1
+      : needed === 1
         ? 'Folosește 1 credit AI.'
-        : `Folosește ${creditsLabel(files.pages)}, ${per}.`;
+        : `Folosește ${creditsLabel(needed)}, ${per}.`;
   }
-  const needed = startCreditsOf('client', files);
   const known =
     files.photos === 0
       ? creditsLabel(needed)

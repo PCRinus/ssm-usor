@@ -1,28 +1,33 @@
 import {
+  assemblyPointPath,
+  fireEquipmentCountPath,
   fireScheduleStartFills,
   type ImportBlocker,
   type ImportChanges,
   importedTrainingInterval,
   maxEquipmentDurationMonths,
   offeredTrainingInterval,
+  officeActivityPath,
   postsAfterImport,
+  proposedIncluded,
   registeredNameAsWritten,
   registeredNameOffered,
+  smokingPlacePath,
   staffCategoriesWithPosts,
   type StaffCategory,
+  substancesStatePath,
+  suggestedValuesPath,
+  suggestedWorkplaceFieldNames,
   type TrainingDomain,
 } from '@ssm-usor/contracts';
 import {
   type Field,
-  fireEquipmentCountPath,
   type Flag,
   foldText,
-  officeActivityPath,
   type Proposal,
   proposedEmployeeSchema,
   proposedFireEquipmentSchema,
   proposedFireInstallationSchema,
-  proposedIncluded,
   proposedJobPositionSchema,
   proposedProtectiveEquipmentSchema,
   proposedResponsiblePersonSchema,
@@ -30,8 +35,6 @@ import {
   proposedWorkplaceSchema,
   sameName,
   substanceNameAllowed,
-  suggestedValuesPath,
-  suggestedWorkplaceFieldNames,
 } from '@ssm-usor/import';
 import type { z } from 'zod';
 
@@ -352,10 +355,6 @@ function smokingPlaceDropped(
   return (written ? value : current) !== 'designated_places';
 }
 
-const smokingPlacePath = 'fireSafety.smokingPlace';
-
-const assemblyPointPath = (workplaceId: string) => `assemblyPoints.${workplaceId}`;
-
 // Both print on what is posted at the workplace and packs copy both from one client to the next,
 // so neither is taken until the member keeps, changes or empties it (ADR 041).
 type SiteFact = 'undecided' | 'kept' | 'changed';
@@ -380,8 +379,6 @@ function assemblyPointFact(item: Proposal['workplaces'][number], changes: Import
   }
   return changes.fields[assemblyPointPath(item.id)]?.option === 0 ? 'kept' : 'undecided';
 }
-
-const substancesStatePath = 'fireSafety.substancesState';
 
 // An undecided answer is no answer, which the documents' fills as they fill an empty column.
 const decidedFireSafety = (row: Row | null): Row | null =>
@@ -644,7 +641,7 @@ function clientFields(ctx: PayloadContext) {
     if (replace) (inFireSafety ? fireReplace : clientReplace).push(column);
   };
   for (const entry of fieldsOf(proposal)) {
-    if (entry.path === 'fireSafety.smokingPlace' && placeDropped) continue;
+    if (entry.path === smokingPlacePath && placeDropped) continue;
     // A category applies when the client keeps posts in it, so a declared exclusion is not
     // written, nor waited for (ADR 039).
     if (notApplicablePaths.has(entry.path)) continue;

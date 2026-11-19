@@ -7,7 +7,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { printedDate } from '../documents/context';
+import { printedDate } from '../../lib/romanian';
 import type { ServiceContractFacts } from './facts';
 
 // What the starter template of the service contract is merged with. The readiness check

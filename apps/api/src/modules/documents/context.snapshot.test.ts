@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 
-import { buildDocumentContext, stableJson } from './context';
+import { stableJson } from '../../lib/json';
+import { buildDocumentContext } from './context';
 import { facts } from './context.fixture';
 
 it('builds the same merge data for the fixture client', async () => {

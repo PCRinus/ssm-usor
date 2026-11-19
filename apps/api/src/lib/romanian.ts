@@ -33,3 +33,23 @@ export function definiteRole(role: string) {
   if (!match || !/[bcdfghjklmnprstvzșțx]$/iu.test(match[1]!)) return null;
   return `${match[1]}ul${match[2]}`;
 }
+
+export function printedDate(isoDate: string) {
+  const [year, month, day] = isoDate.split('-');
+  return `${day}.${month}.${year}`;
+}
+
+const romanianDayFormat = new Intl.DateTimeFormat('en', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: 'Europe/Bucharest',
+});
+
+/** The ISO date a timestamp falls on in Romania, which the documents are dated by. */
+export function romanianDay(timestamp: string) {
+  const parts = Object.fromEntries(
+    romanianDayFormat.formatToParts(new Date(timestamp)).map((part) => [part.type, part.value])
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}

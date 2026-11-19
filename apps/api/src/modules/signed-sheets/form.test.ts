@@ -23,7 +23,6 @@ import {
   rowValues,
   sheetForms,
   signatureFieldsOf,
-  signedOn,
   signedSheetData,
   wrapToBox,
 } from './form';
@@ -281,12 +280,6 @@ describe('wrapToBox', () => {
     const lines = wrapToBox(long, { chars: 29, lines: 3 }).split('\n');
     const widest = Math.max(...lines.map((line) => line.length));
     expect(lines.length / widest).toBeCloseTo(3 / 29, 1);
-  });
-});
-
-describe('signedOn', () => {
-  it("prints the day in Romania's time zone", () => {
-    expect(signedOn(new Date('2026-10-17T22:30:00Z'))).toBe('18.10.2026');
   });
 });
 

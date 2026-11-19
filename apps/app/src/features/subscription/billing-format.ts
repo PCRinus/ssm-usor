@@ -1,4 +1,5 @@
 import {
+  amountsWithVat,
   type BillingChoice,
   type BillingInterval,
   type CancellationReason,
@@ -6,7 +7,6 @@ import {
   formatCount,
   type PaidPlan,
   planStep,
-  vatPercent,
 } from '@ssm-usor/contracts';
 
 /** "39 €", "83,49 €", "2.468,40 €". */
@@ -34,10 +34,6 @@ export const perInterval: Record<BillingInterval, string> = {
   year: 'pe an',
 };
 
-export function vatOf(subtotalCents: number) {
-  return Math.round((subtotalCents * vatPercent) / 100);
-}
-
 export interface PriceLine {
   label: string;
   amountCents: number;
@@ -62,9 +58,7 @@ export function choiceLines(choice: BillingChoice): PriceLine[] {
 
 export function choiceAmounts(choice: BillingChoice) {
   const lines = choiceLines(choice);
-  const subtotalCents = lines.reduce((sum, line) => sum + line.amountCents, 0);
-  const vatCents = vatOf(subtotalCents);
-  return { lines, subtotalCents, vatCents, totalCents: subtotalCents + vatCents };
+  return { lines, ...amountsWithVat(lines.reduce((sum, line) => sum + line.amountCents, 0)) };
 }
 
 /** "Start, până la 500 de lucrători, lunar". */

@@ -34,6 +34,10 @@ export function foundIn(sheets: Pick<FoundSheet, 'uploadPath'>[]) {
   return tops.size === 1 && sheets[0]!.uploadPath.includes('/') ? [...tops][0]! : null;
 }
 
+// As starting the import charges a sheet: a PDF by its pages, one when they were not counted.
+export const foundSheetPages = (sheet: Pick<FoundSheet, 'mimeType' | 'pageCount'>) =>
+  sheet.mimeType === 'application/pdf' ? (sheet.pageCount ?? 1) : 1;
+
 export const drawableSheet = (sheet: Pick<FoundSheet, 'mimeType'>) =>
   sheet.mimeType === 'image/jpeg' || sheet.mimeType === 'image/png';
 

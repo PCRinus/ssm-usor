@@ -204,22 +204,6 @@ export const workplaceFireFieldNames = [
 
 export type WorkplaceFireFieldName = (typeof workplaceFireFieldNames)[number];
 
-// What the reading may draft from the client's activity where no document states it (ADR 041),
-// and nothing else: never an area, a count, a date, a name, an address or a place.
-export const suggestedWorkplaceFieldNames = [
-  'combustibleMaterials',
-  'ignitionSources',
-  'fireRiskEquipment',
-  'specificMeasures',
-  'extinguisherNorm',
-] as const;
-
-export type SuggestedWorkplaceFieldName = (typeof suggestedWorkplaceFieldNames)[number];
-
-export const suggestedValuesPath = (workplaceId: string) => `suggestedValues.${workplaceId}`;
-
-export const officeActivityPath = (workplaceId: string) => `officeActivity.${workplaceId}`;
-
 // Defaulted for a proposal stored before they were read.
 const laterValue = <T extends z.ZodType>(value: T) => value.nullable().default(null);
 
@@ -339,8 +323,6 @@ export const proposedFireEquipmentCountSchema = z.object({
 
 export type ProposedFireEquipmentCount = z.infer<typeof proposedFireEquipmentCountSchema>;
 
-export const fireEquipmentCountPath = (id: string) => `fireEquipmentCounts.${id}`;
-
 export const proposedFireInstallationSchema = z.object({
   ...item,
   workplace: z.object(reference(z.string().nullable())),
@@ -392,22 +374,6 @@ export const proposedEmployeeSchema = z.object({
 });
 
 export type ProposedEmployee = z.infer<typeof proposedEmployeeSchema>;
-
-// Unticked, an item is written only when the member ticks it: what only another company's
-// passages give, the legal representative as an employee, who is one only when the documents
-// show them on the staff (ADR 030), which a reading too often assumes, and a post that is only
-// the running of the firm, which nobody may hold as a worker.
-export function proposedIncluded(item: {
-  otherCompanyName: string | null;
-  role?: string;
-  managementOnly?: boolean;
-}) {
-  return (
-    item.otherCompanyName === null &&
-    item.role !== 'legal_representative' &&
-    item.managementOnly !== true
-  );
-}
 
 export const flagCodes = [
   'file_not_found',

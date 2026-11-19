@@ -8,6 +8,7 @@ import type { Context } from 'hono';
 
 import { type AdminClient, createAdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
+import { sha256 } from '../../lib/docx';
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
@@ -178,7 +179,6 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
 
   const { admin, send, revision } = found;
   const path = revision.docx_path.replace(/\.docx$/, '.signed.pdf');
-  const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(bytes));
   const uploadedAt = new Date().toISOString();
   // The row first, then the file, as an owner's attachment does; the counter goes up
   // before the file so that a failing upload still counts as a try.
@@ -193,9 +193,7 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
       organization_id: send.organization_id,
       document_id: send.document_id,
       storage_path: path,
-      sha256: [...new Uint8Array(digest)]
-        .map((byte) => byte.toString(16).padStart(2, '0'))
-        .join(''),
+      sha256: await sha256(bytes),
       uploaded_by: null,
       uploaded_at: uploadedAt,
       source: 'client',

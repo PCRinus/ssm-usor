@@ -2,11 +2,12 @@ import {
   commuteMeansKey,
   type EmployeeImportFieldName,
   employeeImportFieldNames,
+  hiringTestPhases,
   homeAddressDetail,
   isValidCnp,
+  personIncludedByDefault,
   sameHomeAddress,
   type TrainingDomain,
-  type TrainingPhase,
 } from '@ssm-usor/contracts';
 
 import { checkCnp, parseBloodType, rowFlags } from './employee-checks';
@@ -56,15 +57,6 @@ export interface EmployeeImportInput {
   client: EmployeeImportClient;
   // The Romanian day.
   today: string;
-}
-
-/**
- * Whether a person is written unless the member decides otherwise: a leaver is proposed unticked,
- * by the leave date as the member left it.
- */
-export function includedByDefault(leftOn: string | null, existing: boolean) {
-  // An existing employee is completed either way; leaving is then a choice on the leave date.
-  return leftOn === null || existing;
 }
 
 const priority: SheetPageKind[] = [
@@ -273,13 +265,6 @@ const appValues = (
 const pageDomain = (kind: SheetPageKind | null): TrainingDomain | null =>
   kind?.startsWith('ssm') ? 'ssm' : kind?.startsWith('su') ? 'su' : null;
 
-// The test closes the introductory general training for occupational safety and the workplace
-// training for fire safety, whose one test closes both (ADR 024).
-const testPhases: Record<TrainingDomain, TrainingPhase[]> = {
-  ssm: ['introductory_general'],
-  su: ['workplace', 'introductory_general'],
-};
-
 function closesTest(row: Pick<ProposedSheetRow, 'signatures'>) {
   const { verifier, trainer } = row.signatures;
   return verifier === 'present' || (verifier === 'no_box' && trainer === 'present');
@@ -390,7 +375,7 @@ function readRow(
 
   // Every row of a phase the hiring test closes keeps what its verifier box shows, so the row
   // that carries the test can be chosen again once pages move between people.
-  if (!annualTest && testPhases[proposed.domain].includes(proposed.phase)) {
+  if (!annualTest && hiringTestPhases[proposed.domain].includes(proposed.phase)) {
     proposed.test = {
       test: 'hiring',
       takenOn: proposed.heldOn,
@@ -444,35 +429,6 @@ function markRepeats(rows: ProposedSheetRow[], existing: ExistingEmployee | null
     if (row.test?.test === 'annual') seen.add(`${row.domain}|test|${row.heldOn}`);
   }
   return inApp;
-}
-
-/**
- * The rows whose paper hiring test is written, one a domain: the newest of the phase the test
- * closes, among the rows the person's pages now hold, with the dates as the member left them.
- */
-export function hiringTestRowIds(
-  rows: readonly Pick<
-    ProposedSheetRow,
-    'id' | 'domain' | 'phase' | 'heldOn' | 'testOnly' | 'test'
-  >[]
-): Set<string> {
-  const ids = new Set<string>();
-  for (const domain of ['ssm', 'su'] as const) {
-    const phase = testPhases[domain].find((each) =>
-      rows.some((row) => row.domain === domain && row.phase === each && !row.testOnly)
-    );
-    const newest = rows
-      .filter(
-        (row) =>
-          row.domain === domain &&
-          row.phase === phase &&
-          !row.testOnly &&
-          row.test?.test === 'hiring'
-      )
-      .sort((a, b) => (b.heldOn ?? '').localeCompare(a.heldOn ?? ''))[0];
-    if (newest) ids.add(newest.id);
-  }
-  return ids;
 }
 
 // A reading kept before the handover was asked has none.
@@ -568,7 +524,7 @@ export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportPr
       workplaceId: null,
       rowsInApp: 0,
       flags,
-      proposedIncluded: includedByDefault(leftOn as string | null, existing !== null),
+      proposedIncluded: personIncludedByDefault(leftOn as string | null, existing !== null),
     });
     contexts.set(id, {
       hiredAt: (first(fields.hiredAt) as string | null) ?? existing?.hiredAt ?? null,

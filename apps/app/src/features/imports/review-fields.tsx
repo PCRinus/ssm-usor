@@ -5,6 +5,7 @@ import {
   fireSmokingPolicyLabels,
   normalizeCui,
   sameSpelling,
+  smokingPlacePath,
   type StaffCategory,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
@@ -70,7 +71,6 @@ import {
   type SectionId,
   smokingPlaceAsked,
   smokingPlaceDecision,
-  smokingPlacePath,
   valueInForce,
   vatPayerPath,
   yesNoLabels,

@@ -31,6 +31,7 @@ import {
   readingCapBreach,
   tooMuchText,
 } from './pipeline';
+import { startReadOf } from './pipeline-files';
 import {
   consumeImportBatch,
   consumeImportDeadLetters,
@@ -3021,5 +3022,21 @@ describe('failure reasons', () => {
     expect(importFailureReason(down)).toBe(importReasons.unavailable);
     expect(libraryFailureReason(down)).toBe(libraryReasons.failed);
     expect(riskFailureReason(down)).toBe(riskReasons.failed);
+  });
+});
+
+describe('what starting an import charges for', () => {
+  it('counts a photograph once and a PDF by its declared pages, one when undeclared', () => {
+    expect(
+      startReadOf([
+        { mime_type: 'image/jpeg', declared_pages: null },
+        { mime_type: 'application/pdf', declared_pages: 6 },
+        { mime_type: 'application/pdf', declared_pages: null },
+        {
+          mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          declared_pages: null,
+        },
+      ])
+    ).toEqual({ photos: 1, pdfPages: 7 });
   });
 });

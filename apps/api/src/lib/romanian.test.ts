@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { definiteRole, listed, runOn, withoutFinalStop } from './romanian';
+import {
+  definiteRole,
+  listed,
+  printedDate,
+  romanianDay,
+  runOn,
+  withoutFinalStop,
+} from './romanian';
 
 describe('a list in words', () => {
   it('joins the last item with "și" and the others with commas', () => {
@@ -46,5 +53,18 @@ describe('a job title made definite', () => {
     expect(definiteRole('Președinte')).toBeNull();
     expect(definiteRole('Directoare')).toBeNull();
     expect(definiteRole('')).toBeNull();
+  });
+});
+
+describe('a day in Romania', () => {
+  it('is past midnight there while it is still the day before in UTC, in summer and in winter', () => {
+    expect(romanianDay('2026-10-15T21:06:12.345678+00:00')).toBe('2026-10-16');
+    expect(romanianDay('2026-10-15T20:59:59+00:00')).toBe('2026-10-15');
+    expect(romanianDay('2026-01-15T22:30:00+00:00')).toBe('2026-01-16');
+    expect(romanianDay('2026-01-15T21:30:00+00:00')).toBe('2026-01-15');
+  });
+
+  it('is printed day first, with dots', () => {
+    expect(printedDate('2026-01-09')).toBe('09.01.2026');
   });
 });

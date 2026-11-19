@@ -15,8 +15,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { listed, runOn } from '../../lib/romanian';
-import { printedDate } from './context';
+import { listed, printedDate, runOn } from '../../lib/romanian';
 import { extinguisherGroups, firmsOf } from './equipment';
 import type { FireNamedPeople, FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
 

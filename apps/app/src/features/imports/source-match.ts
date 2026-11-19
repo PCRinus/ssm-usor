@@ -1,8 +1,6 @@
-import { importFileExtensions } from '@ssm-usor/contracts';
+import { foldText, importFileExtensions } from '@ssm-usor/contracts';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
-
-import { foldText } from './review-model';
 
 const wordTypes = new Set([
   'application/msword',

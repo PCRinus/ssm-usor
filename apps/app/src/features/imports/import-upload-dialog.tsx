@@ -1,4 +1,4 @@
-import { formatCui, importLimits } from '@ssm-usor/contracts';
+import { formatCui, importLimits, importStartCredits } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -33,7 +33,7 @@ import {
   NoCreditsFooter,
   NoCreditsNotices,
 } from './credits-notices';
-import { startCreditsOf, usesSentence } from './import-credits';
+import { usesSentence } from './import-credits';
 import { filesLabel, formatFileSize, photosLabel } from './import-format';
 import { LocalThumb, SetAsideList, UploadDropZone, UploadProgress } from './upload-parts';
 import {
@@ -84,7 +84,7 @@ function UploadForm({
     onClose,
     leaveWhileBusy: 'Fișierele încă se încarcă. Dacă pleci acum, renunți la import. Pleci?',
     creditsNeeded: (selection) =>
-      startCreditsOf('client', { photos: selection.files.filter(isPhoto).length, pages: 0 }),
+      importStartCredits('client', { photos: selection.files.filter(isPhoto).length, pdfPages: 0 }),
   });
   const { selection, totals, over, opening, busy, choosing, refusal, balance, isOwner, leave } =
     form;
@@ -247,7 +247,7 @@ function UploadForm({
               <DialogFooter className="mt-6 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                 <CreditsLine
                   className="sm:flex-1"
-                  uses={usesSentence('client', { photos, pages: 0, pdfs: 0 })}
+                  uses={usesSentence('client', { photos, pdfPages: 0, pdfs: 0 })}
                   balance={balance}
                   short={refusal !== null}
                 />

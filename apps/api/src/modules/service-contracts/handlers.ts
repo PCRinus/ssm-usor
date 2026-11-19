@@ -10,14 +10,12 @@ import {
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
+import { stableJson } from '../../lib/json';
 import { requireOffersFor } from '../../lib/offers';
 import { createToken, hashToken } from '../../lib/tokens';
 import { clientNotFound } from '../clients/lookup';
-import { stableJson } from '../documents/context';
-import {
-  generateServiceContractDocument,
-  readServiceContractDocument,
-} from '../documents/documents';
+import { generateServiceContractDocument } from '../documents/generate';
+import { readServiceContractDocument } from '../documents/present';
 import { buildServiceContractContext, contractFileName } from './context';
 import { loadServiceContractFacts, missingServiceContractData } from './facts';
 import type {

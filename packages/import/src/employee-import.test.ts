@@ -1,7 +1,7 @@
-import { parseCommuteMeansKey } from '@ssm-usor/contracts';
+import { hiringTestRowIds, parseCommuteMeansKey } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { type EmployeeImportClient, hiringTestRowIds, toEmployeeProposal } from './employee-import';
+import { type EmployeeImportClient, toEmployeeProposal } from './employee-import';
 import { employeeImportProposalSchema } from './employee-proposal';
 import {
   cnps,

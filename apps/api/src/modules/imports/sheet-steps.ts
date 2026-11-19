@@ -1,4 +1,4 @@
-import { importLimits } from '@ssm-usor/contracts';
+import { importLimits, importStartCredits } from '@ssm-usor/contracts';
 import {
   locatingRequest,
   locatingTargets,
@@ -36,7 +36,7 @@ import {
   pageLocationsPathOf,
   pageReadingPathOf,
   sortedStates,
-  startCreditsOf,
+  startReadOf,
 } from './pipeline-files';
 import { employeeReadingFlags } from './reading-flags';
 import { asJson, type ImportFileRow, type ImportRow, type ImportStatus } from './store';
@@ -61,10 +61,7 @@ export async function keepSheets(deps: PipelineDeps, row: ImportRow) {
   if (pages > importLimits.employees.scannedPages) {
     throw new ImportFailure(importReasons.tooManyScans.employees);
   }
-  const charged = (await deps.store.listFiles(row.id)).reduce(
-    (total, file) => total + startCreditsOf(file),
-    0
-  );
+  const charged = importStartCredits('employees', startReadOf(await deps.store.listFiles(row.id)));
   if (!(await deps.store.settleSheetPages(row, pages - charged))) {
     throw new ImportFailure(importReasons.creditsShort);
   }

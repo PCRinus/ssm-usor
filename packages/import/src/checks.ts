@@ -9,6 +9,7 @@ import {
   maxTrainingIntervalMonths,
   normalizeCnp,
   periodicTrainingMinutesOptions,
+  proposedIncluded,
   trainingIntervalChoices,
   workplaceKinds,
 } from '@ssm-usor/contracts';
@@ -25,14 +26,7 @@ import {
   streetKey,
 } from './match';
 import { withNameSpellings } from './name-spellings';
-import {
-  type Field,
-  type Flag,
-  type Option,
-  type Proposal,
-  proposedIncluded,
-  type Source,
-} from './proposal';
+import { type Field, type Flag, type Option, type Proposal, type Source } from './proposal';
 import { intervalWords } from './wire';
 
 export interface CheckInput {

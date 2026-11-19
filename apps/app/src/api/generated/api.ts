@@ -12061,6 +12061,8 @@ export type FoundSheetsResponseItemsItemSheetsItem = {
   mimeType: FoundSheetsResponseItemsItemSheetsItemMimeType;
   /** @minimum 1 */
   sizeBytes: number;
+  /** @nullable */
+  pageCount: number | null;
 };
 
 export type FoundSheetsResponseItemsItem = {

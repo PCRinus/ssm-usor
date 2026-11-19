@@ -22,6 +22,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Json } from '../../src/database.types';
 import { ApiError } from '../../src/lib/errors';
+import { merge } from '../../src/lib/templates';
 import {
   buildDocumentContext,
   buildPartialDocumentContext,
@@ -31,7 +32,6 @@ import {
   missingDocumentData,
 } from '../../src/modules/documents/context';
 import { facts, workshopId } from '../../src/modules/documents/context.fixture';
-import { merge } from '../../src/modules/documents/documents';
 import {
   buildFireSafetyContext,
   buildPartialFireSafetyContext,

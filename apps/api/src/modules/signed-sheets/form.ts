@@ -15,7 +15,7 @@ import {
 } from '@ssm-usor/contracts';
 import { unzipSync } from 'fflate';
 
-import { printedDate } from '../documents/context';
+import { printedDate } from '../../lib/romanian';
 import {
   buildTrainingSheetData,
   chronological,
@@ -343,15 +343,4 @@ const slotLabels: Record<SheetSignerSlot, string> = {
 
 export function signatureReason(record: SheetTrainingRecord, slot: SheetSignerSlot) {
   return `Instruirea din ${printedDate(record.training.heldOn)}: ${slotLabels[slot]}`;
-}
-
-const romanianDay = new Intl.DateTimeFormat('ro-RO', {
-  timeZone: 'Europe/Bucharest',
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-});
-
-export function signedOn(moment: Date) {
-  return romanianDay.format(moment);
 }

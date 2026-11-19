@@ -18,8 +18,8 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { definiteRole, listed, runOn } from '../../lib/romanian';
-import { documentApplies, printedDate } from './context';
+import { definiteRole, listed, printedDate, runOn } from '../../lib/romanian';
+import { documentApplies } from './context';
 import { extinguisherGroups, otherEquipmentGroups } from './equipment';
 import type {
   FireNamedPeople,

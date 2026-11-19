@@ -44,6 +44,7 @@ const sheet = (index: number) => ({
   fileName: `IMG_${index}.HEIC`,
   mimeType: 'image/heic',
   sizeBytes: 2_000_000,
+  pageCount: null as number | null,
 });
 
 const foundOf = (indexes: number[]) => ({
@@ -456,6 +457,35 @@ describe('the credits an employee import uses', () => {
     await userEvent.click(within(dialog).getAllByRole('button', { name: /^Scoate IMG_/ })[0]!);
     await waitFor(() => expect(within(dialog).queryByTestId('import-credits-short')).toBeNull());
     expect(within(dialog).getByTestId('employee-upload-submit')).toHaveProperty('disabled', false);
+  });
+
+  const withPdf = () => {
+    const found = foundOf([1, 2]);
+    Object.assign(found.items[0]!.sheets[1]!, {
+      uploadPath: 'fise-spicul-auriu.zip/Fise.pdf',
+      fileName: 'Fise.pdf',
+      mimeType: 'application/pdf',
+      pageCount: 4,
+    });
+    return found;
+  };
+
+  it('counts a PDF found in the client documents by its pages, as the start charges it', async () => {
+    mockUpload({ found: withPdf, me: meWithCredits() });
+    const dialog = await openDialog('employees-start-found');
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('import-credits-line').textContent).toContain(
+        'Folosește 5 credite AI, unul pe fotografie sau pagină.'
+      )
+    );
+  });
+
+  it('refuses found sheets whose pages need more credits than are left', async () => {
+    mockUpload({ found: withPdf, me: meWithCredits({ left: 4, giftLeft: 0, state: 'near' }) });
+    const dialog = await openDialog('employees-start-found');
+    const short = await within(dialog).findByTestId('import-credits-short');
+    expect(short.textContent).toContain('folosesc 5 credite AI');
+    expect(within(dialog).getByTestId('employee-upload-submit')).toHaveProperty('disabled', true);
   });
 
   it("sends a PDF's pages as the browser counted them, which the start is charged for", async () => {

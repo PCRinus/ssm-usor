@@ -3,6 +3,9 @@ import {
   type FireExtinguisherNorm,
   fireExtinguisherNormLabels,
   fireExtinguisherNorms,
+  officeActivityPath,
+  suggestedValuesPath,
+  type SuggestedWorkplaceFieldName,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
@@ -21,12 +24,9 @@ import {
   type ItemState,
   itemStates,
   officeActivityChoice,
-  officeActivityPath,
   officeActivityStates,
-  type SuggestedFieldName,
   suggestedFields,
   suggestedValue,
-  suggestedValuesPath,
   suggestionsConfirmed,
   suggestionSources,
   suggestionStates,
@@ -45,7 +45,7 @@ import {
 
 type ItemsContext = FieldContext & { blockers: Blocker[] };
 
-const suggestedLabels: Record<SuggestedFieldName, string> = {
+const suggestedLabels: Record<SuggestedWorkplaceFieldName, string> = {
   combustibleMaterials: 'Materiale combustibile',
   ignitionSources: 'Surse de aprindere',
   fireRiskEquipment: 'Echipamente și mijloace de lucru',
@@ -59,7 +59,7 @@ const SuggestionTag = () => (
   </Tag>
 );
 
-function shown(field: SuggestedFieldName, value: unknown) {
+function shown(field: SuggestedWorkplaceFieldName, value: unknown) {
   if (field !== 'extinguisherNorm') return String(value ?? '');
   return fireExtinguisherNormLabels[value as FireExtinguisherNorm]?.label ?? String(value ?? '');
 }
@@ -74,7 +74,7 @@ function textProblem(raw: string) {
 function setSuggested(
   context: ItemsContext,
   state: ItemState,
-  field: SuggestedFieldName,
+  field: SuggestedWorkplaceFieldName,
   value: string | null | undefined
 ) {
   context.review.setItem(state.item.id, (current) => {
@@ -92,7 +92,7 @@ function SuggestedValueRow({
   context,
 }: {
   state: ItemState;
-  field: SuggestedFieldName;
+  field: SuggestedWorkplaceFieldName;
   context: ItemsContext;
 }) {
   const id = useId();
@@ -280,7 +280,7 @@ function SuggestionsRow({ state, context }: { state: ItemState; context: ItemsCo
         ...current,
         values: Object.fromEntries(
           Object.entries(current.values ?? {}).filter(
-            ([key]) => !emptied.includes(key as SuggestedFieldName)
+            ([key]) => !emptied.includes(key as SuggestedWorkplaceFieldName)
           )
         ),
       }));

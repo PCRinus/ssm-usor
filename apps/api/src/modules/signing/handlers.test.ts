@@ -673,6 +673,37 @@ describe('the portal’s request lists', () => {
     expect(callsTo('/rest/v1/training_records')).toHaveLength(0);
   });
 
+  it('names the examiner the sheet prints even when their function is not filled in', async () => {
+    portalUpstream('client_administrator', {
+      '/rest/v1/signature_requests': () => [
+        {
+          id: 'f0000000-0000-4000-8000-000000000002',
+          slot: 'examiner',
+          issued_at: '2026-10-21T08:00:00+00:00',
+          training_record_id: null,
+          test_sheet_id: testSheetId,
+        },
+      ],
+      '/rest/v1/test_sheets': () => [
+        {
+          ...portalTestSheet,
+          test_results: { ...portalTestSheet.test_results, examiner_job_title: null },
+        },
+      ],
+    });
+
+    const response = await request(
+      `/portal/participants/${participantId}/employees/signature-requests`
+    );
+
+    const { items } = portalSignatureRequestsResponseSchema.parse(await response.json());
+    expect(items[0]).toMatchObject({
+      slot: 'examiner',
+      signerName: 'Ana IONESCU',
+      testSheet: { examiner: null },
+    });
+  });
+
   it("refuses the client's list to an employee", async () => {
     portalUpstream('employee');
 

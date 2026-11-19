@@ -3,13 +3,14 @@ import type { Context } from 'hono';
 
 import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
+import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { pdfSigningServices, signedOn, signField } from '../../lib/pdf-signing';
 import { checkToSign } from '../../lib/signed-attributes';
-import { signedOn } from '../signed-sheets/form';
-import { signedSheetContext } from '../signed-sheets/signed-sheets';
+import { signingAgreementDocx } from './agreement';
 import { type AgreementStateRow, awaits } from './agreement-state';
-import { signingAgreementDocx } from './handlers';
+import { sessionEvidence } from './evidence';
 import type { createSigningIdentities } from './identities';
 import type { SigningSession } from './signing-sessions';
 
@@ -50,11 +51,6 @@ const unavailable = (reason: 'pdf_unavailable' | 'signer_unavailable') =>
 
 const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
 
-async function sha256(bytes: Uint8Array) {
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buffer(bytes)));
-  return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
 // What the employee is shown is the agreement as drawn up from the template and the merge data;
 // the converted PDF differs on every conversion, so the digest is of what goes into it.
 async function drawn(c: Context<ApiEnv>, ids: { clientId: string; employeeId: string }) {
@@ -62,7 +58,7 @@ async function drawn(c: Context<ApiEnv>, ids: { clientId: string; employeeId: st
     c,
     createLastingAdminClient(c),
     ids,
-    signedSheetContext(c).files.readTemplate
+    pdfSigningServices(c).files.readTemplate
   );
   const content = new TextEncoder().encode(
     JSON.stringify({ template: agreement.templatePath, data: agreement.data })
@@ -84,7 +80,7 @@ export async function agreementDigest(
   }
 ) {
   if (input.party === 'employee') return (await drawn(c, input)).digest;
-  return sha256(await signedSheetContext(c).files.readDocument(input.storagePath!));
+  return sha256(await pdfSigningServices(c).files.readDocument(input.storagePath!));
 }
 
 export type AgreementSigning = {
@@ -158,7 +154,7 @@ export async function signAgreement(
     throw new ApiError('conflict', undefined, undefined, 'client_archived');
   }
 
-  const ctx = signedSheetContext(c);
+  const ctx = pdfSigningServices(c);
   const signerService = ctx.signer;
   if (!signerService) throw unavailable('signer_unavailable');
 
@@ -195,21 +191,23 @@ export async function signAgreement(
       [agreementDateFields[party]]: signedOn(signedAt),
     })
   );
-  const begun = await signerService.beginSignature(buffer(before), {
-    field: agreementSignatureFields[party],
-    certificatePem: identity.certificatePem,
-    chainPem: identities.chainPem,
-    reason: `Act adițional privind semnarea electronică: ${partyLabels[party].toLowerCase()}`,
-    signedAt: signedAt.toISOString(),
-    certify: party === 'employee',
-    lockFields: [],
-    // No party label: the heading over the box says it, and a fourth line would shrink the rest.
-    appearanceLines: [signer.name, 'semnat electronic', signedOn(signedAt)],
-  });
-  await checkToSign(begun.prepared, begun.toSign, identity.certificatePem);
-  const signature = await identities.signWithIdentity(identity, begun.toSign);
-  const signed = new Uint8Array(
-    await signerService.finishSignature(begun.prepared, begun.sessionToken, signature)
+  const signed = await signField(
+    signerService,
+    before,
+    {
+      field: agreementSignatureFields[party],
+      certificatePem: identity.certificatePem,
+      chainPem: identities.chainPem,
+      reason: `Act adițional privind semnarea electronică: ${partyLabels[party].toLowerCase()}`,
+      signedAt,
+      certify: party === 'employee',
+      lockFields: [],
+      name: signer.name,
+    },
+    async (toSign, prepared) => {
+      await checkToSign(prepared, toSign, identity.certificatePem);
+      return identities.signWithIdentity(identity, toSign);
+    }
   );
 
   const version = party === 'employee' ? 1 : 2;
@@ -235,19 +233,16 @@ export async function signAgreement(
     client_id: clientId,
     employee_id: employeeId,
     party,
-    signer_account_id: signer.accountId,
-    signer_name: signer.name,
-    channel: session.channel,
-    address: session.address,
-    code_sent_at: session.codeSentAt.toISOString(),
-    code_verified_at: (session.verifiedAt ?? signedAt).toISOString(),
-    signed_at: signedAt.toISOString(),
-    digest_before: await sha256(before),
-    digest_after: await sha256(signed),
-    certificate_serial: identity.certificateSerial,
-    client_ip: input.clientIp,
-    user_agent: input.userAgent?.slice(0, 500) ?? null,
-    signing_session_id: session.id,
+    ...sessionEvidence({
+      session,
+      signer,
+      certificateSerial: identity.certificateSerial,
+      signedAt,
+      digestBefore: await sha256(before),
+      digestAfter: await sha256(signed),
+      clientIp: input.clientIp,
+      userAgent: input.userAgent,
+    }),
     storage_path: path,
   });
   if (evidence.error) {

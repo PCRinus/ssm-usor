@@ -3,6 +3,7 @@ import {
   type BillingOverview,
   formatCount,
   trialDays,
+  vatOf,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -11,7 +12,7 @@ import type { ReactNode } from 'react';
 
 import { openedHere } from '@/app/opener';
 
-import { choiceAmounts, choiceSummary, formatEuro, perInterval, vatOf } from './billing-format';
+import { choiceAmounts, choiceSummary, formatEuro, perInterval } from './billing-format';
 import { type AmountRow, AmountRows, BillingCard, SealChip, StateChip } from './billing-ui';
 import { extrasLines } from './extras-copy';
 import {
