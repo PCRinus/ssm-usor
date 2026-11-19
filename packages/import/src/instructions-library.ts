@@ -10,7 +10,7 @@ import { z } from 'zod';
 import type { CompletionRequest } from './gateway';
 import { foldName, namesCompany } from './match';
 import { similarityModel } from './models';
-import { dataNotInstructions } from './prompts';
+import { dataNotInstructions, oneLine } from './prompts';
 import { freeName } from './risks-library';
 import { type AnswerFormat, answerFormat } from './wire';
 
@@ -396,9 +396,9 @@ export function similarityRequest(
       const module = byId.get(pair.moduleId)!;
       return [
         `=== PAIR ${pair.id} ===`,
-        `--- A: ${pack.title} ---`,
+        `--- A: ${oneLine(pack.title)} ---`,
         bodyText(pack.body).slice(0, judgedCharacters),
-        `--- B: ${module.title} ---`,
+        `--- B: ${oneLine(module.title)} ---`,
         bodyText(module.body).slice(0, judgedCharacters),
       ].join('\n');
     })
