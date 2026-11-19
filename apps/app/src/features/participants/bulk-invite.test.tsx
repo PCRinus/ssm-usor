@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-router';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { getListImportPortalInviteesQueryKey } from '@/api/generated/api';
 import { meQueryKey } from '@/features/account/use-me';
@@ -16,8 +16,10 @@ import { AuthContext } from '@/features/auth/auth-context';
 import type { AuthStore } from '@/features/auth/auth-store';
 import { createQueryClient } from '@/lib/query-client';
 import type { RouterContext } from '@/routes/__root';
+import { bodiesOf, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { makeSession } from '@/test/auth-fixture';
 import { meFor, smsUsage } from '@/test/billing-fixture';
+import { clientId } from '@/test/records';
 
 import {
   formerEmployeesSentence,
@@ -29,7 +31,6 @@ import {
 } from './bulk-invite-format';
 import { useBulkInvite } from './use-bulk-invite';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const importId = '3f2c1b0a-9e8d-4c7b-a6f5-e4d3c2b1a090';
 const inviteesPath = `/clients/${clientId}/imports/${importId}/portal-invitees`;
 const invitePath = `/clients/${clientId}/employee-participant-invitations`;
@@ -51,8 +52,6 @@ const invitee = (
   ...extra,
 });
 
-const fetchMock = vi.fn<typeof fetch>();
-
 interface Invitation {
   employeeId: string;
   address: string;
@@ -70,23 +69,20 @@ function mockApi(
       })),
     })
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
-    if (pathname === inviteesPath) return Response.json({ items });
-    if (pathname === invitePath && init?.method === 'POST') {
-      const body = JSON.parse(String(init.body)) as { invitations: Invitation[] };
-      return answer(body.invitations);
-    }
-    return Response.json({ error: 'not_found', message: 'Not mocked.' }, { status: 404 });
-  });
+  mockRoutes(
+    (init, { pathname }) => {
+      if (pathname === inviteesPath) return Response.json({ items });
+      if (pathname === invitePath && init?.method === 'POST') {
+        const body = JSON.parse(String(init.body)) as { invitations: Invitation[] };
+        return answer(body.invitations);
+      }
+    },
+    { me: null }
+  );
 }
 
 const sent = () =>
-  fetchMock.mock.calls
-    .filter(([input, init]) => new URL(String(input)).pathname === invitePath && init?.body)
-    .map(
-      ([, init]) => (JSON.parse(String(init!.body)) as { invitations: Invitation[] }).invitations
-    );
+  (bodiesOf(invitePath, 'POST') as { invitations: Invitation[] }[]).map((body) => body.invitations);
 
 function Harness() {
   const { openBulkInvite, bulkInviteDialog } = useBulkInvite(clientId);
@@ -145,14 +141,7 @@ async function openDialog(cached?: ImportInvitee[], { trial = false } = {}) {
 const field = (dialog: HTMLElement, name: string) =>
   within(dialog).getByLabelText(`Email sau telefon pentru ${name}`);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('inviting the people of an employee import to the portal', () => {
   it('lists the current people by whether the sheet gave an address, and says what they meet in the portal', async () => {
