@@ -233,9 +233,9 @@ describe('releaseRow', () => {
   it('reports a broken body by line', () => {
     const body = ['# Titlu', '', '## Noutăți', '- ceva', '', '---', trailer].join('\n');
 
-    expect(releaseRow('2026.10.24', publishedAt, body)).toMatchObject({
-      kind: 'invalid',
-      errors: [{ line: 1 }, { line: 3 }],
-    });
+    const row = releaseRow('2026.10.24', publishedAt, body);
+
+    expect(row).toEqual(parseReleaseBody(body));
+    expect(row).toMatchObject({ kind: 'invalid', errors: [{ line: 1 }, { line: 3 }] });
   });
 });
