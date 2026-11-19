@@ -7,6 +7,7 @@ import {
   type InstructionDomain,
   type InstructionsPart as PartName,
   isInstructionsPart,
+  isOpenLibraryPartStatus,
   splitFlagMessages,
 } from '@ssm-usor/contracts';
 
@@ -95,7 +96,7 @@ export const isExpired = (part: PartTiming, now = Date.now()) =>
 
 /** A part the member still has to confirm: neither confirmed nor past its 14 days. */
 export const isOpenPart = (part: PartTiming, now = Date.now()) =>
-  part.status !== 'confirmed' && !isExpired(part, now);
+  isOpenLibraryPartStatus(part.status) && !isExpired(part, now);
 
 export const changesOf = (stored: LibraryPart['changes'] | undefined): LibraryChanges => ({
   instructions: (stored?.instructions ?? {}) as Record<string, InstructionChange>,

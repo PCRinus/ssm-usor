@@ -1,5 +1,5 @@
 import { createRouter } from '../../router';
-import { abandonImport, listImports } from './handlers';
+import { abandonImport, listClosedImports, listImports } from './handlers';
 import {
   confirmImportLibraryPart,
   listImportLibraryParts,
@@ -21,6 +21,7 @@ import {
   createImportRoute,
   getImportRoute,
   getImportSourceRoute,
+  listClosedImportsRoute,
   listFoundSheetsRoute,
   listImportLibraryPartsRoute,
   listImportsRoute,
@@ -49,6 +50,7 @@ import {
 export const importsRouter = createRouter()
   .openapi(createImportRoute, createImport)
   .openapi(listImportsRoute, listImports)
+  .openapi(listClosedImportsRoute, listClosedImports)
   .openapi(getImportRoute, getImport)
   .openapi(registerImportFilesRoute, registerImportFiles)
   .openapi(startImportRoute, startImport)
