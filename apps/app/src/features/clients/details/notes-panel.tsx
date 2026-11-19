@@ -15,6 +15,7 @@ import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { FormActions, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
+import { commonFailure } from '@/lib/api-errors';
 
 import { SheetAction } from './sheet-action';
 
@@ -91,17 +92,17 @@ function NotesForm({
   const { request, queryClient } = useApi();
   const save = useSaveClientOwnerNotes({ request });
   const [body, setBody] = useState(saved);
-  const [failed, setFailed] = useState(false);
+  const [failure, setFailure] = useState<{ cause: unknown } | null>(null);
 
   async function submit() {
-    setFailed(false);
+    setFailure(null);
     try {
       const response = await save.mutateAsync({ clientId, data: { body } });
       queryClient.setQueryData(queryKey, response);
       toast.success('Notițele au fost salvate.');
       onClose();
-    } catch {
-      setFailed(true);
+    } catch (cause) {
+      setFailure({ cause });
     }
   }
 
@@ -126,9 +127,10 @@ function NotesForm({
         placeholder="De exemplu: sunat pe 12.09, vrea ofertă pentru 15 lucrători."
         onChange={(event) => setBody(event.target.value)}
       />
-      {failed && (
+      {failure && (
         <Notice variant="destructive" data-testid="owner-notes-error">
-          Nu am putut salva notițele. Verifică conexiunea și încearcă din nou.
+          {commonFailure(failure.cause) ??
+            'Nu am putut salva notițele. Verifică conexiunea și încearcă din nou.'}
         </Notice>
       )}
       <FormActions>
