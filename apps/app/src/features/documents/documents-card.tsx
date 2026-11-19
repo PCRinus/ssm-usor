@@ -1,167 +1,46 @@
 import {
   type BuiltInDocumentTypeKey,
-  type DocumentAnnex,
   type DocumentSet,
   documentSetTypeKeys,
   isDatedDocumentType,
-  type MissingDocumentData,
-  unfilledMark,
 } from '@ssm-usor/contracts';
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import {
-  ChevronDown,
-  ChevronRight,
-  Download,
-  Eye,
-  FileDown,
-  FilePenLine,
-  MoreHorizontal,
-  Printer,
-  RefreshCw,
-  Sparkles,
-  SquarePen,
-  Stamp,
-  Trash2,
-  Upload,
-} from 'lucide-react';
+import { useRouteContext } from '@tanstack/react-router';
+import { ChevronDown, ChevronRight, Download, Sparkles } from 'lucide-react';
 import { Fragment, useRef, useState } from 'react';
 
 import {
-  getDocumentAnnex,
-  getDocumentArchive,
-  getDocumentDownload,
-  getDocumentWord,
   getListClientDocumentsQueryKey,
   getListDocumentsBehindQueryKey,
-  useDeleteDocumentDraft,
-  useIssueDocument,
   useListClientDocuments,
   useListDocumentsBehind,
-  useRegenerateDocument,
-  useStartDocumentDraft,
-  useUploadClientDocument,
 } from '@/api/generated/api';
-import { apiErrorBody, ApiHttpError } from '@/api/http';
-import { openedHere } from '@/app/opener';
-import { rowClickProps } from '@/components/data-table/row-click';
-import { FileMenuItem } from '@/components/file-menu-item';
 import { Notice } from '@/components/notice';
-import { behindSummaryQueryKey } from '@/features/legislation/use-behind-summary';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
-import { commonFailure } from '@/lib/api-errors';
-import { formatRoDate } from '@/lib/dates';
-import { saveFile } from '@/lib/save-file';
 
-import { AnnexRow } from './annex-row';
-import { behindInstructions, instructionChangesHint } from './behind-labels';
+import { behindInstructions } from './behind-labels';
+import { DocumentConfirmDialog } from './document-confirm-dialog';
 import { appliesAt, type ClientDocument, datedTitle } from './document-labels';
 import { DocumentMissingRows } from './document-missing-rows';
+import { type BehindRow, DocumentRow } from './document-row';
 import type { SectionIdOf } from './document-sections';
-import { documentLink, documentRowId, documentSetCopy, setParams } from './document-sets';
+import { documentRowId, setParams } from './document-sets';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
 import { isEmptyPack } from './pack-labels';
 import { PackHeader, PackLayout } from './pack-layout';
 import { MissingDocumentRow, PackTable } from './pack-rows';
 import { buildPack, type PackSection } from './pack-status';
-import { packCells, warningBadge } from './pack-styles';
-import { pdfOfRevision, usePrint } from './print';
-
-type Revision = NonNullable<ClientDocument['draft']>;
-type Confirming = {
-  // `issueUnfilled` is the second question of issuing: the file still has text to fill in.
-  action: 'regenerate' | 'issue' | 'issueUnfilled' | 'upload' | 'delete';
-  document: ClientDocument;
-} | null;
-type Refusal = { document: ClientDocument; missing: MissingDocumentData[] };
-
-const menuLabel = 'text-xs text-muted-foreground';
-
-const confirmations = {
-  regenerate: {
-    title: 'Generezi documentul din nou?',
-    confirm: 'Generează din nou',
-    pending: 'Se generează…',
-    destructive: false,
-  },
-  issue: {
-    title: 'Emiți documentul?',
-    confirm: 'Emite',
-    pending: 'Se emite…',
-    destructive: false,
-  },
-  issueUnfilled: {
-    title: 'Documentul mai are text de completat',
-    confirm: 'Emite oricum',
-    pending: 'Se emite…',
-    destructive: false,
-  },
-  upload: {
-    title: 'Înlocuiești ciorna cu un fișier?',
-    confirm: 'Alege fișierul',
-    pending: 'Se încarcă…',
-    destructive: false,
-  },
-  delete: {
-    title: 'Ștergi ciorna?',
-    confirm: 'Șterge ciorna',
-    pending: 'Se șterge…',
-    destructive: true,
-  },
-} as const;
-
-function confirmationText({ action, document }: NonNullable<Confirming>) {
-  if (action === 'issueUnfilled') {
-    return `În fișier scrie încă „${unfilledMark}”, acolo unde aplicația nu a avut ce completa. Deschide documentul: butonul „locuri de completat” din bara editorului te duce la fiecare. Dacă îl emiți așa, nu mai poate fi modificat decât printr-o ciornă nouă.`;
-  }
-  if (action === 'upload') {
-    return 'Fișierul Word pe care îl alegi ia locul ciornei. Ce conține ciorna acum se pierde; dacă vrei să o păstrezi, descarc-o înainte.';
-  }
-  if (action === 'issue') {
-    return document.issued
-      ? `Ciorna devine revizia ${document.draft?.revision} și o înlocuiește pe cea emisă acum, care rămâne descărcabilă. Un document emis nu se mai modifică; o corectură este o ciornă nouă. La emitere se face și PDF-ul, ceea ce poate dura câteva secunde.`
-      : 'Un document emis nu se mai modifică; o corectură este o ciornă nouă, care îl înlocuiește la emitere. La emitere se face și PDF-ul, ceea ce poate dura câteva secunde.';
-  }
-  if (action === 'delete') {
-    return document.issued
-      ? 'Ciorna și fișierul ei se șterg definitiv. Revizia emisă rămâne neschimbată.'
-      : 'Ciorna și fișierul ei se șterg definitiv. Documentul poate fi generat din nou oricând.';
-  }
-  if (document.draft?.editedAt) {
-    return 'Ciorna a fost modificată de mână. Dacă o generezi din nou, este completată cu datele de acum ale clientului, iar modificările tale se pierd.';
-  }
-  return document.draft
-    ? 'Ciorna este completată din nou cu datele de acum ale clientului. Modificările făcute de mână în fișier se pierd.'
-    : 'Se creează o ciornă nouă din șablon, completată cu datele de acum ale clientului, fără modificările făcute de mână în documentul emis. Ca să le păstrezi, alege „Modifică documentul emis”. Revizia emisă rămâne în vigoare până când emiți ciorna.';
-}
-
-function newerTemplateHint({ version, note }: { version: number; note: string | null }) {
-  const change = note ? `: ${note.replace(/[.!]?$/, '.')}` : '.';
-  return `Versiunea ${version} a șablonului${change} Generează documentul din nou ca să o preia.`;
-}
+import { useDocumentActions } from './use-document-actions';
 
 // `readOnly` is an archived client: what exists can still be downloaded.
 export function DocumentsCard<Set extends DocumentSet>({
@@ -179,9 +58,7 @@ export function DocumentsCard<Set extends DocumentSet>({
   section: SectionIdOf<Set> | undefined;
   focus?: 'generate' | BuiltInDocumentTypeKey;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const navigate = useNavigate();
-  const copy = documentSetCopy[set];
+  const { apiRequest } = useRouteContext({ from: '__root__' });
   const documents = useListClientDocuments(clientId, setParams(set), {
     request: apiRequest,
     query: { queryKey: [...getListClientDocumentsQueryKey(clientId, setParams(set)), userId] },
@@ -190,34 +67,14 @@ export function DocumentsCard<Set extends DocumentSet>({
     request: apiRequest,
     query: { queryKey: [...getListDocumentsBehindQueryKey(), userId], enabled: !readOnly },
   });
-  const regenerate = useRegenerateDocument({ request: apiRequest });
-  const issue = useIssueDocument({ request: apiRequest });
-  const remove = useDeleteDocumentDraft({ request: apiRequest });
-  const upload = useUploadClientDocument({ request: apiRequest });
-  const startDraft = useStartDocumentDraft({ request: apiRequest });
-  const { printing, print } = usePrint();
-  // One file input for the whole card; what it was opened for waits here until a file is chosen.
-  const fileInput = useRef<HTMLInputElement>(null);
-  const uploadTarget = useRef<{
-    typeKey: BuiltInDocumentTypeKey;
-    title: string;
-    period: number | null;
-  } | null>(null);
+  const actions = useDocumentActions({ set, clientId });
+  const { busy, archiving, confirming, setConfirming, error, fileInput, run } = actions;
   const [generating, setGenerating] = useState(false);
   const [unfoldedTypes, setUnfoldedTypes] = useState<ReadonlySet<string>>(new Set());
-  const [confirming, setConfirming] = useState<Confirming>(null);
-  const [error, setError] = useState<string | Refusal | null>(null);
-  const [archiving, setArchiving] = useState(false);
-  const busy =
-    regenerate.isPending ||
-    issue.isPending ||
-    remove.isPending ||
-    upload.isPending ||
-    startDraft.isPending;
 
   const items = documents.data?.items ?? [];
   const behindTypes = behind.data?.items ?? [];
-  const behindRows = new Map(
+  const behindRows = new Map<string, BehindRow>(
     behindTypes.flatMap((type) =>
       type.clients
         .filter((client) => client.clientId === clientId)
@@ -275,428 +132,23 @@ export function DocumentsCard<Set extends DocumentSet>({
     });
   }
 
-  function chooseFile(typeKey: string, title: string, period: number | null) {
-    uploadTarget.current = { typeKey: typeKey as BuiltInDocumentTypeKey, title, period };
-    fileInput.current?.click();
-  }
-
-  async function uploadFile(file: File | undefined) {
-    const target = uploadTarget.current;
-    if (!file || !target) return;
-    setError(null);
-    try {
-      await upload.mutateAsync({
-        clientId,
-        typeKey: target.typeKey,
-        data: file,
-        params: target.period === null ? undefined : { period: target.period },
-      });
-      toast.success(`„${target.title}” a fost încărcat ca ciornă.`);
-    } catch (cause) {
-      setError(
-        cause instanceof ApiHttpError && cause.status === 400
-          ? 'Fișierul nu este un document Word (.docx) sau are peste 15 MB. Dacă este un .doc mai vechi, salvează-l din Word ca .docx.'
-          : cause instanceof ApiHttpError && cause.status === 409
-            ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
-            : `Nu am putut încărca fișierul pentru „${target.title}”. Verifică conexiunea și încearcă din nou.`
-      );
-    }
-    void queryClient.invalidateQueries({ queryKey: getListDocumentsBehindQueryKey() });
-    void queryClient.invalidateQueries({ queryKey: behindSummaryQueryKey() });
-    await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
-  }
-
-  async function download(document: ClientDocument, revision: Revision) {
-    setError(null);
-    try {
-      const file = await getDocumentWord(document.id, revision.id, apiRequest);
-      saveFile(file, file instanceof File ? file.name : `${document.title}.docx`);
-    } catch {
-      setError(
-        `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`
-      );
-    }
-  }
-
-  async function downloadArchive(format: 'docx' | 'pdf') {
-    setError(null);
-    setArchiving(true);
-    const pending = toast.loading('Se pregătește arhiva documentației…');
-    try {
-      const archive = await getDocumentArchive(clientId, { set, format }, apiRequest);
-      saveFile(archive, archive instanceof File ? archive.name : `Documentatie ${copy.name}.zip`);
-    } catch (cause) {
-      const body = apiErrorBody(cause);
-      setError(
-        body?.reason === 'nothing_to_archive'
-          ? format === 'pdf'
-            ? 'Niciun document nu are încă PDF. PDF-ul se face când documentul este emis.'
-            : 'Niciun document nu este generat încă.'
-          : 'Nu am putut pregăti arhiva documentației. Verifică conexiunea și încearcă din nou.'
-      );
-    } finally {
-      toast.dismiss(pending);
-      setArchiving(false);
-    }
-  }
-
-  async function downloadAnnex(document: ClientDocument, revision: Revision, annex: DocumentAnnex) {
-    setError(null);
-    try {
-      const file = await getDocumentAnnex(document.id, revision.id, annex.number, apiRequest);
-      saveFile(file, file instanceof File ? file.name : `Anexa ${annex.number}.docx`);
-    } catch {
-      setError(
-        `Nu am putut descărca anexa „${annex.title}”. Verifică conexiunea și încearcă din nou.`
-      );
-    }
-  }
-
-  async function printRevision(document: ClientDocument, revision: Revision) {
-    setError(null);
-    setError(await print(document.title, () => pdfOfRevision(apiRequest, document.id, revision)));
-  }
-
-  async function startDraftFromIssued(document: ClientDocument) {
-    setError(null);
-    try {
-      await startDraft.mutateAsync({ documentId: document.id });
-    } catch (cause) {
-      // A 409 is a draft someone else has just started, and it opens all the same.
-      if (!(cause instanceof ApiHttpError && cause.status === 409)) {
-        setError(
-          `Nu am putut porni o ciornă nouă pentru „${document.title}”. Verifică conexiunea și încearcă din nou.`
-        );
-        return;
-      }
-    }
-    await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
-    await navigate({
-      ...documentLink(set, clientId, document.id),
-      state: openedHere,
-    });
-  }
-
-  async function run({ action, document }: NonNullable<Confirming>) {
-    setError(null);
-    if (action === 'upload') {
-      // Still inside the click, which is what lets a page open the file picker.
-      chooseFile(document.typeKey, document.title, document.period);
-      setConfirming(null);
-      return;
-    }
-    try {
-      if (action === 'regenerate') {
-        await regenerate.mutateAsync({ documentId: document.id, data: {} });
-        toast.success(`„${document.title}” a fost generat din nou.`);
-      } else if (action === 'issue' || action === 'issueUnfilled') {
-        await issue.mutateAsync({
-          documentId: document.id,
-          data: { acceptUnfilled: action === 'issueUnfilled' },
-        });
-        toast.success(`„${document.title}” a fost emis.`);
-      } else {
-        await remove.mutateAsync({ documentId: document.id });
-        toast.success(`Ciorna pentru „${document.title}” a fost ștearsă.`);
-      }
-    } catch (cause) {
-      const body = apiErrorBody(cause);
-      if (body?.reason === 'unfilled_text') {
-        // Not a failure: the same dialog asks its second question.
-        setConfirming({ action: 'issueUnfilled', document });
-        return;
-      }
-      setError(
-        commonFailure(cause) ??
-          (body?.reason === 'pdf_unavailable'
-            ? `Nu am putut face PDF-ul pentru „${document.title}”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.`
-            : body?.reason === 'missing_document_data' && body.missing?.length
-              ? { document, missing: body.missing }
-              : body?.reason === 'missing_document_data'
-                ? 'Lipsesc date de care documentul are nevoie. Completează-le în paginile clientului, apoi generează documentul din nou.'
-                : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
-                  ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
-                  : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.')
-      );
-    }
-    setConfirming(null);
-    // Also after a failure: a 404 or a 409 means the list on screen is out of date.
-    void queryClient.invalidateQueries({ queryKey: getListDocumentsBehindQueryKey() });
-    void queryClient.invalidateQueries({ queryKey: behindSummaryQueryKey() });
-    await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
-  }
-
   function documentRow(document: ClientDocument, title: string, rowId?: string) {
-    const current = document.draft ?? document.issued;
-    const behindRow = behindRows.get(document.id);
-    const click = rowClickProps(
-      () =>
-        void navigate({
-          ...documentLink(set, clientId, document.id),
-          state: openedHere,
-        })
-    );
-    const fileOf = (revision: Revision, format: 'docx' | 'pdf') => ({
-      queryKey: ['document-file', document.id, revision.id, format],
-      load: (signal: AbortSignal) =>
-        getDocumentDownload(document.id, revision.id, { format }, { ...apiRequest, signal }),
-    });
     return (
-      <Fragment key={document.id}>
-        <TableRow id={rowId} data-testid="document-row" {...click} className={click.className}>
-          <TableCell className={packCells.title}>
-            <Link
-              {...documentLink(set, clientId, document.id)}
-              state={openedHere}
-              data-testid="document-title"
-              className="font-medium underline-offset-4 hover:underline"
-            >
-              {title}
-            </Link>
-            {document.decisionNumber !== null && (
-              <span className="block text-xs text-muted-foreground">
-                Decizia nr. {document.decisionNumber} {copy.name}
-              </span>
-            )}
-          </TableCell>
-          <TableCell className={packCells.status}>
-            <span className="flex flex-wrap gap-1.5">
-              {document.issued && (
-                <Badge data-testid="document-issued">Emis · rev. {document.issued.revision}</Badge>
-              )}
-              {document.draft && (
-                <Badge variant="secondary" data-testid="document-draft">
-                  Ciornă · rev. {document.draft.revision}
-                </Badge>
-              )}
-              {document.draft?.editedAt && (
-                <Badge
-                  variant="outline"
-                  data-testid="document-edited"
-                  title="Ciorna a fost modificată de mână. Dacă o generezi din nou, modificările se pierd."
-                >
-                  Modificat
-                </Badge>
-              )}
-              {document.draft?.dataChanged && (
-                <Badge
-                  variant="outline"
-                  className={warningBadge}
-                  data-testid="document-data-changed"
-                  title="Datele clientului s-au schimbat de când a fost generată ciorna. Generează documentul din nou ca să le preia."
-                >
-                  Date modificate
-                </Badge>
-              )}
-              {behindRow?.client.behindTemplate && (
-                <Badge
-                  variant="outline"
-                  className={warningBadge}
-                  data-testid="document-behind"
-                  title={newerTemplateHint(behindRow.type.newestVersion)}
-                >
-                  Șablon actualizat
-                </Badge>
-              )}
-              {behindRow && behindInstructions(behindRow.client) && (
-                <>
-                  <Badge
-                    variant="outline"
-                    className={warningBadge}
-                    data-testid="document-instructions-behind"
-                  >
-                    Instrucțiuni actualizate
-                  </Badge>
-                  <span
-                    data-testid="document-instructions-behind-reason"
-                    className="min-w-64 max-w-md basis-full text-xs whitespace-normal text-muted-foreground"
-                  >
-                    {instructionChangesHint(document.typeKey, behindRow.client, behindTypes)}
-                  </span>
-                </>
-              )}
-            </span>
-          </TableCell>
-          <TableCell className={packCells.date}>
-            {current?.issueDate ? formatRoDate(current.issueDate) : '—'}
-          </TableCell>
-          <TableCell className={packCells.actions}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  data-testid="document-actions"
-                  aria-label={`Acțiuni pentru ${title}`}
-                >
-                  <MoreHorizontal aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild data-testid="document-open">
-                  <Link {...documentLink(set, clientId, document.id)} state={openedHere}>
-                    {document.draft && !readOnly ? (
-                      <>
-                        <SquarePen aria-hidden="true" />
-                        Deschide și modifică
-                      </>
-                    ) : (
-                      <>
-                        <Eye aria-hidden="true" />
-                        Deschide
-                      </>
-                    )}
-                  </Link>
-                </DropdownMenuItem>
-                {document.draft && (
-                  <DropdownMenuGroup aria-labelledby={`${document.id}-draft-label`}>
-                    <DropdownMenuLabel id={`${document.id}-draft-label`} className={menuLabel}>
-                      Ciorna · rev. {document.draft.revision}
-                    </DropdownMenuLabel>
-                    {!readOnly && (
-                      <DropdownMenuItem
-                        data-testid="document-issue"
-                        onSelect={() => setConfirming({ action: 'issue', document })}
-                      >
-                        <Stamp aria-hidden="true" />
-                        Emite
-                      </DropdownMenuItem>
-                    )}
-                    {document.draft.annexes.length > 0 ? (
-                      <DropdownMenuItem
-                        data-testid="document-download-draft"
-                        onSelect={() => void download(document, document.draft!)}
-                      >
-                        <Download aria-hidden="true" />
-                        Descarcă Word
-                      </DropdownMenuItem>
-                    ) : (
-                      <FileMenuItem
-                        testId="document-download-draft"
-                        apiRequest={apiRequest}
-                        disposition="attachment"
-                        {...fileOf(document.draft, 'docx')}
-                      >
-                        <Download aria-hidden="true" />
-                        Descarcă Word
-                      </FileMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      data-testid="document-print-draft"
-                      disabled={printing}
-                      onSelect={() => void printRevision(document, document.draft!)}
-                    >
-                      <Printer aria-hidden="true" />
-                      Tipărește
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                )}
-                {document.issued && (
-                  <DropdownMenuGroup aria-labelledby={`${document.id}-issued-label`}>
-                    <DropdownMenuLabel id={`${document.id}-issued-label`} className={menuLabel}>
-                      Documentul emis · rev. {document.issued.revision}
-                    </DropdownMenuLabel>
-                    {document.issued.annexes.length > 0 ? (
-                      <DropdownMenuItem
-                        data-testid="document-download-issued"
-                        onSelect={() => void download(document, document.issued!)}
-                      >
-                        <Download aria-hidden="true" />
-                        Descarcă Word
-                      </DropdownMenuItem>
-                    ) : (
-                      <FileMenuItem
-                        testId="document-download-issued"
-                        apiRequest={apiRequest}
-                        disposition="attachment"
-                        {...fileOf(document.issued, 'docx')}
-                      >
-                        <Download aria-hidden="true" />
-                        Descarcă Word
-                      </FileMenuItem>
-                    )}
-                    {document.issued.hasPdf && (
-                      <FileMenuItem
-                        testId="document-open-pdf"
-                        apiRequest={apiRequest}
-                        disposition="inline"
-                        {...fileOf(document.issued, 'pdf')}
-                      >
-                        <FileDown aria-hidden="true" />
-                        Deschide PDF
-                      </FileMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      data-testid="document-print-issued"
-                      disabled={printing}
-                      onSelect={() => void printRevision(document, document.issued!)}
-                    >
-                      <Printer aria-hidden="true" />
-                      Tipărește
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                )}
-                {!readOnly && (
-                  <>
-                    <DropdownMenuSeparator />
-                    {document.issued && !document.draft && (
-                      <DropdownMenuItem
-                        data-testid="document-start-draft"
-                        disabled={busy}
-                        onSelect={() => void startDraftFromIssued(document)}
-                      >
-                        <FilePenLine aria-hidden="true" />
-                        Modifică documentul emis
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      data-testid="document-regenerate"
-                      onSelect={() => setConfirming({ action: 'regenerate', document })}
-                    >
-                      <RefreshCw aria-hidden="true" />
-                      Generează din nou
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      data-testid="document-upload"
-                      onSelect={() =>
-                        document.draft
-                          ? setConfirming({ action: 'upload', document })
-                          : chooseFile(document.typeKey, title, document.period)
-                      }
-                    >
-                      <Upload aria-hidden="true" />
-                      Încarcă un fișier Word
-                    </DropdownMenuItem>
-                    {document.draft && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          data-testid="document-delete-draft"
-                          variant="destructive"
-                          onSelect={() => setConfirming({ action: 'delete', document })}
-                        >
-                          <Trash2 aria-hidden="true" />
-                          Șterge ciorna
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TableCell>
-        </TableRow>
-        {current?.annexes.map((annex) => (
-          <AnnexRow
-            key={annex.version.id}
-            annex={annex}
-            typeKey={document.typeKey}
-            onDownload={() => void downloadAnnex(document, current, annex)}
-          />
-        ))}
-      </Fragment>
+      <DocumentRow
+        key={document.id}
+        set={set}
+        clientId={clientId}
+        document={document}
+        title={title}
+        rowId={rowId}
+        readOnly={readOnly}
+        behindRow={behindRows.get(document.id)}
+        behindTypes={behindTypes}
+        actions={actions}
+      />
     );
   }
+
   function sectionRows(shown: PackSection) {
     return (
       <PackTable>
@@ -752,7 +204,7 @@ export function DocumentsCard<Set extends DocumentSet>({
       {generateLabel}
     </Button>
   );
-  const actions = (items.length > 0 || (canGenerate && !empty)) && (
+  const packActions = (items.length > 0 || (canGenerate && !empty)) && (
     <>
       {items.length > 0 && (
         <DropdownMenu>
@@ -767,7 +219,7 @@ export function DocumentsCard<Set extends DocumentSet>({
             <DropdownMenuItem
               data-testid="documents-archive-docx"
               className="grid gap-0.5"
-              onSelect={() => void downloadArchive('docx')}
+              onSelect={() => void actions.downloadArchive('docx')}
             >
               <span>Arhivă cu fișierele Word</span>
               <span className="text-xs text-muted-foreground">
@@ -778,7 +230,7 @@ export function DocumentsCard<Set extends DocumentSet>({
               data-testid="documents-archive-pdf"
               className="grid gap-0.5"
               disabled={issuedPdfs === 0}
-              onSelect={() => void downloadArchive('pdf')}
+              onSelect={() => void actions.downloadArchive('pdf')}
             >
               <span>Arhivă cu PDF-urile</span>
               <span className="text-xs text-muted-foreground">
@@ -824,7 +276,7 @@ export function DocumentsCard<Set extends DocumentSet>({
           pack={pack}
           sectionId={section}
           readOnly={readOnly}
-          actions={actions || undefined}
+          actions={packActions || undefined}
           generate={empty ? generateButton : undefined}
           notices={notices || undefined}
         >
@@ -865,7 +317,7 @@ export function DocumentsCard<Set extends DocumentSet>({
           const file = event.target.files?.[0];
           // Emptied, so that choosing the same file again is still a change.
           event.target.value = '';
-          void uploadFile(file);
+          void actions.uploadFile(file);
         }}
       />
       <GenerateDocumentsDialog
@@ -879,38 +331,14 @@ export function DocumentsCard<Set extends DocumentSet>({
           .map((item) => item.typeKey)}
         onClose={() => setGenerating(false)}
       />
-      <Dialog
-        open={confirming !== null}
-        onOpenChange={(open) => !open && !busy && setConfirming(null)}
-      >
-        {confirming && (
-          <DialogContent data-testid="document-confirm-dialog" className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>{confirmations[confirming.action].title}</DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground">{confirming.document.title}</span>
-                {'. '}
-                {confirmationText(confirming)}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-2">
-              <Button variant="ghost" disabled={busy} onClick={() => setConfirming(null)}>
-                Renunță
-              </Button>
-              <Button
-                variant={confirmations[confirming.action].destructive ? 'destructive' : 'default'}
-                data-testid="document-confirm"
-                disabled={busy}
-                onClick={() => void run(confirming)}
-              >
-                {busy
-                  ? confirmations[confirming.action].pending
-                  : confirmations[confirming.action].confirm}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
+      {confirming && (
+        <DocumentConfirmDialog
+          confirming={confirming}
+          busy={busy}
+          onConfirm={() => run(confirming)}
+          onClose={() => setConfirming(null)}
+        />
+      )}
     </div>
   );
 }
