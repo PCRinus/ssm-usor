@@ -1,4 +1,3 @@
-import { useRouteContext } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { type UseFormReturn, useWatch } from 'react-hook-form';
 
@@ -7,6 +6,7 @@ import {
   type TrainingResponseTraining,
   useGetTrainingProposal,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { todayIso } from '@/lib/dates';
 
 import {
@@ -18,13 +18,9 @@ import {
 
 export function useTrainingProposal(
   form: UseFormReturn<TrainingFormValues>,
-  {
-    clientId,
-    userId,
-    training,
-  }: { clientId: string; userId: string; training: TrainingResponseTraining | null }
+  { clientId, training }: { clientId: string; training: TrainingResponseTraining | null }
 ) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   // What was saved stays as it was: only a new training takes the plan's proposal.
   const [typed, setTyped] = useState<ReadonlySet<ProposedField>>(
     () => new Set(training ? proposedFields : [])
@@ -50,10 +46,10 @@ export function useTrainingProposal(
     heldOn <= todayIso() &&
     (Boolean(jobPositionId) || phase === 'introductory_general');
   const proposal = useGetTrainingProposal(clientId, proposalParams, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetTrainingProposalQueryKey(clientId, proposalParams), userId],
-      enabled: proposing && Boolean(apiRequest.baseUrl),
+      queryKey: key(getGetTrainingProposalQueryKey(clientId, proposalParams)),
+      enabled: proposing && Boolean(request.baseUrl),
     },
   });
   const proposed = proposing ? proposal.data : undefined;

@@ -1,9 +1,10 @@
 import { formatEmployeeName, type TrainingDomain } from '@ssm-usor/contracts';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useRef } from 'react';
 
 import { getGetTrainingQueryKey, type TrainingResponse, useGetTraining } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
 
@@ -36,21 +37,19 @@ function PersonLine({ person, state }: { person: ReactNode; state: ReactNode }) 
 export function TrainingDetails({
   clientId,
   trainingId,
-  userId,
   scrollIntoView = false,
 }: {
   clientId: string;
   trainingId: string;
-  userId: string;
   // The row a link arrived to open, which may sit far down the page.
   scrollIntoView?: boolean;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const detail = useGetTraining(clientId, trainingId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetTrainingQueryKey(clientId, trainingId), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getGetTrainingQueryKey(clientId, trainingId)),
+      enabled: ready,
     },
   });
   if (detail.isError) {

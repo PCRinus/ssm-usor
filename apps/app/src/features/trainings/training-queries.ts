@@ -1,6 +1,5 @@
 import { maxPageSize } from '@ssm-usor/contracts';
 import { type QueryClient, useQuery } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 
 import {
   type EmployeeListResponse,
@@ -10,6 +9,7 @@ import {
   getListTrainingsQueryKey,
   listEmployees,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { invalidateSignatures } from '@/features/signatures/signature-queries';
 
 export type CurrentEmployee = EmployeeListResponse['items'][number];
@@ -36,16 +36,16 @@ const pageParams = (page: number) =>
   ({ page, pageSize: maxPageSize, sort: 'name', order: 'asc' }) as const;
 
 // Page after page: a training may gather more people than one page holds.
-export function useCurrentEmployees(clientId: string, userId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function useCurrentEmployees(clientId: string) {
+  const { request, ready, key } = useApi();
   return useQuery({
-    queryKey: [...getListEmployeesQueryKey(clientId), 'every-current', userId],
-    enabled: Boolean(userId && apiRequest.baseUrl),
+    queryKey: key([...getListEmployeesQueryKey(clientId), 'every-current']),
+    enabled: ready,
     queryFn: async ({ signal }) => {
       const items: CurrentEmployee[] = [];
       for (let page = 1; ; page += 1) {
         const response = await listEmployees(clientId, pageParams(page), {
-          ...apiRequest,
+          ...request,
           signal,
         });
         items.push(...response.items);
