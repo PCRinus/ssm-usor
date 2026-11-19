@@ -3,7 +3,10 @@ import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getGetInstructionModuleQueryKey } from '@/api/generated/api';
+import {
+  getGetInstructionModuleQueryKey,
+  type RiskEvaluationListResponse,
+} from '@/api/generated/api';
 import { resetReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
 import { bodiesOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
@@ -205,6 +208,12 @@ function mockInstructionsApi({
     if (pathname === `/clients/${clientId}`) return Response.json({ client: sampleClient });
     if (pathname === `/clients/${clientId}/job-positions`) {
       return Response.json({ items: [welder, fitter] });
+    }
+    if (pathname === `/clients/${clientId}/risk-evaluations`) {
+      return Response.json({
+        items: [],
+        sensitiveGroupsState: 'undecided',
+      } satisfies RiskEvaluationListResponse);
     }
     if (pathname === '/clients') {
       return Response.json(pageOf(clients, { pageSize: 100 }));
