@@ -6,6 +6,7 @@ import { portalAccessStateSchema } from './employees';
 import { fireExtinguisherNormSchema, workplaceKindSchema } from './fire-safety';
 import { isValidIban } from './iban';
 import { sentTogether, somethingSent } from './partial-update';
+import { samePerson } from './person-names';
 import { countOf } from './romanian';
 
 // Every field is optional while it is being filled in; generating a document is what
@@ -430,23 +431,6 @@ export function trainingMonths(firstMonth: number, intervalMonths: number): numb
   return months.sort((a, b) => a - b);
 }
 
-/**
- * Whether two names are the same person's, the way people type them: in either order, with or
- * without diacritics or hyphens, in any case.
- */
-export function samePersonName(first: string, second: string): boolean {
-  const words = (name: string) =>
-    name
-      .normalize('NFD')
-      .replace(/\p{M}/gu, '')
-      .toLocaleLowerCase('ro')
-      .split(/[\s-]+/)
-      .filter(Boolean)
-      .sort()
-      .join(' ');
-  return words(first) === words(second);
-}
-
 export type PersonRef = { employeeId: string | null; fullName: string };
 
 export type LegalRepresentativeRef = { employeeId: string | null; fullName: string | null };
@@ -463,7 +447,7 @@ export function isLegalRepresentative(
     return person.employeeId === legalRepresentative.employeeId;
   }
   const name = legalRepresentative.fullName?.trim();
-  return Boolean(name) && samePersonName(person.fullName, name!);
+  return Boolean(name) && samePerson(person.fullName, name!);
 }
 
 /** The fewest workers' representatives a client needs for its current employees (ADR 010). */

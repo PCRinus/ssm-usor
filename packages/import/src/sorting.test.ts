@@ -104,17 +104,6 @@ describe('sortFiles', () => {
     ]);
   });
 
-  it('knows a sole trader’s files whether its form is written with points or without', () => {
-    const sorting = sortFiles([
-      triage('Decizia 1.docx', 'decision', 'VASILESCU M.ANA P.F.A.', '12345674'),
-      triage('Evaluare.doc', 'risk_assessment', 'VASILESCU M.ANA P.F.A.', null),
-      triage('Tematica control.docx', 'decision', 'VASILESCU M. ANA PFA', null),
-    ]);
-
-    expect(sorting.otherCompanies).toEqual([]);
-    expect(sorting.files.map((file) => file.outcome)).toEqual(['read', 'read', 'read']);
-  });
-
   const notaryPack = [
     triage('Contract SSM.pdf', 'contract', 'SOCIETATE PROFESIONALA NOTARIALA STANCIUC', '37516222'),
     triage('Contract SU.pdf', 'contract', 'SOCIETATE PROFESIONALA NOTARIALA STANCIUC.', '37516222'),
@@ -146,34 +135,6 @@ describe('sortFiles', () => {
     expect(sorting.files.every((file) => file.outcome === 'read')).toBe(true);
   });
 
-  it('knows a sole trader whose form one file spells out', () => {
-    const sorting = sortFiles([
-      triage('Decizia 1.docx', 'decision', 'Casapu Mircea Adrian PFA', '12345674'),
-      triage(
-        'Evaluare.doc',
-        'risk_assessment',
-        'Casapu Mircea Adrian Persoană Fizică Autorizată',
-        null
-      ),
-    ]);
-
-    expect(sorting.otherCompanies).toEqual([]);
-  });
-
-  it('knows a sole trader whose files write II after the name and one spells it out', () => {
-    const sorting = sortFiles([
-      triage('Contract.pdf', 'contract', 'POPESCU ION INTREPRINDERE INDIVIDUALA', '12345674'),
-      triage('Decizia 1.docx', 'decision', 'Popescu Ion II', null),
-      triage('Evaluare.doc', 'risk_assessment', 'Popescu Ion II', null),
-    ]);
-
-    expect(sorting.company).toEqual({
-      name: 'POPESCU ION INTREPRINDERE INDIVIDUALA',
-      cui: '12345674',
-    });
-    expect(sorting.otherCompanies).toEqual([]);
-  });
-
   it('keeps apart two offices whose names differ only in their legal form', () => {
     const sorting = sortFiles([
       triage('Contract.pdf', 'contract', 'Cabinet de avocat Ionescu', '12345674'),
@@ -187,6 +148,9 @@ describe('sortFiles', () => {
   });
 
   it.each([
+    ['VASILESCU M.ANA P.F.A.', ['VASILESCU M.ANA P.F.A.', 'VASILESCU M. ANA PFA']],
+    ['Casapu Mircea Adrian PFA', ['Casapu Mircea Adrian Persoană Fizică Autorizată']],
+    ['POPESCU ION INTREPRINDERE INDIVIDUALA', ['Popescu Ion II', 'Popescu Ion II']],
     ['ALFA II S.R.L.', ['Alfa II', 'Alfa II']],
     ['SCM IMPEX SRL', ['SCM Impex', 'S.C.M. Impex S.R.L.']],
     ['Arta IF SRL', ['Arta IF']],
@@ -214,6 +178,7 @@ describe('sortFiles', () => {
 
     expect(sorting.company).toEqual({ name: registered, cui: '12345674' });
     expect(sorting.otherCompanies).toEqual([]);
+    expect(sorting.files.every((file) => file.outcome === 'read')).toBe(true);
   });
 
   it('keeps the files of a client being completed whose documents write the form otherwise', () => {

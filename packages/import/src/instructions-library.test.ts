@@ -11,6 +11,7 @@ import {
   similarityPairs,
   similarityRequest,
 } from './instructions-library';
+import { similarityModel } from './models';
 
 const body = (...articles: string[]) => ({
   blocks: articles.map((text): InstructionBlock => ({ kind: 'article', paragraphs: [text] })),
@@ -312,7 +313,7 @@ describe('namesClient', () => {
 });
 
 describe('similarityRequest', () => {
-  it('sends each pair’s beginnings to GPT-6 Luna in one request and reads its answer by pair', () => {
+  it('sends each pair’s beginnings to the similarity model in one request and reads its answer by pair', () => {
     const instructions = [packed('ssm-1', 'Lucrul în depozit', ['x'.repeat(5_000)])];
     const request = similarityRequest(
       [{ id: 'ssm:ssm-1:m-office', key: 'ssm-1', moduleId: 'm-office', similarity: 0.3 }],
@@ -320,7 +321,7 @@ describe('similarityRequest', () => {
       [office]
     );
 
-    expect(request.model).toBe('gpt-6-luna');
+    expect(request.model).toBe(similarityModel);
     expect(request.messages).toHaveLength(2);
     const content = request.messages[1]!.content as string;
     expect(content).toContain('=== PAIR ssm:ssm-1:m-office ===');

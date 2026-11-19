@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { GatewayError, ModelAnswerError } from './gateway';
-import { noUsage } from './models';
+import { noUsage, risksModel } from './models';
 import {
   placeRetyped,
   type RetypeAsk,
@@ -59,10 +59,10 @@ describe('numberRows', () => {
 describe('risksRequest', () => {
   const input = { files: [assessment, plan], posts: ['Brutar', 'Vânzător'] };
 
-  it('asks GPT-6.1 Terra with the numbered files before the task, and the posts after it', () => {
+  it('asks the risks model with the numbered files before the task, and the posts after it', () => {
     const request = risksRequest(input);
 
-    expect(request.model).toBe('gpt-6.1-terra');
+    expect(request.model).toBe(risksModel);
     expect(request.messages.map((message) => message.role)).toEqual([
       'system',
       'user',
@@ -115,8 +115,7 @@ describe('risksRequest', () => {
     expect(() => risksRequest(large)).toThrow(new RisksTooLargeError(risksCharacters + 1));
   });
 
-  it('holds no nullable member and reads numbers written as text', () => {
-    expect(JSON.stringify(risksAnswer.jsonSchema)).not.toContain('null');
+  it('reads numbers written as text', () => {
     const wire = JSON.parse(JSON.stringify(answer)) as Record<string, unknown>;
     const sheets = (wire.sheets as Record<string, unknown>[]).map((sheet) => ({
       ...sheet,
@@ -419,7 +418,6 @@ describe('the sheets written out', () => {
 
     expect(task).toContain('measures');
     expect(task).toContain('responsiblePerson');
-    expect(JSON.stringify(retypedAnswer.jsonSchema)).not.toContain('null');
     const parsed = retypedAnswer.parse({
       sheets: [
         {

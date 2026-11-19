@@ -4,7 +4,7 @@ import {
   requiredWorkersRepresentatives,
   responsiblePersonConflictReasons,
   type ResponsiblePersonRole,
-  samePersonName,
+  samePerson,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
@@ -164,7 +164,7 @@ function ResponsiblePersonForm({
     administrator != null &&
     (administrator.employeeId
       ? employeeId === administrator.employeeId
-      : !employeeId && samePersonName(typedName, administrator.fullName));
+      : !employeeId && samePerson(typedName, administrator.fullName));
   const employeeCount = client.data?.client.currentEmployeeCount;
   // Below 10 employees the role does not exist (H.G. 1425/2006 art. 53), unless the person
   // already holds it, to be unticked, or a decision 1.5 generated earlier asks for it through a

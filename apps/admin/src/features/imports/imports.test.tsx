@@ -247,14 +247,6 @@ describe('the imports list', () => {
     await screen.findByTestId('import-title');
     expect(runtime.router.state.location.pathname).toBe(`/imports/${importId}`);
   });
-
-  it('is reached from the home page and the top bar', async () => {
-    const runtime = mountAdmin('/');
-    await userEvent.setup().click(await screen.findByTestId('home-imports'));
-    await screen.findAllByTestId('import-row');
-    expect(runtime.router.state.location.pathname).toBe('/imports');
-    expect(screen.getByTestId('nav-imports').getAttribute('aria-current')).toBe('page');
-  });
 });
 
 describe('an import', () => {

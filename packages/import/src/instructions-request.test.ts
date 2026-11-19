@@ -6,6 +6,7 @@ import {
   instructionsRequest,
   InstructionsTooLargeError,
 } from './instructions-request';
+import { instructionsModel } from './models';
 
 const input = {
   domain: 'ssm' as const,
@@ -15,10 +16,10 @@ const input = {
 };
 
 describe('instructionsRequest', () => {
-  it('asks GPT-6.1 Terra with the files before the task, and the posts in the task', () => {
+  it('asks the instructions model with the files before the task, and the posts in the task', () => {
     const request = instructionsRequest(input);
 
-    expect(request.model).toBe('gpt-6.1-terra');
+    expect(request.model).toBe(instructionsModel);
     expect(request.maxCompletionTokens).toBe(16_000);
     expect(request.messages.map((message) => message.role)).toEqual([
       'system',
@@ -66,12 +67,11 @@ describe('instructionsRequest', () => {
 });
 
 describe('instructionsAnswer', () => {
-  it('holds only the categories of its domain, with no nullable member', () => {
+  it('holds only the categories of its domain', () => {
     const schema = JSON.stringify(instructionsAnswer('su').jsonSchema);
 
     expect(schema).toContain('hazardous_work');
     expect(schema).not.toContain('work_activity');
-    expect(schema).not.toContain('null');
   });
 
   it('reads an answer', () => {

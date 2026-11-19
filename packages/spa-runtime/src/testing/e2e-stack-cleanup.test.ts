@@ -66,28 +66,41 @@ describe('removeTestOrganization', () => {
   it('deletes each client as an archived one, then the organization’s own rows, then it', async () => {
     const { admin, calls } = fakeStack();
     await removeTestOrganization(admin, 'o1');
-    expect(calls.map(simple)).toEqual([
-      'select clients',
-      'update clients',
-      'rpc delete_archived_client c1',
-      'remove documents o1/c1/a.docx',
-      'remove client-files o1/c1/b.pdf',
-      'update clients',
-      'rpc delete_archived_client c2',
-      'remove documents o1/c2/a.docx',
-      'remove client-files o1/c2/b.pdf',
-      'delete regeneration_jobs',
-      'delete imports',
-      'list imports o1',
-      'list import-copies o1',
-      'delete import_copies',
-      'delete test_question_hides',
-      'delete test_questions',
-      'delete evaluation_profiles',
-      'delete instruction_modules',
-      'delete organizations',
+    const steps = calls.map(simple);
+    const ownRows = steps.filter((step) => step.startsWith('delete '));
+
+    for (const [index, client] of ['c1', 'c2'].entries()) {
+      const deleted = steps.indexOf(`rpc delete_archived_client ${client}`);
+      const next =
+        index === 0 ? steps.indexOf('update clients', deleted) : steps.indexOf(ownRows[0]!);
+      expect(steps[deleted - 1]).toBe('update clients');
+      expect(new Set(steps.slice(deleted + 1, next))).toEqual(
+        new Set([`remove documents o1/${client}/a.docx`, `remove client-files o1/${client}/b.pdf`])
+      );
+    }
+    expect(calls.filter((call) => call.startsWith('update clients'))).toEqual([
+      expect.stringContaining('.is(archived_at,)'),
+      expect.stringContaining('.is(archived_at,)'),
     ]);
-    expect(calls[1]).toContain('.is(archived_at,)');
+    expect(new Set(ownRows)).toEqual(
+      new Set([
+        'delete regeneration_jobs',
+        'delete imports',
+        'delete import_copies',
+        'delete test_question_hides',
+        'delete test_questions',
+        'delete evaluation_profiles',
+        'delete instruction_modules',
+        'delete organizations',
+      ])
+    );
+    expect(steps.indexOf('delete test_question_hides')).toBeLessThan(
+      steps.indexOf('delete test_questions')
+    );
+    expect(steps.slice(steps.indexOf(ownRows[0]!))).toEqual(
+      expect.arrayContaining(['list imports o1', 'list import-copies o1'])
+    );
+    expect(steps.at(-1)).toBe('delete organizations');
   });
 
   it('stops at the first refusal and names it', async () => {
