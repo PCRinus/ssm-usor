@@ -7,7 +7,7 @@ import type {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import {
   Table,
   TableBody,
@@ -19,11 +19,9 @@ import {
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useRouteContext } from '@tanstack/react-router';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
-import type { ReactNode } from 'react';
 
-import { ApiHttpError } from '@/api/http';
-import { AdminShell, LoadFailure } from '@/components/admin-shell';
-import { ErrorNotice } from '@/components/error-notice';
+import { AdminShell } from '@/components/admin-shell';
+import { DetailQuery, Fact, Section } from '@/components/detail';
 
 import { fetchFileLink, fetchImport } from './api';
 import {
@@ -56,35 +54,6 @@ type CopyRecord = Record<string, unknown> & {
 
 const recordOf = (value: unknown): CopyRecord | null =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as CopyRecord) : null;
-
-function Section({
-  title,
-  description,
-  children,
-  testId,
-}: {
-  title: string;
-  description?: ReactNode;
-  children: ReactNode;
-  testId?: string;
-}) {
-  return (
-    <section data-testid={testId} className="bg-background rounded-xl border p-4 sm:p-5">
-      <h2 className="font-semibold">{title}</h2>
-      {description && <p className="text-muted-foreground mt-0.5 text-sm">{description}</p>}
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
-
-function Fact({ term, children }: { term: string; children: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-muted-foreground text-xs">{term}</dt>
-      <dd className="mt-0.5 text-sm break-words">{children}</dd>
-    </div>
-  );
-}
 
 function ProposalAndChanges({ record, testId }: { record: CopyRecord | null; testId?: string }) {
   if (!record) return <p className="text-muted-foreground text-sm">The copy has no record.</p>;
@@ -189,9 +158,9 @@ function CopyFiles({ importId, files }: { importId: string; files: AdminImportCo
     <>
       {opening.isError && (
         <div className="mb-3">
-          <ErrorNotice testId="file-link-error">
+          <Notice variant="destructive" data-testid="file-link-error">
             The file could not be opened. Try again.
-          </ErrorNotice>
+          </Notice>
         </div>
       )}
       <Table data-testid="copy-files" aria-label="Files of the copy">
@@ -331,9 +300,9 @@ function DetailBody({ detail }: { detail: AdminImportDetail }) {
       </div>
 
       {!row && (
-        <ErrorNotice testId="row-deleted">
+        <Notice variant="destructive" data-testid="row-deleted">
           The clean-up deleted this import’s row. What follows is what its copy holds.
-        </ErrorNotice>
+        </Notice>
       )}
 
       <Section title="Overview" testId="import-overview">
@@ -472,13 +441,9 @@ export function ImportDetailPage({ id }: { id: string }) {
 
   return (
     <AdminShell testId="import-detail-page" wide>
-      {detail.isPending ? (
-        <div role="status" aria-label="Loading" className="space-y-4">
-          <Skeleton className="h-8 w-56" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-      ) : detail.isError ? (
-        detail.error instanceof ApiHttpError && detail.error.status === 404 ? (
+      <DetailQuery
+        query={detail}
+        notFound={
           <div data-testid="import-not-found" className="space-y-3">
             <h1 className="text-2xl font-semibold tracking-tight">No such import</h1>
             <p className="text-muted-foreground text-sm">
@@ -488,12 +453,10 @@ export function ImportDetailPage({ id }: { id: string }) {
               Back to the imports
             </Link>
           </div>
-        ) : (
-          <LoadFailure error={detail.error} onRetry={() => void detail.refetch()} />
-        )
-      ) : (
-        <DetailBody detail={detail.data} />
-      )}
+        }
+      >
+        {(data) => <DetailBody detail={data} />}
+      </DetailQuery>
     </AdminShell>
   );
 }

@@ -3,6 +3,7 @@ import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { testErrorReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, LoaderCircle } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
@@ -13,7 +14,6 @@ import {
   type TestAttemptOutcome,
 } from '@/api/generated/api';
 import { apiErrorReason, isClientOutdatedError } from '@/api/http';
-import { Notice } from '@/components/notice';
 import { useReloadContext } from '@/features/reload/reload-store';
 import { useApiRequest } from '@/lib/request';
 

@@ -3,13 +3,13 @@ import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react/macro';
 import { type Disposition, type FileLink, useFileLink } from '@ssm-usor/api-http/file-link';
 import type { TrainingDomain } from '@ssm-usor/contracts';
+import { openPreview, PreviewBlockedError, saveFile } from '@ssm-usor/ui/lib/save-file';
 import { useState } from 'react';
 
 import type { PortalTrainingSheetsResponse } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { trainingDomainMessages } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
-import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';
 
 function failureOf(cause: unknown): MessageDescriptor {
   if (cause instanceof PreviewBlockedError) {

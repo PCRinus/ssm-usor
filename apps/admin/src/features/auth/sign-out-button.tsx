@@ -1,10 +1,10 @@
 import type { AdminActiveImpersonation } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useRouteContext } from '@tanstack/react-router';
 import { LogOut } from 'lucide-react';
 import { type ComponentProps, useState } from 'react';
 
-import { ErrorNotice } from '@/components/error-notice';
 import { activeImpersonationKey, endImpersonation } from '@/features/impersonation/api';
 
 import { useAuth } from './auth-context';
@@ -51,9 +51,9 @@ export function SignOutButton({
         <span className={labelClassName}>Sign out</span>
       </Button>
       {failed && (
-        <ErrorNotice testId="sign-out-error">
+        <Notice variant="destructive" data-testid="sign-out-error">
           The session could not be closed. Check the connection and try again.
-        </ErrorNotice>
+        </Notice>
       )}
     </>
   );

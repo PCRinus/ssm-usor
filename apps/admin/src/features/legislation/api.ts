@@ -10,13 +10,9 @@ import {
 import type { QueryClient } from '@tanstack/react-query';
 
 import { apiFetch, type ApiRequestOptions } from '@/api/http';
+import { oneOf, pageParam } from '@/lib/search';
 
 type Read = ApiRequestOptions & { signal?: AbortSignal };
-
-const oneOf = <T extends string>(values: readonly T[], value: unknown): T | undefined =>
-  typeof value === 'string' && (values as readonly string[]).includes(value)
-    ? (value as T)
-    : undefined;
 
 export interface ChangesSearch {
   status?: (typeof adminLegalChangeStatusFilters)[number];
@@ -45,10 +41,9 @@ export interface RunsSearch {
   page?: number;
 }
 
-export function runsSearchOf(search: Record<string, unknown>): RunsSearch {
-  const page = Number(search.page);
-  return { page: Number.isInteger(page) && page > 1 ? page : undefined };
-}
+export const runsSearchOf = (search: Record<string, unknown>): RunsSearch => ({
+  page: pageParam(search.page),
+});
 
 export const runsPageSize = 25;
 

@@ -1,9 +1,8 @@
+import { installUiTestEnvironment } from '@ssm-usor/spa-runtime/testing/jsdom';
 import { cleanup, configure } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 import { activateLocale, sourceLocale } from '@/app/i18n';
-
-import { fakeTurnstile } from './turnstile';
 
 // The default 1 s wait for an element runs out when several suites share the machine, and a
 // page that renders in 1.2 s fails as missing. A wait ends as soon as the element appears.
@@ -22,28 +21,4 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
-afterEach(() => {
-  sessionStorage.clear();
-  localStorage.clear();
-});
-
-beforeEach(() => vi.stubGlobal('scrollTo', vi.fn()));
-
-// jsdom lacks what the Radix menu of the account needs to open.
-beforeEach(() => {
-  vi.stubGlobal(
-    'ResizeObserver',
-    class ResizeObserver {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    }
-  );
-  Element.prototype.scrollIntoView = vi.fn();
-  Element.prototype.hasPointerCapture = vi.fn(() => false);
-  Element.prototype.setPointerCapture = vi.fn();
-  Element.prototype.releasePointerCapture = vi.fn();
-});
-
-// jsdom loads no external script, so the widget is a fake that hands out tokens at once.
-beforeEach(() => vi.stubGlobal('turnstile', fakeTurnstile()));
+installUiTestEnvironment();

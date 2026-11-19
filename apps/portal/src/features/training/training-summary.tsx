@@ -1,11 +1,11 @@
 import { plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { type TrainingDomain, trainingDomains } from '@ssm-usor/contracts';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Link } from '@tanstack/react-router';
 import { Signature } from 'lucide-react';
 
 import type { PortalTrainingRecordsResponse } from '@/api/generated/api';
-import { Notice } from '@/components/notice';
 import { cardClass } from '@/components/page';
 import { useFormatDate } from '@/lib/format';
 import { trainingDomainMessages } from '@/lib/labels';

@@ -7,7 +7,7 @@ import { isOutdatedDialogOpen, reloadPortal } from './reload-store';
 
 const newVersionToastId = 'portal-new-version';
 
-export function showNewVersionToast() {
+export function showNewVersionToast(postpone?: () => void) {
   if (isOutdatedDialogOpen()) return;
   captureEvent('update_toast_shown', { client: 'portal' });
   toast.info(<Trans>A apărut o versiune nouă a portalului.</Trans>, {
@@ -15,6 +15,10 @@ export function showNewVersionToast() {
     duration: Infinity,
     description: <Trans>Reîncarcă pagina pentru a o folosi.</Trans>,
     action: { label: <Trans>Reîncarcă</Trans>, onClick: () => reloadPortal('toast') },
+    // Sonner also calls it when the outdated dialog takes the toast away, which is no closing.
+    onDismiss: () => {
+      if (!isOutdatedDialogOpen()) postpone?.();
+    },
   });
 }
 

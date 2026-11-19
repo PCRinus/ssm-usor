@@ -4,6 +4,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
@@ -16,9 +17,8 @@ import {
   signPortalSigningSession,
   type SignSessionResponse,
 } from '@/api/generated/api';
-import { apiErrorBody, apiErrorReason, ApiHttpError, isClientOutdatedError } from '@/api/http';
+import { apiErrorReason, isClientOutdatedError } from '@/api/http';
 import { CodeInput } from '@/components/code-input';
-import { Notice } from '@/components/notice';
 import { cardClass, Page, PageFailed, PageHeader, PageLoading } from '@/components/page';
 import {
   type Participation,
@@ -28,8 +28,17 @@ import { useReloadContext } from '@/features/reload/reload-store';
 import { TrainingMaterial } from '@/features/training/training-material';
 import { useFormatDuration } from '@/lib/format';
 import { useApiRequest } from '@/lib/request';
+import { useCountdown } from '@/lib/use-countdown';
 
 import { AgreementPdfButton } from './agreement-pdf-button';
+import {
+  type CodeError,
+  codeErrorOf,
+  outcomesOf,
+  resendDelaySeconds,
+  type SessionFailure,
+  sessionFailureOf,
+} from './signing-failures';
 import { SigningItemText } from './signing-item-text';
 import {
   agreementKey,
@@ -40,19 +49,9 @@ import {
   signingLimit,
   useSigningItems,
 } from './signing-items';
-import {
-  itemFailureMessages,
-  sessionFailureMessages,
-  signInAgainMessage,
-  spentCodeMessages,
-  tooManyItemsMessage,
-  unreachableMessage,
-} from './signing-messages';
-import { type SmsRefusal, smsRefusalOf } from './sms-refusal';
+import { itemFailureMessages } from './signing-messages';
 import { SmsRefusalNotice } from './sms-refusal-notice';
 
-// The API sends one signing code per account a minute.
-const resendDelaySeconds = 60;
 const codeLength = { min: 6, max: 6 };
 
 type Step =
@@ -65,59 +64,6 @@ type Step =
       resent: boolean;
     }
   | { kind: 'result'; items: SigningItem[]; result: SignSessionResponse };
-
-type SessionFailure = {
-  message: MessageDescriptor;
-  retryAfterSeconds: number;
-  sms?: SmsRefusal;
-};
-
-function sessionFailureOf(cause: unknown): SessionFailure {
-  const body = apiErrorBody(cause);
-  const reason = body?.reason ?? null;
-  const sms = smsRefusalOf(body);
-  if (sms)
-    return { message: sessionFailureMessages.signing_code_not_sent, retryAfterSeconds: 0, sms };
-  if (reason === 'code_rate_limited') {
-    return {
-      message: msg`Ai cerut un cod acum mai puțin de un minut.`,
-      retryAfterSeconds: body?.retryAfterSeconds ?? resendDelaySeconds,
-    };
-  }
-  if (reason && reason in sessionFailureMessages) {
-    return {
-      message: sessionFailureMessages[reason as keyof typeof sessionFailureMessages],
-      retryAfterSeconds: 0,
-    };
-  }
-  if (cause instanceof ApiHttpError && cause.status === 400) {
-    return { message: tooManyItemsMessage, retryAfterSeconds: 0 };
-  }
-  if (cause instanceof ApiHttpError && (cause.status === 401 || cause.status === 403)) {
-    return { message: signInAgainMessage, retryAfterSeconds: 0 };
-  }
-  return { message: unreachableMessage, retryAfterSeconds: 0 };
-}
-
-function useCountdown(initialUntil = 0) {
-  const [clock, setClock] = useState(() => ({ until: initialUntil, now: Date.now() }));
-  useEffect(() => {
-    if (clock.until === 0) return;
-    const timer = window.setInterval(() => {
-      const now = Date.now();
-      setClock((current) => ({ ...current, now }));
-      if (now >= clock.until) window.clearInterval(timer);
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [clock.until]);
-  return {
-    secondsLeft: Math.max(0, Math.ceil((clock.until - clock.now) / 1000)),
-    restart(seconds: number) {
-      const now = Date.now();
-      setClock({ until: now + seconds * 1000, now });
-    },
-  };
-}
 
 function sessionBody(items: SigningItem[]) {
   const requestIds = items.flatMap((item) => (item.kind === 'request' ? [item.request.id] : []));
@@ -464,32 +410,6 @@ function ChooseRow({
   );
 }
 
-type CodeError =
-  | { kind: 'invalid'; attemptsLeft: number | null }
-  | { kind: 'spent'; message: MessageDescriptor }
-  | { kind: 'other'; message: MessageDescriptor };
-
-function codeErrorOf(cause: unknown): CodeError {
-  const body = apiErrorBody(cause);
-  const reason = body?.reason ?? null;
-  if (reason === 'code_invalid') {
-    const attemptsLeft = body?.attemptsLeft ?? null;
-    return attemptsLeft === 0
-      ? { kind: 'spent', message: spentCodeMessages.code_attempts_exceeded }
-      : { kind: 'invalid', attemptsLeft };
-  }
-  if (reason && reason in spentCodeMessages) {
-    return { kind: 'spent', message: spentCodeMessages[reason as keyof typeof spentCodeMessages] };
-  }
-  if (reason === 'signing_unavailable') {
-    return { kind: 'other', message: sessionFailureMessages.signing_unavailable };
-  }
-  if (cause instanceof ApiHttpError && (cause.status === 401 || cause.status === 403)) {
-    return { kind: 'other', message: signInAgainMessage };
-  }
-  return { kind: 'other', message: unreachableMessage };
-}
-
 function CodeStep({
   participation,
   session,
@@ -734,27 +654,6 @@ function CodeStep({
       </div>
     </div>
   );
-}
-
-type Outcome = { item: SigningItem; signed: boolean; reason: MessageDescriptor | null };
-
-function outcomesOf(items: SigningItem[], result: SignSessionResponse): Outcome[] {
-  return items.map((item) => {
-    if (item.kind === 'agreement') {
-      const answer = result.agreements.find((each) => each.employeeId === item.employeeId);
-      return {
-        item,
-        signed: answer?.signed === true,
-        reason: answer?.reason ? itemFailureMessages[answer.reason] : null,
-      };
-    }
-    const failed = result.failed.find((each) => each.requestId === item.request.id);
-    return {
-      item,
-      signed: result.signed.some((each) => each.requestId === item.request.id),
-      reason: failed ? itemFailureMessages[failed.reason] : null,
-    };
-  });
 }
 
 function oneSignedMessage(item: SigningItem, ownEmployeeId: string | null): MessageDescriptor {

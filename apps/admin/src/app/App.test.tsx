@@ -136,7 +136,7 @@ describe('the admin sign-in', () => {
     expect(client.signInWithPassword).toHaveBeenLastCalledWith({
       email: 'mircea@example.ro',
       password: 'right password',
-      options: { captchaToken: 'captcha-token' },
+      options: { captchaToken: 'turnstile-token-2' },
     });
 
     expect((await screen.findByTestId('enrol-secret')).textContent).toContain('JBSWY3DPEHPK3PXP');

@@ -15,7 +15,14 @@ import {
   type RisksProposal,
   toProposal,
 } from '@ssm-usor/import';
-import { createClient } from '@supabase/supabase-js';
+import {
+  captchaToken,
+  e2ePassword,
+  mailbox,
+  removeTestOrganization,
+  runAddresses,
+  stackClient,
+} from '@ssm-usor/spa-runtime/testing/e2e-stack';
 
 import {
   type RiskEvaluationFixture,
@@ -24,16 +31,13 @@ import {
 } from '../../../api/src/modules/documents/risk-evaluations.fixture';
 
 // Fixtures are written with the local stack's secret key, the way the seed script does it.
-const admin = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const admin = stackClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!);
 
-export const password = 'Parola-e2e-1';
+export const password = e2ePassword;
 
-// One run never collides with another, or with what a developer has in their local stack.
-// Workers start in the same millisecond, and `cleanUp` deletes every account with this suffix.
-const run = `${Date.now().toString(36)}w${process.env.TEST_WORKER_INDEX ?? ''}`;
-export const addressOf = (name: string) => `${name}-${run}@e2e.test`;
+// `cleanUp` deletes every account with this run's suffix.
+const { run, addressOf: addressOfRun, isOfRun } = runAddresses('w', process.env.TEST_WORKER_INDEX);
+export const addressOf = addressOfRun;
 
 const created = {
   users: [] as string[],
@@ -899,14 +903,8 @@ export async function putBehindItsTemplate(clientId: string, typeKey: string) {
   return generatedFrom.data.version;
 }
 
-// Turnstile's dummy token, the only one the local stack's test secret accepts
-// (supabase/config.toml).
-const captchaToken = 'XXXX.DUMMY.TOKEN.XXXX';
-
 async function sessionOf(email: string, withPassword = password) {
-  const client = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const client = stackClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!);
   const { data, error } = await client.auth.signInWithPassword({
     email,
     password: withPassword,
@@ -927,121 +925,60 @@ export async function recoveryTokenHash(email: string) {
   return data.properties.hashed_token;
 }
 
-// What the in-memory mailbox of the e2e API kept for an address: `url` is the link of an
-// email that has one, and a description of what it carried for one that does not.
-export async function emailsTo(to: string, kind: string) {
-  const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
-  url.searchParams.set('to', to);
-  const emails = (await (await fetch(url)).json()) as { kind: string; url: string }[];
-  return emails.filter((item) => item.kind === kind);
-}
+export const emailsTo = (to: string, kind: string) => mailbox(process.env.E2E_API_URL!, to, kind);
 
 export async function emailedLink(to: string, kind: string) {
-  const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
-  url.searchParams.set('to', to);
-  const emails = (await (await fetch(url)).json()) as { kind: string; url: string }[];
-  const email = emails.filter((item) => item.kind === kind).at(-1);
+  const email = (await emailsTo(to, kind)).at(-1);
   if (!email) throw new Error(`No ${kind} email was sent to ${to}.`);
   return email.url;
 }
 
-// Storage lists one level at a time, a folder as an entry without an id.
-async function storageFolder(bucket: string, folder: string): Promise<string[]> {
-  const paths: string[] = [];
-  for (let offset = 0; ; offset += 1000) {
-    const { data, error } = await admin.storage.from(bucket).list(folder, { limit: 1000, offset });
-    if (error) throw error;
-    for (const entry of data) {
-      const path = `${folder}/${entry.name}`;
-      if (entry.id === null) paths.push(...(await storageFolder(bucket, path)));
-      else paths.push(path);
-    }
-    if (data.length < 1000) return paths;
-  }
-}
-
+// Every refusal is reported after the rest is cleaned up, so one leftover does not leave the
+// other organizations behind with it.
 export async function cleanUp() {
-  // Accounts created through the UI are found by this run's address suffix.
-  const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const mine = data.users.filter((user) => user.email?.endsWith(`-${run}@e2e.test`));
-  for (const id of new Set([...created.users, ...mine.map((user) => user.id)])) {
-    await admin.auth.admin.deleteUser(id);
-  }
+  const failures: string[] = [];
   for (const id of created.organizations) {
-    // Generated files first, then the rows that say where they are.
-    const revisions = await admin
-      .from('document_revisions')
-      .select('docx_path')
-      .eq('organization_id', id);
-    const paths = (revisions.data ?? []).map((revision) => revision.docx_path as string);
-    if (paths.length > 0) await admin.storage.from('documents').remove(paths);
-    const signed = await admin
-      .from('document_signed_copies')
-      .select('storage_path')
-      .eq('organization_id', id);
-    const signedPaths = (signed.data ?? []).map((copy) => copy.storage_path as string);
-    if (signedPaths.length > 0) await admin.storage.from('documents').remove(signedPaths);
-    await admin.from('document_signed_copies').delete().eq('organization_id', id);
-    await admin.from('regeneration_jobs').delete().eq('organization_id', id);
-    await admin.from('service_contract_sends').delete().eq('organization_id', id);
-    await admin.from('document_revisions').delete().eq('organization_id', id);
-    await admin.from('client_documents').delete().eq('organization_id', id);
-    await admin.from('document_generations').delete().eq('organization_id', id);
-    // Clients restrict the deletion of their organization, and their rows that of the client.
-    await admin.from('client_responsible_persons').delete().eq('organization_id', id);
-    await admin.from('fire_equipment').delete().eq('organization_id', id);
-    await admin.from('fire_installations').delete().eq('organization_id', id);
-    await admin.from('fire_maintenance_items').delete().eq('organization_id', id);
-    await admin.from('fire_buildings').delete().eq('organization_id', id);
-    await admin.from('fire_substances').delete().eq('organization_id', id);
-    await admin.from('client_fire_safety').delete().eq('organization_id', id);
-    // Their records go with them, and the records restrict the deletion of the employees.
-    await admin.from('trainings').delete().eq('organization_id', id);
-    // Before the employees, whom a file can belong to.
-    const files = await admin.from('client_files').select('storage_path').eq('organization_id', id);
-    const filePaths = (files.data ?? []).map((file) => file.storage_path as string);
-    if (filePaths.length > 0) await admin.storage.from('client-files').remove(filePaths);
-    await admin.from('client_files').delete().eq('organization_id', id);
-    // An import names its client, and restricts the client's deletion.
-    await admin.from('imports').delete().eq('organization_id', id);
-    // A copy outlives its import, and restricts the deletion of its organization.
-    const copyPaths = await storageFolder('import-copies', id);
-    for (let start = 0; start < copyPaths.length; start += 100) {
-      await admin.storage.from('import-copies').remove(copyPaths.slice(start, start + 100));
-    }
-    await admin.from('import_copies').delete().eq('organization_id', id);
-    // A participant's attempts restrict their deletion, and a result restricts its attempt's.
-    await admin.from('test_results').delete().eq('organization_id', id);
-    await admin.from('test_attempts').delete().eq('organization_id', id);
-    await admin.from('participant_invitations').delete().eq('organization_id', id);
-    await admin.from('client_participants').delete().eq('organization_id', id);
-    await admin.from('employees').delete().eq('organization_id', id);
-    // After the employees, who point at them.
-    await admin.from('client_workplaces').delete().eq('organization_id', id);
-    // Their factors and measures go with them; a position's would go with the position.
-    await admin.from('risk_evaluations').delete().eq('organization_id', id);
-    // After the evaluations, whose factors keep the library's entries from being deleted.
-    await admin.from('evaluation_profiles').delete().eq('organization_id', id);
-    // After the employees, who point at them.
-    await admin.from('job_positions').delete().eq('organization_id', id);
-    await admin.from('client_owner_notes').delete().eq('organization_id', id);
-    await admin.from('service_contracts').delete().eq('organization_id', id);
-    await admin.from('clients').delete().eq('organization_id', id);
-    // The hides first: deleting an own question is refused while it would leave fewer than ten.
-    await admin.from('test_question_hides').delete().eq('organization_id', id);
-    await admin.from('test_questions').delete().eq('organization_id', id);
-    await admin.from('organizations').delete().eq('id', id);
+    await removeTestOrganization(admin, id).catch((cause: Error) =>
+      failures.push(`organization ${id}, ${cause.message}`)
+    );
   }
+  const keptVersions: typeof created.templateVersions = [];
   for (const version of created.templateVersions) {
     const removed = await admin.from('document_template_versions').delete().eq('id', version.id);
     // A test running beside this one generated a document from it, which keeps it in place.
-    if (removed.error?.code === '23503') continue;
-    if (removed.error) throw removed.error;
-    await admin.storage.from('document-templates').remove([version.storagePath]);
+    if (removed.error?.code === '23503') {
+      keptVersions.push(version);
+      continue;
+    }
+    if (removed.error) {
+      failures.push(`template version ${version.id}: ${removed.error.message}`);
+      continue;
+    }
+    const files = await admin.storage.from('document-templates').remove([version.storagePath]);
+    if (files.error) failures.push(`template file ${version.storagePath}: ${files.error.message}`);
   }
   if (created.releases.length > 0) {
     const removed = await admin.from('releases').delete().in('tag', created.releases);
-    if (removed.error) throw removed.error;
+    if (removed.error) failures.push(`releases: ${removed.error.message}`);
+  }
+  // Accounts created through the UI are found by this run's address suffix.
+  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) failures.push(`listing the accounts: ${error.message}`);
+  const mine = (data?.users ?? []).filter((user) => isOfRun(user.email));
+  for (const id of new Set([...created.users, ...mine.map((user) => user.id)])) {
+    const removed = await admin.auth.admin.deleteUser(id);
+    // A flow that deleted its account has done the work already.
+    if (removed.error && removed.error.status !== 404) {
+      failures.push(`account ${id}: ${removed.error.message}`);
+    }
+  }
+  // Spec files share this module in a worker, and each cleans up after itself.
+  created.users = [];
+  created.organizations = [];
+  created.templateVersions = keptVersions;
+  created.releases = [];
+  if (failures.length > 0) {
+    throw new Error(`The clean-up left rows in the local stack:\n${failures.join('\n')}`);
   }
 }
 

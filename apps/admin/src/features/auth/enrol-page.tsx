@@ -1,7 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useQuery } from '@tanstack/react-query';
 
-import { ErrorNotice } from '@/components/error-notice';
 import { Frame } from '@/components/frame';
 
 import { useAuth } from './auth-context';
@@ -35,9 +35,9 @@ export function EnrolPage() {
       )}
       {enrolment.isError && (
         <>
-          <ErrorNotice testId="enrol-error">
+          <Notice variant="destructive" data-testid="enrol-error">
             The authenticator could not be set up: {enrolment.error.message}
-          </ErrorNotice>
+          </Notice>
           <Button variant="outline" onClick={() => void enrolment.refetch()}>
             Try again
           </Button>

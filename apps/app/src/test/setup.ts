@@ -1,8 +1,6 @@
-import { toast } from '@ssm-usor/ui/lib/toast';
+import { installUiTestEnvironment } from '@ssm-usor/spa-runtime/testing/jsdom';
 import { cleanup, configure } from '@testing-library/react';
-import { afterEach, beforeEach, vi } from 'vitest';
-
-import { fakeTurnstile } from './turnstile';
+import { afterEach, beforeEach } from 'vitest';
 
 // The default 1 s wait for an element runs out when several suites share the machine, and a
 // page that renders in 1.2 s fails as missing. A wait ends as soon as the element appears.
@@ -10,59 +8,9 @@ configure({ asyncUtilTimeout: 5_000 });
 
 afterEach(cleanup);
 
-afterEach(() => {
-  sessionStorage.clear();
-  localStorage.clear();
-});
-
-// Sonner keeps its toasts in a module-level store, so one test's toast would show up in the next.
-afterEach(() => {
-  toast.dismiss();
-});
-
-beforeEach(() => vi.stubGlobal('scrollTo', vi.fn()));
-
-// jsdom does not implement element resize observation used by Radix positioning primitives.
-beforeEach(() =>
-  vi.stubGlobal(
-    'ResizeObserver',
-    class ResizeObserver {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    }
-  )
-);
-
-// jsdom does not implement media queries used by responsive UI primitives.
-beforeEach(() =>
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn((query: string) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }))
-  )
-);
-
-// jsdom lacks these element APIs used by Radix popovers and the cmdk list.
-beforeEach(() => {
-  Element.prototype.scrollIntoView = vi.fn();
-  Element.prototype.hasPointerCapture = vi.fn(() => false);
-  Element.prototype.setPointerCapture = vi.fn();
-  Element.prototype.releasePointerCapture = vi.fn();
-});
+installUiTestEnvironment();
 
 // jsdom has no PDF viewer and does not say so; the browsers the app supports have one.
 beforeEach(() => {
   Object.defineProperty(navigator, 'pdfViewerEnabled', { value: true, configurable: true });
 });
-
-// jsdom loads no external script, so the widget is a fake that hands out tokens at once.
-beforeEach(() => vi.stubGlobal('turnstile', fakeTurnstile()));

@@ -2,9 +2,9 @@ import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { type FormEvent, useState } from 'react';
 
-import { ErrorNotice } from '@/components/error-notice';
 import { Frame } from '@/components/frame';
 
 import { useAuth } from './auth-context';
@@ -65,7 +65,11 @@ export function SignInPage() {
           />
         </div>
         <div ref={captchaRef} />
-        {failure && <ErrorNotice testId="sign-in-error">{failure}</ErrorNotice>}
+        {failure && (
+          <Notice variant="destructive" data-testid="sign-in-error">
+            {failure}
+          </Notice>
+        )}
         <Button type="submit" className="h-11" disabled={busy}>
           Sign in
         </Button>

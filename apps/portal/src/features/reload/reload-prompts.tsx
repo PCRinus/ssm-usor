@@ -1,16 +1,24 @@
+import { watchDeployedVersion } from '@ssm-usor/spa-runtime/version-watch';
 import { Toaster } from '@ssm-usor/ui/components/sonner';
 import { useEffect } from 'react';
 
 import { showNewVersionToast } from './new-version-toast';
 import { ReloadDialog } from './reload-dialog';
 import { openOutdatedDialog } from './reload-store';
-import { watchDeployedVersion } from './version-check';
 
 // The dev server serves no /version.json.
 const runningCommit = import.meta.env.DEV ? 'local' : (import.meta.env.VITE_COMMIT_SHA ?? 'local');
 
 export function ReloadPrompts({ running = runningCommit }: { running?: string }) {
-  useEffect(() => watchDeployedVersion({ running, onNewer: showNewVersionToast }), [running]);
+  useEffect(
+    () =>
+      watchDeployedVersion({
+        running,
+        postponedKey: 'ssm-usor:portal-new-version-postponed',
+        onNewer: (_commit, postpone) => showNewVersionToast(postpone),
+      }),
+    [running]
+  );
 
   useEffect(() => {
     const onPreloadError = (event: Event) => {

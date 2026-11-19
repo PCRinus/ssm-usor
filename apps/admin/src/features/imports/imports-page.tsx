@@ -7,22 +7,14 @@ import { Badge } from '@ssm-usor/ui/components/badge';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
-import { cn } from '@ssm-usor/ui/lib/utils';
+import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import type { MouseEvent } from 'react';
 
-import { AdminShell, LoadFailure } from '@/components/admin-shell';
-import { Pager } from '@/components/pager';
+import { AdminShell } from '@/components/admin-shell';
+import { ListTable } from '@/components/list-table';
+import { pageParam } from '@/lib/search';
 
 import { fetchImports, type ImportsSearch } from './api';
 import {
@@ -184,114 +176,68 @@ export function ImportsPage({ search }: { search: ImportsSearch }) {
         </Label>
       </div>
 
-      {imports.isError && !imports.data ? (
-        <LoadFailure error={imports.error} onRetry={() => void imports.refetch()} />
-      ) : (
-        <div className="bg-background overflow-hidden rounded-xl border">
-          <Table
-            data-testid="imports-table"
-            aria-label="Imports"
-            aria-busy={imports.isPlaceholderData || undefined}
+      <ListTable
+        query={imports}
+        testId="imports-table"
+        label="Imports"
+        columns={columns}
+        empty="No import matches these filters."
+        row={(item) => (
+          <TableRow
+            key={item.id}
+            data-testid="import-row"
+            className="cursor-pointer align-top"
+            onClick={open(item.id)}
           >
-            <TableHeader>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableHead key={column}>{column}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody className={cn(imports.isPlaceholderData && 'opacity-50')}>
-              {imports.isPending ? (
-                Array.from({ length: 3 }, (_, index) => (
-                  <TableRow key={index} className="hover:bg-transparent">
-                    {columns.map((column) => (
-                      <TableCell key={column}>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : imports.data.items.length === 0 ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={columns.length}
-                    className="text-muted-foreground h-40 text-center"
-                  >
-                    No import matches these filters.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                imports.data.items.map((item) => (
-                  <TableRow
-                    key={item.id}
-                    data-testid="import-row"
-                    className="cursor-pointer align-top"
-                    onClick={open(item.id)}
-                  >
-                    <TableCell>
-                      <Link
-                        to="/imports/$id"
-                        params={{ id: item.id }}
-                        className="font-medium underline-offset-4 hover:underline"
-                      >
-                        {item.kind ? kindLabels[item.kind] : 'Unknown kind'}
-                      </Link>
-                      <div className="text-muted-foreground text-xs tabular-nums">
-                        {formatDateTime(item.createdAt ?? item.endedAt)}
-                      </div>
-                      <div className="text-muted-foreground font-mono text-xs">
-                        {item.id.slice(0, 8)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-56 whitespace-normal">
-                      {item.organization.name ?? (
-                        <span className="text-muted-foreground font-mono text-xs">
-                          {item.organization.id}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        <StatusBadge status={item.status} rowDeleted={item.rowDeleted} />
-                        {item.reportedAt && (
-                          <Badge variant="destructive" data-testid="reported-badge">
-                            Reported
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="min-w-40 whitespace-normal">
-                      <FlagCounts item={item} />
-                    </TableCell>
-                    <TableCell className="tabular-nums">{formatShare(item.changedShare)}</TableCell>
-                    <TableCell className="tabular-nums">{formatCost(item.costUsd)}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {item.readingVersion ?? '—'}
-                    </TableCell>
-                    <TableCell>
-                      <CopyCell item={item} />
-                    </TableCell>
-                  </TableRow>
-                ))
+            <TableCell>
+              <Link
+                to="/imports/$id"
+                params={{ id: item.id }}
+                className="font-medium underline-offset-4 hover:underline"
+              >
+                {item.kind ? kindLabels[item.kind] : 'Unknown kind'}
+              </Link>
+              <div className="text-muted-foreground text-xs tabular-nums">
+                {formatDateTime(item.createdAt ?? item.endedAt)}
+              </div>
+              <div className="text-muted-foreground font-mono text-xs">{item.id.slice(0, 8)}</div>
+            </TableCell>
+            <TableCell className="max-w-56 whitespace-normal">
+              {item.organization.name ?? (
+                <span className="text-muted-foreground font-mono text-xs">
+                  {item.organization.id}
+                </span>
               )}
-            </TableBody>
-          </Table>
-          {imports.data && (
-            <Pager
-              noun={{ one: 'import', many: 'imports' }}
-              page={imports.data.page}
-              pageSize={imports.data.pageSize}
-              total={imports.data.total}
-              disabled={imports.isFetching}
-              onPage={(page) =>
-                void navigate({
-                  search: (previous) => ({ ...previous, page: page > 1 ? page : undefined }),
-                })
-              }
-            />
-          )}
-        </div>
-      )}
+            </TableCell>
+            <TableCell>
+              <div className="flex flex-wrap gap-1">
+                <StatusBadge status={item.status} rowDeleted={item.rowDeleted} />
+                {item.reportedAt && (
+                  <Badge variant="destructive" data-testid="reported-badge">
+                    Reported
+                  </Badge>
+                )}
+              </div>
+            </TableCell>
+            <TableCell className="min-w-40 whitespace-normal">
+              <FlagCounts item={item} />
+            </TableCell>
+            <TableCell className="tabular-nums">{formatShare(item.changedShare)}</TableCell>
+            <TableCell className="tabular-nums">{formatCost(item.costUsd)}</TableCell>
+            <TableCell className="font-mono text-xs">{item.readingVersion ?? '—'}</TableCell>
+            <TableCell>
+              <CopyCell item={item} />
+            </TableCell>
+          </TableRow>
+        )}
+        pager={{
+          noun: { one: 'import', many: 'imports' },
+          onPage: (page) =>
+            void navigate({
+              search: (previous) => ({ ...previous, page: pageParam(page) }),
+            }),
+        }}
+      />
     </AdminShell>
   );
 }

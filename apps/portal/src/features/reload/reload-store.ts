@@ -1,3 +1,4 @@
+import { reloadStamp } from '@ssm-usor/spa-runtime/version-watch';
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { captureEvent } from '@/app/observability/posthog';
@@ -20,9 +21,7 @@ export interface OutdatedState {
   lockedUntil: number | null;
 }
 
-export const deployWindowMs = 60_000;
-
-const reloadStampKey = 'ssm-usor:portal-reload-at';
+const reloads = reloadStamp('ssm-usor:portal-reload-at');
 
 const otherContext: ReloadContext = { kind: 'other' };
 
@@ -42,21 +41,9 @@ function subscribe(listener: () => void) {
   };
 }
 
-function lastReloadAt() {
-  try {
-    const stamp = Number(sessionStorage.getItem(reloadStampKey));
-    return Number.isFinite(stamp) && stamp > 0 ? stamp : null;
-  } catch {
-    return null;
-  }
-}
-
 export function openOutdatedDialog(cause: OutdatedCause, now = Date.now()) {
   if (outdated) return;
-  const reloadedAt = lastReloadAt();
-  const lockedUntil =
-    reloadedAt !== null && now - reloadedAt < deployWindowMs ? reloadedAt + deployWindowMs : null;
-  outdated = { cause, context, lockedUntil };
+  outdated = { cause, context, lockedUntil: reloads.lockedUntil(now) };
   captureEvent('client_outdated_shown', { client: 'portal', cause });
   emit();
 }
@@ -67,11 +54,7 @@ export const pageReload = { reload: () => window.location.reload() };
 
 export function reloadPortal(prompt: ReloadPrompt) {
   captureEvent('reload_clicked', { prompt });
-  try {
-    sessionStorage.setItem(reloadStampKey, String(Date.now()));
-  } catch {
-    // Storage blocked: the next dialog cannot tell it follows a reload, and still opens.
-  }
+  reloads.mark();
   pageReload.reload();
 }
 

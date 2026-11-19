@@ -1,13 +1,8 @@
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate } from '@tanstack/react-router';
 import { ChevronLeft } from 'lucide-react';
 
 import {
-  getGetPortalEmployeeTrainingSheetsQueryKey,
-  getPortalEmployeeTrainingSheet,
-  getPortalEmployeeTrainingSheetLink,
-  useGetPortalEmployeeTrainingSheets,
   useListPortalClientEmployees,
   useListPortalClientSignatureRequests,
   useListPortalEmployeeTrainingRecords,
@@ -16,6 +11,7 @@ import { ApiHttpError } from '@/api/http';
 import { Page, PageGrid, PageHeader } from '@/components/page';
 import { isAdministrator, useParticipation } from '@/features/participation/participation-context';
 import { pendingByRecord } from '@/features/training/pending-signatures';
+import { useEmployeeSheetAccess } from '@/features/training/sheet-access';
 import { TrainingRecordsSection } from '@/features/training/training-records-section';
 import { TrainingSheets } from '@/features/training/training-sheets';
 import { useApiRequest } from '@/lib/request';
@@ -48,14 +44,11 @@ function EmployeeDetail({
 }) {
   const { t } = useLingui();
   const apiRequest = useApiRequest();
-  const queryClient = useQueryClient();
   const employees = useListPortalClientEmployees(participantId, { request: apiRequest });
   const records = useListPortalEmployeeTrainingRecords(participantId, employeeId, {
     request: apiRequest,
   });
-  const sheets = useGetPortalEmployeeTrainingSheets(participantId, employeeId, {
-    request: apiRequest,
-  });
+  const sheets = useEmployeeSheetAccess(participantId, employeeId);
   const requests = useListPortalClientSignatureRequests(participantId, { request: apiRequest });
   const employee = employees.data?.items.find((item) => item.id === employeeId);
 
@@ -84,34 +77,9 @@ function EmployeeDetail({
         <TrainingSheets
           title={t`Fișele individuale`}
           className="lg:sticky lg:top-22 lg:col-span-4 lg:col-start-9 lg:row-start-1"
-          sheets={sheets.data}
+          access={sheets.access}
           records={records.isError ? null : records.data?.items}
-          failed={sheets.isError}
-          loadSheet={(domain, sequence) =>
-            getPortalEmployeeTrainingSheet(
-              participantId,
-              employeeId,
-              domain,
-              sequence ? { sequence } : undefined,
-              apiRequest
-            )
-          }
-          links={{
-            loadLink: (domain, sequence, signal) =>
-              getPortalEmployeeTrainingSheetLink(
-                participantId,
-                employeeId,
-                domain,
-                { sequence },
-                { ...apiRequest, signal }
-              ),
-            linkScope: [participantId, employeeId],
-          }}
-          onStale={() =>
-            void queryClient.invalidateQueries({
-              queryKey: getGetPortalEmployeeTrainingSheetsQueryKey(participantId, employeeId),
-            })
-          }
+          failed={sheets.failed}
         />
         <TrainingRecordsSection
           className="lg:col-span-8 lg:row-start-1"

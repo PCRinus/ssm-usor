@@ -1,3 +1,4 @@
+import { reloadStamp } from '@ssm-usor/spa-runtime/version-watch';
 import { useSyncExternalStore } from 'react';
 
 import { captureEvent } from '@/app/observability/posthog';
@@ -17,8 +18,7 @@ export interface ReloadDialogState {
   lockedUntil: number | null;
 }
 
-const reloadedAtKey = 'ssm-usor.reload-dialog-reloaded-at';
-export const deployWindow = 60_000;
+const reloads = reloadStamp('ssm-usor.reload-dialog-reloaded-at');
 
 let state: ReloadDialogState | null = null;
 const listeners = new Set<() => void>();
@@ -30,15 +30,6 @@ function emit() {
 
 export function setReloadPage(page: () => string) {
   currentPage = page;
-}
-
-function readReloadedAt() {
-  try {
-    const stamp = Number(sessionStorage.getItem(reloadedAtKey));
-    return Number.isFinite(stamp) && stamp > 0 ? stamp : null;
-  } catch {
-    return null;
-  }
 }
 
 export function openReloadDialog(
@@ -54,22 +45,14 @@ export function openReloadDialog(
   }
   // Before the dialog opens: it hides the rest of the page from the fields' lookup.
   const keptText = snapshotTypedText(currentPage());
-  const now = Date.now();
-  const reloadedAt = readReloadedAt();
-  const lockedUntil =
-    reloadedAt !== null && now - reloadedAt < deployWindow ? reloadedAt + deployWindow : null;
-  state = { cause, unsavedChange, keptText, lockedUntil };
+  state = { cause, unsavedChange, keptText, lockedUntil: reloads.lockedUntil() };
   captureEvent('client_outdated_shown', { client: 'app', cause });
   emit();
 }
 
 export function reloadFromDialog() {
   captureEvent('reload_clicked', { prompt: 'dialog' });
-  try {
-    sessionStorage.setItem(reloadedAtKey, String(Date.now()));
-  } catch {
-    // Without the stamp a dialog after this reload opens unlocked.
-  }
+  reloads.mark();
   browserPage.reload();
 }
 

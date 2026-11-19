@@ -1987,7 +1987,8 @@ clears the marks and the badge, and that the card opens the release page.
 An open tab keeps running the build it loaded, so the app tells it when that build is stale
 ([ADR 040](architecture/adr-040-client-contract-and-reload-prompts.md)). Everything lives in
 `src/features/reload-prompts/`, mounted once by `App.tsx` beside the toaster, so it also covers
-the full-page states.
+the full-page states. The mechanics the portal shares (the `/version.json` plugin, the watch and
+its postponing, the reload stamp) are in `@ssm-usor/spa-runtime` (`./vite`, `./version-watch`).
 
 - **`/version.json`.** The Vite build writes it with the build's commit
   (`{"commit":"<sha>"}`), the same value as `VITE_COMMIT_SHA`. The Worker serves it as a static

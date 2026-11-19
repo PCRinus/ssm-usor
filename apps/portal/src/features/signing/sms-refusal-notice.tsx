@@ -1,7 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import type { SmsRefusalReason } from '@ssm-usor/contracts';
+import { Notice } from '@ssm-usor/ui/components/notice';
 
-import { Notice } from '@/components/notice';
 import { romanianDayOf, useFormatDate } from '@/lib/format';
 
 import type { SmsRefusal } from './sms-refusal';

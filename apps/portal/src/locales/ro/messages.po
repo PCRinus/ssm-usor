@@ -217,7 +217,7 @@ msgstr "Ai acces la portal pentru <0>{clientName}</0>."
 msgid "Ai bifat {0} din {1}."
 msgstr "Ai bifat {0} din {1}."
 
-#: src/features/signing/signing-page.tsx
+#: src/features/signing/signing-failures.ts
 msgid "Ai cerut un cod acum mai puțin de un minut."
 msgstr "Ai cerut un cod acum mai puțin de un minut."
 

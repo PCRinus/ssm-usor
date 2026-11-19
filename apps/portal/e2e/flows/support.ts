@@ -1,17 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
+import {
+  captchaToken,
+  e2ePassword as password,
+  mailbox,
+  removeTestOrganization,
+  runAddresses,
+  stackClient,
+} from '@ssm-usor/spa-runtime/testing/e2e-stack';
 
-const admin = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const admin = stackClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!);
 
-const password = 'Parola-e2e-1';
-// Turnstile's dummy token, the only one the local stack's test secret accepts
-// (supabase/config.toml).
-const captchaToken = 'XXXX.DUMMY.TOKEN.XXXX';
-
-// Never collides with another run, or with the app's flows sharing the local stack.
-const run = `${Date.now().toString(36)}p${process.env.TEST_WORKER_INDEX ?? ''}`;
-export const addressOf = (name: string) => `${name}-${run}@e2e.test`;
+const { addressOf: addressOfRun, isOfRun } = runAddresses('p', process.env.TEST_WORKER_INDEX);
+export const addressOf = addressOfRun;
 
 // Spec files share this module in a worker, so one run makes several providers.
 const created = { providers: 0, users: [] as string[], organizations: [] as string[] };
@@ -72,10 +71,9 @@ export async function createProvider(
     .single();
   if (client.error) throw client.error;
 
-  const session = createClient(
+  const session = stackClient(
     process.env.E2E_SUPABASE_URL!,
-    process.env.E2E_SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
+    process.env.E2E_SUPABASE_PUBLISHABLE_KEY!
   );
   const signedIn = await session.auth.signInWithPassword({
     email,
@@ -156,26 +154,19 @@ export async function addWorkplace(
   return workplace.data.id as string;
 }
 
+async function lastCode(to: string, kind: string) {
+  const messages = await mailbox(process.env.E2E_API_URL!, to, kind);
+  return messages.at(-1)?.url.match(/code=(\d+)/)?.[1];
+}
+
 export async function lastSigningCode(to: string) {
-  const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
-  url.searchParams.set('to', to);
-  const messages = (await (await fetch(url)).json()) as { kind: string; url: string }[];
-  const code = messages
-    .filter((message) => message.kind === 'signing-code')
-    .at(-1)
-    ?.url.match(/code=(\d+)/)?.[1];
+  const code = await lastCode(to, 'signing-code');
   if (!code) throw new Error(`No signing code was sent to ${to}.`);
   return code;
 }
 
 export async function lastSignInCode(to: string) {
-  const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
-  url.searchParams.set('to', to);
-  const messages = (await (await fetch(url)).json()) as { kind: string; url: string }[];
-  const code = messages
-    .filter((message) => message.kind === 'sign-in-code')
-    .at(-1)
-    ?.url.match(/code=(\d+)/)?.[1];
+  const code = await lastCode(to, 'sign-in-code');
   if (!code) throw new Error(`No sign-in code was sent to ${to}.`);
   return code;
 }
@@ -198,32 +189,27 @@ export async function answerKey(organizationId: string, domain: 'ssm' | 'su', te
   );
 }
 
+// The same order as the app's flows: organizations first, accounts after them, and every
+// refusal reported once the rest is cleaned up.
 export async function cleanUp() {
-  const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const mine = data.users.filter((user) => user.email?.endsWith(`-${run}@e2e.test`));
+  const failures: string[] = [];
   for (const id of created.organizations) {
-    // A finished test attempt is frozen even for the secret key and restricts its employee,
-    // client and organization (ADR 024), so such an organization stays in the local stack.
-    const attempts = await admin
-      .from('test_attempts')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', id);
-    if ((attempts.count ?? 0) > 0) continue;
-    // Participants and invitations restrict the deletion of their employees and client.
-    await admin.from('participant_invitations').delete().eq('organization_id', id);
-    await admin.from('client_participants').delete().eq('organization_id', id);
-    await admin.from('trainings').delete().eq('organization_id', id);
-    await admin.from('client_responsible_persons').delete().eq('organization_id', id);
-    await admin.from('employees').delete().eq('organization_id', id);
-    await admin.from('client_workplaces').delete().eq('organization_id', id);
-    await admin.from('job_positions').delete().eq('organization_id', id);
-    await admin.from('clients').delete().eq('organization_id', id);
-    const removed = await admin.from('organizations').delete().eq('id', id);
-    if (removed.error) throw removed.error;
+    await removeTestOrganization(admin, id).catch((cause: Error) =>
+      failures.push(`organization ${id}, ${cause.message}`)
+    );
   }
+  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) failures.push(`listing the accounts: ${error.message}`);
+  const mine = (data?.users ?? []).filter((user) => isOfRun(user.email));
   for (const id of new Set([...created.users, ...mine.map((user) => user.id)])) {
-    await admin.auth.admin.deleteUser(id);
+    const removed = await admin.auth.admin.deleteUser(id);
+    if (removed.error && removed.error.status !== 404) {
+      failures.push(`account ${id}: ${removed.error.message}`);
+    }
   }
   created.users = [];
   created.organizations = [];
+  if (failures.length > 0) {
+    throw new Error(`The clean-up left rows in the local stack:\n${failures.join('\n')}`);
+  }
 }
