@@ -441,16 +441,35 @@ describe('POST /clients/{clientId}/files', () => {
       },
       env
     );
+    const chunk = new Uint8Array(1024 * 1024);
+    chunk.set(pdf);
+    let sent = 0;
+    let readPastLimit = false;
+    const body = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          if (sent > tooLarge) {
+            readPastLimit = true;
+            controller.error(new Error('The body was read past the limit.'));
+            return;
+          }
+          sent += chunk.byteLength;
+          controller.enqueue(chunk);
+        },
+      },
+      { highWaterMark: 0 }
+    );
     const streamed = await apiRequest(
       `/clients/${clientId}/files?fileName=mare.pdf`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/octet-stream' },
-        body: new Blob([new Uint8Array(tooLarge)]).stream(),
+        body,
         duplex: 'half',
       } as RequestInit,
       env
     );
+    expect(readPastLimit).toBe(false);
     for (const response of [declared, streamed]) {
       expect(response.status).toBe(400);
       expect(await reasonOf(response)).toBe('client_file_too_large');
