@@ -19,8 +19,7 @@ import type { Database, Json } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { collator } from '../../lib/romanian';
-import { romanianDay } from '../../lib/romanian';
+import { collator, romanianDay } from '../../lib/romanian';
 import { signedSheetContext, syncTrainingRows } from '../signed-sheets/signed-sheets';
 import {
   issueSignatureRequests,

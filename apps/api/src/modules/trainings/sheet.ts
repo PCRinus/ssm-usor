@@ -16,8 +16,7 @@ import {
   type TrainingSource,
 } from '@ssm-usor/contracts';
 
-import { countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
-import { printedDate } from '../../lib/romanian';
+import { countOf, listed, printedDate, runOn, withoutFinalStop } from '../../lib/romanian';
 import { gapRules } from '../documents/gaps';
 
 /**
