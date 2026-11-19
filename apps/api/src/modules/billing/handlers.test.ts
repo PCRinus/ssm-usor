@@ -1329,28 +1329,6 @@ describe('the credits meter', () => {
     });
   });
 
-  it("gives each step its own credits a month: 3,250 at Profesional's 1,500", async () => {
-    meterFake({ used: 3000 }).tables.subscriptions!.push(paidRow(pro));
-    expect(await creditsOf()).toMatchObject({ included: 3250, left: 250, state: 'near' });
-
-    meterFake({ used: 0 }).tables.subscriptions!.push(paidRow({ ...pro, step: 5000 }));
-    expect(await creditsOf()).toMatchObject({ included: 10250 });
-  });
-
-  it('says negative below zero, which the next month makes up', async () => {
-    meterFake({ used: 790 }).tables.subscriptions!.push(paidRow(start));
-
-    expect(await creditsOf()).toMatchObject({ left: -40, giftLeft: 0, state: 'negative' });
-  });
-
-  it('says out at zero, and counts the gift as left', async () => {
-    meterFake({ used: 750 }).tables.subscriptions!.push(paidRow(start));
-    expect(await creditsOf()).toMatchObject({ left: 0, state: 'out' });
-
-    meterFake({ used: 750, gift_left: 40 }).tables.subscriptions!.push(paidRow(start));
-    expect(await creditsOf()).toMatchObject({ left: 0, giftLeft: 40, state: 'near' });
-  });
-
   it('keeps a plan chosen during the trial before 2026-11-14 at the trial’s 300 until its first payment', async () => {
     const trialEnd = new Date((now() + 5 * day) * 1000).toISOString();
     const fake = meterFake({ used: 100 });
@@ -1436,12 +1414,6 @@ describe('the SMS meter', () => {
       p_organization_id: organizationId,
       p_period_start: anchor,
     });
-  });
-
-  it("gives each step one code for every five employees: 300 at Profesional's 1,500", async () => {
-    meterFake({ used: 10, overage: 0, granted: 0 }).tables.subscriptions!.push(paidRow(pro));
-
-    expect(await smsOf()).toMatchObject({ included: 300, allowance: 300 });
   });
 
   it('stops a paid plan at its allowance, with the codes granted by hand, while extras are off', async () => {

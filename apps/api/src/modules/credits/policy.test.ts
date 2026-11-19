@@ -57,6 +57,10 @@ describe('creditPolicy', () => {
       period: { start: at('2026-10-13T08:00:00.000Z') },
       allowance: 1750,
     });
+    const profesional = (step: number) =>
+      creditPolicy(paid({ plan: 'profesional', employee_step: step }), now);
+    expect(profesional(1500)).toMatchObject({ allowance: 3250 });
+    expect(profesional(5000)).toMatchObject({ allowance: 10250 });
   });
 
   it("gives a tester's trial 1,500 a month from the trial's start, with the month before", () => {
@@ -128,6 +132,9 @@ describe('the credits meter', () => {
     expect(creditsState(300, -4, 0)).toBe('negative');
     expect(creditsState(300, -4, 2500)).toBe('ok');
     expect(creditsState(null, null, 0)).toBe('unlimited');
+    expect(creditsState(3250, 250, 0)).toBe('near');
+    expect(creditsState(750, 0, 0)).toBe('out');
+    expect(creditsState(750, 0, 40)).toBe('near');
   });
 
   it('judges the state as a required charge is judged: below zero with a ceiling, from zero', () => {
@@ -160,6 +167,20 @@ describe('the credits meter', () => {
       extrasOn: false,
     });
     expect(view).toMatchObject({ used: 0, left: 325, included: 750 });
+  });
+
+  it('shows a month used past its credits as negative, which the next month makes up', () => {
+    const view = usageView(creditPolicy(paid(), now), {
+      granted: 0,
+      used: 790,
+      shortfall: 0,
+      balance: -40,
+      giftLeft: 0,
+      extra: 0,
+      extraLeft: 0,
+      extrasOn: false,
+    });
+    expect(view).toMatchObject({ used: 790, left: -40, giftLeft: 0, state: 'negative' });
   });
 });
 
