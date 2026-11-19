@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
-import { vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 
 import { type AdminRuntime, createAdminRuntime } from '@/app/admin-runtime';
 import App from '@/app/App';
@@ -63,3 +63,54 @@ export function mountAdmin(path: string) {
 }
 
 export const disposeAdmins = () => runtimes.splice(0).forEach((runtime) => runtime.dispose());
+
+export type AdminRoute = (
+  url: URL,
+  init: RequestInit | undefined
+) => Response | Promise<Response> | undefined;
+
+export const fetchMock = vi.fn<typeof fetch>();
+
+export function mockAdminApi(route: AdminRoute) {
+  fetchMock.mockImplementation(async (input, init) => {
+    const url = new URL(String(input));
+    const answer = route(url, init);
+    if (answer) return answer;
+    const method = init?.method ?? 'GET';
+    if (url.pathname === '/api/impersonation' && method === 'GET') {
+      return Response.json({ impersonation: null });
+    }
+    if (url.pathname === '/api/me') {
+      return Response.json({ id: session.user.id, email: session.user.email });
+    }
+    throw new Error(`Unexpected request: ${method} ${url.pathname}`);
+  });
+}
+
+export function installAdminFetch() {
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+  afterEach(() => {
+    disposeAdmins();
+    vi.unstubAllGlobals();
+  });
+}
+
+// The strip on every page polls /api/impersonation, so a log without a path leaves it out.
+export function adminRequests({ pathname, method }: { pathname?: string; method?: string } = {}) {
+  return fetchMock.mock.calls
+    .map(([input, init]) => ({
+      url: new URL(String(input)),
+      method: init?.method ?? 'GET',
+      body: typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
+    }))
+    .filter(
+      (request) =>
+        (pathname === undefined
+          ? request.url.pathname !== '/api/impersonation'
+          : request.url.pathname === pathname) &&
+        (method === undefined || request.method === method)
+    );
+}
