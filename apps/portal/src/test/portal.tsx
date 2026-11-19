@@ -90,7 +90,7 @@ export function participation(
   };
 }
 
-export function queryResult<T>(data: T) {
+function queryResult<T>(data: T) {
   return {
     data,
     error: null,
@@ -98,7 +98,7 @@ export function queryResult<T>(data: T) {
     isError: false,
     isSuccess: true,
     refetch: vi.fn(),
-  } as never;
+  };
 }
 
 export function queryPending() {
@@ -109,10 +109,10 @@ export function queryPending() {
     isError: false,
     isSuccess: false,
     refetch: vi.fn(),
-  } as never;
+  };
 }
 
-export function queryFailure(status: number) {
+function queryFailure(status: number) {
   return {
     data: undefined,
     error: new ApiHttpError(status, { error: 'forbidden', message: 'Forbidden.' }),
@@ -120,7 +120,7 @@ export function queryFailure(status: number) {
     isError: true,
     isSuccess: false,
     refetch: vi.fn(),
-  } as never;
+  };
 }
 
 type QueryHook = (...args: never[]) => UseQueryResult<unknown, unknown>;
@@ -133,20 +133,20 @@ type QueryOptions<Args extends unknown[]> = Args extends [infer Head, ...infer R
 
 // Orval's hooks are generic in TData, so their return type reads as unknown; the query function in
 // their options is not, and carries what the endpoint answers.
-export type QueryData<H extends QueryHook> = Awaited<
+type QueryData<H extends QueryHook> = Awaited<
   ReturnType<Exclude<NonNullable<QueryOptions<Required<Parameters<H>>>['queryFn']>, SkipToken>>
 >;
 
 export function mockQuery<H extends QueryHook>(hook: H, data: QueryData<H>) {
-  vi.mocked(hook).mockReturnValue(queryResult(data));
+  vi.mocked(hook).mockReturnValue(queryResult(data) as never);
 }
 
 export function mockPending(hook: QueryHook) {
-  vi.mocked(hook).mockReturnValue(queryPending());
+  vi.mocked(hook).mockReturnValue(queryPending() as never);
 }
 
 export function mockFailure(hook: QueryHook, status: number) {
-  vi.mocked(hook).mockReturnValue(queryFailure(status));
+  vi.mocked(hook).mockReturnValue(queryFailure(status) as never);
 }
 
 type ReadySheet = PortalTrainingSheetsResponse['ssm'];
