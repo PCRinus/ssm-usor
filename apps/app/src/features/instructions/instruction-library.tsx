@@ -228,7 +228,7 @@ export function InstructionLibrary({
             )
           }
         >
-          {!tabEmpty && (
+          {!archived && !tabEmpty && (
             <Button
               className="h-11 md:h-9"
               data-testid="instruction-write"

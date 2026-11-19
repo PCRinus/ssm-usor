@@ -1506,7 +1506,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   the search by title (`q`), the "Filtre" panel with the tab's categories (`category`) and
   "Nefolosită" (`usage=unused`, not on Arhivate), the applied strip, and the count, "5 din 64
   de instrucțiuni" while narrowed, then "Scrie o instrucțiune", the page's one main action, on
-  Arhivate too, on a phone a full-width row of its own under the search; page, sort, search,
+  Active only (a new module is never archived), on a phone a full-width row of its own under the search; page, sort, search,
   filters and tab are kept in the search. While the tab has no active module, the toolbar keeps
   only Active and Arhivate and "Scrie o instrucțiune" moves into the empty message; a search or filter that finds none
   says so with "Șterge filtrele", which keeps the search, or "Șterge căutarea". The row menu's "Modifică detaliile…" corrects a module's title, category and

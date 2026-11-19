@@ -385,16 +385,12 @@ describe('the instruction library', () => {
     expect(screen.queryByTestId('instruction-edit')).toBeNull();
   });
 
-  it('says when there is nothing archived, and still offers to write one from the toolbar', async () => {
+  it('says when there is nothing archived, and offers no new instruction there', async () => {
     mockInstructionsApi();
     mountApp(authFixture(makeSession()).client, '/instructiuni/ssm?status=archived');
     const empty = await screen.findByTestId('instruction-empty');
     expect(empty.textContent).toContain('Nicio instrucțiune proprie SSM arhivată');
-    expect(within(empty).queryByTestId('instruction-write')).toBeNull();
-    await userEvent
-      .setup()
-      .click(within(screen.getByTestId('instruction-toolbar')).getByTestId('instruction-write'));
-    expect(await screen.findByTestId('instruction-start-dialog')).toBeTruthy();
+    expect(screen.queryByTestId('instruction-write')).toBeNull();
   });
 
   it('reads status=active in the address as the active tab', async () => {
