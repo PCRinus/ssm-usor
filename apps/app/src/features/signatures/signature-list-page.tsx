@@ -14,7 +14,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, Link } from '@tanstack/react-router';
 import {
   Building2,
   FileText,
@@ -32,6 +32,7 @@ import {
   type ListMySignaturesParams,
   useListMySignatures,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
@@ -45,7 +46,6 @@ import { listFilterSearch } from '@/components/list-filters/url';
 import { useListSearch } from '@/components/list-filters/use-list-search';
 import { Masked } from '@/components/replay';
 import { SearchInput } from '@/components/search-input';
-import { useAuth } from '@/features/auth/auth-context';
 import { useEveryClient } from '@/features/employees/worker-filters';
 import { WorkersListError } from '@/features/employees/workers-list';
 
@@ -128,13 +128,12 @@ function facetsOf(clients: readonly { id: string; name: string }[] | undefined) 
 const rowKey = (row: SignatureRow) => row.id;
 
 function useSignatures(params: ListMySignaturesParams) {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   return useListMySignatures(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListMySignaturesQueryKey(params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getListMySignaturesQueryKey(params)),
+      enabled: ready,
       placeholderData: keepPreviousData,
     },
   });
@@ -165,10 +164,9 @@ export function SignatureListPage() {
   const search = route.useSearch();
   const { page = 1, sort = defaultSort.sort, order = defaultSort.order, q } = search;
   const navigate = route.useNavigate();
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request: apiRequest, ready, key } = useApi();
   const phone = useIsMobile();
-  const clients = useEveryClient(session?.user.id);
+  const clients = useEveryClient();
   const facets = facetsOf(clients.data);
   const listFilters = listFilterSearch({ keys: filterKeys, facets, search });
   const filters = listFilters.searchOf(listFilters.values) as SignatureListFilters;
@@ -229,8 +227,8 @@ export function SignatureListPage() {
     return getListMySignaturesQueryOptions(counted, {
       request: apiRequest,
       query: {
-        queryKey: [...getListMySignaturesQueryKey(counted), session?.user.id],
-        enabled: Boolean(session && apiRequest.baseUrl),
+        queryKey: key(getListMySignaturesQueryKey(counted)),
+        enabled: ready,
       },
     });
   };
