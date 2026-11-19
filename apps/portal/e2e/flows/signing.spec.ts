@@ -1,8 +1,4 @@
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-
 import { expect, type Page, test } from '@playwright/test';
-import { createClient } from '@supabase/supabase-js';
 
 import {
   addEmployee,
@@ -25,12 +21,7 @@ const signing = Boolean(
   process.env.GOTENBERG_URL && process.env.SIGNER_URL && process.env.SIGNING_CA_KEY
 );
 
-const made = { organizationId: '', clientId: '', employeeId: '', emails: [] as string[] };
-
-test.afterAll(async () => {
-  if (signing && made.organizationId) await removeSignatures();
-  await cleanUp();
-});
+test.afterAll(cleanUp);
 
 async function signIn(page: Page, email: string) {
   await page.goto('/sign-in');
@@ -56,12 +47,9 @@ test('an employee signs the agreement and a training with one code, and the clie
 }) => {
   test.setTimeout(240_000);
   const provider = await createProvider('Prevenție Vest E2E', 'Tipografia Nouă E2E S.R.L.');
-  made.organizationId = provider.organizationId;
-  made.clientId = provider.clientId;
   const workplaceId = await addWorkplace(provider, 'Atelierul din Lugoj');
   const email = addressOf('semnatar');
   const administratorEmail = addressOf('resurse-umane');
-  made.emails = [email, administratorEmail];
   const employeeId = await addEmployee(provider, {
     lastName: 'Pop',
     firstName: 'Ana',
@@ -70,7 +58,6 @@ test('an employee signs the agreement and a training with one code, and the clie
     workplaceId,
     commuteRoute: 'Pe jos, pe strada Lungă',
   });
-  made.employeeId = employeeId;
   await inviteByEmail(provider, employeeId, email);
   await inviteAdministratorByEmail(provider, 'Elena Dobre', administratorEmail);
 
@@ -187,70 +174,3 @@ test('an employee signs the agreement and a training with one code, and the clie
     'Un act adițional semnat electronic de ambele părți'
   );
 });
-
-// The evidence is written once, so only the local database's superuser, with the triggers off,
-// removes it; the files go with the secret key.
-async function removeSignatures() {
-  const storage = createClient(
-    process.env.E2E_SUPABASE_URL!,
-    process.env.E2E_SUPABASE_SECRET_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
-  ).storage.from('documents');
-  for (const prefix of [
-    `${made.organizationId}/signed-sheets/${made.clientId}/${made.employeeId}`,
-    `${made.organizationId}/signing-agreements/${made.clientId}/${made.employeeId}`,
-  ]) {
-    await removeFolder(storage, prefix);
-  }
-
-  const projectId = /^project_id = "([^"]+)"/m.exec(
-    readFileSync(new URL('../../../../supabase/config.toml', import.meta.url), 'utf8')
-  )![1];
-  const organization = `'${made.organizationId}'`;
-  const accounts = `(select id from auth.users where email in (${made.emails.map((email) => `'${email}'`).join(',')}) or id in (select user_id from public.organization_members where organization_id = ${organization}))`;
-  execFileSync(
-    'docker',
-    [
-      'exec',
-      '-i',
-      `supabase_db_${projectId}`,
-      'psql',
-      '-U',
-      'supabase_admin',
-      '-d',
-      'postgres',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-q',
-    ],
-    {
-      input: `
-        begin;
-        set local session_replication_role = replica;
-        delete from public.signing_session_items where session_id in (select id from public.signing_sessions where account_id in ${accounts});
-        delete from public.agreement_signatures where organization_id = ${organization};
-        delete from public.training_signatures where organization_id = ${organization};
-        delete from public.signature_requests where organization_id = ${organization};
-        delete from public.signed_sheet_rows where signed_sheet_id in (select id from public.signed_sheets where organization_id = ${organization});
-        delete from public.signed_sheets where organization_id = ${organization};
-        delete from public.employee_signing_agreements where organization_id = ${organization};
-        delete from public.signing_sessions where account_id in ${accounts};
-        delete from public.signing_identities where account_id in ${accounts};
-        commit;
-      `,
-      stdio: ['pipe', 'ignore', 'inherit'],
-    }
-  );
-}
-
-async function removeFolder(
-  storage: ReturnType<ReturnType<typeof createClient>['storage']['from']>,
-  prefix: string
-) {
-  const { data } = await storage.list(prefix);
-  for (const entry of data ?? []) {
-    const path = `${prefix}/${entry.name}`;
-    if (entry.id === null) await removeFolder(storage, path);
-    else await storage.remove([path]);
-  }
-}
