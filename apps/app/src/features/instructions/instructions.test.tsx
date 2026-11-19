@@ -1630,6 +1630,29 @@ describe('searching and filtering the instruction library', () => {
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
+  it('shows no empty-tab message and one Scrie o instrucțiune while a cleared search loads', async () => {
+    mockInstructionsApi();
+    const answer = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/instruction-modules' && !url.searchParams.has('q')) await held;
+      return answer(input, init);
+    });
+    const runtime = mount('/instructiuni/ssm?q=stivuitor');
+    const empty = await screen.findByTestId('instruction-empty-filtered');
+    await userEvent.setup().click(within(empty).getByTestId('instruction-empty-clear'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    expect(screen.queryByTestId('instruction-empty')).toBeNull();
+    expect(screen.getAllByTestId('instruction-write')).toHaveLength(1);
+    release();
+    await screen.findAllByTestId('instruction-row');
+    expect(screen.getAllByTestId('instruction-write')).toHaveLength(1);
+  });
+
   it('moves Scrie o instrucțiune into the message while the tab has none, with no search, filters or count', async () => {
     mockInstructionsApi({ modules: [hotWork] });
     mount('/instructiuni/ssm');

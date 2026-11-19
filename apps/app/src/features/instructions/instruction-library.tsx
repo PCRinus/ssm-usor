@@ -142,10 +142,7 @@ export function InstructionLibrary({
   });
   const meta = modules.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const unfilteredTotal = modules.data?.unfilteredTotal ?? 0;
-  // A placeholder carries the previous search's totals, which would show the wrong empty message
-  // and the write button twice until the new page lands.
-  const settled = modules.isPlaceholderData ? 'pending' : modules.status;
-  const tabEmpty = !archived && isEmptyOrLoading(settled, unfilteredTotal) && !narrowed;
+  const tabEmpty = !archived && isEmptyOrLoading(modules.status, unfilteredTotal) && !narrowed;
   const [editing, setEditing] = useState<ModuleEditing>(null);
   const [archiveChange, setArchiveChange] = useState<InstructionArchiveChange | null>(null);
   const columns = useMemo(
@@ -282,7 +279,9 @@ export function InstructionLibrary({
           </LoadFailed>
         }
         empty={
-          modules.isPlaceholderData ? null : narrowed ? (
+          // After a search is cleared, the placeholder is the old search's empty page, which would
+          // show the empty-tab message and a second write button until the real page lands.
+          modules.isPlaceholderData && !narrowed ? null : narrowed ? (
             <EmptyState
               icon={SearchX}
               title="Nicio instrucțiune nu se potrivește"
