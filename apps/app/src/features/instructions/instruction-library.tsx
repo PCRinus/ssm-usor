@@ -142,7 +142,10 @@ export function InstructionLibrary({
   });
   const meta = modules.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const unfilteredTotal = modules.data?.unfilteredTotal ?? 0;
-  const tabEmpty = !archived && isEmptyOrLoading(modules.status, unfilteredTotal) && !narrowed;
+  // A placeholder carries the previous search's totals, which would show the wrong empty message
+  // and the write button twice until the new page lands.
+  const settled = modules.isPlaceholderData ? 'pending' : modules.status;
+  const tabEmpty = !archived && isEmptyOrLoading(settled, unfilteredTotal) && !narrowed;
   const [editing, setEditing] = useState<ModuleEditing>(null);
   const [archiveChange, setArchiveChange] = useState<InstructionArchiveChange | null>(null);
   const columns = useMemo(
@@ -279,7 +282,7 @@ export function InstructionLibrary({
           </LoadFailed>
         }
         empty={
-          narrowed ? (
+          modules.isPlaceholderData ? null : narrowed ? (
             <EmptyState
               icon={SearchX}
               title="Nicio instrucțiune nu se potrivește"
