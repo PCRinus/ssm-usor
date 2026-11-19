@@ -1957,8 +1957,8 @@ toast, and with nothing unread it sends nothing.
   shows again on the next load. **Vezi detaliile** dismisses it and opens the release's page.
   Under 768 px (`useIsMobile`) it is a bottom sheet with a smaller tag, the feature titles alone
   and no count. It never opens on `/actualizari` or a release page, which show the same thing.
-- The sidebar's footer holds "Actualizări" (the `megaphone` icon; `sparkles` marks AI features), above "Ajutor" and "Raportează o problemă", with a
-  lime badge ("2 noi") while releases are unread; the icon rail hides the badge. The page footer's
+- The sidebar's footer holds "Actualizări" (the `megaphone` icon; `sparkles` marks AI features),
+  above "Ajutor" and "Raportează o problemă", with a lime badge ("2 noi") while releases are unread; the icon rail hides the badge. The page footer's
   "Versiune 2026.10.24" links to that release's page when the build's `VITE_RELEASE_TAG` has a
   row in the list, and stays plain text otherwise, as on non-prod and local builds.
 - `/actualizari` shows one month of releases, newest first: the tag and weekday beside a card
@@ -1971,7 +1971,7 @@ toast, and with nothing unread it sends nothing.
   month. **Marchează toate ca citite** shows while something is unread, in any month. The help
   icon beside the title opens the help topic `actualizari.lista`. With no release yet it says
   "Nicio actualizare încă."
-- `/actualizari/<tag>` (tab title: the tag) has the sand header, with the back arrow to the list,, then **Ce e nou** as cards with
+- `/actualizari/<tag>` (tab title: the tag) has the sand header, with the back arrow to the list, then **Ce e nou** as cards with
   the title, the paragraph and "Unde o găsești: …", **Îmbunătățiri** and **Remedieri** as plain
   lists, links to the sections when there is more than one ("Pe această pagină" beside the text
   on desktop, chips above it on a phone), and links to the previous release and to the list.
