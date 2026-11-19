@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { CircleAlert, CircleCheck } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
@@ -28,7 +29,6 @@ import { useApi } from '@/api/use-api';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
-import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
 import { timeFormat } from '@/lib/dates';

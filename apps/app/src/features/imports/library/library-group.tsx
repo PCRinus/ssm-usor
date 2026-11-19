@@ -1,3 +1,4 @@
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Link, type LinkProps } from '@tanstack/react-router';
 import {
   Check,
@@ -13,7 +14,6 @@ import type { ReactNode } from 'react';
 import type { ImportDetail } from '@/api/generated/api';
 import { openedFromRecord } from '@/app/opener';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 import { commonFailure } from '@/lib/api-errors';
 
 import { Tag } from '../review-parts';

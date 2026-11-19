@@ -8,6 +8,7 @@ import {
 import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -30,7 +31,6 @@ import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { phoneBleed } from '@/components/page-spacing';
 import { Masked } from '@/components/replay';
 import { SearchInput } from '@/components/search-input';

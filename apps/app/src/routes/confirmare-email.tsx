@@ -1,9 +1,9 @@
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { z } from 'zod';
 
 import { PublicFrame, PublicFrameAction, PublicFrameLink } from '@/app/public-frame';
-import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { isSpentRecoveryLink } from '@/features/auth/auth-errors';
 

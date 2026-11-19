@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useState } from 'react';
@@ -23,7 +24,6 @@ import { changeSubscription } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
-import { Notice } from '@/components/notice';
 import { workerNoun } from '@/features/employees/employee-format';
 
 import { billingErrorMessage, problemMessage } from './billing-errors';

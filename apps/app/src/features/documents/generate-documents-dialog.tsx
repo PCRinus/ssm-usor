@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link } from '@tanstack/react-router';
@@ -34,7 +35,6 @@ import { DatePicker } from '@/components/date-picker';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useMe } from '@/features/account/use-me';
 import { MissingDataList } from '@/features/missing-data/missing-data-list';

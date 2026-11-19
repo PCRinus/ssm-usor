@@ -5,13 +5,13 @@ import {
   safetySheetLimits,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { FileText, LoaderCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { getGetMeQueryKey, getReadSafetySheetUrl } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError, apiUpload } from '@/api/http';
 import { useApi } from '@/api/use-api';
-import { Notice } from '@/components/notice';
 import { CreditsLine } from '@/features/imports/credits-notices';
 import { creditsDay, creditsLabel, creditsRefusal } from '@/features/imports/import-credits';
 import { useCreditsBalance } from '@/features/imports/use-credits-balance';

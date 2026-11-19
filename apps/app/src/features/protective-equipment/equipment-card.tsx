@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   Table,
@@ -39,7 +40,6 @@ import { rowClickProps } from '@/components/data-table/row-click';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { RowActionsMenu } from '@/components/row-actions-menu';
 import { SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';

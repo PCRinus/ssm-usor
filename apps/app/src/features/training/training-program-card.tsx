@@ -5,12 +5,12 @@ import {
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRef, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { EditAction, SectionCard } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import {

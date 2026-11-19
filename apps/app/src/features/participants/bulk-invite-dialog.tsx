@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { CircleCheck, IdCard, Mail, Send, Smartphone } from 'lucide-react';
@@ -30,7 +31,6 @@ import {
 import { useApi } from '@/api/use-api';
 import { HelpLink } from '@/components/help-link';
 import { maskPeople } from '@/components/mask-people';
-import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
 

@@ -7,6 +7,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
+import { PreviewBlockedError, saveFile } from '@ssm-usor/ui/lib/save-file';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { ChevronDown, Eye, FileDown, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -20,7 +21,7 @@ import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { FileLinkButton } from '@/components/file-link-button';
 import { FileMenuItem } from '@/components/file-menu-item';
-import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';
+import { openPreview } from '@/lib/save-file';
 
 import { useTrainingSheets } from './use-training-sheets';
 

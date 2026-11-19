@@ -1,6 +1,7 @@
 import { capitalized, countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -27,7 +28,6 @@ import {
 import { useApi } from '@/api/use-api';
 import { openedFromRecord } from '@/app/opener';
 import { TitleWithBack } from '@/components/back-link';
-import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 
 import { AbandonImportDialog } from './abandon-import-dialog';

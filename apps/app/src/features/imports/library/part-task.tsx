@@ -1,5 +1,6 @@
 import type { HelpTopic } from '@ssm-usor/help-topics/topics';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, LoaderCircle, LockKeyhole, RotateCcw } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -8,7 +9,6 @@ import type { ImportDetail, ImportLibraryPartsResponse } from '@/api/generated/a
 import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 
 import { ImportOverviewBack } from '../import-back';
 import { creditsLabel } from '../import-credits';

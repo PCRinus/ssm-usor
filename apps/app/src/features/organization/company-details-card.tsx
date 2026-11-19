@@ -4,6 +4,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -20,7 +21,6 @@ import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { sheetPadding } from '@/components/page-spacing';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { AnafLookupButton } from '@/features/clients/anaf-lookup-button';

@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { type ErrorComponentProps, getRouteApi, Link, useNavigate } from '@tanstack/react-router';
 import { Copy, LibraryBig, Trash2 } from 'lucide-react';
@@ -20,7 +21,6 @@ import { NotFound, RouteError } from '@/app/route-states';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 import { CurrentClientHeaderFact } from '@/features/clients/client-fact';
 import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 import { ApplyProfileDialog } from '@/features/evaluation-profiles/apply-profile-dialog';

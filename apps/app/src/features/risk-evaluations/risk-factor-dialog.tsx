@@ -20,6 +20,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@ssm-usor/ui/components/sheet';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
@@ -38,7 +39,6 @@ import { replayShow } from '@/app/observability/replay-masking';
 import { useCloseGuard, useHoldOpen } from '@/components/close-guard';
 import { CloseGuard } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
-import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 

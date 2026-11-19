@@ -1,7 +1,7 @@
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useEffect, useState } from 'react';
 
 import { PublicFrameAction } from '@/app/public-frame';
-import { Notice } from '@/components/notice';
 
 import { useAuth } from './auth-context';
 import { type GoogleSignInOrigin, rememberGoogleSignInOrigin } from './google-sign-in-origin';

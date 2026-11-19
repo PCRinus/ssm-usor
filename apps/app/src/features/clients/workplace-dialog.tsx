@@ -22,6 +22,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import type { ReactNode } from 'react';
@@ -39,7 +40,6 @@ import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { commonFailure } from '@/lib/api-errors';
 import { LocalityCombobox } from '@/lib/localities/locality-combobox';

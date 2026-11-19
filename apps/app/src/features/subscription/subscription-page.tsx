@@ -7,6 +7,7 @@ import {
   selfServeLimits,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link } from '@tanstack/react-router';
@@ -21,7 +22,6 @@ import {
 import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { workerNoun } from '@/features/employees/employee-format';
 import { formatRoDate } from '@/lib/dates';

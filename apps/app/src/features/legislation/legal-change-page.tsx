@@ -1,5 +1,6 @@
 import { countOf, documentSetOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { type ErrorComponentProps, Link } from '@tanstack/react-router';
@@ -19,7 +20,6 @@ import { useApi } from '@/api/use-api';
 import { NotFound, RouteError } from '@/app/route-states';
 import { TitleWithBack } from '@/components/back-link';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { formatRoDate } from '@/lib/dates';
 
 import { LegalChangeBack } from './legal-change-back';

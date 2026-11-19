@@ -5,6 +5,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -22,7 +23,6 @@ import { getImportSource, type ImportSourceResponse } from '@/api/generated/api'
 import { ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
-import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { PagePlaceholder } from '@/features/documents/editor-placeholder';
 

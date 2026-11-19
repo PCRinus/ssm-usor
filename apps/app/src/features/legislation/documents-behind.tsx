@@ -5,6 +5,7 @@ import {
   formatCount,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useQueryClient } from '@tanstack/react-query';
@@ -25,7 +26,6 @@ import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { HelpLink } from '@/components/help-link';
 import { ListCardHeader } from '@/components/list-card-header';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { DocumentMissingRows } from '@/features/documents/document-missing-rows';
 import { documentsLink } from '@/features/documents/document-sets';
 

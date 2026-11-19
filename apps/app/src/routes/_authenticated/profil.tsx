@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { createFileRoute } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
@@ -10,7 +11,6 @@ import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { ChangePasswordCard } from '@/features/account/change-password-card';
 import { profileFormSchema, type ProfileFormValues } from '@/features/account/profile-schema';

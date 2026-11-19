@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import {
   Popover,
   PopoverAnchor,
@@ -8,8 +9,6 @@ import {
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Eye, EyeOff, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useId, useRef } from 'react';
-
-import { Notice } from '@/components/notice';
 
 import { QuestionCitation } from './question-citation';
 import { type BankQuestion, minimumMessage } from './test-format';

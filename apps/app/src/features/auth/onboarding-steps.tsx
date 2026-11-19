@@ -3,6 +3,7 @@ import { bankNameAfterIbanChange, bankNameForIban, formatIban } from '@ssm-usor/
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Navigate, useNavigate } from '@tanstack/react-router';
 import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -22,7 +23,6 @@ import { captureAsMember } from '@/app/observability/posthog';
 import { replayShow } from '@/app/observability/replay-masking';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
 import { Field } from '@/components/form-field';
-import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useMe } from '@/features/account/use-me';
 

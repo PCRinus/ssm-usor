@@ -1,10 +1,10 @@
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import { PublicFrame, PublicFrameAction, PublicFrameLink } from '@/app/public-frame';
-import { Notice } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { GoogleSignIn } from '@/features/auth/google-sign-in';

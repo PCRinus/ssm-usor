@@ -1,8 +1,8 @@
+import { saveFile } from '@ssm-usor/ui/lib/save-file';
 import { useState } from 'react';
 
 import { listClientFiles } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
-import { saveFile } from '@/lib/save-file';
 
 import { folderTexts, type ImportFolder } from './client-file-list';
 import { zipFiles } from './zip-files';

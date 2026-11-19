@@ -1,4 +1,5 @@
 import { countOf } from '@ssm-usor/contracts';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { getRouteApi } from '@tanstack/react-router';
 import { Receipt } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
@@ -10,7 +11,6 @@ import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { HelpLink } from '@/components/help-link';
 import { ListCardHeader, ListCount } from '@/components/list-card-header';
-import { Notice } from '@/components/notice';
 
 import { billingErrorMessage } from './billing-errors';
 import { invoiceColumns } from './invoice-columns';

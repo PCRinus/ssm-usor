@@ -15,6 +15,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -23,7 +24,6 @@ import { useState } from 'react';
 import { useCancelSubscription } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
-import { Notice } from '@/components/notice';
 
 import { billingErrorMessage } from './billing-errors';
 import { addDays, cancellationReasons, choiceSummary, shortPlanNames } from './billing-format';

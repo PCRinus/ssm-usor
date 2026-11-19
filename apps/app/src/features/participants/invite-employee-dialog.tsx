@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -18,7 +19,6 @@ import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { HelpLink } from '@/components/help-link';
 import { maskPeople } from '@/components/mask-people';
-import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
 

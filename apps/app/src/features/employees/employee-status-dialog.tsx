@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { type FormEvent, useState } from 'react';
 
@@ -25,7 +26,6 @@ import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { maskPeople } from '@/components/mask-people';
-import { Notice } from '@/components/notice';
 import {
   employeesOverStepMessage,
   isEmployeesOverStepError,

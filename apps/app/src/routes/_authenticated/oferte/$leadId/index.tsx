@@ -1,5 +1,6 @@
 import { formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, Pencil, UserCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -8,7 +9,6 @@ import { getGetServiceContractQueryKey, useGetServiceContract } from '@/api/gene
 import { useApi } from '@/api/use-api';
 import { keepOpener, openedFromRecord, openedHere } from '@/app/opener';
 import { BackLink } from '@/components/back-link';
-import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { clientFileListSearch } from '@/features/client-files/client-file-list';
 import { ClientFilesCard } from '@/features/client-files/client-files-card';

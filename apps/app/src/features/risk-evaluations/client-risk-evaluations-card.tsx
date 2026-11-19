@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { ChevronRight, Plus } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
@@ -22,7 +23,6 @@ import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';

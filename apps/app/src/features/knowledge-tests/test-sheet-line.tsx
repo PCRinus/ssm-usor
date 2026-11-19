@@ -9,6 +9,7 @@ import {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
+import { PreviewBlockedError } from '@ssm-usor/ui/lib/save-file';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Eye, LoaderCircle, PenLine } from 'lucide-react';
 import { useState } from 'react';
@@ -29,7 +30,7 @@ import {
   slotStateLabels,
 } from '@/features/signatures/signature-format';
 import { invalidateSignatures } from '@/features/signatures/signature-queries';
-import { openPreview, PreviewBlockedError } from '@/lib/save-file';
+import { openPreview } from '@/lib/save-file';
 
 import { invalidateEmployeeTests } from './test-format';
 import type { TestResult } from './test-result-dialog';

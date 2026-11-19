@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useForm } from 'react-hook-form';
@@ -18,7 +19,6 @@ import { type ServiceContractResponse, useSendServiceContract } from '@/api/gene
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { Field } from '@/components/form-field';
-import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
 import { commonFailure } from '@/lib/api-errors';

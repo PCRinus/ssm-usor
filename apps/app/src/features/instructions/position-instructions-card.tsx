@@ -12,6 +12,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   Table,
@@ -43,7 +44,6 @@ import { openedHere } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
 import type { JobPosition } from '@/features/job-positions/job-position-schema';

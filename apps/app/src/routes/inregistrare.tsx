@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -8,7 +9,6 @@ import { useForm, useWatch } from 'react-hook-form';
 import { captureAsMember } from '@/app/observability/posthog';
 import { PublicFrame, PublicFrameAction, PublicFrameLink } from '@/app/public-frame';
 import { Field } from '@/components/form-field';
-import { Notice } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
 import { PasswordStrengthIndicator } from '@/components/password-strength-indicator';
 import { useRevealErrors } from '@/components/use-reveal-errors';

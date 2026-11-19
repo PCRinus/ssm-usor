@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -25,7 +26,6 @@ import {
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
 

@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Separator } from '@ssm-usor/ui/components/separator';
 import {
   Sidebar,
@@ -69,7 +70,6 @@ import {
 
 import { replayMask } from '@/app/observability/replay-masking';
 import { usePostHogSession } from '@/app/observability/use-posthog-session';
-import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 import { endImpersonationBeforeSignOut } from '@/features/impersonation/end-before-sign-out';

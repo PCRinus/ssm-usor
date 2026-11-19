@@ -5,11 +5,11 @@ import {
   type InstructionDomain,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Link } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
-import { Notice } from '@/components/notice';
 import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 import { scrollAndFocus } from '@/features/missing-data/focus';
 

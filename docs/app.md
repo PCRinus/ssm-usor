@@ -76,7 +76,7 @@ automatically, so manual `useMemo`, `useCallback`, and `memo` are not needed for
 the `react-hooks` lint rules enforce the constraints the compiler relies on.
 
 `@/` resolves to `src/` in `vite.config.ts`, `vitest.config.ts` and `tsconfig.json`. An import
-that leaves its folder uses it (`@/components/notice`); an import within a folder stays relative
+that leaves its folder uses it (`@/components/replay`); an import within a folder stays relative
 (`./client-form-schema`). There are no `index.ts` barrels: import the file. `vi.mock` takes the
 same specifier the code imports.
 

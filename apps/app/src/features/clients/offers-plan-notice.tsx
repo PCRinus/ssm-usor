@@ -1,8 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
-
-import { Notice } from '@/components/notice';
 
 export function OffersPlanNotice({
   children,

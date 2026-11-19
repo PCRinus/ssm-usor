@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { type FormEvent, useState } from 'react';
 
@@ -15,7 +16,6 @@ import { getGetClientQueryKey, getListClientsQueryKey, useDeleteClient } from '@
 import { ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { Field } from '@/components/form-field';
-import { Notice } from '@/components/notice';
 import { commonFailure } from '@/lib/api-errors';
 
 export interface ClientToDelete {

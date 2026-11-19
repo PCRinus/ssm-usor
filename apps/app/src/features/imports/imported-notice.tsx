@@ -1,9 +1,8 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Link } from '@tanstack/react-router';
 import { ChevronRight, FileCheck, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
-import { Notice } from '@/components/notice';
 
 import { filesLabel } from './import-format';
 import { forgetImportNotice, readImportNotice } from './import-notice';

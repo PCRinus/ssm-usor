@@ -1,5 +1,6 @@
 import { formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import {
   type ErrorComponentProps,
   getRouteApi,
@@ -30,7 +31,6 @@ import { useState } from 'react';
 import { openedHere } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { BackLink } from '@/components/back-link';
-import { Notice } from '@/components/notice';
 import { phoneBleed } from '@/components/page-spacing';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { TabSheet } from '@/components/tab-sheet';

@@ -4,6 +4,7 @@ import type {
   DocumentSet,
   MissingDocumentData,
 } from '@ssm-usor/contracts';
+import { saveFile } from '@ssm-usor/ui/lib/save-file';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
@@ -25,7 +26,6 @@ import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { behindSummaryQueryKey } from '@/features/legislation/use-behind-summary';
 import { commonFailure } from '@/lib/api-errors';
-import { saveFile } from '@/lib/save-file';
 
 import type { ClientDocument } from './document-labels';
 import { documentLink, documentSetCopy } from './document-sets';

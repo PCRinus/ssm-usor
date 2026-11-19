@@ -16,11 +16,11 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useDeferredValue, useMemo, useState } from 'react';
 
 import { replayShow } from '@/app/observability/replay-masking';
-import { Notice } from '@/components/notice';
 
 import { blocksFromBody, type DraftBlock } from './instruction-draft';
 import { articleCountLabel } from './instruction-schema';
