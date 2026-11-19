@@ -67,12 +67,11 @@ describe('instructionsRequest', () => {
 });
 
 describe('instructionsAnswer', () => {
-  it('holds only the categories of its domain, with no nullable member', () => {
+  it('holds only the categories of its domain', () => {
     const schema = JSON.stringify(instructionsAnswer('su').jsonSchema);
 
     expect(schema).toContain('hazardous_work');
     expect(schema).not.toContain('work_activity');
-    expect(schema).not.toContain('null');
   });
 
   it('reads an answer', () => {

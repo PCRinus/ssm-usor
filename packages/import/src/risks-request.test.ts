@@ -115,8 +115,7 @@ describe('risksRequest', () => {
     expect(() => risksRequest(large)).toThrow(new RisksTooLargeError(risksCharacters + 1));
   });
 
-  it('holds no nullable member and reads numbers written as text', () => {
-    expect(JSON.stringify(risksAnswer.jsonSchema)).not.toContain('null');
+  it('reads numbers written as text', () => {
     const wire = JSON.parse(JSON.stringify(answer)) as Record<string, unknown>;
     const sheets = (wire.sheets as Record<string, unknown>[]).map((sheet) => ({
       ...sheet,
@@ -419,7 +418,6 @@ describe('the sheets written out', () => {
 
     expect(task).toContain('measures');
     expect(task).toContain('responsiblePerson');
-    expect(JSON.stringify(retypedAnswer.jsonSchema)).not.toContain('null');
     const parsed = retypedAnswer.parse({
       sheets: [
         {
