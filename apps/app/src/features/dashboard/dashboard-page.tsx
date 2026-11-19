@@ -1,5 +1,4 @@
 import { countNoun, countOf, type DashboardSummary } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
@@ -16,13 +15,11 @@ import {
 import { useState } from 'react';
 
 import { getGetDashboardSummaryQueryKey, useGetDashboardSummary } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 import { Masked } from '@/components/replay';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 import { useBehindSummary } from '@/features/legislation/use-behind-summary';
-import { sessionExpiredMessage } from '@/lib/api-errors';
 
 import {
   firstNameOf,
@@ -85,23 +82,14 @@ export function DashboardPage() {
         </span>
       </header>
       {summary.isError ? (
-        <Notice
-          variant="destructive"
-          data-testid="dashboard-error"
-          action={
-            <Button
-              variant="outline"
-              disabled={summary.isFetching}
-              onClick={() => void summary.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          testId="dashboard-error"
+          error={summary.error}
+          busy={summary.isFetching}
+          onRetry={() => void summary.refetch()}
         >
-          {summary.error instanceof ApiHttpError && summary.error.status === 401
-            ? sessionExpiredMessage
-            : 'Nu am putut încărca cifrele dashboardului.'}
-        </Notice>
+          Nu am putut încărca cifrele dashboardului.
+        </LoadFailed>
       ) : data ? (
         <DashboardSections data={data} now={now} />
       ) : (
