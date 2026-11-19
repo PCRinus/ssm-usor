@@ -32,7 +32,13 @@ try {
   });
 
   const templates = manifestEntries().map((stored) => {
-    const entry = manifestEntrySchema.parse(stored);
+    const parsed = manifestEntrySchema.safeParse(stored);
+    if (!parsed.success) {
+      throw new Error(
+        `The manifest entry of ${stored.path} is not valid:\n${z.prettifyError(parsed.error)}`
+      );
+    }
+    const entry = parsed.data;
     return {
       typeKey: entry.typeKey,
       title: entry.title,
