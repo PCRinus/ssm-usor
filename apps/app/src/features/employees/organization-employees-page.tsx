@@ -13,7 +13,7 @@ import {
   useListOrganizationEmployees,
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
-import { openedHere } from '@/app/opener';
+import { openedFromSection } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
@@ -201,7 +201,7 @@ export function OrganizationEmployeesPage() {
           onRowClick={(employee) =>
             void navigate({
               to: '/clienti/$clientId/angajati/$employeeId',
-              state: openedHere,
+              state: openedFromSection('/angajati'),
               params: { clientId: employee.client.id, employeeId: employee.id },
             })
           }

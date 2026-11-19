@@ -6,7 +6,7 @@ import {
   trainingDomainLabels,
   trainingDomains,
 } from '@ssm-usor/contracts';
-import { Link } from '@tanstack/react-router';
+import { type HistoryState, Link, type ParsedLocation } from '@tanstack/react-router';
 
 import { openedHere } from '@/app/opener';
 import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
@@ -34,7 +34,10 @@ interface WorkerRow {
 }
 
 // Sortable column ids are the API sort keys.
-export function workerColumns<TData extends WorkerRow>(testIdPrefix: string) {
+export function workerColumns<TData extends WorkerRow>(
+  testIdPrefix: string,
+  openState: (current: ParsedLocation['state']) => HistoryState = openedHere
+) {
   const helper = createDataTableColumns<TData>();
   return {
     name: helper.accessor((row) => formatEmployeeName(row), {
@@ -46,7 +49,7 @@ export function workerColumns<TData extends WorkerRow>(testIdPrefix: string) {
         <>
           <Link
             to="/clienti/$clientId/angajati/$employeeId"
-            state={openedHere}
+            state={openState}
             params={{ clientId: row.original.clientId, employeeId: row.original.id }}
             data-testid={`${testIdPrefix}-open`}
             className="hover:underline"

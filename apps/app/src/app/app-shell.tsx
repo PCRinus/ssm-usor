@@ -281,11 +281,13 @@ function AppNavigation({
   subscription: SubscriptionSummary | null;
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
+  const openedFrom = useLocation({ select: (location) => location.state.section });
   const { isMobile, setOpenMobile } = useSidebar();
   const closeOnMobile = () => {
     if (isMobile) setOpenMobile(false);
   };
-  const within = (to: string) => pathname === to || pathname.startsWith(`${to}/`);
+  const highlighted = openedFrom ?? pathname;
+  const within = (to: string) => highlighted === to || highlighted.startsWith(`${to}/`);
   const helpHome = helpHref();
   const behindCounts = useBehindSummary().data?.counts;
   const waiting = useMyImports().waiting;
@@ -344,6 +346,9 @@ function AppNavigation({
                           >
                             <Link
                               to={to}
+                              // An active link sets aria-current="page" over the one given here,
+                              // so the router may call it active only on the entry's own page.
+                              activeOptions={{ exact: true, includeSearch: false }}
                               data-testid={`nav-${testId}`}
                               aria-current={pathname === to ? 'page' : inside ? 'true' : undefined}
                               onClick={closeOnMobile}
