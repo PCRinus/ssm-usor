@@ -1,86 +1,67 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
+  type EmployeeListResponseItemsItem,
   getListClientSignatureRequestsQueryKey,
   getListMySignaturesQueryKey,
 } from '@/api/generated/api';
 import { todayIso } from '@/lib/dates';
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
-import { fullText } from '@/test/text';
+import { mountApp } from '@/test/mount';
 import {
-  employeeTests,
-  noTests,
-  testStatus,
-  trainingStatus,
-  untrained,
-} from '@/test/training-fixture';
+  clientId,
+  clientRecord,
+  employeeListItem,
+  employeeRecord,
+  jobPositionRecord,
+  pageOf,
+} from '@/test/records';
+import { fullText } from '@/test/text';
+import { employeeTests, testStatus, trainingStatus, untrained } from '@/test/training-fixture';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const welderId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const clerkId = '6e1a2b3c-4d5e-4f6a-8b7c-9d0e1f2a3b4c';
 const themesRevisionId = '0b1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e';
 const trainingId = '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f';
 
-const sampleClient = {
-  id: clientId,
+const sampleClient = clientRecord({
   legalName: 'OMV PETROM SA',
-  cui: '1590082',
   vatPayer: true,
   caenCode: '0610',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
   locality: null,
-  addressLine: null,
   legalRepresentativeName: null,
   declaredEmployeeCount: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
-
-const position = (id: string, name: string) => ({
-  id,
-  clientId,
-  name,
-  staffCategory: 'execution',
-  workZone: null,
-  activities: null,
-  trainingIntervalMonths: null,
-  employeeCount: 2,
-  needsProtectiveEquipment: null,
-  equipmentCount: 0,
-  createdAt: '2026-09-20T10:00:00.000Z',
-  updatedAt: '2026-09-20T10:00:00.000Z',
 });
+
+const position = (id: string, name: string) =>
+  jobPositionRecord({
+    id,
+    name,
+    employeeCount: 2,
+    createdAt: '2026-09-20T10:00:00.000Z',
+    updatedAt: '2026-09-20T10:00:00.000Z',
+  });
 
 const employee = (
   id: string,
   lastName: string,
   firstName: string,
   jobPosition = { id: welderId, name: 'Sudor' },
-  training: unknown = untrained
-) => ({
-  id,
-  clientId,
-  lastName,
-  firstName,
-  employeeNumber: null,
-  email: null,
-  phone: null,
-  jobTitle: jobPosition.name,
-  jobPosition,
-  hiredAt: '2020-03-01',
-  status: 'active',
-  terminatedAt: null,
-  workplace: null,
-  training,
-  tests: noTests,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-});
+  training: EmployeeListResponseItemsItem['training'] = untrained
+) =>
+  employeeListItem({
+    id,
+    lastName,
+    firstName,
+    jobTitle: jobPosition.name,
+    jobPosition,
+    hiredAt: '2020-03-01',
+    workplace: null,
+    training,
+  });
 
 const popescuTraining = {
   ssm: trainingStatus('current', '2027-03-01', '2026-09-01', 6, 'client'),
@@ -99,24 +80,16 @@ const ionescu = employee('9e1a8891-9647-42f0-b66c-a29ae3b2c0d9', 'Ionescu', 'Ana
   name: 'Contabil',
 });
 
-const employeeDetail = {
-  ...popescu,
-  cnp: null,
-  birthDate: null,
-  birthPlace: null,
-  homeAddress: null,
-  bloodGroup: null,
-  rhFactor: null,
-  notes: null,
-  archivedAt: null,
-  qualification: null,
-  education: null,
-  authorizations: null,
-  commuteRoute: null,
-  commuteMeans: [],
-  commuteMeansOther: null,
-  commuteMinutes: null,
-};
+const employeeDetail = employeeRecord({
+  id: popescu.id,
+  lastName: popescu.lastName,
+  firstName: popescu.firstName,
+  jobTitle: popescu.jobTitle,
+  jobPosition: popescu.jobPosition,
+  hiredAt: popescu.hiredAt,
+  workplace: null,
+  training: popescuTraining,
+});
 
 const longMaterial =
   'IPSSM art. 1–40, partea comună: organizarea activității, echipamentul individual de protecție, circulația în incintă; capitolul postului: sudarea în atmosferă protejată, art. 120–135.';
@@ -205,16 +178,11 @@ const heldWith = (...attendees: { id: string; lastName: string; firstName: strin
 });
 
 const page = (items: unknown[], unfilteredTotal = items.length) => ({
-  items,
-  page: 1,
-  pageSize: 25,
-  total: items.length,
+  ...pageOf(items),
   unfilteredTotal,
 });
 
 type Handler = (url: URL, init: RequestInit | undefined) => Response | Promise<Response>;
-
-const fetchMock = vi.fn<typeof fetch>();
 
 const employeesPath = `/clients/${clientId}/employees`;
 const employeesPage = `/clienti/${clientId}/angajati`;
@@ -224,15 +192,12 @@ const trainingsPath = `/clients/${clientId}/trainings`;
 const trainingsPage = `/clienti/${clientId}/instruiri-tinute`;
 
 function mockApi(routes: Partial<Record<string, Handler>> = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
+  mockRoutes((init, url) => {
     const method = init?.method ?? 'GET';
     const key = `${method} ${url.pathname}`;
     const route = routes[key];
     if (route) return route(url, init);
     switch (key) {
-      case 'GET /me':
-        return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
       case `GET /clients/${clientId}`:
         return Response.json({ client: sampleClient });
       case `GET ${employeesPath}`:
@@ -277,31 +242,17 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
             expiresInSeconds: 600,
           });
         }
-        throw new Error(`Unexpected request: ${key}${url.search}`);
     }
   });
 }
 
 const requests = (method: string, pathname: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        (init?.method ?? 'GET') === method && new URL(String(input)).pathname === pathname
-    )
-    .map(([input, init]) => ({
-      url: new URL(String(input)),
-      body: init?.body ? JSON.parse(String(init.body)) : undefined,
-    }));
+  requestsTo(pathname, method).map(([input, init]) => ({
+    url: new URL(String(input)),
+    body: init?.body ? JSON.parse(String(init.body)) : undefined,
+  }));
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe("an employee's training tabs", () => {
   it('splits the page into Date, Instruire SSM, Instruire SU and Documente, in the tabs and not in the sidebar', async () => {
