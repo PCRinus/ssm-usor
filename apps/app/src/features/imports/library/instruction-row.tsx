@@ -25,9 +25,9 @@ import { replayShow } from '@/app/observability/replay-masking';
 import { Segmented } from '@/components/segmented';
 import { articleCountLabel, groupLabels } from '@/features/instructions/instruction-schema';
 
+import { DecisionRow, PendingNote, RenameRow, type Tone } from '../decision-row';
 import { Includable } from '../include-switch';
 import { EditedTag, SourceButton, Tag } from '../review-parts';
-import { DecisionRow, PendingNote, RenameRow, type Tone } from './decision-row';
 import { LibraryDifferences } from './library-differences';
 import {
   categoriesOf,
