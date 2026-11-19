@@ -1,4 +1,8 @@
-import { type ApiErrorResponse, formatEmployeeName } from '@ssm-usor/contracts';
+import {
+  type ApiErrorResponse,
+  employeeConflictReasons,
+  formatEmployeeName,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DialogContent,
@@ -25,7 +29,7 @@ import {
   employeesOverStepMessage,
   isEmployeesOverStepError,
 } from '@/features/subscription/employees-over-step';
-import { commonFailure } from '@/lib/api-errors';
+import { commonFailure, noOrganizationMessage } from '@/lib/api-errors';
 import { formatDate, todayIso } from '@/lib/dates';
 
 import { refreshWorkforce } from './employee-cache';
@@ -47,7 +51,7 @@ function serverMessage(cause: unknown) {
     if (cause.status === 404) return 'Lucrătorul nu mai există la acest client.';
     if (cause.status === 409) return conflictMessage(apiErrorBody(cause));
     if (cause.status === 403) {
-      return 'Contul tău nu face parte dintr-o organizație. Contactează adminul.';
+      return noOrganizationMessage;
     }
   }
   return 'Nu am putut salva modificarea. Verifică conexiunea și încearcă din nou.';
@@ -57,11 +61,10 @@ function conflictMessage(body: Partial<ApiErrorResponse> | undefined) {
   if (body?.reason === 'client_archived') {
     return 'Clientul este arhivat; situația lucrătorilor nu se mai schimbă.';
   }
-  const message = body?.message ?? '';
-  if (message.includes('CNP')) {
+  if (body?.reason === employeeConflictReasons.cnpTaken) {
     return 'Nu poate fi reactivat: un lucrător actual al clientului are același CNP, de obicei rândul adăugat la reangajare.';
   }
-  if (message.includes('number')) {
+  if (body?.reason === employeeConflictReasons.numberTaken) {
     return 'Nu poate fi reactivat: un lucrător actual al clientului are aceeași marcă, de obicei rândul adăugat la reangajare.';
   }
   return 'Situația lucrătorului nu a putut fi schimbată. Reîncarcă pagina și încearcă din nou.';

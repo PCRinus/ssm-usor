@@ -932,6 +932,26 @@ describe('POST /clients/{clientId}/employees', () => {
     const error = apiErrorResponseSchema.parse(await response.json());
     expect(error.error).toBe('conflict');
     expect(error.message).toContain('CNP');
+    expect(error.reason).toBe('employee_cnp_taken');
+  });
+
+  it('gives a taken employee number its own reason', async () => {
+    mockUpstream({
+      employees: () =>
+        Response.json(
+          {
+            code: '23505',
+            message:
+              'duplicate key value violates unique constraint "employees_client_employee_number_key"',
+          },
+          { status: 409 }
+        ),
+    });
+    const response = await postEmployee(validBody);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'employee_number_taken'
+    );
   });
 
   it('maps a row-level security rejection to forbidden', async () => {
@@ -1085,6 +1105,7 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
     const error = apiErrorResponseSchema.parse(await response.json());
     expect(error.error).toBe('conflict');
     expect(error.message).toContain('CNP');
+    expect(error.reason).toBe('employee_cnp_taken');
   });
 
   it('rejects a leave date before the hire date with a field issue', async () => {
@@ -1222,7 +1243,10 @@ describe('PUT /clients/{clientId}/employees/{employeeId}', () => {
     });
     const taken = await put(body);
     expect(taken.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await taken.json()).message).toContain('CNP');
+    expect(apiErrorResponseSchema.parse(await taken.json())).toMatchObject({
+      message: expect.stringContaining('CNP'),
+      reason: 'employee_cnp_taken',
+    });
   });
 
   it('answers 404 for an employee of another client', async () => {

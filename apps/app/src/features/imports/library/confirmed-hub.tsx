@@ -21,7 +21,7 @@ import type { ImportDetail, ImportLibraryPart } from '@/api/generated/api';
 import { openedFromRecord, openedHere } from '@/app/opener';
 import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 
 import { CreditsUsedLine } from '../credits-notices';
 import { ImportParentBack } from '../import-back';
@@ -146,10 +146,10 @@ export function ConfirmedImportHub({ detail }: { detail: ImportDetail }) {
       {query.isPending ? (
         <Skeleton className="h-48 rounded-2xl" aria-busy="true" />
       ) : query.isError ? (
-        <Notice variant="destructive" data-testid="import-library-error">
+        <LoadFailed testId="import-library-error" error={query.error}>
           Nu am putut încărca instrucțiunile proprii și evaluările de risc din import. Reîncarcă
           pagina.
-        </Notice>
+        </LoadFailed>
       ) : finished ? (
         <FinishedPanel detail={detail} confirmed={confirmed} />
       ) : (

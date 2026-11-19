@@ -1,7 +1,9 @@
+import { readOnlyReason } from '@ssm-usor/contracts';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { readOnlyMessage, sessionExpiredMessage } from '@/lib/api-errors';
 import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
@@ -1775,6 +1777,31 @@ describe('client notes', () => {
     await user.click(screen.getByTestId('owner-notes-save'));
     expect(await screen.findByTestId('owner-notes-error')).toBeTruthy();
     expect(screen.getByTestId<HTMLTextAreaElement>('owner-notes-body').value).toBe('Vrea ofertă.');
+  });
+
+  it.each([
+    [
+      'an expired session',
+      () => Response.json({ error: 'unauthorized', message: 'Expired' }, { status: 401 }),
+      sessionExpiredMessage,
+    ],
+    [
+      'a read-only account',
+      () =>
+        Response.json(
+          { error: 'forbidden', message: 'Read-only', reason: readOnlyReason },
+          { status: 403 }
+        ),
+      readOnlyMessage,
+    ],
+  ])('tells %s why the note was not saved', async (_, saveNotes, message) => {
+    mockApi({ me: meAs('owner'), saveNotes });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('owner-notes-edit'));
+    await user.type(screen.getByTestId('owner-notes-body'), 'Vrea ofertă.');
+    await user.click(screen.getByTestId('owner-notes-save'));
+    expect((await screen.findByTestId('owner-notes-error')).textContent).toBe(message);
   });
 });
 

@@ -30,6 +30,7 @@ import { EmptyState } from '@/components/empty-state';
 import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { type FireSafetyMeansFocus, useFocusRequest } from '@/features/missing-data/focus';
+import { commonFailure } from '@/lib/api-errors';
 
 import { BuildingDialog, type BuildingEditing } from './building-dialog';
 import { EquipmentDialog, type EquipmentEditing } from './equipment-dialog';
@@ -150,7 +151,8 @@ export function FireSafetyMeansPage({
           ? 'Mijlocul nu mai există la acest client; lista a fost reîncărcată.'
           : status === 409
             ? 'Clientul este arhivat; datele lui nu se mai schimbă.'
-            : 'Nu am putut șterge. Verifică conexiunea și încearcă din nou.'
+            : (commonFailure(cause) ??
+              'Nu am putut șterge. Verifică conexiunea și încearcă din nou.')
       );
     }
     setDeleting(null);

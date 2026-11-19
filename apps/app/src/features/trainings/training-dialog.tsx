@@ -46,6 +46,7 @@ import { replayMask, replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { signingMessage } from '@/features/signatures/signature-format';
@@ -143,6 +144,10 @@ function TrainingDialogContent({
   });
   const title = target.kind === 'edit' ? 'Modifică instruirea' : 'Înregistrează o instruire';
   const failed = positions.isError || employees.isError || training.isError;
+  const loadErrors = [positions.error, employees.error, training.error];
+  const loadError =
+    loadErrors.find((error) => commonFailure(error) !== undefined) ??
+    loadErrors.find((error) => error != null);
 
   if (!positions.data || !employees.data || (target.kind === 'edit' && !training.data) || failed) {
     return (
@@ -151,11 +156,11 @@ function TrainingDialogContent({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         {failed ? (
-          <Notice variant="destructive" data-testid="training-dialog-load-error">
+          <LoadFailed testId="training-dialog-load-error" error={loadError}>
             {training.error instanceof ApiHttpError && training.error.status === 404
               ? 'Instruirea nu mai există la acest client.'
               : 'Nu am putut încărca datele instruirii. Închide și încearcă din nou.'}
-          </Notice>
+          </LoadFailed>
         ) : (
           <div className="grid gap-4" aria-busy="true">
             <Skeleton className="h-11 w-full" />

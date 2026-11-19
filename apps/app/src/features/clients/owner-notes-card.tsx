@@ -13,6 +13,7 @@ import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
+import { commonFailure } from '@/lib/api-errors';
 
 const maxLength = 5000;
 
@@ -25,20 +26,20 @@ export function OwnerNotesCard({ clientId, readOnly }: { clientId: string; readO
   const save = useSaveClientOwnerNotes({ request });
   // Null until the person types: the field then shows what was saved, whenever that arrives.
   const [typed, setTyped] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failure, setFailure] = useState<{ cause: unknown } | null>(null);
   const saved = notes.data?.notes.body ?? '';
   const body = typed ?? saved;
   const dirty = typed !== null && typed !== saved;
 
   async function submit() {
-    setFailed(false);
+    setFailure(null);
     try {
       const response = await save.mutateAsync({ clientId, data: { body } });
       queryClient.setQueryData(queryKey, response);
       setTyped(null);
       toast.success('Notițele au fost salvate.');
-    } catch {
-      setFailed(true);
+    } catch (cause) {
+      setFailure({ cause });
     }
   }
 
@@ -71,9 +72,10 @@ export function OwnerNotesCard({ clientId, readOnly }: { clientId: string; readO
             }
             onChange={(event) => setTyped(event.target.value)}
           />
-          {failed && (
+          {failure && (
             <Notice variant="destructive" data-testid="owner-notes-error">
-              Nu am putut salva notițele. Verifică conexiunea și încearcă din nou.
+              {commonFailure(failure.cause) ??
+                'Nu am putut salva notițele. Verifică conexiunea și încearcă din nou.'}
             </Notice>
           )}
           {!readOnly && (

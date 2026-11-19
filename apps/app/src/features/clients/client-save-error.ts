@@ -2,7 +2,7 @@ import { clientConflictReasons } from '@ssm-usor/contracts';
 import type { UseFormReturn } from 'react-hook-form';
 
 import { apiErrorBody, ApiHttpError } from '@/api/http';
-import { commonFailure, setApiIssues } from '@/lib/api-errors';
+import { commonFailure, noOrganizationMessage, setApiIssues } from '@/lib/api-errors';
 
 import {
   type ClientFormValues,
@@ -17,7 +17,7 @@ export const clientWording = {
     added: (name: string) => `${name} a fost adăugat.`,
     archived: 'Clientul este arhivat; datele lui nu mai pot fi modificate.',
     gone: 'Clientul nu mai există în organizația ta.',
-    forbidden: 'Contul tău nu face parte dintr-o organizație. Contactează adminul.',
+    forbidden: noOrganizationMessage,
     failed: 'Nu am putut salva clientul. Verifică conexiunea și încearcă din nou.',
   },
   lead: {

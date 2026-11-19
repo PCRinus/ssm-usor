@@ -812,10 +812,7 @@ describe('employee creation', () => {
         attempts += 1;
         if (attempts === 1) {
           return Response.json(
-            {
-              error: 'conflict',
-              message: 'A current employee of this client already has this CNP.',
-            },
+            { error: 'conflict', message: 'Duplicate.', reason: 'employee_cnp_taken' },
             { status: 409 }
           );
         }
@@ -1524,7 +1521,7 @@ describe('employee status changes', () => {
         ),
       status: () =>
         Response.json(
-          { error: 'conflict', message: 'A current employee of this client already has this CNP.' },
+          { error: 'conflict', message: 'Duplicate.', reason: 'employee_cnp_taken' },
           { status: 409 }
         ),
     });
@@ -1536,6 +1533,30 @@ describe('employee status changes', () => {
     await user.click(await screen.findByTestId('employee-status-confirm'));
     expect((await screen.findByTestId('employee-status-error')).textContent).toContain(
       'un lucrător actual al clientului are același CNP'
+    );
+    expect(screen.getByTestId('employee-status-dialog')).toBeTruthy();
+  });
+
+  it('explains a reactivation refused because a current employee has the number', async () => {
+    mockApi({
+      list: () =>
+        Response.json(
+          page([{ ...sampleEmployee, status: 'terminated', terminatedAt: '2025-12-31' }])
+        ),
+      status: () =>
+        Response.json(
+          { error: 'conflict', message: 'Duplicate.', reason: 'employee_number_taken' },
+          { status: 409 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPage}?status=terminated`);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-reactivate'));
+    await user.click(await screen.findByTestId('employee-status-confirm'));
+    expect((await screen.findByTestId('employee-status-error')).textContent).toContain(
+      'un lucrător actual al clientului are aceeași marcă'
     );
     expect(screen.getByTestId('employee-status-dialog')).toBeTruthy();
   });
@@ -1989,10 +2010,7 @@ describe('employee editing', () => {
       detail: () => Response.json({ employee: stored }),
       update: () =>
         Response.json(
-          {
-            code: 'conflict',
-            message: 'A current employee of this client already has this CNP.',
-          },
+          { error: 'conflict', message: 'Duplicate.', reason: 'employee_cnp_taken' },
           { status: 409 }
         ),
     });
@@ -2006,6 +2024,25 @@ describe('employee editing', () => {
       within(taken).getByRole('link', { name: 'De ce?' }).getAttribute('data-help-topic')
     ).toBe('angajati.duplicat');
     expect(screen.getByTestId('edit-employee-page')).toBeTruthy();
+  });
+
+  it('puts an employee number another employee has on its field', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: stored }),
+      update: () =>
+        Response.json(
+          { error: 'conflict', message: 'Duplicate.', reason: 'employee_number_taken' },
+          { status: 409 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, editPage);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-employee-page');
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('employeeNumber-error')).textContent).toContain(
+      'Un lucrător actual al clientului are deja această marcă.'
+    );
+    expect(screen.queryByTestId('cnp-error')).toBeNull();
   });
 
   it('says the client is archived when a stale page saves a worker of it', async () => {
