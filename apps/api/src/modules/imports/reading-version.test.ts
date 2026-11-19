@@ -1,3 +1,10 @@
+import {
+  instructionsModel,
+  readingModel,
+  risksModel,
+  similarityModel,
+  sortingModel,
+} from '@ssm-usor/import';
 import { describe, expect, it } from 'vitest';
 
 import { readingVersion } from './reading-version';
@@ -7,7 +14,7 @@ describe('readingVersion', () => {
     const first = await readingVersion('client');
     expect(await readingVersion('client')).toEqual(first);
     expect(first).toEqual({
-      models: { sorting: 'gpt-6-luna', scanning: 'gpt-6.1-terra', reading: 'gpt-6.1-terra' },
+      models: { sorting: sortingModel, scanning: readingModel, reading: readingModel },
       prompts: expect.stringMatching(/^[0-9a-f]{12}$/),
     });
   });
@@ -20,11 +27,11 @@ describe('readingVersion', () => {
     );
     expect(new Set(versions.map((version) => version.prompts)).size).toBe(5);
     expect(versions.map((version) => version.models)).toEqual([
-      { sorting: 'gpt-6-luna', scanning: 'gpt-6.1-terra', reading: 'gpt-6.1-terra' },
-      { scanning: 'gpt-6.1-terra' },
-      { instructions: 'gpt-6.1-terra', similarity: 'gpt-6-luna' },
-      { instructions: 'gpt-6.1-terra', similarity: 'gpt-6-luna' },
-      { risks: 'gpt-6.1-terra' },
+      { sorting: sortingModel, scanning: readingModel, reading: readingModel },
+      { scanning: readingModel },
+      { instructions: instructionsModel, similarity: similarityModel },
+      { instructions: instructionsModel, similarity: similarityModel },
+      { risks: risksModel },
     ]);
   });
 });

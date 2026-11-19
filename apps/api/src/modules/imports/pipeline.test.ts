@@ -39,6 +39,7 @@ import {
   maxDeferrals,
   type QueueMessage,
 } from './queue';
+import { readingVersion } from './reading-version';
 import type {
   CopyToWrite,
   ImportRecord,
@@ -2334,10 +2335,7 @@ describe('the own instructions', () => {
     startWith(packFiles);
     await drain(deps());
 
-    expect(part().reading_version).toEqual({
-      models: { instructions: 'gpt-6.1-terra', similarity: 'gpt-6-luna' },
-      prompts: expect.stringMatching(/^[0-9a-f]{12}$/),
-    });
+    expect(part().reading_version).toEqual(await readingVersion('instructions_ssm'));
     expect(part().reading_flags).toMatchObject({
       found: { instructions: 2, unread: 0 },
       nothingFound: [],
@@ -2825,10 +2823,7 @@ describe('what a reading leaves (ADR 037)', () => {
     await drain(deps());
 
     const row = world.imports.get(importId)!;
-    expect(row.reading_version).toEqual({
-      models: { sorting: 'gpt-6-luna', scanning: 'gpt-6.1-terra', reading: 'gpt-6.1-terra' },
-      prompts: expect.stringMatching(/^[0-9a-f]{12}$/),
-    });
+    expect(row.reading_version).toEqual(await readingVersion('client'));
     const place = [...world.files.values()]
       .map((file) => file.upload_path)
       .sort((a, b) => a.localeCompare(b))
