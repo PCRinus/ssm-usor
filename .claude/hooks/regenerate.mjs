@@ -58,8 +58,12 @@ if (tool === 'Write' || tool === 'Edit') {
   }
 } else if (tool === 'Bash' && response.is_error !== true) {
   const command = toolInput.command ?? '';
-  const resets = /(^|[;&|(\s])supabase\s+db\s+reset\b/.test(command);
-  const migrates = /(^|[;&|(\s])supabase\s+migration\s+up\b/.test(command);
+  const runs = (subcommand) =>
+    new RegExp(
+      `(^|[;&|(])\\s*(\\w+=\\S*\\s+)*(pnpm\\s+(exec\\s+)?|npx\\s+)?supabase\\s+${subcommand}\\b`
+    ).test(command);
+  const resets = runs('db\\s+reset');
+  const migrates = runs('migration\\s+up');
   if ((resets || migrates) && !/--(linked|db-url)\b/.test(command)) {
     if (resets) {
       const config = readFileSync(join(projectDir, 'supabase/config.toml'), 'utf8');
