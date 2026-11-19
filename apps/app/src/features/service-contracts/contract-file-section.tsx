@@ -500,7 +500,7 @@ export function ContractFileSection({
         <ConfirmDialog
           open
           busy={busy}
-          testId="contract"
+          testId="contract-action"
           title={confirmations[confirming].title}
           confirmLabel={confirmations[confirming].confirm}
           pendingLabel="Un moment…"
