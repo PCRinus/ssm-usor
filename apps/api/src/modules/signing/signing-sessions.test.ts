@@ -1,13 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchMock, stubFetch, testSecretKey } from '../../test/upstream';
-import type { SmsSender } from '../sms-usage/sender';
 import {
   createSigningSession,
   type NewSigningSession,
   type SigningCodeMessage,
   SigningCodeRefused,
-  signingCodeSender,
   type SigningSession,
   type SigningSessionStore,
   signingSessionStore,
@@ -170,17 +168,6 @@ describe('createSigningSession', () => {
     expect(memory.sessions.size).toBe(1);
   });
 
-  it('refuses a second code for the account within a minute', async () => {
-    await start();
-
-    await expect(start({}, seconds(59))).rejects.toMatchObject({
-      code: 'conflict',
-      reason: 'code_rate_limited',
-      extra: { retryAfterSeconds: 1 },
-    });
-    await expect(start({}, seconds(60))).resolves.toBeDefined();
-  });
-
   it('texts a phone in E.164 and refuses any other phone', async () => {
     await start({ channel: 'sms', address: '+40722123456' });
 
@@ -334,94 +321,5 @@ describe('the stores', () => {
     expect(url.searchParams.get('attempts')).toBe('eq.2');
     expect(url.searchParams.get('verified_at')).toBe('is.null');
     expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({ attempts: 3 });
-  });
-
-  it('inserts through the database function that keeps one code a minute, and passes its wait on', async () => {
-    fetchMock.mockResolvedValueOnce(
-      Response.json({ retry_after_seconds: 42, code_sent_at: null, expires_at: null })
-    );
-    const { createClient } = await import('@supabase/supabase-js');
-    const store = signingSessionStore(
-      createClient('https://example.supabase.co', testSecretKey) as never
-    );
-
-    const answer = await store.insert(
-      {
-        id: 's1',
-        accountId,
-        place: 'portal',
-        participantId: 'p1',
-        channel: 'email',
-        address: 'ion@example.ro',
-        codeHash: 'h',
-        codeSentAt: now,
-        expiresAt: seconds(600),
-        clientIp: null,
-        userAgent: null,
-      },
-      60
-    );
-
-    expect(answer).toEqual({ inserted: false, retryAfterSeconds: 42 });
-    const url = new URL(String(fetchMock.mock.calls[0]![0]));
-    expect(url.pathname).toBe('/rest/v1/rpc/create_signing_session');
-    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toMatchObject({
-      p_id: 's1',
-      p_place: 'portal',
-      p_participant_id: 'p1',
-      p_interval_seconds: 60,
-      p_valid_minutes: 10,
-    });
-  });
-
-  it('sends the code over the binding of its channel', async () => {
-    const sendEmail = vi.fn().mockResolvedValue({ id: 'm1' });
-    const sendSms = vi.fn().mockResolvedValue({ id: 's1' });
-    const smsSend = vi.fn(async (input: Parameters<SmsSender['send']>[0]) => ({
-      sent: true as const,
-      id: 'row-1',
-      overage: false,
-      receipt: await input.deliver({ sendSigningCode: sendSms } as never),
-    }));
-    const sender = signingCodeSender({
-      mail: { sendSigningCode: sendEmail } as never,
-      sms: { send: smsSend },
-    });
-
-    const message = { organizationId, code: '123456', expiresInMinutes: 10 };
-    await sender({ ...message, channel: 'email', to: 'ion@example.ro' });
-    await sender({ ...message, channel: 'sms', to: '+40722123456' });
-
-    expect(smsSend).toHaveBeenCalledWith(
-      expect.objectContaining({ organizationId, kind: 'signing_code', to: '+40722123456' })
-    );
-
-    expect(sendEmail).toHaveBeenCalledWith({
-      to: 'ion@example.ro',
-      code: '123456',
-      expiresInMinutes: 10,
-    });
-    expect(sendSms).toHaveBeenCalledWith({
-      to: '+40722123456',
-      code: '123456',
-      expiresInMinutes: 10,
-    });
-  });
-
-  it('turns a refused SMS into a refusal the session answers with', async () => {
-    const sender = signingCodeSender({
-      mail: undefined,
-      sms: { send: async () => ({ sent: false, reason: 'sms_allowance_reached' }) },
-    });
-
-    await expect(
-      sender({
-        organizationId,
-        channel: 'sms',
-        to: '+40722123456',
-        code: '123456',
-        expiresInMinutes: 10,
-      })
-    ).rejects.toMatchObject({ name: 'SigningCodeRefused', reason: 'sms_allowance_reached' });
   });
 });

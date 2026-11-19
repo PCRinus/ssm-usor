@@ -1504,56 +1504,6 @@ describe('POST /imports/{importId}/confirm', () => {
         registeredCompany: null,
       },
     });
-    const confirming = (changes: unknown) => {
-      mockUpstream(({ url }) => {
-        if (url.pathname === '/rest/v1/imports') {
-          return Response.json(withSuggestions(ready(changes)));
-        }
-        if (url.pathname === '/rest/v1/rpc/apply_client_import') {
-          return Response.json({ client_id: clientId, files: [] });
-        }
-      });
-      return request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
-    };
-
-    it('blocks confirming while the office and the workplace’s suggestions wait', async () => {
-      const response = await confirming({ fields: {}, items: {} });
-
-      expect(response.status).toBe(422);
-      expect(await response.json()).toMatchObject({
-        reason: 'import_incomplete',
-        issues: [
-          { path: 'officeActivity.workplace-1', message: 'choice' },
-          { path: 'suggestedValues.workplace-2', message: 'choice' },
-        ],
-      });
-      expect(callsTo('/rest/v1/rpc/apply_client_import')).toEqual([]);
-    });
-
-    it('writes the office with no activity and the values kept, changed or emptied, counting each', async () => {
-      const response = await confirming({
-        fields: {
-          'officeActivity.workplace-1': { option: 0 },
-          'suggestedValues.workplace-2': { option: 0 },
-        },
-        items: { 'workplace-2': { values: { specificMeasures: null } } },
-      });
-
-      expect(response.status).toBe(200);
-      const { p_payload } = callsTo('/rest/v1/rpc/apply_client_import')[0]!.body as {
-        p_payload: { workplaces: Record<string, unknown>[]; quality: Record<string, unknown> };
-      };
-      expect(p_payload.workplaces).toEqual([
-        expect.objectContaining({ key: 'workplace-1', office_has_activity: false }),
-        expect.objectContaining({
-          key: 'workplace-2',
-          combustible_materials: 'rumeguș, plăci din PAL',
-        }),
-      ]);
-      expect(p_payload.workplaces[1]).not.toHaveProperty('specific_measures');
-      expect(p_payload.quality.suggestedValues).toEqual({ changed: 0, unticked: 1, kept: 2 });
-    });
-
     it('answers an office where another member placed employees since the review as outdated', async () => {
       mockUpstream(({ url }) => {
         if (url.pathname === '/rest/v1/imports') {

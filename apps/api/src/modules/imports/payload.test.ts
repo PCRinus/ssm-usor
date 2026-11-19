@@ -1998,6 +1998,7 @@ describe('the dangerous substances', () => {
   it('leaves out a substance the member left out, and counts it', () => {
     const { payload } = mapped(twoNamed, {}, { 'substance-1': { included: false } });
 
+    expect(payload.fire_safety).toMatchObject({ substances_state: 'listed' });
     expect(payload.fire_substances).toEqual([{ name: 'Ulei uzat' }]);
     expect(payload.quality.substances).toEqual({ changed: 0, unticked: 1, kept: 0 });
   });
@@ -2260,26 +2261,31 @@ describe('suggested values', () => {
 
   describe('the registered office with no activity', () => {
     const bare = reading();
-    const officeProposal = proposalOf(
-      reading({
-        workplaces: bare.workplaces.map((workplace) => ({ ...workplace, rooms: [] })),
-        fireEquipment: [{ ...bare.fireEquipment[0]!, workplace: 'Magazin', room: null }],
-        workplaceFacts: [
-          {
-            workplace: 'Sediu',
-            field: 'assemblyPoint',
-            value: 'Trotuarul din fața blocului',
-            ...quoted(fire),
-          },
-        ],
-      })
-    );
-    officeProposal.workplaces[0] = {
-      ...officeProposal.workplaces[0]!,
-      officeHasActivity: false,
-      suggested: { officeHasActivity: [{ file: decision, quote: 'Magazin' }] },
+    const officeWith = (workplaceSuggestions: Reading['workplaceSuggestions'] = []) => {
+      const built = proposalOf(
+        reading({
+          workplaces: bare.workplaces.map((workplace) => ({ ...workplace, rooms: [] })),
+          fireEquipment: [{ ...bare.fireEquipment[0]!, workplace: 'Magazin', room: null }],
+          workplaceFacts: [
+            {
+              workplace: 'Sediu',
+              field: 'assemblyPoint',
+              value: 'Trotuarul din fața blocului',
+              ...quoted(fire),
+            },
+          ],
+          workplaceSuggestions,
+        })
+      );
+      built.workplaces[0] = {
+        ...built.workplaces[0]!,
+        officeHasActivity: false,
+        suggested: { officeHasActivity: [{ file: decision, quote: 'Magazin' }] },
+      };
+      built.fireInstallations[0]!.workplace = { name: 'Sediu', id: 'workplace-1' };
+      return built;
     };
-    officeProposal.fireInstallations[0]!.workplace = { name: 'Sediu', id: 'workplace-1' };
+    const officeProposal = officeWith();
     const office = (payload: { workplaces: Record<string, unknown>[] }) =>
       payload.workplaces.find((row) => row.key === 'workplace-1')!;
 
@@ -2307,6 +2313,34 @@ describe('suggested values', () => {
       expect(payload.fire_installations).toEqual([]);
       expect(payload.fire_equipment).toHaveLength(2);
       expect(payload.quality.suggestedValues).toEqual({ kept: 1, changed: 0, unticked: 0 });
+    });
+
+    it('waits beside a workplace’s suggestions, and then counts the office and each value kept or emptied', () => {
+      const both = officeWith([
+        drafted('Magazin', 'combustibleMaterials', 'rumeguș, plăci din PAL'),
+        drafted('Magazin', 'specificMeasures', 'curățarea zilnică a rumegușului'),
+      ]);
+      expect(mapped({}, {}, null, both).blockers).toEqual(
+        expect.arrayContaining([
+          { path: 'officeActivity.workplace-1', code: 'choice' },
+          { path: 'suggestedValues.workplace-2', code: 'choice' },
+        ])
+      );
+
+      const { payload, blockers } = mapped(
+        {
+          'officeActivity.workplace-1': { option: 0 },
+          'suggestedValues.workplace-2': { option: 0 },
+        },
+        { 'workplace-2': { values: { specificMeasures: null } } },
+        null,
+        both
+      );
+      expect(blockers).toEqual([]);
+      expect(office(payload)).toMatchObject({ office_has_activity: false });
+      expect(shop(payload)).toMatchObject({ combustible_materials: 'rumeguș, plăci din PAL' });
+      expect(shop(payload)).not.toHaveProperty('specific_measures');
+      expect(payload.quality.suggestedValues).toEqual({ kept: 2, changed: 0, unticked: 1 });
     });
 
     it('rejected, writes the office as a workplace with activity, which asks its assembly point', () => {

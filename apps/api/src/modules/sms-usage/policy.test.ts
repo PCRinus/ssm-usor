@@ -129,6 +129,9 @@ describe('what an organization may text', () => {
       extraCents: 10,
     });
     expect(smsPolicy({ ...paid, employee_step: 750 }, now)).toMatchObject({ allowance: 150 });
+    expect(smsPolicy({ ...paid, plan: 'profesional', employee_step: 1500 }, now)).toMatchObject({
+      allowance: 300,
+    });
   });
 
   it('sends no extra code from a subscription past due or ended', () => {
