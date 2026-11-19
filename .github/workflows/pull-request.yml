@@ -227,6 +227,7 @@ jobs:
 
       # `docker run` waits for the download above if it is still going, or does it itself.
       - name: Start the PDF converter
+        id: converter
         shell: bash
         run: |
           image=$(grep -m1 '^FROM ' apps/pdf/Dockerfile | cut -d' ' -f2)
@@ -256,6 +257,15 @@ jobs:
             needs.changes.outputs.database == 'true'
           )
         run: pnpm --filter @ssm-usor/portal test:e2e:flows
+
+      # The tests job has no converter, so the annex tests that convert skip there.
+      - name: Convert the own instructions' annexes
+        if: >-
+          !cancelled() && steps.converter.outcome == 'success' &&
+          needs.changes.outputs.api == 'true'
+        env:
+          GOTENBERG_URL: http://localhost:3300
+        run: pnpm --filter @ssm-usor/document-engine exec vitest run src/annex.test.ts
 
       - name: Upload the flow test report
         if: ${{ failure() }}
