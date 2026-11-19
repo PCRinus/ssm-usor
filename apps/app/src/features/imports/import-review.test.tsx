@@ -7,14 +7,20 @@ import {
   bodyOf,
   clientId,
   fetchMock,
+  fireCountProposal,
   importFile,
   importId,
+  managementPostProposal,
   meWithCredits,
   mockApi,
+  placesProposal,
   proposalFixture,
   readyBlockers,
   readyDetail,
   requestsTo,
+  secondPostProposal,
+  substancesProposal,
+  suggestedValuesProposal,
 } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -716,20 +722,6 @@ describe("a new client's name ANAF registers otherwise", () => {
     );
   });
 
-  it("names the client by ANAF's name on the hub until the documents' is picked", async () => {
-    mockReview(anafDetail());
-    mount();
-
-    await screen.findByTestId('import-review-hub');
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('PANIFICAȚIA NOUĂ SRL');
-    const identity = screen
-      .getAllByTestId('import-section-link')
-      .find((link) => link.dataset.section === 'identity')!;
-    expect(identity.textContent).toContain(
-      'Documentele dau altă denumire decât ANAF. Am ales-o pe cea de la ANAF.'
-    );
-  });
-
   it("edits the name as ANAF gives it, and keeps the documents' when written back", async () => {
     mockReview(anafDetail());
     mount('/identity');
@@ -1083,21 +1075,6 @@ describe("a protective-equipment entry's duration", () => {
     });
   }
 
-  it('asks inventory for a duration and a consumable for none, before confirming', async () => {
-    mockReview(durationDetail());
-    mount();
-
-    const blockers = await screen.findByTestId('import-blockers');
-    expect(
-      within(blockers)
-        .getAllByTestId('import-blocker-link')
-        .map((link) => link.textContent)
-    ).toEqual([
-      'Scrie durata de utilizare pentru Mănuși sau alege alocarea Consum',
-      'Șterge durata de utilizare pentru Mască sau alege altă alocare',
-    ]);
-  });
-
   it('says on each row what the duration needs', async () => {
     mockReview(durationDetail());
     mount('/equipment');
@@ -1223,18 +1200,6 @@ describe('two workplaces marked as the registered office', () => {
     });
   }
 
-  it('asks to keep one before confirming', async () => {
-    mockReview(twoOffices());
-    mount();
-
-    const blockers = await screen.findByTestId('import-blockers');
-    expect(
-      within(blockers)
-        .getAllByTestId('import-blocker-link')
-        .map((link) => link.textContent)
-    ).toEqual(['Două sedii sociale: păstrează unul']);
-  });
-
   it('says on the second row how to keep one', async () => {
     mockReview(twoOffices());
     mount('/workplaces');
@@ -1244,64 +1209,9 @@ describe('two workplaces marked as the registered office', () => {
     );
     expect(first!.textContent).not.toContain('Două sedii sociale');
   });
-
-  it('names the rule when the client already has its registered office', async () => {
-    mockReview(readyDetail({ blockers: [] }), {
-      confirm: () =>
-        Response.json(
-          {
-            error: 'unprocessable',
-            message: 'The client refused a value of the import.',
-            reason: 'import_refused',
-            issues: [{ path: 'workplaces', message: 'client_workplaces_registered_office_key' }],
-          },
-          { status: 422 }
-        ),
-    });
-    mount();
-
-    await userEvent.click(await screen.findByTestId('import-confirm'));
-    const dialog = await screen.findByTestId('import-confirm-dialog');
-    await userEvent.click(within(dialog).getByTestId('import-confirm-submit'));
-
-    expect((await within(dialog).findByTestId('import-confirm-error')).textContent).toBe(
-      'Nu am putut salva o valoare din secțiunea «Puncte de lucru»: un client are un singur sediu social. Verifică secțiunea și încearcă din nou.'
-    );
-  });
 });
 
-function administratorPost() {
-  const proposal = proposalFixture();
-  proposal.jobPositions.push({
-    ...proposal.jobPositions[0]!,
-    id: 'position-3',
-    sources: [{ file: 'dosar-ssm.zip/Evaluare riscuri.docx', quote: 'Administrator' }],
-    name: 'Administrator',
-    staffCategory: 'technical_administrative',
-    workZone: null,
-    activities: 'Conducerea firmei, conduce autoturismul în interes de serviciu',
-    managementOnly: true,
-  } as (typeof proposal.jobPositions)[number]);
-  const entry = (id: string, item: string, position: { name: string; id: string }) => ({
-    id,
-    sources: [{ file: 'dosar-ssm.zip/Evaluare riscuri.docx', quote: item }],
-    otherCompanyName: null,
-    jobPosition: position,
-    risk: 'Accidentare',
-    item,
-    quantity: 1,
-    durationMonths: 12,
-    allocation: 'personal_inventory',
-  });
-  (proposal as { protectiveEquipment: unknown[] }).protectiveEquipment = [
-    entry('equipment-entry-1', 'Mănuși termorezistente', { name: 'Brutar', id: 'position-1' }),
-    entry('equipment-entry-2', 'Vestă reflectorizantă', {
-      name: 'Administrator',
-      id: 'position-3',
-    }),
-  ];
-  return readyDetail({ proposal, blockers: [] });
-}
+const administratorPost = () => readyDetail({ proposal: managementPostProposal(), blockers: [] });
 
 describe('a post that is only the running of the firm', () => {
   it('is proposed unticked with why, apart from posts of another client', async () => {
@@ -1362,55 +1272,10 @@ describe('a post that is only the running of the firm', () => {
       })
     ).toBeTruthy();
   });
-
-  it('is told apart in the summaries and left out of what is confirmed', async () => {
-    mockReview(administratorPost());
-    mount();
-
-    const hub = await screen.findByTestId('import-review-hub');
-    expect(hub.textContent).toContain(
-      'un post. Postul «Administrator» se preia doar dacă e ocupat cu contract de muncă.'
-    );
-    expect(hub.textContent).toContain(
-      'Un articol pentru un post. Un articol rămâne deoparte cu postul lui.'
-    );
-    await userEvent.click(screen.getByTestId('import-confirm'));
-    const dialog = await screen.findByTestId('import-confirm-dialog');
-    expect(
-      within(dialog)
-        .getAllByTestId('confirm-line')
-        .map((line) => line.textContent)
-    ).toContainEqual(expect.stringContaining('1post de lucru'));
-    expect(dialog.textContent).toContain('Nu preluăm un element de la alt client.');
-  });
 });
 
-function secondPost(changes: unknown = null) {
-  const proposal = proposalFixture();
-  proposal.jobPositions.push({
-    ...proposal.jobPositions[0]!,
-    id: 'position-3',
-    sources: [{ file: 'dosar-ssm.zip/Fise post.doc', quote: 'Vânzător' }],
-    name: 'Vânzător',
-    workZone: 'Magazin',
-    activities: 'Vânzarea produselor de panificație',
-  } as (typeof proposal.jobPositions)[number]);
-  (proposal as { protectiveEquipment: unknown[] }).protectiveEquipment = [
-    ['equipment-entry-1', 'Mănuși termorezistente', 'Brutar', 'position-1'],
-    ['equipment-entry-2', 'Halat de protecție', 'Vânzător', 'position-3'],
-  ].map(([id, item, name, position]) => ({
-    id,
-    sources: [{ file: 'dosar-ssm.zip/Evaluare riscuri.docx', quote: item }],
-    otherCompanyName: null,
-    jobPosition: { name, id: position },
-    risk: 'Murdărire',
-    item,
-    quantity: 1,
-    durationMonths: 12,
-    allocation: 'personal_inventory',
-  }));
-  return readyDetail({ proposal, blockers: [], changes });
-}
+const secondPost = (changes: unknown = null) =>
+  readyDetail({ proposal: secondPostProposal(), blockers: [], changes });
 
 describe('reviewing related import data', () => {
   it('separates the source heading and filename and preserves the original excerpt verbatim', async () => {
@@ -1663,25 +1528,6 @@ describe('a post the import proposed that the member leaves out', () => {
       expect.stringContaining('Mănuși termorezistente'),
     ]);
   });
-
-  it('is left out of the summaries and of what is confirmed', async () => {
-    mockReview(secondPost({ fields: {}, items: { 'position-3': { included: false } } }));
-    mount();
-
-    const hub = await screen.findByTestId('import-review-hub');
-    expect(hub.textContent).toContain('un post.');
-    expect(hub.textContent).toContain(
-      'Un articol pentru un post. Un articol rămâne deoparte cu postul lui.'
-    );
-    await userEvent.click(screen.getByTestId('import-confirm'));
-    const dialog = await screen.findByTestId('import-confirm-dialog');
-    expect(
-      within(dialog)
-        .getAllByTestId('confirm-line')
-        .map((line) => line.textContent)
-    ).toContainEqual(expect.stringContaining('1post de lucru'));
-    expect(dialog.textContent).toContain('Nu preluăm un element de la alt client.');
-  });
 });
 
 describe('completing an existing client (E2)', () => {
@@ -1893,25 +1739,6 @@ describe('a smoking rule the decisions disagree on', () => {
       },
     });
   };
-  const hubSummary = async () =>
-    (await screen.findAllByTestId('import-section-link')).find(
-      (link) => link.dataset.section === 'fire-safety'
-    )!.textContent;
-
-  it('is summed up on the hub as the policy chosen says', async () => {
-    mockReview(smokingDetail('forbidden_everywhere'));
-    mount();
-    expect(await hubSummary()).toContain('Fumatul interzis peste tot, 6 mijloace de stingere.');
-    expect(await hubSummary()).not.toContain('curtea');
-  });
-
-  it('names the place once, without doubling its "în"', async () => {
-    mockReview(smokingDetail('designated_places'));
-    mount();
-    expect(await hubSummary()).toContain(
-      'Fumat doar în locurile amenajate: în curtea interioară, 6 mijloace de stingere.'
-    );
-  });
 
   it('shows the place as not applying while smoking is forbidden everywhere', async () => {
     mockReview(smokingDetail('forbidden_everywhere'));
@@ -2042,20 +1869,6 @@ describe('a value proposed with its spelling corrected', () => {
     const row = (await screen.findAllByTestId('review-item'))[0]!;
     expect(within(row).getAllByTestId('review-spelling')).toHaveLength(2);
     expect(saves).toBe(0);
-  });
-
-  it('sums up the hub with the corrected value once kept', async () => {
-    mockReview(
-      Object.assign(spellingDetail(), {
-        changes: { fields: { 'fireSafety.smokingPlace': { option: 0 } }, items: {} },
-      })
-    );
-    mount();
-
-    const fireSafety = (await screen.findAllByTestId('import-section-link')).find(
-      (link) => link.dataset.section === 'fire-safety'
-    )!;
-    expect(fireSafety.textContent).toContain('Fumat doar în locurile amenajate: în curte');
   });
 });
 
@@ -2260,43 +2073,6 @@ describe('the training cards', () => {
     );
   });
 
-  it('marks an SU interval as waiting and links it from the hub, as confirming blocks it', async () => {
-    mockReview(
-      readyDetail({
-        proposal: proposalFixture(),
-        blockers: [{ path: 'fireSafety.workerTrainingIntervalMonths', code: 'choice' }],
-      })
-    );
-    mount();
-
-    const link = await screen.findByTestId('import-blocker-link');
-    expect(link.textContent).toBe('Confirmă periodicitatea SU pentru execuție');
-    expect(link.getAttribute('href')).toContain('#review-fireSafety-workerTrainingIntervalMonths');
-    expect(screen.getByTestId('import-confirm').getAttribute('aria-disabled')).toBe('true');
-  });
-
-  it('keeps confirming waiting on the longest legal interval until the member confirms it', async () => {
-    const proposal = proposalFixture();
-    proposal.jobPositions.push(accountant as never);
-    proposal.trainingSchedule.administrativeTrainingIntervalMonths = { options: [] } as never;
-    mockReview(
-      readyDetail({
-        proposal,
-        blockers: [
-          { path: 'trainingSchedule.administrativeTrainingIntervalMonths', code: 'choice' },
-        ],
-      })
-    );
-    mount();
-
-    const link = await screen.findByTestId('import-blocker-link');
-    expect(link.textContent).toBe('Confirmă periodicitatea pentru tehnico-administrativ');
-    expect(link.getAttribute('href')).toContain(
-      '#review-trainingSchedule-administrativeTrainingIntervalMonths'
-    );
-    expect(screen.getByTestId('import-confirm').getAttribute('aria-disabled')).toBe('true');
-  });
-
   it('gives every calendar field a place the hub links to, and says what a refused day needs', async () => {
     mockReview(
       readyDetail({
@@ -2324,22 +2100,6 @@ describe('the training cards', () => {
       expect(block(path)).toBeTruthy();
     }
     expect(within(block('trainingSchedule.trainingDayFrom')).getByRole('textbox')).toBeTruthy();
-  });
-
-  it('asks to write a refused day again rather than to pick one', async () => {
-    const proposal = proposalFixture();
-    proposal.trainingSchedule.trainingDayFrom = { options: [option(35)] } as never;
-    mockReview(
-      readyDetail({
-        proposal,
-        blockers: [{ path: 'trainingSchedule.trainingDayFrom', code: 'invalid' }],
-      })
-    );
-    mount();
-
-    expect((await screen.findByTestId('import-blocker-link')).textContent).toBe(
-      'Scrie ziua de început a instruirii'
-    );
   });
 
   it('says when the last day comes before the first, once the member leaves the field', async () => {
@@ -2796,77 +2556,13 @@ describe('the persistent import review bar', () => {
 describe('means the files count differently', () => {
   const countPath = 'fireEquipmentCounts.count-1';
   const countDetail = (option?: number) => {
-    const proposal = proposalFixture();
-    const [laboratory] = proposal.fireEquipment;
-    proposal.fireEquipment.push(
-      {
-        ...laboratory!,
-        id: 'extinguisher-2',
-        sources: [{ file: 'Lista mijloacelor.docx', quote: 'stingătoare P6 – 4 buc.' }],
-        room: null,
-        count: 4,
-      },
-      {
-        ...laboratory!,
-        id: 'blanket-1',
-        sources: [{ file: 'Lista mijloacelor.docx', quote: 'Bucătărie – pătură antifoc' }],
-        room: 'Bucătărie',
-        kind: 'fire_blanket',
-        agent: null,
-        capacity: null,
-        count: null,
-      }
-    );
-    Object.assign(proposal, {
-      fireEquipmentCounts: [
-        {
-          id: 'count-1',
-          workplace: { name: 'Sediu', id: 'workplace-1' },
-          kind: 'extinguisher',
-          agent: 'powder',
-          capacity: 6,
-          wheeled: false,
-          options: [
-            {
-              total: 6,
-              sources: [
-                ...laboratory!.sources,
-                { file: 'Evaluarea riscului.docx', quote: '6 stingătoare P6' },
-              ],
-              equipmentIds: ['extinguisher-1'],
-            },
-            {
-              total: 4,
-              sources: [{ file: 'Lista mijloacelor.docx', quote: 'stingătoare P6 – 4 buc.' }],
-              equipmentIds: ['extinguisher-2'],
-            },
-          ],
-        },
-      ],
-    });
+    const proposal = fireCountProposal();
     return readyDetail({
       proposal,
       changes: { fields: option === undefined ? {} : { [countPath]: { option } }, items: {} },
       blockers: option === undefined ? [{ path: countPath, code: 'choice' }] : [],
     });
   };
-
-  it('lists the choice among what blocks confirming and sums up the section by it', async () => {
-    mockReview(countDetail());
-    mount();
-
-    const link = await screen.findByTestId('import-blocker-link');
-    expect(link.textContent).toBe('Alege numărul de bucăți: Stingător P6, Sediu');
-    expect(link.getAttribute('href')).toBe(
-      `/clienti/import/${importId}/fire-safety#review-fireEquipmentCounts-count-1`
-    );
-    const section = screen
-      .getAllByTestId('import-section-link')
-      .find((each) => each.dataset.section === 'fire-safety')!;
-    expect(within(section).getByTestId('section-status').textContent).toBe('Alegere necesară');
-    expect(section.textContent).toContain('un mijloc de stingere.');
-    expect(section.textContent).toContain('Stingător P6: 2 numere în documente.');
-  });
 
   it('offers each file’s total and writes only the chosen file’s entries', async () => {
     mockReview(countDetail());
@@ -2985,19 +2681,6 @@ describe('means the files count differently', () => {
       'Documentele numără altfel aceleași mijloace. Se preiau doar cele din documentul ales.'
     );
   });
-
-  it('counts only the chosen file’s units in what confirming creates', async () => {
-    mockReview(countDetail(1));
-    mount();
-
-    await userEvent.click(await screen.findByTestId('import-confirm'));
-    const dialog = await screen.findByTestId('import-confirm-dialog');
-    expect(
-      within(dialog)
-        .getAllByTestId('confirm-line')
-        .map((line) => line.textContent)
-    ).toContainEqual(expect.stringContaining('5mijloace de apărare'));
-  });
 });
 
 describe('the assembly point and the smoking place', () => {
@@ -3014,18 +2697,7 @@ describe('the assembly point and the smoking place', () => {
     blockers?: { path: string; code: string }[];
     intoExistingClient?: boolean;
   } = {}) => {
-    const proposal = proposalFixture();
-    Object.assign(proposal.workplaces[0]!, {
-      assemblyPoint: 'Parcarea din fața clădirii',
-      fieldSources: {
-        assemblyPoint: [{ file: 'Instructiuni PSI.docx', quote: 'Punct de adunare: parcarea' }],
-      },
-      spelling: { assemblyPoint: 'PARCAREA DIN FATA CLADIRII' },
-    });
-    Object.assign(proposal.fireSafety.smokingPlace.options[0]!, {
-      value: 'La poarta unității',
-      spelling: 'LA POARTA UNITATII',
-    });
+    const proposal = placesProposal();
     return readyDetail({
       proposal,
       changes: { fields, items },
@@ -3040,31 +2712,6 @@ describe('the assembly point and the smoking place', () => {
   };
   const radio = (row: HTMLElement, testId: string) =>
     within(within(row).getByTestId(testId)).getByRole('radio');
-
-  it('lists both among what blocks confirming, and names no place until it is kept', async () => {
-    mockReview(siteDetail());
-    mount();
-
-    const links = await screen.findAllByTestId('import-blocker-link');
-    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
-      [
-        'Confirmă locul pentru fumat',
-        `/clienti/import/${importId}/fire-safety#review-fireSafety-smokingPlace`,
-      ],
-      [
-        'Confirmă punctul de adunare: Sediu',
-        `/clienti/import/${importId}/workplaces#review-assemblyPoints-workplace-1`,
-      ],
-    ]);
-    const section = (id: string) =>
-      screen.getAllByTestId('import-section-link').find((each) => each.dataset.section === id)!;
-    expect(within(section('workplaces')).getByTestId('section-status').textContent).toBe(
-      'Alegere necesară'
-    );
-    expect(section('fire-safety').textContent).toContain(
-      'Fumat doar în locurile amenajate, 6 mijloace de stingere.'
-    );
-  });
 
   it('keeps the smoking place, writes another, or leaves it empty', async () => {
     mockReview(siteDetail());
@@ -3203,22 +2850,6 @@ describe('the assembly point and the smoking place', () => {
     expect(savedChanges(5).changes.fields).toEqual({ [pointPath]: { option: 0 } });
   });
 
-  it('asks nothing of a workplace left out', async () => {
-    mockReview(siteDetail({ items: { 'workplace-1': { included: false } }, blockers: [] }));
-    mount('/workplaces');
-
-    await screen.findByTestId('review-list-workplaces');
-    expect(screen.queryByTestId('review-assembly-points')).toBeNull();
-  });
-
-  it('into an existing client, asks for a workplace’s point only where the import writes it', async () => {
-    mockReview(siteDetail({ intoExistingClient: true, blockers: [] }));
-    mount('/workplaces');
-
-    await screen.findByTestId('review-list-workplaces');
-    expect(screen.queryByTestId('review-assembly-points')).toBeNull();
-  });
-
   it('leaves out of what confirming adds a place left empty', async () => {
     const decided = (place: unknown) =>
       siteDetail({
@@ -3254,13 +2885,6 @@ describe('the assembly point and the smoking place', () => {
 describe('the dangerous substances', () => {
   const statePath = 'fireSafety.substancesState';
   const decision = 'Decizia 9 deseuri.docx';
-  const named = (id: string, name: string, quote: string) => ({
-    id,
-    name,
-    sources: [{ file: decision, quote }],
-    otherCompanyName: null,
-    spelling: {},
-  });
   const substancesDetail = ({
     answers = ['listed'],
     fields = {},
@@ -3274,32 +2898,7 @@ describe('the dangerous substances', () => {
     blockers?: { path: string; code: string }[];
     intoExistingClient?: boolean;
   } = {}) => {
-    const proposal = proposalFixture();
-    const substances = answers.includes('listed')
-      ? [
-          named('substance-1', 'Detergenți', 'ambalaje de la detergenți'),
-          named('substance-2', 'Ulei uzat', 'uleiul uzat de la friteuză'),
-        ]
-      : [];
-    Object.assign(proposal, { substances });
-    Object.assign(proposal.fireSafety, {
-      wasteContractor: { options: [] },
-      substancesState: {
-        options: answers.map((value) => ({
-          value,
-          sources:
-            value === 'listed'
-              ? substances.flatMap((substance) => substance.sources)
-              : [
-                  {
-                    file: 'Lista mijloacelor.docx',
-                    quote: 'Nu se utilizează substanțe periculoase',
-                  },
-                ],
-          otherCompanyName: null,
-        })),
-      },
-    });
+    const proposal = substancesProposal(answers);
     return readyDetail({
       proposal,
       changes: { fields, items },
@@ -3363,22 +2962,6 @@ describe('the dangerous substances', () => {
     );
   });
 
-  it('asks the member to settle documents that name substances and say none are used', async () => {
-    mockReview(
-      substancesDetail({
-        answers: ['none', 'listed'],
-        blockers: [{ path: statePath, code: 'choice' }],
-      })
-    );
-    mount();
-
-    const link = await screen.findByTestId('import-blocker-link');
-    expect(link.textContent).toBe('Alege dacă clientul utilizează substanțe periculoase');
-    expect(link.getAttribute('href')).toBe(
-      `/clienti/import/${importId}/fire-safety#review-fireSafety-substancesState`
-    );
-  });
-
   it('takes the documents’ option the member picks in a disagreement', async () => {
     mockReview(
       substancesDetail({
@@ -3414,19 +2997,6 @@ describe('the dangerous substances', () => {
 
     await userEvent.click(radio(group, 'review-substances-listed'));
     await waitFor(() => expect(savedChanges(0).changes.fields).toEqual({}));
-  });
-
-  it('counts the substances among what confirming creates', async () => {
-    mockReview(substancesDetail({ items: { 'substance-1': { included: false } } }));
-    mount();
-
-    await userEvent.click(await screen.findByTestId('import-confirm'));
-    const dialog = await screen.findByTestId('import-confirm-dialog');
-    expect(
-      within(dialog)
-        .getAllByTestId('confirm-line')
-        .map((line) => line.textContent)
-    ).toContainEqual(expect.stringContaining('1substanță periculoasă'));
   });
 
   it('keeps an existing client’s answer, offers the documents’, and adds no name it lists', async () => {
@@ -3514,8 +3084,6 @@ describe('the dangerous substances', () => {
 describe('suggested values', () => {
   const cardPath = 'suggestedValues.workplace-2';
   const officePath = 'officeActivity.workplace-1';
-  const evaluation = 'dosar-ssm.zip/Evaluare riscuri.docx';
-  const waste = 'dosar-psi.zip/Decizie deseuri.docx';
   const suggestedDetail = ({
     fields = {},
     items = {},
@@ -3527,37 +3095,7 @@ describe('suggested values', () => {
     blockers?: { path: string; code: string }[];
     intoExistingClient?: boolean;
   } = {}) => {
-    const proposal = proposalFixture();
-    Object.assign(proposal.workplaces[0]!, {
-      activity: null,
-      rooms: [],
-      officeHasActivity: false,
-      suggested: {
-        officeHasActivity: [
-          { file: 'dosar-ssm.zip/Decizie 1.docx', quote: 'Atelier: Str. Gării 3' },
-        ],
-      },
-    });
-    proposal.workplaces.push({
-      ...proposal.workplaces[0]!,
-      id: 'workplace-2',
-      name: 'Atelier',
-      isRegisteredOffice: false,
-      addressLine: 'Str. Gării nr. 3',
-      activity: 'Brutărie',
-      officeHasActivity: true,
-      combustibleMaterials: 'făină, ambalaje din hârtie și carton, lăzi din lemn',
-      ignitionSources: 'cuptorul electric, instalația electrică',
-      extinguisherNorm: 'commercial_200',
-      suggested: {
-        combustibleMaterials: [
-          { file: evaluation, quote: 'Materii prime: făină, drojdie' },
-          { file: waste, quote: 'deșeuri de hârtie și carton' },
-        ],
-        ignitionSources: [{ file: evaluation, quote: 'cuptor electric cu vatră' }],
-        extinguisherNorm: [{ file: evaluation, quote: 'Cod CAEN 1071' }],
-      },
-    } as never);
+    const proposal = suggestedValuesProposal();
     return readyDetail({
       proposal,
       changes: { fields, items },
@@ -3576,23 +3114,6 @@ describe('suggested values', () => {
     within(row)
       .getAllByTestId('review-suggested-value')
       .find((each) => each.textContent?.includes(label))!;
-
-  it('lists the office and each workplace among what blocks confirming', async () => {
-    mockReview(suggestedDetail());
-    mount();
-
-    const links = await screen.findAllByTestId('import-blocker-link');
-    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
-      [
-        'Alege dacă la sediul social se desfășoară activitate',
-        `/clienti/import/${importId}/workplaces#review-officeActivity-workplace-1`,
-      ],
-      [
-        'Confirmă sugestiile din activitate: Atelier',
-        `/clienti/import/${importId}/workplaces#review-suggestedValues-workplace-2`,
-      ],
-    ]);
-  });
 
   it('shows each suggested value with its mark and its passages, undecided', async () => {
     const detail = suggestedDetail();
@@ -3745,34 +3266,6 @@ describe('suggested values', () => {
     expect(screen.getByTestId('review-assembly-points')).toBeTruthy();
   });
 
-  it('leaves the means at an office with no activity out of the list, the summary and confirming', async () => {
-    const detail = suggestedDetail({
-      fields: { [officePath]: { option: 0 }, [cardPath]: { option: 0 } },
-      blockers: [],
-    });
-    proposalOf(detail).fireEquipment.push({
-      ...proposalOf(detail).fireEquipment[0]!,
-      id: 'extinguisher-2',
-      workplace: { name: 'Atelier', id: 'workplace-2' },
-      room: 'Atelier',
-      count: 2,
-    });
-    mockReview(detail);
-    mount();
-
-    const section = (await screen.findAllByTestId('import-section-link')).find(
-      (each) => each.dataset.section === 'fire-safety'
-    )!;
-    expect(section.textContent).toContain('2 mijloace de stingere.');
-    await userEvent.click(screen.getByTestId('import-confirm'));
-    const dialog = await screen.findByTestId('import-confirm-dialog');
-    expect(
-      within(dialog)
-        .getAllByTestId('confirm-line')
-        .map((line) => line.textContent)
-    ).toContainEqual(expect.stringContaining('2mijloace de apărare'));
-  });
-
   it('shows on the fire-safety page only the means at a workplace with activity', async () => {
     const detail = suggestedDetail({ fields: { [officePath]: { option: 0 } }, blockers: [] });
     proposalOf(detail).fireEquipment.push({
@@ -3791,40 +3284,6 @@ describe('suggested values', () => {
         .getAllByTestId('review-item')
         .map((item) => item.getAttribute('aria-label'))
     ).toEqual(['Stingător, Pulbere · 2 bucăți']);
-  });
-
-  it('asks nothing of a workplace left out, nor of the office without a point of work', async () => {
-    mockReview(suggestedDetail({ items: { 'workplace-2': { included: false } }, blockers: [] }));
-    mount('/workplaces');
-
-    await screen.findByTestId('review-list-workplaces');
-    expect(screen.queryByTestId('review-suggestions-card')).toBeNull();
-  });
-
-  it('into an existing client, asks only where the import writes a suggested value', async () => {
-    mockReview(suggestedDetail({ intoExistingClient: true, blockers: [] }));
-    mount('/workplaces');
-
-    await screen.findByTestId('review-list-workplaces');
-    expect(screen.queryByTestId('review-suggestions-card')).toBeNull();
-  });
-
-  it('lists the suggested values kept and the office with no activity among what confirming adds', async () => {
-    mockReview(
-      suggestedDetail({
-        fields: { [officePath]: { option: 0 }, [cardPath]: { option: 0 } },
-        items: { 'workplace-2': { values: { ignitionSources: null } } },
-        blockers: [],
-      })
-    );
-    mount();
-
-    await userEvent.click(await screen.findByTestId('import-confirm'));
-    const dialog = await screen.findByTestId('import-confirm-dialog');
-    await waitFor(() => expect(dialog.textContent).toContain('Fără activitate la sediul social'));
-    expect(dialog.textContent).toContain('2valori sugerate din activitate');
-    expect(dialog.textContent).not.toContain('mijloace de apărare');
-    expect(dialog.textContent).not.toContain('mijloc de apărare');
   });
 
   it('restores the suggestions when the member keeps them after leaving them all empty', async () => {
