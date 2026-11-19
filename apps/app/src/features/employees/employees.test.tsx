@@ -1536,6 +1536,30 @@ describe('employee status changes', () => {
     );
     expect(screen.getByTestId('employee-status-dialog')).toBeTruthy();
   });
+
+  it('explains a reactivation refused because a current employee has the number', async () => {
+    mockApi({
+      list: () =>
+        Response.json(
+          page([{ ...sampleEmployee, status: 'terminated', terminatedAt: '2025-12-31' }])
+        ),
+      status: () =>
+        Response.json(
+          { error: 'conflict', message: 'Duplicate.', reason: 'employee_number_taken' },
+          { status: 409 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPage}?status=terminated`);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-reactivate'));
+    await user.click(await screen.findByTestId('employee-status-confirm'));
+    expect((await screen.findByTestId('employee-status-error')).textContent).toContain(
+      'un lucrător actual al clientului are aceeași marcă'
+    );
+    expect(screen.getByTestId('employee-status-dialog')).toBeTruthy();
+  });
 });
 
 describe('employee detail', () => {
