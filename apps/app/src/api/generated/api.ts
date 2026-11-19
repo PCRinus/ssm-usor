@@ -17642,7 +17642,7 @@ export type ListImportsParams = {
    */
   status?: ListImportsStatus;
   /**
-   * With the open imports: also the confirmed client imports with a library part still reading or to review and not expired.
+   * With the open imports: also the confirmed client imports with a library part neither confirmed nor expired.
    */
   withOpenParts?: string;
 };
@@ -38236,7 +38236,7 @@ export const getListImportsUrl = (params?: ListImportsParams) => {
 };
 
 /**
- * Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: the last ten, or every one of a client's client imports with `clientId`, which its Detalii tab lists with what is left of each; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left. With `withOpenParts` and the open imports of `client` or `all`, also the confirmed client imports with a library part still `reading` or `to_review` and not expired (confirmed less than 14 days ago), among the others newest first by when they were created: the open rows of the imports page.
+ * Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: the last ten, or every one of a client's client imports with `clientId`, which its Detalii tab lists with what is left of each; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left. With `withOpenParts` and the open imports of `client` or `all`, also the confirmed client imports confirmed less than 14 days ago with a library part not yet confirmed, among the others newest first by when they were created: the open rows of the imports page. Such an import is in `GET /imports/closed` too: it is confirmed, and its parts are still open.
  * @summary List the organization's open or last confirmed imports
  */
 export const listImports = async (
@@ -38368,7 +38368,7 @@ export const getListClosedImportsUrl = (params: ListClosedImportsParams) => {
 };
 
 /**
- * The confirmed and abandoned imports of `kind`, latest first by when they were confirmed or abandoned: the history the imports page shows under Încheiate. An abandoned import is listed until the clean-up deletes it, 14 days after it was abandoned.
+ * The confirmed and abandoned imports of `kind`, latest first by when they ended (when they were confirmed or abandoned, or, for one abandoned after it failed, when it failed), ties by id: the history the imports page shows under Încheiate. An abandoned import is listed until the clean-up deletes it, 14 days after it was abandoned. A confirmed client import with a library part still open is also among the open rows of `GET /imports` with `withOpenParts`: it is confirmed, and its parts are still open.
  * @summary List a page of the organization's confirmed and abandoned imports
  */
 export const listClosedImports = async (

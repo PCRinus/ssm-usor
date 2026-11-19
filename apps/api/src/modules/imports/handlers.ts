@@ -3,6 +3,7 @@ import {
   confirmedListed,
   type EmployeeImportPeople,
   importErrorReasons,
+  isOpenLibraryPartStatus,
   libraryPartDays,
 } from '@ssm-usor/contracts';
 
@@ -75,7 +76,7 @@ export const listClosedImports: RouteHandler<typeof listClosedImportsRoute, ApiE
         .from('imports')
         .select(summaryColumns, { count: 'exact' })
         .eq('kind', kind)
-        .not('closed_at', 'is', null)
+        .in('status', closedStatuses)
         .order('closed_at', { ascending: false })
         .order('id', { ascending: false })
         .order('updated_at', { referencedTable: 'last_file', ascending: false })
@@ -86,13 +87,13 @@ export const listClosedImports: RouteHandler<typeof listClosedImportsRoute, ApiE
         .from('imports')
         .select('id', { count: 'exact', head: true })
         .eq('kind', kind)
-        .not('closed_at', 'is', null),
+        .in('status', closedStatuses),
     what: 'closed imports',
   });
   return c.json({ items: await summariesOf(db, rows, null), page, pageSize, total }, 200);
 };
 
-const openPartStatuses: readonly string[] = ['reading', 'to_review'];
+const closedStatuses = ['confirmed', 'abandoned'] as const;
 
 // A part can be confirmed until libraryPartDays after its import was (ILP04), so only those
 // imports are read, and their open parts picked here: an inner join would drop the other parts.
@@ -109,7 +110,7 @@ async function confirmedWithOpenParts(db: DataClient, clientId: string | undefin
   const { data, error } = await (clientId ? query.eq('client_id', clientId) : query);
   if (error) throw fromDatabaseError(error, 'list imports with open library parts');
   return data.filter((row) =>
-    row.import_library_parts.some((part) => openPartStatuses.includes(part.status))
+    row.import_library_parts.some((part) => isOpenLibraryPartStatus(part.status))
   );
 }
 

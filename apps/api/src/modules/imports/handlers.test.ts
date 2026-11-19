@@ -879,7 +879,7 @@ describe('GET /imports with open library parts', () => {
     });
   }
 
-  it('adds the confirmed client imports with a part still reading or to review, newest first among the open ones', async () => {
+  it('adds the confirmed client imports with a part not yet confirmed, newest first among the open ones', async () => {
     mockLists(
       [
         importRow({ status: 'ready', created_at: '2026-11-18T09:00:00+00:00' }),
@@ -898,10 +898,14 @@ describe('GET /imports with open library parts', () => {
           { part: 'risk_evaluations', status: 'confirmed' },
         ]),
         confirmedRow(7, [{ part: 'risk_evaluations', status: 'reading' }]),
-        confirmedRow(8, [
+        confirmedRow(5, [
           { part: 'instructions_ssm', status: 'confirmed' },
           { part: 'instructions_su', status: 'nothing_new' },
-          { part: 'risk_evaluations', status: 'failed' },
+        ]),
+        confirmedRow(4, [{ part: 'risk_evaluations', status: 'failed' }]),
+        confirmedRow(8, [
+          { part: 'instructions_ssm', status: 'confirmed' },
+          { part: 'risk_evaluations', status: 'confirmed' },
         ]),
         confirmedRow(9, []),
       ]
@@ -916,6 +920,8 @@ describe('GET /imports with open library parts', () => {
       importId,
       confirmedId(7),
       confirmedId(6),
+      confirmedId(5),
+      confirmedId(4),
       splitId,
     ]);
     expect(items[2]).toMatchObject({
@@ -1064,7 +1070,7 @@ describe('GET /imports/closed', () => {
     });
     const [list] = callsTo('/rest/v1/imports');
     expect(list!.url.searchParams.get('kind')).toBe('eq.client');
-    expect(list!.url.searchParams.get('closed_at')).toBe('not.is.null');
+    expect(list!.url.searchParams.get('status')).toBe('in.(confirmed,abandoned)');
     expect(list!.url.searchParams.get('order')).toBe('closed_at.desc,id.desc');
     expect(list!.url.searchParams.get('offset')).toBe('0');
     expect(list!.url.searchParams.get('limit')).toBe('2');
