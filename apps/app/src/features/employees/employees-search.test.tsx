@@ -1,74 +1,48 @@
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import { fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
-import { noTests, untrained } from '@/test/training-fixture';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, employeeListItem, pageOf } from '@/test/records';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeesPath = `/clients/${clientId}/employees`;
 const employeesPage = `/clienti/${clientId}/angajati`;
 
-const sampleClient = {
-  id: clientId,
+const sampleClient = clientRecord({
   legalName: 'OMV PETROM SA',
-  cui: '1590082',
   vatPayer: true,
   caenCode: '0610',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
   locality: null,
-  addressLine: null,
   legalRepresentativeName: null,
   declaredEmployeeCount: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
-
-const employee = (id: string, lastName: string, firstName: string) => ({
-  id,
-  clientId,
-  lastName,
-  firstName,
-  employeeNumber: null,
-  email: null,
-  phone: null,
-  jobTitle: 'Sudor',
-  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor' },
-  hiredAt: '2020-03-01',
-  status: 'active',
-  terminatedAt: null,
-  training: untrained,
-  tests: noTests,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
 });
+
+const employee = (id: string, lastName: string, firstName: string) =>
+  employeeListItem({
+    id,
+    lastName,
+    firstName,
+    jobTitle: 'Sudor',
+    jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor' },
+    hiredAt: '2020-03-01',
+    workplace: null,
+  });
 
 const popescu = employee('7c9e6679-7425-40de-944b-e07fc1f90ae7', 'Popescu', 'Ion');
 const taranu = employee('8d0f7780-8536-41ef-a55c-f18fd2fa1bf8', 'Țăranu', 'Ștefan');
 
 const page = (items: unknown[], unfilteredTotal = items.length) => ({
-  items,
-  page: 1,
-  pageSize: 25,
-  total: items.length,
+  ...pageOf(items),
   unfilteredTotal,
 });
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi(list: (url: URL) => Response) {
-  fetchMock.mockImplementation(async (input) => {
-    const url = new URL(String(input));
-    if (url.pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
+  mockRoutes((_init, url) => {
     if (url.pathname === `/clients/${clientId}`) return Response.json({ client: sampleClient });
     if (url.pathname === employeesPath) return list(url);
     if (url.pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
-    throw new Error(`Unexpected request: ${url}`);
   });
 }
 
@@ -78,15 +52,7 @@ const listQueries = () =>
     .filter((url) => url.pathname === employeesPath)
     .map((url) => url.searchParams);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe("searching a client's employees", () => {
   it('sends the search once typing pauses, in the URL, without a history entry', async () => {
