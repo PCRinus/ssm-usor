@@ -135,7 +135,7 @@ positions: the posts the training themes name, with the citations of the ${name}
 - The introductory-general training of the whole staff ("Întreg personalul", "Conform MISSMIG Art. 1 – 327") cites the general training material: it is never a post. The plan tables of a training ("Nr. crt. | Conținutul materialului de instruire | Planul de desfășurare") are not per post: skip them.
 - post: as written. A heading that names several posts ("Personal de execuție ( Mecanic utilaj , Operator mecanic )") gives one entry for each post it names, each with the whole citation; a category heading that names no post is the post as written.
 - variant: the words the themes add to a post to tell two of its entries apart ("FARA CONDUCERE AUTO"), "" otherwise.
-- clientPost: the client's post from the list below that the post is, written as the list writes it; "" when none is.
+- clientPost: the client's post from the list in the message just after this one that the post is, written as the list writes it; "" when none is.
 - file: the themes' path; quote: a verbatim passage of it, at most 200 characters: the post's name, "…", then the citation.`;
 }
 

@@ -5,6 +5,7 @@ import {
   docxToText,
   fileHeader,
   GatewayError,
+  identityMessage,
   ModelAnswerError,
   type Reading,
   readingAnswer,
@@ -394,7 +395,8 @@ async function triageScan(
   const { provider } = await identityOf(deps, row);
   const first = await (await pageImage(deps, file))(firstPage);
   const messages: ChatMessage[] = [
-    { role: 'system', content: sortingSystemPrompt(provider) },
+    { role: 'system', content: sortingSystemPrompt },
+    identityMessage(provider),
     {
       role: 'user',
       content: [

@@ -1,11 +1,10 @@
 import type { ImportKind, ImportLibraryPart } from '@ssm-usor/contracts';
 import {
-  existingClientMessage,
   instructionsModel,
   instructionsRequest,
   readingAnswer,
+  readingMessages,
   readingModel,
-  readingSystemPrompt,
   retypeRequest,
   risksModel,
   risksRequest,
@@ -15,8 +14,8 @@ import {
   similarityModel,
   similaritySystemPrompt,
   sortingAnswer,
+  sortingMessages,
   sortingModel,
-  sortingSystemPrompt,
 } from '@ssm-usor/import';
 
 import { sha256 } from '../../lib/docx';
@@ -41,11 +40,10 @@ function readerInputs(reader: Reader): { models: Record<string, string>; texts: 
       return {
         models: { sorting: sortingModel, scanning: readingModel, reading: readingModel },
         texts: [
-          sortingSystemPrompt(provider),
+          sortingMessages({ provider, files: [file] }),
           sortingAnswer.jsonSchema,
-          readingSystemPrompt(provider),
-          readingSystemPrompt(provider, true),
-          existingClientMessage(client),
+          readingMessages({ provider, files: [file] }),
+          readingMessages({ provider, client, files: [file] }),
           readingAnswer.jsonSchema,
         ],
       };
