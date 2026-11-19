@@ -15,6 +15,7 @@ import {
   paidRow,
   priceIdOf,
   signedEvent,
+  stripeDown,
   stripeList,
   stripeSubscription,
   stripeWrites,
@@ -166,10 +167,7 @@ describe('POST /billing/stripe-webhook', () => {
 
   it('records a failure and answers 500, so Stripe delivers it again', async () => {
     const fake = createFake();
-    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
-      new Response(JSON.stringify({ error: { type: 'api_error', message: 'down' } }), {
-        status: 500,
-      });
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = stripeDown;
 
     const response = await deliver(subscriptionEvent('customer.subscription.updated'));
 
