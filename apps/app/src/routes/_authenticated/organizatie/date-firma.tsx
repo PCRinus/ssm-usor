@@ -16,11 +16,5 @@ function OrganizationCompanyPage() {
   // The layout renders this only once the account and its membership are loaded.
   if (!me.data?.membership) return null;
 
-  return (
-    <CompanyDetailsCard
-      userId={me.data.user.id}
-      canEdit={me.data.membership.role === 'owner'}
-      focus={focus}
-    />
-  );
+  return <CompanyDetailsCard canEdit={me.data.membership.role === 'owner'} focus={focus} />;
 }

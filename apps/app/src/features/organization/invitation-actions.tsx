@@ -6,7 +6,6 @@ import {
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { MoreHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -16,6 +15,7 @@ import {
   useRevokeInvitation,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
 import { commonFailure } from '@/lib/api-errors';
 
@@ -48,9 +48,9 @@ export function InvitationActions({
   invitation: InvitationResponse;
   onError: (message: ReactNode) => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const resend = useResendInvitation({ request: wordingRefusalHere(apiRequest) });
-  const revoke = useRevokeInvitation({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const resend = useResendInvitation({ request: wordingRefusalHere(request) });
+  const revoke = useRevokeInvitation({ request });
   const busy = resend.isPending || revoke.isPending;
   const { email } = invitation;
 

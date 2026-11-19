@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
@@ -12,6 +11,7 @@ import {
   useUpdateOrganizationAuthorizations,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -51,18 +51,16 @@ function fieldFor(focus: AuthorizationsFocus, saved: Authorizations) {
 
 // Hiding the owner's form controls is a courtesy; the API and the database enforce the rule.
 export function AuthorizationsCard({
-  userId,
   canEdit,
   focus,
 }: {
-  userId: string;
   canEdit: boolean;
   focus?: AuthorizationsFocus;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const saved = useGetOrganizationAuthorizations({
-    request: apiRequest,
-    query: { queryKey: [...getGetOrganizationAuthorizationsQueryKey(), userId] },
+    request,
+    query: { queryKey: key(getGetOrganizationAuthorizationsQueryKey()) },
   });
   useFocusRequest(focus !== undefined, {
     ready: !saved.isPending,
@@ -96,7 +94,6 @@ export function AuthorizationsCard({
         <AuthorizationsForm
           key={JSON.stringify(saved.data.authorizations)}
           saved={saved.data.authorizations}
-          userId={userId}
           canEdit={canEdit}
         />
       )}
@@ -113,18 +110,10 @@ const shownInReplay = new Set<TextField>([
   'riskEvaluatorTitle',
 ]);
 
-function AuthorizationsForm({
-  saved,
-  userId,
-  canEdit,
-}: {
-  saved: Authorizations;
-  userId: string;
-  canEdit: boolean;
-}) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+function AuthorizationsForm({ saved, canEdit }: { saved: Authorizations; canEdit: boolean }) {
+  const { request, queryClient, key } = useApi();
   const savedToast = useSavedToast();
-  const update = useUpdateOrganizationAuthorizations({ request: apiRequest });
+  const update = useUpdateOrganizationAuthorizations({ request });
   const form = useForm<AuthorizationsFormValues>({
     resolver: zodResolver(authorizationsFormSchema),
     defaultValues: toAuthorizationsForm(saved),
@@ -138,7 +127,7 @@ function AuthorizationsForm({
     try {
       await update.mutateAsync({ data: toAuthorizationsRequest(values) });
       await queryClient.invalidateQueries({
-        queryKey: [...getGetOrganizationAuthorizationsQueryKey(), userId],
+        queryKey: key(getGetOrganizationAuthorizationsQueryKey()),
       });
       savedToast('Abilitările au fost salvate.');
     } catch (cause) {

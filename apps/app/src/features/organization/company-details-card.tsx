@@ -5,7 +5,6 @@ import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
@@ -16,6 +15,7 @@ import {
   useUpdateOrganizationCompanyDetails,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
@@ -56,18 +56,16 @@ function fieldFor(focus: OrganizationCompanyFocus, saved: CompanyDetails) {
 
 // Hiding the owner's form controls is a courtesy; the API and the database enforce the rule.
 export function CompanyDetailsCard({
-  userId,
   canEdit,
   focus,
 }: {
-  userId: string;
   canEdit: boolean;
   focus?: OrganizationCompanyFocus;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const details = useGetOrganizationCompanyDetails({
-    request: apiRequest,
-    query: { queryKey: [...getGetOrganizationCompanyDetailsQueryKey(), userId] },
+    request,
+    query: { queryKey: key(getGetOrganizationCompanyDetailsQueryKey()) },
   });
   useFocusRequest(focus !== undefined, {
     ready: !details.isPending,
@@ -101,7 +99,6 @@ export function CompanyDetailsCard({
         <CompanyDetailsForm
           key={JSON.stringify(details.data.companyDetails)}
           saved={details.data.companyDetails}
-          userId={userId}
           canEdit={canEdit}
         />
       )}
@@ -121,18 +118,10 @@ const shownInReplay = new Set<TextField>([
   'bankName',
 ]);
 
-function CompanyDetailsForm({
-  saved,
-  userId,
-  canEdit,
-}: {
-  saved: CompanyDetails;
-  userId: string;
-  canEdit: boolean;
-}) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+function CompanyDetailsForm({ saved, canEdit }: { saved: CompanyDetails; canEdit: boolean }) {
+  const { request, queryClient, key } = useApi();
   const savedToast = useSavedToast();
-  const update = useUpdateOrganizationCompanyDetails({ request: apiRequest });
+  const update = useUpdateOrganizationCompanyDetails({ request });
   const form = useForm<CompanyDetailsFormValues>({
     resolver: zodResolver(companyDetailsFormSchema),
     defaultValues: toCompanyDetailsForm(saved),
@@ -161,7 +150,7 @@ function CompanyDetailsForm({
       await update.mutateAsync({ data: toCompanyDetailsRequest(values) });
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: [...getGetOrganizationCompanyDetailsQueryKey(), userId],
+          queryKey: key(getGetOrganizationCompanyDetailsQueryKey()),
         }),
         // Abonament shows the amounts without VAT by this box. Only marked stale: the billing
         // overview asks Stripe, so it is read when Abonament opens, not now.

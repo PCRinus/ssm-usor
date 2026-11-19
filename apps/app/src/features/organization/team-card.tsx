@@ -1,6 +1,6 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, Link } from '@tanstack/react-router';
 import { UserPlus } from 'lucide-react';
 import { type ReactNode, useMemo, useState } from 'react';
 
@@ -12,6 +12,7 @@ import {
   useListInvitations,
   useListOrganizationMembers,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { keepOpener, openedHere } from '@/app/opener';
 import { DataTable } from '@/components/data-table/data-table';
 import { HelpLink } from '@/components/help-link';
@@ -49,23 +50,23 @@ export function TeamCard({
   // May change the plan: an owner in person, not an admin acting as one.
   canAct: boolean;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const [inviting, setInviting] = useState(false);
   const [error, setError] = useState<ReactNode>(null);
   const members = useListOrganizationMembers({
-    request: apiRequest,
-    query: { queryKey: [...getListOrganizationMembersQueryKey(), userId] },
+    request,
+    query: { queryKey: key(getListOrganizationMembersQueryKey()) },
   });
   const seatCounts = useGetOrganizationSeats({
-    request: apiRequest,
-    query: { queryKey: [...getGetOrganizationSeatsQueryKey(), userId] },
+    request,
+    query: { queryKey: key(getGetOrganizationSeatsQueryKey()) },
   });
   const seats = seatCounts.data ? memberSeatsOf(seatCounts.data, canAct) : null;
   const invitations = useListInvitations({
-    request: apiRequest,
-    query: { queryKey: [...getListInvitationsQueryKey(), userId], enabled: manage },
+    request,
+    query: { queryKey: key(getListInvitationsQueryKey()), enabled: manage },
   });
 
   // Only an owner reads the activity it sorts by.

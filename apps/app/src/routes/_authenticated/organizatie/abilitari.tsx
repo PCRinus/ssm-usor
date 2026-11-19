@@ -16,11 +16,5 @@ function OrganizationAuthorizationsPage() {
   // The layout renders this only once the account and its membership are loaded.
   if (!me.data?.membership) return null;
 
-  return (
-    <AuthorizationsCard
-      userId={me.data.user.id}
-      canEdit={me.data.membership.role === 'owner'}
-      focus={focus}
-    />
-  );
+  return <AuthorizationsCard canEdit={me.data.membership.role === 'owner'} focus={focus} />;
 }
