@@ -2,6 +2,8 @@ import {
   commuteMeansKey,
   type EmployeeImportFieldName,
   employeeImportFieldNames,
+  employeeImportValueAllowed,
+  employeeImportValuesDiffer,
   hiringTestPhases,
   homeAddressDetail,
   isValidCnp,
@@ -87,13 +89,6 @@ const nonAscii = (value: FieldValue) =>
 
 const addressFields = new Set<EmployeeImportFieldName>(['homeAddress', 'residenceAddress']);
 
-const sameValue = (name: EmployeeImportFieldName, a: FieldValue, b: FieldValue) =>
-  typeof a === 'number' || typeof b === 'number'
-    ? a === b
-    : addressFields.has(name)
-      ? sameHomeAddress(a, b)
-      : foldText(a) === foldText(b);
-
 function fuller(name: EmployeeImportFieldName, value: FieldValue, than: FieldValue) {
   if (addressFields.has(name) && typeof value === 'string' && typeof than === 'string') {
     const detail = homeAddressDetail(value) - homeAddressDetail(than);
@@ -108,7 +103,9 @@ function addOption(
   value: FieldValue,
   pageId: string
 ) {
-  const known = field.options.find((option) => sameValue(name, option.value, value));
+  const known = field.options.find(
+    (option) => !employeeImportValuesDiffer(name, option.value, value)
+  );
   if (!known) {
     field.options.push({ value, pageIds: [pageId] });
     return;
@@ -170,7 +167,7 @@ function personFields(pages: readonly ReadPage[], today: string) {
     const value = written(reading, name);
     if (value === null) return;
     if (typeof value === 'number') {
-      if (name === 'commuteMinutes' && Number.isInteger(value) && value >= 1 && value <= 600) {
+      if (name === 'commuteMinutes' && employeeImportValueAllowed(name, value)) {
         addOption(name, fields[name], value, input.id);
       }
       return;
