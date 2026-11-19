@@ -309,14 +309,6 @@ describe('the risk library', () => {
     expect(screen.getByTestId('nav-risks').getAttribute('aria-current')).toBe('page');
   });
 
-  it('explains how profiles come to exist while it is empty', async () => {
-    mockProfilesApi({ profiles: [] });
-    mount('/evaluari-de-risc');
-    const empty = await screen.findByTestId('risk-library-empty');
-    expect(empty.textContent).toContain('Salvează în bibliotecă');
-    expect(empty.textContent).toContain('Evaluare nouă');
-  });
-
   it('reads status=active in the address as the active tab', async () => {
     mockProfilesApi();
     mount('/evaluari-de-risc?status=active');
@@ -413,6 +405,10 @@ describe('the risk library', () => {
     await waitFor(() => expect(listQuery(-1).get('sort')).toBe('globalRiskLevel'));
     expect(listQuery(-1).get('order')).toBe('desc');
     expect(listQuery(-1).get('page')).toBe('1');
+    await user.click(screen.getByTestId('sort-usage'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'usage', order: 'desc' })
+    );
   });
 
   it('offers deleting only a profile no client uses, and archiving in any case', async () => {
@@ -1148,26 +1144,6 @@ describe('searching and filtering the risk library', () => {
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
-  it('sorts by the global level, the highest first on the first click', async () => {
-    mockProfilesApi({ profiles: [office, driver, crane] });
-    const runtime = mount('/evaluari-de-risc');
-    const user = userEvent.setup();
-    await screen.findAllByTestId('risk-profile-row');
-    await user.click(screen.getByTestId('sort-globalRiskLevel'));
-    await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({
-        sort: 'globalRiskLevel',
-        order: 'desc',
-      })
-    );
-    expect(listQuery(-1).get('sort')).toBe('globalRiskLevel');
-    expect(listQuery(-1).get('order')).toBe('desc');
-    await user.click(screen.getByTestId('sort-usage'));
-    await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ sort: 'usage', order: 'desc' })
-    );
-  });
-
   it('says when no entry matches, and clears the filters only, keeping the search', async () => {
     mockProfilesApi({ profiles: [office, driver] });
     const runtime = mount('/evaluari-de-risc?level=over&q=birou');
@@ -1204,6 +1180,7 @@ describe('searching and filtering the risk library', () => {
     const empty = await screen.findByTestId('risk-library-empty');
     expect(empty.textContent).toContain('Nicio evaluare încă');
     expect(empty.textContent).toContain('Importul documentației unui client adaugă aici');
+    expect(empty.textContent).toContain('Salvează în bibliotecă');
     expect(screen.getAllByTestId('risk-profile-new')).toHaveLength(1);
     expect(within(empty).getByTestId('risk-profile-new')).toBeTruthy();
     expect(screen.queryByTestId('risk-library-search')).toBeNull();
