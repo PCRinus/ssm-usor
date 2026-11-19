@@ -273,7 +273,7 @@ The daily check of the watched acts ([deployment](deployment.md#legislation-work
 against the local stack in two ways. Both read the real Portal Legislativ, one act every few
 seconds, so a full run takes about four minutes, and both log the run in `legal_check_runs`.
 The tables come from the migrations, so a stack started before them needs
-`supabase migration up --local` first.
+`pnpm exec supabase migration up` first.
 
 The script, from Node:
 
