@@ -148,7 +148,7 @@ const companySuffix =
   /[\s,]+(?:S\.?\s?C\.?|S\.?\s?R\.?\s?L\.?(?:-?D)?|S\.?\s?A\.?|P\.?\s?F\.?\s?A\.?|I\.?\s?I\.?)\s*$/iu;
 
 // "S.C. ROYAL HOTEL S.R.L." is "Royal Hotel" after a module's title the library already has.
-export function shortClientName(legalName: string) {
+function shortClientName(legalName: string) {
   let name = legalName.trim().replace(/^S\.?\s?C\.?\s+/iu, '');
   while (companySuffix.test(name)) name = name.replace(companySuffix, '');
   name = name.trim() || legalName.trim();
@@ -344,7 +344,7 @@ async function risksFile(
 
 // A sheet the library already has still writes its factors onto the client's sheets on confirm,
 // which only the specialist's confirm does: "Nimic nou" would read as nothing left to do.
-export const asksForReview = (sheet: RisksProposal['sheets'][number]) =>
+const asksForReview = (sheet: RisksProposal['sheets'][number]) =>
   sheet.status === 'new' ||
   sheet.status === 'similar' ||
   (sheet.factors.length > 0 && (sheet.kind !== 'job_position' || sheet.posts.length > 0));
