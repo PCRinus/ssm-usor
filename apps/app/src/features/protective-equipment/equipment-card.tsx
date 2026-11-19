@@ -313,12 +313,11 @@ export function EquipmentCard({
       {removing && (
         <ConfirmDialog
           open
-          busy={remove.isPending}
           testId="equipment-remove"
           title="Ștergi articolul?"
           confirmLabel="Șterge"
           pendingLabel="Se șterge…"
-          onConfirm={() => void removeEntry(removing)}
+          onConfirm={() => removeEntry(removing)}
           onClose={() => setRemoving(null)}
         >
           <span className="font-medium text-foreground">{removing.item}</span>

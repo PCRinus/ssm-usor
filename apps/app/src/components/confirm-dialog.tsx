@@ -14,7 +14,7 @@ import { Notice } from '@/components/notice';
 // Closing while the action runs would lose the failure message the caller shows here.
 export function ConfirmDialog({
   open,
-  busy,
+  busy = false,
   testId,
   title,
   confirmLabel,
@@ -27,7 +27,8 @@ export function ConfirmDialog({
   children,
 }: {
   open: boolean;
-  busy: boolean;
+  // Busy from elsewhere too, beside the promise `onConfirm` returns.
+  busy?: boolean;
   // The stem of `${testId}-dialog`, `${testId}-confirm` and `${testId}-error`.
   testId: string;
   title: ReactNode;

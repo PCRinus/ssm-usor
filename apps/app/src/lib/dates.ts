@@ -27,11 +27,7 @@ export function formatRoDate(value: string) {
 // The day a moment falls on where the reader is, not in UTC.
 export const formatRoDateOf = (timestamp: string) => formatRoDate(dateToIso(new Date(timestamp)));
 
-// Today's calendar date in the browser's time zone, as YYYY-MM-DD for date inputs.
-export function todayIso() {
-  const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
-}
+export const todayIso = () => dateToIso(new Date());
 
 const dateFormat = new Intl.DateTimeFormat('ro-RO', {
   day: 'numeric',
