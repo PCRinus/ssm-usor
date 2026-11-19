@@ -199,10 +199,10 @@ export function EmployeesPage() {
   return (
     <div data-testid="employees-page">
       <h2 className="sr-only">Lucrători</h2>
+      {!readOnly && <OpenEmployeeImports clientId={clientId} />}
       <div className={cn('grid gap-5 border-b empty:hidden', sheetPadding)}>
         {!readOnly && <EmployeesOverStepNotice />}
         <EmployeesImportedCard clientId={clientId} />
-        {!readOnly && <OpenEmployeeImports clientId={clientId} />}
       </div>
       <div>
         <ListCardHeader data-testid="employees-toolbar">

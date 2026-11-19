@@ -46,7 +46,6 @@ import { useListSearch } from '@/components/list-filters/use-list-search';
 import { LoadFailed } from '@/components/load-failed';
 import { SearchInput } from '@/components/search-input';
 import { useMe } from '@/features/account/use-me';
-import { ImportListCard } from '@/features/imports/import-list-card';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { StartWays } from '@/features/imports/start-ways';
 import { noOrganizationMessage } from '@/lib/api-errors';
@@ -262,7 +261,6 @@ export function ClientsPage() {
           </div>
         )}
       </div>
-      {!archived && <ImportListCard />}
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
           <FilterTabs label="Filtrează clienții">
