@@ -81,7 +81,7 @@ import { PersonTrainings } from './person-trainings';
 import { dateLabel, pageKindLabel, pagesPhotosLabel, trainingsLabel } from './review-format';
 import { SheetPageView } from './sheet-page-view';
 import { type ShowPage, ShowPageContext, ViewedPhotoContext } from './show-page';
-import { fieldTarget } from './spot-targets';
+import { choicePhoto, usePersonViewer, viewerSpot } from './use-person-viewer';
 import { positionName, useReviewContext } from './use-review-context';
 import { type Highlight, PhotoCitations, ViewerChoice, WrittenCaption } from './viewer-aside';
 
@@ -89,12 +89,6 @@ const stateLabels: Record<PersonState, { label: string; tone: 'info' | 'success'
   to_check: { label: 'De verificat', tone: 'info' },
   checked: { label: 'Verificat', tone: 'success' },
   set_aside: { label: 'Lăsat deoparte', tone: 'muted' },
-};
-
-type Viewer = {
-  photo: string;
-  mode: { kind: 'photo' } | { kind: 'choice'; field: FieldName; queue: FieldName[] };
-  spot: { pageId: string; target: string } | null;
 };
 
 const stripDescription = 'Subliniate: fotografiile secțiunii de pe ecran';
@@ -162,13 +156,6 @@ export function EmployeePersonPage({
     [proposal, moved, personId]
   );
   const photos = useMemo(() => stripPhotos(detail, pages), [detail, pages]);
-  const [viewer, setViewer] = useState<Viewer | null>(null);
-  const [highlight, setHighlight] = useState<Highlight | null>(null);
-  const [typing, setTyping] = useState(false);
-  const focusAfterViewer = useRef<string | null>(null);
-  const lastChoice = useRef<FieldName | null>(null);
-  const [opened, setOpened] = useState<{ section: string; photo: string } | null>(null);
-  const opener = useRef<HTMLElement | null>(null);
   const lastJump = useRef<string | null>(null);
   const decisions = person ? decisionsOf(context, person) : [];
   const openChoiceFields = decisions
@@ -224,6 +211,9 @@ export function EmployeePersonPage({
     })),
   ];
   const onScreen = useSectionOnScreen(sections);
+  const section = onScreen?.key ?? 'data';
+  const viewing = usePersonViewer({ section, openChoices: openChoiceFields });
+  const { viewer, highlight, typing, opened } = viewing;
 
   if (!person) {
     return (
@@ -247,16 +237,9 @@ export function EmployeePersonPage({
   const declined = person.existing !== null && !existing;
   const former = existing ? formerLeftOn(person) : null;
   const included = personIncluded(context, person);
-  const section = onScreen?.key ?? 'data';
   const sectionPhotos = onScreen?.photos ?? [];
   const ringed =
     (opened?.section === section ? opened.photo : null) ?? sectionPhotos[0] ?? pages[0]?.id ?? null;
-
-  const showPhoto = (pageId: string) => {
-    if (viewer?.mode.kind === 'photo') setHighlight(null);
-    setViewer((current) => (current ? { ...current, photo: pageId } : current));
-    setOpened({ section, photo: pageId });
-  };
 
   const chosenHighlight = (field: FieldName): Highlight | null => {
     const option = resolveField(context, person, field).options.find(
@@ -270,78 +253,18 @@ export function EmployeePersonPage({
       : null;
   };
 
-  const showPage: ShowPage = (pageId, { choice, spot } = {}) => {
-    if (viewer === null && document.activeElement instanceof HTMLElement)
-      opener.current = document.activeElement;
-    setOpened({ section, photo: pageId });
-    setHighlight(choice ? chosenHighlight(choice) : null);
-    setViewer((current) => {
-      if (choice) {
-        const queue = current?.mode.kind === 'choice' ? current.mode.queue : openChoiceFields;
-        return {
-          photo: pageId,
-          mode: {
-            kind: 'choice',
-            field: choice,
-            queue: queue.includes(choice) ? queue : [...queue, choice],
-          },
-          spot: null,
-        };
-      }
-      return {
-        photo: pageId,
-        mode: current?.mode ?? { kind: 'photo' },
-        spot: spot ? { pageId, target: spot } : null,
-      };
-    });
-  };
+  const showPage: ShowPage = (pageId, { choice, spot } = {}) =>
+    viewing.show(pageId, { choice, spot, highlight: choice ? chosenHighlight(choice) : null });
 
-  const spotOn = (pageId: string) => {
-    if (viewer?.mode.kind === 'choice') {
-      const { field } = viewer.mode;
-      const cited = resolveField(context, person, field).options.some((option) =>
-        option.pageIds.includes(pageId)
-      );
-      return cited ? fieldTarget(field) : null;
-    }
-    return viewer?.spot?.pageId === pageId ? viewer.spot.target : null;
-  };
+  const citing = (field: FieldName) =>
+    resolveField(context, person, field).options.flatMap((option) => option.pageIds);
 
   const openChoiceInViewer = (field: FieldName) => {
     const options = resolveField(context, person, field).options;
     const change = context.changes.people[person.id]?.fields?.[field];
     const chosen = options.find((option) => option.index === change?.option);
-    const cited = options.flatMap((option) => option.pageIds);
-    const photo =
-      (viewer && cited.includes(viewer.photo) ? viewer.photo : null) ??
-      orderedPhotos(pages, chosen?.pageIds ?? cited)[0] ??
-      viewer?.photo;
+    const photo = choicePhoto(viewer, pages, citing(field), chosen?.pageIds);
     if (photo) showPage(photo, { choice: field });
-  };
-
-  const closeViewer = () => {
-    lastChoice.current = viewer?.mode.kind === 'choice' ? viewer.mode.field : null;
-    setViewer(null);
-    setHighlight(null);
-    setTyping(false);
-  };
-
-  const giveFocusBack = (event: Event) => {
-    const after = focusAfterViewer.current;
-    focusAfterViewer.current = null;
-    const choice = lastChoice.current;
-    lastChoice.current = null;
-    const target =
-      (after ? document.getElementById(after) : null) ??
-      (opener.current?.isConnected ? opener.current : null) ??
-      (choice ? document.getElementById(`choice-${choice}`) : null) ??
-      document.querySelector<HTMLElement>('[data-testid="person-decisions"] [role="group"]') ??
-      document.querySelector<HTMLElement>('[data-testid="person-strip"] [aria-current="true"]');
-    opener.current = null;
-    if (!target) return;
-    event.preventDefault();
-    if (after) target.scrollIntoView({ block: 'center' });
-    target.focus({ preventScroll: true });
   };
 
   const go = (to: Person | undefined) => {
@@ -716,15 +639,15 @@ export function EmployeePersonPage({
                 <SheetPageView
                   importId={detail.id}
                   page={page}
-                  spot={spotOn(page.id)}
+                  spot={viewerSpot(viewer, page.id, citing)}
                   className="h-full rounded-none"
                 />
               ),
             }))}
             current={viewer?.photo ?? null}
-            onCurrent={showPhoto}
-            onClose={closeViewer}
-            onCloseAutoFocus={giveFocusBack}
+            onCurrent={viewing.showPhoto}
+            onClose={viewing.close}
+            onCloseAutoFocus={viewing.giveFocusBack}
             strip={(key) => (
               <div
                 className={cn(
@@ -736,7 +659,7 @@ export function EmployeePersonPage({
                   photos={photos}
                   ringed={key}
                   underlined={new Set(highlight?.photos ?? [])}
-                  onOpen={showPhoto}
+                  onOpen={viewing.showPhoto}
                   label={`Fotografiile lui ${name}`}
                   size="viewer"
                   positionClassName="sm:hidden"
@@ -764,10 +687,10 @@ export function EmployeePersonPage({
                   field={viewer.mode.field}
                   queue={viewer.mode.queue}
                   decisions={decisions}
-                  onHighlight={setHighlight}
-                  onTyping={setTyping}
+                  onHighlight={viewing.setHighlight}
+                  onTyping={viewing.setTyping}
                   onGo={openChoiceInViewer}
-                  onClose={closeViewer}
+                  onClose={viewing.close}
                   save={review}
                   onChange={review.update}
                 />
@@ -778,12 +701,9 @@ export function EmployeePersonPage({
                   person={person}
                   decisions={decisions}
                   page={page}
-                  onHighlight={setHighlight}
+                  onHighlight={viewing.setHighlight}
                   onOpenChoice={openChoiceInViewer}
-                  onOpenRow={(target) => {
-                    focusAfterViewer.current = target;
-                    closeViewer();
-                  }}
+                  onOpenRow={viewing.closeTo}
                 />
               );
             }}
