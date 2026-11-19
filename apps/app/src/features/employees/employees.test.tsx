@@ -167,7 +167,7 @@ function mockApi(
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'PUT') {
       return (
         routes.update?.(init, url) ??
-        Response.json({ employee: { ...sampleEmployee, ...JSON.parse(String(init?.body)) } })
+        Response.json({ employee: { ...createdEmployee, ...JSON.parse(String(init?.body)) } })
       );
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'GET') {
@@ -215,7 +215,7 @@ function mockApi(
       return routes.positions?.(init, url) ?? Response.json({ items: [welderPosition] });
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/job-position`) {
-      return routes.move?.(init, url) ?? Response.json({ employee: sampleEmployee });
+      return routes.move?.(init, url) ?? Response.json({ employee: createdEmployee });
     }
   });
 }
