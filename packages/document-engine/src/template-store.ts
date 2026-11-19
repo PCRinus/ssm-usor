@@ -25,7 +25,6 @@ export const templateSets = [
 
 export type TemplateSetFolder = (typeof templateSets)[number];
 
-/** An entry of a set's `manifest.json`, `change.resolves` always a list. */
 export interface ManifestEntry {
   /** Absent on a template that belongs to no set: a per-employee sheet (ADR 021). */
   number?: string;
