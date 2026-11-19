@@ -25,11 +25,6 @@ export const staffCategoryShortLabels: Record<StaffCategory, string> = {
 export const intervalOptionsFor = (category: StaffCategory) =>
   intervalOptions.filter(({ months }) => trainingIntervalChoices.ssm[category].includes(months));
 
-/** "la 2 luni", as it reads inside a sentence or a table cell. */
-export function intervalLabel(months: number) {
-  return months === 1 ? 'lunar' : `la ${months} luni`;
-}
-
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 export const jobPositionFormSchema = z
   .object({
