@@ -2,7 +2,7 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createQueryClientDefaults } from './query-client';
+import { createQueryClient, createQueryClientDefaults } from './query-client';
 import {
   createSessionStore,
   createSupabaseClient,
@@ -269,6 +269,13 @@ describe('query defaults', () => {
 
   it('never retries a change', () => {
     expect(createQueryClientDefaults().mutations?.retry).toBe(false);
+  });
+
+  it('gives a new client these defaults', () => {
+    expect(createQueryClient().getDefaultOptions()).toMatchObject({
+      queries: { staleTime: 30_000, retry: expect.any(Function) },
+      mutations: { retry: false },
+    });
   });
 });
 

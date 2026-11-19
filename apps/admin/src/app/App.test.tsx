@@ -1,3 +1,4 @@
+import { createQueryClient } from '@ssm-usor/spa-runtime/query-client';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -5,7 +6,6 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthClient } from '@/features/auth/auth-store';
-import { createQueryClient } from '@/lib/query-client';
 
 import { type AdminRuntime, createAdminRuntime } from './admin-runtime';
 import App from './App';
