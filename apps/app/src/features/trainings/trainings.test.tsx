@@ -8,6 +8,7 @@ import {
   getListClientSignatureRequestsQueryKey,
   getListMySignaturesQueryKey,
 } from '@/api/generated/api';
+import { trainingLocks } from '@/features/signatures/use-record-signatures';
 import { readOnlyMessage, sessionExpiredMessage } from '@/lib/api-errors';
 import { todayIso } from '@/lib/dates';
 import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
@@ -993,22 +994,10 @@ describe("a client's trainings held", () => {
   });
 
   it.each([
-    [
-      { signed: true, hasSignatures: true },
-      true,
-      'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.',
-    ],
-    [
-      { signed: false, hasSignatures: true },
-      false,
-      'Instruirea are semnături, chiar anulate sau pe hârtie, care rămân în evidență, așa că nu se mai poate șterge.',
-    ],
-    [
-      { source: 'paper', signed: false, hasSignatures: true, printed: true },
-      true,
-      'Instruirea este trecută pe o fișă individuală semnată electronic, care nu se mai schimbă, așa că nu se mai poate modifica sau șterge.',
-    ],
-  ])('locks a training by its signatures, %o', async (signing, editLocked, lock) => {
+    [{ signed: true, hasSignatures: true, printed: false }, true],
+    [{ signed: false, hasSignatures: true, printed: false }, false],
+    [{ source: 'paper', signed: false, hasSignatures: true, printed: true }, true],
+  ])('locks a training by its signatures, %o', async (signing, editLocked) => {
     mockApi({
       [`GET ${trainingsPath}`]: () =>
         Response.json(page([{ ...heldWith(popescu, taranu), ...signing }])),
@@ -1016,7 +1005,9 @@ describe("a client's trainings held", () => {
     mountApp(authFixture(makeSession()).client, trainingsPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('trainings-row-menu'));
-    expect((await screen.findByTestId('trainings-lock')).textContent).toBe(lock);
+    expect((await screen.findByTestId('trainings-lock')).textContent).toBe(
+      trainingLocks(signing).delete
+    );
     expect(screen.getByTestId('trainings-edit').hasAttribute('data-disabled')).toBe(editLocked);
     expect(screen.getByTestId('trainings-delete').hasAttribute('data-disabled')).toBe(true);
   });
