@@ -13,7 +13,7 @@ import { safetySheetErrorReasons } from './fire-safety';
 import { importErrorReasons } from './imports';
 import { invitationErrorReasons } from './invitations';
 import { memberErrorReasons, onboardingErrorReasons } from './organizations';
-import { participantErrorReasons } from './participants';
+import { bulkInvitationFailureReasons, participantErrorReasons } from './participants';
 import { offersNotInPlanReason } from './plan-features';
 import { releaseErrorReasons } from './releases';
 import { riskEvaluationErrorReasons } from './risk-evaluations';
@@ -41,7 +41,6 @@ const otherApiErrorReasons = [
   'card_declined',
   'checkout_in_progress',
   'company_details_missing',
-  'contact_not_saved',
   'draft_exists',
   'enterprise_plan',
   'equipment_decided_by_entries',
@@ -116,6 +115,7 @@ export const apiErrorReasons = [
   ...memberErrorReasons,
   ...onboardingErrorReasons,
   ...valuesOf(participantErrorReasons),
+  bulkInvitationFailureReasons.contactNotSaved,
   offersNotInPlanReason,
   ...releaseErrorReasons,
   ...riskEvaluationErrorReasons,
