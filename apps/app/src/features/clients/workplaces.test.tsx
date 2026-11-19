@@ -86,6 +86,9 @@ function mockApi({
   mockRoutes((init, { pathname }) => {
     const method = init?.method ?? 'GET';
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === `/clients/${clientId}/owner-notes` && method === 'GET') {
+      return Response.json({ notes: { body: '', updatedAt: null } });
+    }
     if (pathname === `/clients/${clientId}/responsible-persons`)
       return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/document-details`) {

@@ -148,6 +148,9 @@ function mockApi(
     if (url.pathname === `/clients/${clientId}` && method === 'GET') {
       return routes.client?.(init, url) ?? Response.json({ client: sampleClient });
     }
+    if (url.pathname === `/clients/${clientId}/owner-notes` && method === 'GET') {
+      return Response.json({ notes: { body: '', updatedAt: null } });
+    }
     if (url.pathname === employeesPath && method === 'GET') {
       return routes.list?.(init, url) ?? Response.json(page([]));
     }
