@@ -3,6 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
+import type { ImportListResponse } from '@/api/generated/api';
 import { readOnlyMessage } from '@/lib/api-errors';
 import { bodiesOf as requests, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
@@ -83,9 +84,12 @@ function mockApi({
     Response.json({ workplace: { ...shop, ...JSON.parse(String(init?.body)) } })) as Route,
   archive = (() => new Response(null, { status: 204 })) as Route,
 } = {}) {
-  mockRoutes((init, { pathname }) => {
+  mockRoutes((init, { pathname, search }) => {
     const method = init?.method ?? 'GET';
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (`${pathname}${search}` === `/imports?clientId=${clientId}&kind=client&status=confirmed`) {
+      return Response.json({ items: [] } satisfies ImportListResponse);
+    }
     if (pathname === `/clients/${clientId}/owner-notes` && method === 'GET') {
       return Response.json({ notes: { body: '', updatedAt: null } });
     }

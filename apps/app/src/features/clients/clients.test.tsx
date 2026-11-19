@@ -3,6 +3,13 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type {
+  FireEquipmentListResponse,
+  FireInstallationListResponse,
+  FoundSheetsResponse,
+  ImportListResponse,
+  JobPositionListResponse,
+} from '@/api/generated/api';
 import { readOnlyMessage, sessionExpiredMessage } from '@/lib/api-errors';
 import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
@@ -178,6 +185,23 @@ function mockApi(
     }
     if (url.pathname === `/clients/${sampleClient.id}/workplaces` && method === 'GET') {
       return Response.json({ items: [] });
+    }
+    if (method === 'GET') {
+      const clientImports = `/imports?clientId=${sampleClient.id}`;
+      switch (`${url.pathname}${url.search}`) {
+        case `${clientImports}&kind=client&status=confirmed`:
+        case `${clientImports}&kind=employees`:
+        case `${clientImports}&kind=employees&status=confirmed`:
+          return Response.json({ items: [] } satisfies ImportListResponse);
+        case `/clients/${sampleClient.id}/job-positions`:
+          return Response.json({ items: [] } satisfies JobPositionListResponse);
+        case `/clients/${sampleClient.id}/fire-equipment`:
+          return Response.json({ items: [] } satisfies FireEquipmentListResponse);
+        case `/clients/${sampleClient.id}/fire-installations`:
+          return Response.json({ items: [] } satisfies FireInstallationListResponse);
+        case `/clients/${sampleClient.id}/found-sheets`:
+          return Response.json({ items: [], total: 0 } satisfies FoundSheetsResponse);
+      }
     }
     if (url.pathname === `/clients/${sampleClient.id}/owner-notes`) {
       return method === 'PUT'

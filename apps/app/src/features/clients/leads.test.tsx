@@ -2,6 +2,12 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type {
+  FireEquipmentListResponse,
+  FireInstallationListResponse,
+  ImportListResponse,
+  ServiceContractResponse,
+} from '@/api/generated/api';
 import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
@@ -57,6 +63,19 @@ const listed = (overrides: Record<string, unknown> = {}) => ({
   canDelete: false,
   ...overrides,
 });
+
+const noContract: ServiceContractResponse = {
+  contract: null,
+  suggestedNumber: 1,
+  clientRepresentative: { name: null, role: null },
+  readiness: {
+    ready: false,
+    missing: ['client.representativeName', 'client.representativeRole', 'contract.details'],
+  },
+  document: null,
+  lastSend: null,
+  draftOutdated: false,
+};
 
 type Route = (init: RequestInit | undefined, url: URL) => Response;
 
@@ -118,6 +137,18 @@ function mockApi(
       }
       if (path === `/clients/${leadId}/workplaces`) return Response.json({ items: [] });
       if (path === `/clients/${leadId}/files`) return Response.json({ items: [] });
+      if (path === `/clients/${leadId}/service-contract` && method === 'GET') {
+        return Response.json(noContract);
+      }
+      if (path === `/clients/${leadId}/fire-equipment`) {
+        return Response.json({ items: [] } satisfies FireEquipmentListResponse);
+      }
+      if (path === `/clients/${leadId}/fire-installations`) {
+        return Response.json({ items: [] } satisfies FireInstallationListResponse);
+      }
+      if (`${path}${url.search}` === `/imports?clientId=${leadId}&kind=client&status=confirmed`) {
+        return Response.json({ items: [] } satisfies ImportListResponse);
+      }
     },
     { me }
   );
