@@ -261,6 +261,208 @@ export function proposalFixture(): Proposal {
   };
 }
 
+const equipmentEntry = (
+  id: string,
+  item: string,
+  jobPosition: { name: string; id: string },
+  risk = 'Accidentare'
+) => ({
+  id,
+  sources: src('dosar-ssm.zip/Evaluare riscuri.docx', item),
+  otherCompanyName: null,
+  jobPosition,
+  risk,
+  item,
+  quantity: 1,
+  durationMonths: 12,
+  allocation: 'personal_inventory',
+});
+
+export function managementPostProposal(): Proposal {
+  const proposal = proposalFixture();
+  proposal.jobPositions.push({
+    ...proposal.jobPositions[0]!,
+    id: 'position-3',
+    sources: src('dosar-ssm.zip/Evaluare riscuri.docx', 'Administrator'),
+    name: 'Administrator',
+    staffCategory: 'technical_administrative',
+    workZone: null,
+    activities: 'Conducerea firmei, conduce autoturismul în interes de serviciu',
+    managementOnly: true,
+  } as Proposal['jobPositions'][number]);
+  (proposal as { protectiveEquipment: unknown[] }).protectiveEquipment = [
+    equipmentEntry('equipment-entry-1', 'Mănuși termorezistente', {
+      name: 'Brutar',
+      id: 'position-1',
+    }),
+    equipmentEntry('equipment-entry-2', 'Vestă reflectorizantă', {
+      name: 'Administrator',
+      id: 'position-3',
+    }),
+  ];
+  return proposal;
+}
+
+export function secondPostProposal(): Proposal {
+  const proposal = proposalFixture();
+  proposal.jobPositions.push({
+    ...proposal.jobPositions[0]!,
+    id: 'position-3',
+    sources: src('dosar-ssm.zip/Fise post.doc', 'Vânzător'),
+    name: 'Vânzător',
+    workZone: 'Magazin',
+    activities: 'Vânzarea produselor de panificație',
+  } as Proposal['jobPositions'][number]);
+  (proposal as { protectiveEquipment: unknown[] }).protectiveEquipment = [
+    equipmentEntry(
+      'equipment-entry-1',
+      'Mănuși termorezistente',
+      { name: 'Brutar', id: 'position-1' },
+      'Murdărire'
+    ),
+    equipmentEntry(
+      'equipment-entry-2',
+      'Halat de protecție',
+      { name: 'Vânzător', id: 'position-3' },
+      'Murdărire'
+    ),
+  ];
+  return proposal;
+}
+
+export function suggestedValuesProposal(): Proposal {
+  const proposal = proposalFixture();
+  const evaluation = 'dosar-ssm.zip/Evaluare riscuri.docx';
+  Object.assign(proposal.workplaces[0]!, {
+    activity: null,
+    rooms: [],
+    officeHasActivity: false,
+    suggested: { officeHasActivity: src('dosar-ssm.zip/Decizie 1.docx', 'Atelier: Str. Gării 3') },
+  });
+  proposal.workplaces.push({
+    ...proposal.workplaces[0]!,
+    id: 'workplace-2',
+    name: 'Atelier',
+    isRegisteredOffice: false,
+    addressLine: 'Str. Gării nr. 3',
+    activity: 'Brutărie',
+    officeHasActivity: true,
+    combustibleMaterials: 'făină, ambalaje din hârtie și carton, lăzi din lemn',
+    ignitionSources: 'cuptorul electric, instalația electrică',
+    extinguisherNorm: 'commercial_200',
+    suggested: {
+      combustibleMaterials: [
+        { file: evaluation, quote: 'Materii prime: făină, drojdie' },
+        { file: 'dosar-psi.zip/Decizie deseuri.docx', quote: 'deșeuri de hârtie și carton' },
+      ],
+      ignitionSources: src(evaluation, 'cuptor electric cu vatră'),
+      extinguisherNorm: src(evaluation, 'Cod CAEN 1071'),
+    },
+  } as Proposal['workplaces'][number]);
+  return proposal;
+}
+
+export function fireCountProposal(): Proposal {
+  const proposal = proposalFixture();
+  const [laboratory] = proposal.fireEquipment;
+  proposal.fireEquipment.push(
+    {
+      ...laboratory!,
+      id: 'extinguisher-2',
+      sources: src('Lista mijloacelor.docx', 'stingătoare P6 – 4 buc.'),
+      room: null,
+      count: 4,
+    },
+    {
+      ...laboratory!,
+      id: 'blanket-1',
+      sources: src('Lista mijloacelor.docx', 'Bucătărie – pătură antifoc'),
+      room: 'Bucătărie',
+      kind: 'fire_blanket',
+      agent: null,
+      capacity: null,
+      count: null,
+    }
+  );
+  Object.assign(proposal, {
+    fireEquipmentCounts: [
+      {
+        id: 'count-1',
+        workplace: { name: 'Sediu', id: 'workplace-1' },
+        kind: 'extinguisher',
+        agent: 'powder',
+        capacity: 6,
+        wheeled: false,
+        options: [
+          {
+            total: 6,
+            sources: [
+              ...laboratory!.sources,
+              { file: 'Evaluarea riscului.docx', quote: '6 stingătoare P6' },
+            ],
+            equipmentIds: ['extinguisher-1'],
+          },
+          {
+            total: 4,
+            sources: src('Lista mijloacelor.docx', 'stingătoare P6 – 4 buc.'),
+            equipmentIds: ['extinguisher-2'],
+          },
+        ],
+      },
+    ],
+  });
+  return proposal;
+}
+
+export function placesProposal(): Proposal {
+  const proposal = proposalFixture();
+  Object.assign(proposal.workplaces[0]!, {
+    assemblyPoint: 'Parcarea din fața clădirii',
+    fieldSources: {
+      assemblyPoint: src('Instructiuni PSI.docx', 'Punct de adunare: parcarea'),
+    },
+    spelling: { assemblyPoint: 'PARCAREA DIN FATA CLADIRII' },
+  });
+  Object.assign(proposal.fireSafety.smokingPlace.options[0]!, {
+    value: 'La poarta unității',
+    spelling: 'LA POARTA UNITATII',
+  });
+  return proposal;
+}
+
+export function substancesProposal(answers: string[] = ['listed']): Proposal {
+  const proposal = proposalFixture();
+  const decision = 'Decizia 9 deseuri.docx';
+  const named = (id: string, name: string, quote: string) => ({
+    id,
+    name,
+    sources: src(decision, quote),
+    otherCompanyName: null,
+    spelling: {},
+  });
+  const substances = answers.includes('listed')
+    ? [
+        named('substance-1', 'Detergenți', 'ambalaje de la detergenți'),
+        named('substance-2', 'Ulei uzat', 'uleiul uzat de la friteuză'),
+      ]
+    : [];
+  Object.assign(proposal, { substances });
+  Object.assign(proposal.fireSafety, {
+    wasteContractor: { options: [] },
+    substancesState: {
+      options: answers.map((value) => ({
+        value,
+        sources:
+          value === 'listed'
+            ? substances.flatMap((substance) => substance.sources)
+            : src('Lista mijloacelor.docx', 'Nu se utilizează substanțe periculoase'),
+        otherCompanyName: null,
+      })),
+    },
+  });
+  return proposal;
+}
+
 export const readyBlockers = [
   { path: 'client.legalRepresentativeName', code: 'choice' },
   { path: 'fireSafety.wasteContractor', code: 'choice' },
