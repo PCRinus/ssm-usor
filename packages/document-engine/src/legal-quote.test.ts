@@ -333,7 +333,7 @@ describe('a quote replaced in a templates folder', () => {
       JSON.stringify({ templates: [{ typeKey: 'missing', file: 'missing.docx' }] })
     );
     const before = filesOf(root);
-    expect(() => replace(root, { ...patch, change })).toThrow();
+    expect(() => replace(root, { ...patch, change })).toThrow(/ENOENT.*missing\.docx/);
     expect(filesOf(root)).toEqual(before);
   });
 

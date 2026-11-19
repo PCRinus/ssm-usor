@@ -46,6 +46,11 @@ export interface TemplateEntry extends ManifestEntry {
   path: string;
 }
 
+const listedResolves = ({ resolves, ...change }: TemplateChange): ManifestEntry['change'] =>
+  resolves === undefined
+    ? change
+    : { ...change, resolves: Array.isArray(resolves) ? resolves : [resolves] };
+
 export function manifestEntries(
   base: URL = templatesUrl,
   sets: readonly TemplateSetFolder[] = templateSets
@@ -54,14 +59,12 @@ export function manifestEntries(
     const { templates } = JSON.parse(
       readFileSync(new URL(`${folder}manifest.json`, base), 'utf8')
     ) as { templates: (Omit<ManifestEntry, 'change'> & { change: TemplateChange })[] };
-    return templates.map(({ change: { resolves, ...change }, ...entry }) => ({
+    // An entry without its change still loads, so that the manifest tests name it.
+    return templates.map((entry) => ({
       ...entry,
       set,
       path: `${folder}${entry.file}`,
-      change:
-        resolves === undefined
-          ? change
-          : { ...change, resolves: Array.isArray(resolves) ? resolves : [resolves] },
+      change: entry.change && listedResolves(entry.change),
     }));
   });
 }
