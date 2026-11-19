@@ -1,32 +1,23 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientRecord, meRecord, meResponse } from '@/test/records';
 
-const sampleClient = {
-  id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+const sampleClient = clientRecord({
   legalName: 'OMV PETROM SA',
-  cui: '1590082',
   vatPayer: true,
   caenCode: '0610',
   tradeRegisterNumber: 'J1997008302407',
-  countyCode: 'B',
   locality: 'Sector 1 Mun. București',
   addressLine: 'Str. Coralilor, nr. 22',
   legalRepresentativeName: null,
   declaredEmployeeCount: 120,
   currentEmployeeCount: 8,
-  stage: 'client',
-  contactName: null,
-  contactEmail: null,
-  contactPhone: null,
-  promotedAt: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 
 const archivedClient = { ...sampleClient, archivedAt: '2026-09-21T08:00:00+00:00' };
 
@@ -70,11 +61,12 @@ const training = (counts: Partial<Record<string, number | string | null>>) => ({
 });
 
 const meAs = (role: 'owner' | 'specialist') => () =>
-  Response.json({
-    user: { id: 'user-one', email: 'review@example.test' },
-    profile: { fullName: 'Ana Ionescu', professionalTitle: null },
-    membership: { organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'S' }, role },
-  });
+  Response.json(
+    meRecord({
+      profile: { ...meResponse.profile, fullName: 'Ana Ionescu' },
+      membership: { organization: { ...meResponse.membership.organization, name: 'S' }, role },
+    })
+  );
 
 const sampleCompany = {
   cui: '1590082',
@@ -119,8 +111,6 @@ const page = (
 
 type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Response>;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi(
   routes: Partial<
     Record<
@@ -142,15 +132,9 @@ function mockApi(
     >
   > = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
+  mockRoutes((init, url) => {
     const method = init?.method ?? 'GET';
-    if (url.pathname === '/me') {
-      return (
-        routes.me?.(init, url) ??
-        Response.json({ user: { id: 'user-one', email: 'review@example.test' } })
-      );
-    }
+    if (url.pathname === '/me' && routes.me) return routes.me(init, url);
     if (url.pathname === '/clients' && method === 'GET') {
       return routes.list?.(init, url) ?? Response.json(page([]));
     }
@@ -204,25 +188,10 @@ function mockApi(
     if (url.pathname === '/companies/lookup') {
       return routes.lookup?.(init, url) ?? Response.json({ company: sampleCompany });
     }
-    throw new Error(`Unexpected request: ${method} ${url}`);
   });
 }
 
-const requests = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-  );
-
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('clients list', () => {
   it('lists clients from the API with the VAT prefix under the name', async () => {
@@ -239,7 +208,7 @@ describe('clients list', () => {
     expect(within(row).getByText('8')).toBeTruthy();
     expect(within(row).queryByText('120')).toBeNull();
     expect(screen.getByTestId('clients-count').textContent).toBe('1 client');
-    const [url, init] = requests('/clients')[0]!;
+    const [url, init] = requestsTo('/clients')[0]!;
     const query = new URL(String(url)).searchParams;
     expect(query.get('page')).toBe('1');
     expect(query.get('pageSize')).toBe('25');
@@ -331,7 +300,7 @@ describe('clients list', () => {
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ sort: 'fireSafetyDocumentation' })
     );
-    const sorts = requests('/clients').map(([url]) =>
+    const sorts = requestsTo('/clients').map(([url]) =>
       new URL(String(url)).searchParams.get('sort')
     );
     expect(sorts).toEqual(expect.arrayContaining(['documentation', 'fireSafetyDocumentation']));
@@ -346,7 +315,7 @@ describe('clients list', () => {
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ sort: 'clientSince', order: 'desc' })
     );
-    const query = new URL(String(requests('/clients').at(-1)![0])).searchParams;
+    const query = new URL(String(requestsTo('/clients').at(-1)![0])).searchParams;
     expect(query.get('sort')).toBe('clientSince');
     expect(query.get('order')).toBe('desc');
   });
@@ -423,7 +392,7 @@ describe('clients list', () => {
     );
     await userEvent.setup().click(screen.getByTestId('sort-training'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'training' }));
-    expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.get('sort')).toBe(
+    expect(new URL(String(requestsTo('/clients').at(-1)![0])).searchParams.get('sort')).toBe(
       'training'
     );
   });
@@ -445,7 +414,7 @@ describe('clients list', () => {
     await waitFor(() =>
       expect(screen.getByTestId('clients-count').textContent).toBe('1 din 80 de clienți')
     );
-    expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.get('q')).toBe(
+    expect(new URL(String(requestsTo('/clients').at(-1)![0])).searchParams.get('q')).toBe(
       'RO 1590082'
     );
   });
@@ -473,7 +442,7 @@ describe('clients list', () => {
         training: ['untrained', 'overdue'],
       })
     );
-    const query = new URL(String(requests('/clients').at(-1)![0])).searchParams;
+    const query = new URL(String(requestsTo('/clients').at(-1)![0])).searchParams;
     expect(query.getAll('training')).toEqual(['untrained', 'overdue']);
     await waitFor(() =>
       expect(screen.getByTestId('clients-count').textContent).toBe('1 din 26 de clienți')
@@ -518,18 +487,18 @@ describe('clients list', () => {
     await user.type(await screen.findByTestId('clients-filters-county-search'), 'bistrita');
     await user.click(screen.getByTestId('clients-filters-county-BN'));
     await waitFor(() => expect(runtime.router.state.location.searchStr).toBe('?county=BN'));
-    expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.getAll('county')).toEqual([
-      'BN',
-    ]);
+    expect(
+      new URL(String(requestsTo('/clients').at(-1)![0])).searchParams.getAll('county')
+    ).toEqual(['BN']);
   });
 
   it("keeps an owner's contract filter from a link while the role loads", async () => {
     mockApi({ me: meAs('owner'), list: () => Response.json(page([listed()])) });
     mountApp(authFixture(makeSession()).client, '/clienti?contract=%5B%22endingWithin60Days%22%5D');
     await screen.findByTestId('clients-row');
-    expect(requests('/clients').length).toBeGreaterThan(0);
+    expect(requestsTo('/clients').length).toBeGreaterThan(0);
     expect(
-      requests('/clients').every(
+      requestsTo('/clients').every(
         ([url]) => new URL(String(url)).searchParams.get('contract') === 'endingWithin60Days'
       )
     ).toBe(true);
@@ -545,11 +514,11 @@ describe('clients list', () => {
     await screen.findByTestId('clients-row');
     await waitFor(() =>
       expect(
-        new URL(String(requests('/clients').at(-1)![0])).searchParams.getAll('county')
+        new URL(String(requestsTo('/clients').at(-1)![0])).searchParams.getAll('county')
       ).toEqual(['CJ'])
     );
     expect(
-      requests('/clients').every(([url]) => !new URL(String(url)).searchParams.has('contract'))
+      requestsTo('/clients').every(([url]) => !new URL(String(url)).searchParams.has('contract'))
     ).toBe(true);
     await userEvent.setup().click(screen.getByTestId('clients-filters'));
     const panel = await screen.findByTestId('clients-filters-panel');
@@ -606,9 +575,9 @@ describe('clients list', () => {
     mockApi({ list: () => Response.json(page([listed()])) });
     mountApp(authFixture(makeSession()).client, '/clienti?county=%5B%22CJ%22%2C%22XX%22%5D');
     await screen.findByTestId('clients-row');
-    expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.getAll('county')).toEqual([
-      'CJ',
-    ]);
+    expect(
+      new URL(String(requestsTo('/clients').at(-1)![0])).searchParams.getAll('county')
+    ).toEqual(['CJ']);
   });
 
   it('loads the list without the contract filter when the account cannot be read', async () => {
@@ -619,7 +588,7 @@ describe('clients list', () => {
     mountApp(authFixture(makeSession()).client, '/clienti?contract=%5B%22endingWithin60Days%22%5D');
     await screen.findByTestId('clients-row', {}, { timeout: 5000 });
     expect(
-      requests('/clients').every(([url]) => !new URL(String(url)).searchParams.has('contract'))
+      requestsTo('/clients').every(([url]) => !new URL(String(url)).searchParams.has('contract'))
     ).toBe(true);
   });
 
@@ -661,7 +630,9 @@ describe('clients list', () => {
     expect(screen.getByTestId('clients-search')).toBeTruthy();
     expect(screen.queryByTestId('clients-filters')).toBeNull();
     expect(screen.queryByTestId('clients-applied-filters')).toBeNull();
-    expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.has('county')).toBe(false);
+    expect(new URL(String(requestsTo('/clients').at(-1)![0])).searchParams.has('county')).toBe(
+      false
+    );
   });
 
   describe('on a phone', () => {
@@ -744,7 +715,7 @@ describe('clients list', () => {
       const user = userEvent.setup();
       await screen.findByTestId('clients-row');
       const counts = () =>
-        requests('/clients').filter(
+        requestsTo('/clients').filter(
           ([url]) => new URL(String(url)).searchParams.get('pageSize') === '1'
         );
       expect(counts()).toHaveLength(0);
@@ -816,7 +787,7 @@ describe('clients list', () => {
     expect(screen.getByRole('columnheader', { name: /Lucrători/ }).getAttribute('aria-sort')).toBe(
       'ascending'
     );
-    const last = requests('/clients').at(-1)!;
+    const last = requestsTo('/clients').at(-1)!;
     const query = new URL(String(last[0])).searchParams;
     expect(query.get('sort')).toBe('currentEmployeeCount');
     expect(query.get('page')).toBe('1');
@@ -995,7 +966,7 @@ describe('client creation', () => {
     expect((await screen.findByTestId('cui-error')).textContent).toContain('CUI invalid');
     // A client's headcount is its employee list; only a lead declares one.
     expect(screen.queryByTestId('client-employees')).toBeNull();
-    expect(requests('/clients', 'POST')).toHaveLength(0);
+    expect(requestsTo('/clients', 'POST')).toHaveLength(0);
   });
 
   it('requires a valid CUI before looking it up', async () => {
@@ -1005,7 +976,7 @@ describe('client creation', () => {
     await screen.findByTestId('new-client-page');
     await user.click(screen.getByTestId('client-lookup'));
     expect((await screen.findByTestId('cui-error')).textContent).toContain('CUI valid');
-    expect(requests('/companies/lookup')).toHaveLength(0);
+    expect(requestsTo('/companies/lookup')).toHaveLength(0);
   });
 
   it('prefills from ANAF, sends the normalized request, and returns to the list', async () => {
@@ -1017,7 +988,7 @@ describe('client creation', () => {
     await user.click(screen.getByTestId('client-lookup'));
     const status = await screen.findByTestId('client-lookup-status');
     expect(status.textContent).toContain('OMV PETROM SA');
-    const [lookupUrl, lookupInit] = requests('/companies/lookup')[0]!;
+    const [lookupUrl, lookupInit] = requestsTo('/companies/lookup')[0]!;
     expect(new URL(String(lookupUrl)).searchParams.get('cui')).toBe('1590082');
     expect(new Headers(lookupInit?.headers).get('Authorization')).toBe('Bearer test-access-token');
     expect((screen.getByTestId('client-legal-name') as HTMLInputElement).value).toBe(
@@ -1036,7 +1007,7 @@ describe('client creation', () => {
     await screen.findByTestId('clients-page');
     expect(runtime.router.state.location.pathname).toBe('/clienti');
     await screen.findByTestId('clients-row');
-    const [, init] = requests('/clients', 'POST')[0]!;
+    const [, init] = requestsTo('/clients', 'POST')[0]!;
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
     expect(JSON.parse(String(init?.body))).toEqual({
       legalName: 'OMV PETROM SA',
@@ -1100,14 +1071,14 @@ describe('client creation', () => {
     expect(screen.getByTestId('client-caen').textContent).toContain('soft-ului la comandă');
     await user.click(screen.getByTestId('client-submit'));
     await screen.findByTestId('clients-page');
-    expect(JSON.parse(String(requests('/clients', 'POST')[0]![1]?.body))).toMatchObject({
+    expect(JSON.parse(String(requestsTo('/clients', 'POST')[0]![1]?.body))).toMatchObject({
       legalName: 'Firma Mea SRL',
       cui: '1590082',
       vatPayer: true,
       countyCode: 'CJ',
       caenCode: '6210',
     });
-    expect(JSON.parse(String(requests('/clients', 'POST')[0]![1]?.body))).not.toHaveProperty(
+    expect(JSON.parse(String(requestsTo('/clients', 'POST')[0]![1]?.body))).not.toHaveProperty(
       'declaredEmployeeCount'
     );
   });
@@ -1344,7 +1315,7 @@ describe('client details', () => {
     await user.click(screen.getByTestId('company-save'));
 
     expect(await screen.findByText('Datele firmei au fost salvate.')).toBeTruthy();
-    expect(JSON.parse(String(requests(clientPath, 'PUT')[0]![1]?.body))).toEqual({
+    expect(JSON.parse(String(requestsTo(clientPath, 'PUT')[0]![1]?.body))).toEqual({
       ...registration,
       legalName: 'Petrom Nou SA',
     });
@@ -1398,7 +1369,7 @@ describe('client details', () => {
     expect(screen.queryByTestId('company-form')).toBeNull();
     expect(screen.getByTestId('company-trade-register').textContent).toBe('J1997008302407');
     await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId('company-edit')));
-    expect(requests(clientPath, 'PUT')).toHaveLength(0);
+    expect(requestsTo(clientPath, 'PUT')).toHaveLength(0);
   });
 
   it('adds a contact in place, sending the registration data as it is', async () => {
@@ -1421,12 +1392,12 @@ describe('client details', () => {
     await user.type(screen.getByTestId('client-contact-email'), 'andrei@');
     await user.click(screen.getByTestId('contact-save'));
     expect((await screen.findByTestId('contactEmail-error')).textContent).toContain('validă');
-    expect(requests(clientPath, 'PUT')).toHaveLength(0);
+    expect(requestsTo(clientPath, 'PUT')).toHaveLength(0);
 
     await user.type(screen.getByTestId('client-contact-email'), 'petrom.example');
     await user.click(screen.getByTestId('contact-save'));
     expect(await screen.findByText('Persoana de contact a fost salvată.')).toBeTruthy();
-    expect(JSON.parse(String(requests(clientPath, 'PUT')[0]![1]?.body))).toEqual({
+    expect(JSON.parse(String(requestsTo(clientPath, 'PUT')[0]![1]?.body))).toEqual({
       ...registration,
       contactName: 'Andrei Pop',
       contactEmail: 'andrei@petrom.example',
@@ -1466,7 +1437,7 @@ describe('client details', () => {
     await user.click(screen.getByTestId('legal-representative-save'));
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests(`${clientPath}/document-details`, 'PATCH')[0]![1]?.body))
+      JSON.parse(String(requestsTo(`${clientPath}/document-details`, 'PATCH')[0]![1]?.body))
     ).toEqual({
       legalRepresentativeName: 'Maria Popescu',
       legalRepresentativeRole: 'Director general',
@@ -1524,7 +1495,7 @@ describe('client details', () => {
     await user.click(screen.getByTestId('legal-representative-save'));
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests(`${clientPath}/document-details`, 'PATCH')[0]![1]?.body))
+      JSON.parse(String(requestsTo(`${clientPath}/document-details`, 'PATCH')[0]![1]?.body))
     ).toMatchObject({
       legalRepresentativeName: 'Maria Popescu',
       legalRepresentativeEmployeeId: owner.id,
@@ -1553,7 +1524,7 @@ describe('client details', () => {
     expect((await screen.findByTestId('details-representative-employee-error')).textContent).toBe(
       'Alege lucrătorul din listă sau debifează căsuța.'
     );
-    expect(requests(`${clientPath}/document-details`, 'PATCH')).toHaveLength(0);
+    expect(requestsTo(`${clientPath}/document-details`, 'PATCH')).toHaveLength(0);
   });
 
   it('clears the link when the box is unticked', async () => {
@@ -1582,7 +1553,7 @@ describe('client details', () => {
     await user.click(screen.getByTestId('legal-representative-save'));
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests(`${clientPath}/document-details`, 'PATCH')[0]![1]?.body))
+      JSON.parse(String(requestsTo(`${clientPath}/document-details`, 'PATCH')[0]![1]?.body))
     ).toMatchObject({ legalRepresentativeEmployeeId: null });
   });
 
@@ -1708,9 +1679,9 @@ describe('client details', () => {
     mockApi({ me: meAs('specialist') });
     mountApp(authFixture(makeSession()).client, detailsPath);
     await screen.findByTestId('contact-row');
-    await waitFor(() => expect(requests('/me').length).toBeGreaterThan(0));
+    await waitFor(() => expect(requestsTo('/me').length).toBeGreaterThan(0));
     expect(screen.queryByTestId('owner-notes-card')).toBeNull();
-    expect(requests(`${clientPath}/owner-notes`)).toHaveLength(0);
+    expect(requestsTo(`${clientPath}/owner-notes`)).toHaveLength(0);
   });
 });
 
@@ -1748,7 +1719,7 @@ describe('client notes', () => {
     await waitFor(() =>
       expect(document.activeElement).toBe(screen.getByTestId('owner-notes-edit'))
     );
-    expect(requests(notesPath, 'PUT')).toHaveLength(0);
+    expect(requestsTo(notesPath, 'PUT')).toHaveLength(0);
   });
 
   it('adds the first note and saves it with the button', async () => {
@@ -1763,7 +1734,7 @@ describe('client notes', () => {
     await user.type(screen.getByTestId('owner-notes-body'), 'Vrea ofertă.');
     await user.click(screen.getByTestId('owner-notes-save'));
     expect(await screen.findByText('Notițele au fost salvate.')).toBeTruthy();
-    expect(JSON.parse(String(requests(notesPath, 'PUT')[0]![1]?.body))).toEqual({
+    expect(JSON.parse(String(requestsTo(notesPath, 'PUT')[0]![1]?.body))).toEqual({
       body: 'Vrea ofertă.',
     });
     expect((await screen.findByTestId('owner-notes-text')).textContent).toBe('Vrea ofertă.');
@@ -1832,7 +1803,7 @@ describe('client archiving', () => {
     await user.click(screen.getByTestId('client-archive-confirm'));
     expect(await screen.findByText('OMV PETROM SA a fost arhivat.')).toBeTruthy();
     await screen.findByTestId('clients-empty');
-    expect(requests(`${clientPath}/archive`, 'POST')).toHaveLength(1);
+    expect(requestsTo(`${clientPath}/archive`, 'POST')).toHaveLength(1);
   });
 
   it('keeps archiving away from a specialist', async () => {
@@ -1859,7 +1830,7 @@ describe('client archiving', () => {
     await user.click(await screen.findByTestId('clients-restore'));
     await user.click(await screen.findByTestId('client-archive-confirm'));
     expect(await screen.findByText('OMV PETROM SA a fost reactivat.')).toBeTruthy();
-    expect(requests(`${clientPath}/restore`, 'POST')).toHaveLength(1);
+    expect(requestsTo(`${clientPath}/restore`, 'POST')).toHaveLength(1);
   });
 
   it('shows an archived client read-only, with the way back for an owner', async () => {
@@ -1930,7 +1901,7 @@ describe('client archiving', () => {
       expect(await screen.findByText('OMV PETROM SA a fost șters definitiv.')).toBeTruthy();
       await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/clienti'));
       expect(runtime.router.state.location.search).toEqual({ status: 'archived' });
-      expect(requests(clientPath, 'DELETE')).toHaveLength(1);
+      expect(requestsTo(clientPath, 'DELETE')).toHaveLength(1);
     });
 
     it('is offered in the archived list only on the rows the API says the caller may delete', async () => {
@@ -1966,7 +1937,7 @@ describe('client archiving', () => {
       await user.click(within(dialog).getByTestId('client-delete-confirm'));
       expect(await screen.findByText('OMV PETROM SA a fost șters definitiv.')).toBeTruthy();
       await screen.findByTestId('clients-empty');
-      expect(requests(clientPath, 'DELETE')).toHaveLength(1);
+      expect(requestsTo(clientPath, 'DELETE')).toHaveLength(1);
       expect(runtime.router.state.location.pathname).toBe('/clienti');
       expect(runtime.router.state.location.search).toEqual({ status: 'archived' });
     });
@@ -1986,7 +1957,7 @@ describe('client archiving', () => {
       await user.click(await screen.findByTestId('client-delete'));
       await user.type(await screen.findByTestId('client-delete-name'), 'OMV PETROM SA');
       await user.click(screen.getByTestId('client-delete-confirm'));
-      await waitFor(() => expect(requests(clientPath, 'DELETE')).toHaveLength(1));
+      await waitFor(() => expect(requestsTo(clientPath, 'DELETE')).toHaveLength(1));
       await user.keyboard('{Escape}');
       expect(screen.getByTestId('client-delete-dialog')).toBeTruthy();
       refuse(Response.json({ error: 'forbidden', message: 'Only an admin' }, { status: 403 }));

@@ -1,33 +1,27 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { clientId as leadId, clientRecord, meRecord, meResponse } from '@/test/records';
 
-const leadId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const lead = {
-  id: leadId,
+const lead = clientRecord({
   legalName: 'VELOCITA URBANA SRL',
   cui: '41760933',
-  vatPayer: false,
-  caenCode: '5630',
   tradeRegisterNumber: 'J40/13726/2019',
-  countyCode: 'B',
-  locality: 'București',
   addressLine: 'Calea Victoriei 122A',
   legalRepresentativeName: null,
-  declaredEmployeeCount: 6,
   stage: 'lead',
-  contactName: 'Andrei Pop' as string | null,
-  contactEmail: 'andrei@velocita.example' as string | null,
-  contactPhone: null as string | null,
-  promotedAt: null as string | null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
-const promoted = { ...lead, stage: 'client', promotedAt: '2026-09-21T09:00:00+00:00' };
+  contactName: 'Andrei Pop',
+  contactEmail: 'andrei@velocita.example',
+});
+const promoted = clientRecord({
+  ...lead,
+  stage: 'client',
+  promotedAt: '2026-09-21T09:00:00+00:00',
+});
 
 const emptyDetails = {
   legalRepresentativeName: null,
@@ -66,8 +60,6 @@ const listed = (overrides: Record<string, unknown> = {}) => ({
 
 type Route = (init: RequestInit | undefined, url: URL) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi(
   routes: Partial<
     Record<
@@ -76,81 +68,68 @@ function mockApi(
     >
   > & { role?: 'owner' | 'specialist'; offers?: boolean } = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    const path = url.pathname;
-    if (path === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        profile: { fullName: 'Ana Ionescu', professionalTitle: null },
-        membership: {
-          organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'Safety' },
-          role: routes.role ?? 'owner',
-        },
-        features: { offers: routes.offers ?? true },
-      });
-    }
-    if (path === '/clients' && method === 'GET') {
-      return routes.list?.(init, url) ?? Response.json(page([listed()]));
-    }
-    if (path === '/clients' && method === 'POST') {
-      return routes.create?.(init, url) ?? Response.json({ client: lead }, { status: 201 });
-    }
-    if (path === `/clients/${leadId}` && method === 'GET') {
-      return routes.get?.(init, url) ?? Response.json({ client: lead });
-    }
-    if (path === `/clients/${leadId}/promote`) {
-      return routes.promote?.(init, url) ?? Response.json({ client: promoted });
-    }
-    if (path === `/clients/${leadId}/archive`) {
-      return (
-        routes.archive?.(init, url) ??
-        Response.json({ client: { ...lead, archivedAt: '2026-09-21T08:00:00+00:00' } })
-      );
-    }
-    if (path === `/clients/${leadId}/owner-notes`) {
-      return method === 'PUT'
-        ? (routes.saveNotes?.(init, url) ??
-            Response.json({
-              notes: {
-                body: JSON.parse(String(init?.body)).body,
-                updatedAt: '2026-09-21T09:00:00+00:00',
-              },
-            }))
-        : (routes.notes?.(init, url) ?? Response.json({ notes: { body: '', updatedAt: null } }));
-    }
-    if (path === `/clients/${leadId}` && method === 'PUT') {
-      return routes.update?.(init, url) ?? Response.json({ client: lead });
-    }
-    if (path === `/clients/${leadId}/employees`) return Response.json(page([]));
-    if (path === `/clients/${leadId}/document-details`) {
-      return Response.json({ documentDetails: emptyDetails });
-    }
-    if (path === `/clients/${leadId}/workplaces`) return Response.json({ items: [] });
-    if (path === `/clients/${leadId}/files`) return Response.json({ items: [] });
-    throw new Error(`Unexpected request: ${method} ${url}`);
+  const me = meRecord({
+    profile: { ...meResponse.profile, fullName: 'Ana Ionescu' },
+    membership: {
+      organization: { ...meResponse.membership.organization, name: 'Safety' },
+      role: routes.role ?? 'owner',
+    },
+    features: { offers: routes.offers ?? true },
   });
-}
-
-const requests = (path: string, method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === path && (init?.method ?? 'GET') === method
+  mockRoutes(
+    (init, url) => {
+      const method = init?.method ?? 'GET';
+      const path = url.pathname;
+      if (path === '/clients' && method === 'GET') {
+        return routes.list?.(init, url) ?? Response.json(page([listed()]));
+      }
+      if (path === '/clients' && method === 'POST') {
+        return routes.create?.(init, url) ?? Response.json({ client: lead }, { status: 201 });
+      }
+      if (path === `/clients/${leadId}` && method === 'GET') {
+        return routes.get?.(init, url) ?? Response.json({ client: lead });
+      }
+      if (path === `/clients/${leadId}/promote`) {
+        return routes.promote?.(init, url) ?? Response.json({ client: promoted });
+      }
+      if (path === `/clients/${leadId}/archive`) {
+        return (
+          routes.archive?.(init, url) ??
+          Response.json({ client: { ...lead, archivedAt: '2026-09-21T08:00:00+00:00' } })
+        );
+      }
+      if (path === `/clients/${leadId}/owner-notes`) {
+        return method === 'PUT'
+          ? (routes.saveNotes?.(init, url) ??
+              Response.json({
+                notes: {
+                  body: JSON.parse(String(init?.body)).body,
+                  updatedAt: '2026-09-21T09:00:00+00:00',
+                },
+              }))
+          : (routes.notes?.(init, url) ?? Response.json({ notes: { body: '', updatedAt: null } }));
+      }
+      if (path === `/clients/${leadId}` && method === 'PUT') {
+        return routes.update?.(init, url) ?? Response.json({ client: lead });
+      }
+      if (path === `/clients/${leadId}/employees`) return Response.json(page([]));
+      if (path === `/clients/${leadId}/document-details`) {
+        return Response.json({ documentDetails: emptyDetails });
+      }
+      if (path === `/clients/${leadId}/workplaces`) return Response.json({ items: [] });
+      if (path === `/clients/${leadId}/files`) return Response.json({ items: [] });
+    },
+    { me }
   );
+}
 
 const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
 afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
+
+installFetchMock();
 
 describe('leads', () => {
   it('lists the leads with their CUI, contact, workers and contract, asking the API for that stage', async () => {
@@ -189,7 +168,7 @@ describe('leads', () => {
     ]);
     expect(row.querySelectorAll('td')[2]!.textContent).toBe('6');
     expect(screen.getByTestId('leads-count').textContent).toBe('1 ofertă');
-    const [input] = requests('/clients', 'GET')[0]!;
+    const [input] = requestsTo('/clients', 'GET')[0]!;
     expect(new URL(String(input)).searchParams.get('stage')).toBe('lead');
     expect(await screen.findByTestId('nav-leads')).toBeTruthy();
   });
@@ -284,7 +263,7 @@ describe('leads', () => {
     await waitFor(() =>
       expect(screen.getByTestId('leads-count').textContent).toBe('1 din 18 oferte')
     );
-    const query = new URL(String(requests('/clients', 'GET').at(-1)![0])).searchParams;
+    const query = new URL(String(requestsTo('/clients', 'GET').at(-1)![0])).searchParams;
     expect(query.get('q')).toBe('Sibiu');
     expect(query.get('stage')).toBe('lead');
   });
@@ -315,7 +294,7 @@ describe('leads', () => {
         '?contractState=sent&contractState=received'
       )
     );
-    const query = new URL(String(requests('/clients', 'GET').at(-1)![0])).searchParams;
+    const query = new URL(String(requestsTo('/clients', 'GET').at(-1)![0])).searchParams;
     expect(query.getAll('contractState')).toEqual(['sent', 'received']);
     expect(query.has('contract')).toBe(false);
     await waitFor(() =>
@@ -349,7 +328,7 @@ describe('leads', () => {
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ sort: 'createdAt', order: 'desc' })
     );
-    const sorts = requests('/clients', 'GET').map(([url]) =>
+    const sorts = requestsTo('/clients', 'GET').map(([url]) =>
       new URL(String(url)).searchParams.get('sort')
     );
     expect(sorts).toEqual(
@@ -414,7 +393,7 @@ describe('leads', () => {
     await screen.findByTestId('leads-row');
     expect(screen.getByTestId('leads-search')).toBeTruthy();
     expect(screen.queryByTestId('leads-filters')).toBeNull();
-    const query = new URL(String(requests('/clients', 'GET').at(-1)![0])).searchParams;
+    const query = new URL(String(requestsTo('/clients', 'GET').at(-1)![0])).searchParams;
     expect(query.get('status')).toBe('archived');
     expect(query.has('contractState')).toBe(false);
   });
@@ -452,7 +431,7 @@ describe('leads', () => {
 
     await screen.findByTestId('lead-page');
     expect(runtime.router.state.location.pathname).toBe(`/oferte/${leadId}`);
-    expect(JSON.parse(String(requests('/clients', 'POST')[0]![1]?.body))).toMatchObject({
+    expect(JSON.parse(String(requestsTo('/clients', 'POST')[0]![1]?.body))).toMatchObject({
       stage: 'lead',
       cui: '41760933',
       contactName: 'Andrei Pop',
@@ -480,7 +459,7 @@ describe('leads', () => {
     await user.click(screen.getByTestId('owner-notes-save'));
     expect(await screen.findByText('Notițele au fost salvate.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests(`/clients/${leadId}/owner-notes`, 'PUT')[0]![1]?.body))
+      JSON.parse(String(requestsTo(`/clients/${leadId}/owner-notes`, 'PUT')[0]![1]?.body))
     ).toEqual({ body: 'Sunat 12.09. Revine luni.' });
     await waitFor(() =>
       expect(screen.getByTestId('owner-notes-save')).toHaveProperty('disabled', true)
@@ -559,7 +538,7 @@ describe('leads', () => {
     await user.click(screen.getByTestId('company-save'));
 
     expect(await screen.findByText('Datele firmei au fost salvate.')).toBeTruthy();
-    const body = JSON.parse(String(requests(`/clients/${leadId}`, 'PUT')[0]![1]?.body));
+    const body = JSON.parse(String(requestsTo(`/clients/${leadId}`, 'PUT')[0]![1]?.body));
     expect(body).toMatchObject({ addressLine: 'Str. Nouă 1', declaredEmployeeCount: 6 });
     expect(body).not.toHaveProperty('contactName');
     expect((await screen.findByTestId('company-address')).textContent).toBe('Str. Nouă 1');
@@ -581,7 +560,7 @@ describe('leads', () => {
     await user.click(screen.getByTestId('contact-save'));
 
     expect(await screen.findByText('Persoana de contact a fost salvată.')).toBeTruthy();
-    expect(JSON.parse(String(requests(`/clients/${leadId}`, 'PUT')[0]![1]?.body))).toEqual({
+    expect(JSON.parse(String(requestsTo(`/clients/${leadId}`, 'PUT')[0]![1]?.body))).toEqual({
       legalName: 'VELOCITA URBANA SRL',
       cui: '41760933',
       vatPayer: false,
@@ -650,7 +629,7 @@ describe('leads', () => {
     expect(dialog.textContent).toContain('lista ofertelor active');
     await user.click(screen.getByTestId('client-archive-confirm'));
     expect(await screen.findByText('VELOCITA URBANA SRL a fost arhivat.')).toBeTruthy();
-    expect(requests(`/clients/${leadId}/documents`, 'GET')).toHaveLength(0);
+    expect(requestsTo(`/clients/${leadId}/documents`, 'GET')).toHaveLength(0);
   });
 
   it('offers only the restore for an archived lead, with read-only notes', async () => {
@@ -695,9 +674,9 @@ describe('leads', () => {
         expect(await screen.findByTestId('owner-notes-card')).toBeTruthy();
       } else {
         // The role arrives with /me; by then the contact is on screen.
-        await waitFor(() => expect(requests('/me', 'GET').length).toBeGreaterThan(0));
+        await waitFor(() => expect(requestsTo('/me', 'GET').length).toBeGreaterThan(0));
         expect(screen.queryByTestId('owner-notes-card')).toBeNull();
-        expect(requests(`/clients/${leadId}/owner-notes`, 'GET')).toHaveLength(0);
+        expect(requestsTo(`/clients/${leadId}/owner-notes`, 'GET')).toHaveLength(0);
       }
     }
   );
