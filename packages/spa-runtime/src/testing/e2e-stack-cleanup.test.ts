@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { removeTestOrganization, removeTestRun, type stackClient } from './e2e-stack';
+import {
+  refuseLeftovers,
+  removeTestOrganization,
+  removeTestRun,
+  type stackClient,
+} from './e2e-stack';
 
 type Answer = { data?: unknown; error: { message: string; status?: number } | null };
 
@@ -146,5 +151,14 @@ describe('removeTestRun', () => {
     ]);
     expect(calls.filter((call) => call.startsWith('delete organizations'))).toHaveLength(2);
     expect(accounts(calls)).toEqual(['deleteUser u1', 'deleteUser u2']);
+  });
+});
+
+describe('refuseLeftovers', () => {
+  it('passes a clean run and names every leftover of another', () => {
+    expect(() => refuseLeftovers([])).not.toThrow();
+    expect(() => refuseLeftovers(['organization o1, x', 'account u2: y'])).toThrow(
+      'The clean-up left rows in the local stack:\norganization o1, x\naccount u2: y'
+    );
   });
 });
