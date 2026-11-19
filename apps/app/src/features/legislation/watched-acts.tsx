@@ -12,6 +12,7 @@ import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
 import { useListSearch } from '@/components/list-filters/use-list-search';
+import { LoadFailed } from '@/components/load-failed';
 import { SearchInput } from '@/components/search-input';
 
 import { useLegalActs } from './use-legal-acts';
@@ -134,19 +135,9 @@ export function WatchedActs({ userId }: { userId: string }) {
               onSortChange={onSortChange}
               onPageChange={onPageChange}
               error={
-                <>
-                  <p role="alert" className="text-sm">
-                    Nu am putut încărca actele urmărite.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    disabled={acts.isFetching}
-                    onClick={() => void acts.refetch()}
-                  >
-                    Încearcă din nou
-                  </Button>
-                </>
+                <LoadFailed busy={acts.isFetching} onRetry={() => void acts.refetch()}>
+                  Nu am putut încărca actele urmărite.
+                </LoadFailed>
               }
               empty={
                 <EmptyState
