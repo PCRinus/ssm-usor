@@ -20,6 +20,7 @@ export * from './billing';
 export * from './caen';
 export * from './client-contract';
 export * from './client-files';
+export * from './client-import-rules';
 export * from './clients';
 export * from './cnp';
 export * from './commute-means';

@@ -20,6 +20,7 @@ import {
   type ImportChanges,
   maxEquipmentDurationMonths,
   officeActivityPath,
+  proposedUntickedReason,
   registeredNameAsWritten,
   registeredNameOffered,
   type ResponsiblePersonRole,
@@ -909,7 +910,7 @@ export const itemsOf = (proposal: Proposal, list: ItemList) =>
   (proposal[list] ?? []) as unknown as AnyItem[];
 
 export type UntickedReason =
-  'other_company' | 'legal_representative' | 'management_only' | 'position_left_out';
+  NonNullable<ReturnType<typeof proposedUntickedReason>> | 'position_left_out';
 
 export type ItemState = {
   list: ItemList;
@@ -928,9 +929,8 @@ function untickedReason(
   written: Record<string, unknown>,
   leftOutPositions: Set<string>
 ): UntickedReason | null {
-  if (item.otherCompanyName !== null) return 'other_company';
-  if (item.role === 'legal_representative') return 'legal_representative';
-  if (item.managementOnly === true) return 'management_only';
+  const proposed = proposedUntickedReason(item);
+  if (proposed) return proposed;
   const position = (item.jobPosition as { id: string | null } | undefined)?.id;
   if (written.jobPosition === undefined && position && leftOutPositions.has(position)) {
     return 'position_left_out';
