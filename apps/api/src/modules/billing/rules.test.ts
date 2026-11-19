@@ -239,7 +239,7 @@ describe('usage limits', () => {
   });
 
   it("counts the step's employees and the plan's users once the trial is over", () => {
-    expect(usageLimits({ ...row, status: 'active' }, now)).toEqual({
+    expect(usageLimits({ ...row, trial_ends_at: '2026-10-20T00:00:00Z' }, now)).toEqual({
       employees: 500,
       members: 3,
     });
