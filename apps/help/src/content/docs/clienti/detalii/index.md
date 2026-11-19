@@ -1,6 +1,6 @@
 ---
 title: Detalii
-description: Tabul Detalii al clientului, parte cu parte, cu datele firmei, reprezentantul legal, persoana de contact, notițele și importurile din documente, și documentele care le folosesc.
+description: Tabul Detalii al clientului, parte cu parte, cu datele firmei, reprezentantul legal, persoana de contact, notițele și importurile AI, și documentele care le folosesc.
 topics:
   - id: detalii.date-firma
     heading: Datele firmei
@@ -21,7 +21,7 @@ topics:
   - id: detalii.notite
     heading: Notițele
   - id: detalii.importuri
-    heading: Importurile din documente
+    heading: Importurile AI
   - id: detalii.date-lipsa
     heading: Când documentele cer date de aici
 sources:
@@ -123,11 +123,11 @@ Pe tabul **Detalii** notițele se citesc ca text. **Modifică**, sau **Adaugă**
 
 Pe pagina unei oferte câmpul notițelor e mereu deschis: scrii direct în el și salvezi cu **Salvează notițele**. Până atunci vezi „Modificări nesalvate”. Un client care a fost întâi ofertă își păstrează notițele de atunci.
 
-## Importurile din documente
+## Importurile AI
 
 Cât timp un import al clientului are instrucțiuni proprii sau evaluări de risc pe care nu le-ai confirmat, tabul începe cu ele. Titlul spune câte părți mai ai de verificat și până când, de exemplu „2 părți de verificat până pe 26 noiembrie”: le poți confirma în cele 14 zile de după crearea sau completarea clientului, iar ziua din titlu e prima la care expiră una dintre ele. O parte care încă se citește sau a cărei citire s-a oprit nu intră în număr, fiindcă nu e încă gata de verificat; cât timp nicio parte nu e gata, titlul e „Ce mai ai de făcut până pe …”. Dedesubt vezi importul, cu ziua, cine l-a pornit și câte fișiere a avut, apoi părțile, de exemplu **IPSSM**, **IPSU** sau **Evaluări de risc**, fiecare cu starea ei. **Verifică importul** deschide pagina importului, de unde ajungi la fiecare parte. După ce le confirmi pe toate sau trece termenul, panoul dispare.
 
-Celelalte importuri confirmate sunt la sfârșitul tabului, sub **Importuri din documente**, cel mai nou primul: ziua, cine l-a pornit, dacă a creat sau a completat clientul, câte fișiere a avut și cum s-a încheiat, **Încheiat** sau, când a trecut termenul, „Instrucțiunile au expirat” ori „Evaluările au expirat”. Un import cu părți de verificat nu apare și aici, ca să nu-l vezi de două ori. Rândul deschide pagina importului, cu fișierele lui și cu instrucțiunile și evaluările de risc din pachet. Totul despre import e în [După crearea clientului](/clienti/import/#după-crearea-clientului).
+Celelalte importuri confirmate sunt la sfârșitul tabului, sub **Importuri AI**, cel mai nou primul: ziua, cine l-a pornit, dacă a creat sau a completat clientul, câte fișiere a avut și cum s-a încheiat, **Încheiat** sau, când a trecut termenul, „Instrucțiunile au expirat” ori „Evaluările au expirat”. Un import cu părți de verificat nu apare și aici, ca să nu-l vezi de două ori. Rândul deschide pagina importului, cu fișierele lui și cu instrucțiunile și evaluările de risc din pachet. Totul despre import e în [După crearea clientului](/clienti/import/#după-crearea-clientului).
 
 ## Când documentele cer date de aici
 
