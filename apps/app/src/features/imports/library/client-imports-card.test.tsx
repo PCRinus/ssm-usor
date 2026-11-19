@@ -50,6 +50,7 @@ function confirmedImport(
     readyAt: confirmedAt,
     failedAt: null,
     confirmedAt,
+    abandonedAt: null,
     expiresAt: null,
     people: null,
     uninvited: null,

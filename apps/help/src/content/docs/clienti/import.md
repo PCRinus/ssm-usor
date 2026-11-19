@@ -290,7 +290,7 @@ Documentația nu are lista lucrătorilor. Oamenii, cu CNP-ul, data angajării ș
 
 ### De unde pornești
 
-Importul lucrătorilor pornește doar din tabul **Lucrători** al unui client. Ai trei căi:
+Importul lucrătorilor pornește din tabul **Lucrători** al unui client sau de pe pagina **Importuri AI**, din tabul **Lucrători**, cu **Import nou**, unde alegi întâi clientul. În tabul clientului ai trei căi:
 
 - **Adaugă manual**: completezi tu datele unei persoane, fără AI;
 - **Adaugă cu AI din fișele găsite**, cu numărul de fotografii: deschide încărcarea cu fotografiile de fișe găsite la importul documentației deja adăugate;
