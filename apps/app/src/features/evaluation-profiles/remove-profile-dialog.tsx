@@ -61,7 +61,6 @@ export function RemoveProfileDialog({
     profile && (
       <ConfirmDialog
         open
-        busy={remove.isPending}
         error={error}
         testId="risk-profile-remove"
         title="Ștergi evaluarea?"

@@ -14,6 +14,7 @@ import type { ImportDetail } from '@/api/generated/api';
 import { openedFromRecord } from '@/app/opener';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
+import { commonFailure } from '@/lib/api-errors';
 
 import { Tag } from '../review-parts';
 import {
@@ -192,7 +193,12 @@ export function LibraryGroup({ detail }: { detail: ImportDetail }) {
           ? 'Instrucțiunile din pachet, pentru biblioteca ta. Le confirmi fiecare pe rând, în cel mult 14 zile de la crearea clientului.'
           : 'Instrucțiunile din pachet, pentru biblioteca ta. Le poți verifica de acum, dar le confirmi după client: nu te opresc să-l creezi.'
       }
-      error={query.isError ? 'Nu am putut încărca instrucțiunile proprii. Reîncarcă pagina.' : null}
+      error={
+        query.isError
+          ? (commonFailure(query.error) ??
+            'Nu am putut încărca instrucțiunile proprii. Reîncarcă pagina.')
+          : null
+      }
       pending={query.isPending}
     >
       {parts.map((part) => (
@@ -236,7 +242,12 @@ export function RisksGroup({ detail }: { detail: ImportDetail }) {
           ? 'Evaluările de risc din pachet, pentru biblioteca ta și pentru fișele de evaluare a riscurilor ale posturilor clientului. Le confirmi în cel mult 14 zile de la crearea clientului.'
           : 'Evaluările de risc din pachet, pentru biblioteca ta și pentru fișele de evaluare a riscurilor ale posturilor clientului. Le poți verifica de acum, dar le confirmi după client: nu te opresc să-l creezi.'
       }
-      error={query.isError ? 'Nu am putut încărca evaluările de risc. Reîncarcă pagina.' : null}
+      error={
+        query.isError
+          ? (commonFailure(query.error) ??
+            'Nu am putut încărca evaluările de risc. Reîncarcă pagina.')
+          : null
+      }
       pending={query.isPending}
     >
       {part && (

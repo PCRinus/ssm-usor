@@ -4,6 +4,7 @@ import { SearchX } from 'lucide-react';
 import { ApiHttpError } from '@/api/http';
 import { EmptyState } from '@/components/empty-state';
 import { LoadFailed } from '@/components/load-failed';
+import { noOrganizationMessage } from '@/lib/api-errors';
 
 import { workerNoun } from './employee-format';
 
@@ -85,11 +86,7 @@ export function WorkersListError({
       busy={retrying}
       onRetry={onRetry}
     >
-      {status === 403
-        ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
-        : status === 404 && notFound
-          ? notFound
-          : message}
+      {status === 403 ? noOrganizationMessage : status === 404 && notFound ? notFound : message}
     </LoadFailed>
   );
 }

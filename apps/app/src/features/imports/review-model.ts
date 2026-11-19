@@ -1,9 +1,12 @@
 import {
   assemblyPointPath,
   caenClassName,
+  capitalized,
+  clientImportValuesDiffer,
   countNoun,
   type CountyCode,
   countyNames,
+  cuiWithoutVatPrefix,
   type EquipmentAllocation,
   extinguisherCode,
   fireEquipmentCountPath,
@@ -22,8 +25,10 @@ import {
   maxEquipmentDurationMonths,
   officeActivityPath,
   proposedUntickedReason,
-  registeredNameAsWritten,
-  registeredNameOffered,
+  type RegisteredNameOffer,
+  registeredNameOffer,
+  registeredNameTaken,
+  resolveClientImportField,
   type ResponsiblePersonRole,
   responsiblePersonRoleLabels,
   sameCompany,
@@ -38,10 +43,9 @@ import {
 import type { ImportDetail, ImportInference } from '@/api/generated/api';
 import { allocationLabels } from '@/features/protective-equipment/equipment-schema';
 
-import type { LabelledSource, Source } from './review-types';
+import type { LabelledSource, SectionStatus, Source } from './review-types';
 
 export type Proposal = NonNullable<ImportDetail['proposal']>;
-export type { LabelledSource, Source } from './review-types';
 export type Option = {
   value: string | number;
   sources: Source[];
@@ -388,7 +392,7 @@ export function formatFieldValue(
   if (yesNo) return yesNo[text as 'true' | 'false'] ?? text;
   switch (path) {
     case 'client.cui':
-      return formatCui(text.replace(/^RO/i, ''), vatPayer);
+      return formatCui(cuiWithoutVatPrefix(text), vatPayer);
     case 'client.countyCode':
       return countyNames[text as CountyCode] ?? text;
     case 'client.caenCode': {
@@ -414,25 +418,6 @@ export function formatFieldValue(
     default:
       return text;
   }
-}
-
-const words = (text: string) =>
-  text
-    .normalize('NFC')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
-
-const withoutMarks = (text: string) =>
-  text.normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC');
-
-/** What the import corrected in a value the document writes otherwise. */
-export function spellingCorrection(value: string, written: string) {
-  const corrected = words(value);
-  const original = words(written);
-  const capitals = withoutMarks(corrected) !== withoutMarks(original);
-  const diacritics = corrected.toLowerCase() !== original.toLowerCase();
-  if (capitals && diacritics) return 'majuscule și diacritice';
-  return capitals ? 'majuscule' : 'diacritice';
 }
 
 export type SpellingChoice = { corrected: string; written: string; keptWritten: boolean };
@@ -473,10 +458,7 @@ export function itemSpellings(state: ItemState, changes: Changes): ItemSpelling[
   );
 }
 
-export const sameValue = (a: unknown, b: unknown) =>
-  typeof a === 'number' || typeof b === 'number'
-    ? Number(a) === Number(b)
-    : foldText(String(a ?? '')) === foldText(String(b ?? ''));
+export const sameValue = (a: unknown, b: unknown) => !clientImportValuesDiffer(a, b);
 
 const isEmpty = (value: unknown) =>
   value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
@@ -501,47 +483,24 @@ export type FieldState = {
   anaf: AnafName | null;
 };
 
-// `picked` is null while ANAF's name stands by default. `sameFirm` when the documents write
-// ANAF's firm, only its legal form otherwise.
-export type AnafName = {
-  name: string;
+// `sameFirm` when the documents write ANAF's firm, only its legal form otherwise.
+export type AnafName = RegisteredNameOffer & {
   documents: string | number;
-  documentsOption: number;
-  picked: 'anaf' | 'documents' | null;
   sameFirm: boolean;
 };
 
-/** ANAF's name offered against the documents' one, as the API's payload takes it by default. */
 function anafName(
   proposal: Proposal,
   changes: Changes,
   registered: RegisteredCompany | null | undefined
 ): AnafName | null {
   if (!registered) return null;
-  const { options } = proposedField(proposal, 'client.legalName');
-  const own = options.flatMap((option, index) => (option.otherCompanyName === null ? [index] : []));
-  const written = own.map((index) => String(options[index]!.value));
-  if (!registeredNameOffered(written, registered.legalName)) return null;
+  const legalName = proposedField(proposal, 'client.legalName');
   const cui = fieldState(proposal, changes, 'client.cui').value;
-  if (cui === null || bareCui(cui) !== registered.cui) return null;
-  const change = changes.fields['client.legalName'];
-  const documentsOption =
-    change?.option !== undefined && own.includes(change.option) ? change.option : own[0]!;
-  const documents = options[documentsOption]!.value;
-  const offer = {
-    name: registeredNameAsWritten(registered.legalName, String(documents)),
-    documents,
-    documentsOption,
-    sameFirm: sameCompany(String(documents), registered.legalName),
-  };
-  if (change?.value !== undefined) {
-    const anaf = change.value === offer.name || change.value === registered.legalName;
-    return anaf ? { ...offer, picked: 'anaf' } : null;
-  }
-  if (change?.option !== undefined) {
-    return change.option === documentsOption ? { ...offer, picked: 'documents' } : null;
-  }
-  return change?.included === false ? null : { ...offer, picked: null };
+  const offer = registeredNameOffer(legalName, changes.fields['client.legalName'], cui, registered);
+  if (!offer) return null;
+  const documents = legalName.options[offer.documentsOption]!.value;
+  return { ...offer, documents, sameFirm: sameCompany(String(documents), registered.legalName) };
 }
 
 // `registered` is ANAF's company for a new client, whose name stands in for the documents' one.
@@ -554,37 +513,11 @@ export function fieldState(
 ): FieldState {
   const { options } = proposedField(proposal, path);
   const change = changes.fields[path];
-  const own = options.flatMap((option, index) => (option.otherCompanyName === null ? [index] : []));
-  const proposedIndex = own.length === 1 ? own[0]! : null;
-  const proposedValue = proposedIndex === null ? null : options[proposedIndex]!.value;
-  let status: FieldState['status'] = 'missing';
-  let value: string | number | null = null;
-  let option: number | null = null;
-  let edited = false;
-  if (change?.value !== undefined) {
-    status = change.value === null ? 'missing' : 'value';
-    value = change.value;
-    edited = true;
-  } else if (change?.option !== undefined && options[change.option]) {
-    status = 'value';
-    option = change.option;
-    value = options[change.option]!.value;
-  } else if (own.length > 1) {
-    status = 'choice';
-  } else if (own.length === 1) {
-    if (change?.included === false) status = 'unticked';
-    else {
-      status = 'value';
-      option = own[0]!;
-      value = options[own[0]!]!.value;
-    }
-  } else if (options.length > 0) {
-    if (change?.included === true) {
-      status = 'value';
-      option = 0;
-      value = options[0]!.value;
-    } else status = 'unticked';
-  }
+  const resolved = resolveClientImportField({ options }, change);
+  const { own } = resolved;
+  let { status, value, option } = resolved;
+  let edited = resolved.decision === 'written';
+  const proposedValue = own.length === 1 ? options[own[0]!]!.value : null;
   const shown = option ?? (status === 'unticked' ? (own[0] ?? 0) : null);
   const sources =
     shown !== null && options[shown]
@@ -596,9 +529,10 @@ export function fieldState(
     path === 'client.legalName' && existing === undefined
       ? anafName(proposal, changes, registered)
       : null;
-  if (anaf && anaf.picked !== 'documents') {
+  const anafTaken = registeredNameTaken(anaf);
+  if (anafTaken !== null) {
     status = 'value';
-    value = anaf.name;
+    value = anafTaken;
     option = null;
     edited = false;
   }
@@ -1285,13 +1219,6 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   return { section, anchor, code: blocker.code, text };
 }
 
-export type SectionStatus =
-  | { kind: 'choice' }
-  | { kind: 'missing'; count: number }
-  | { kind: 'invalid'; count: number }
-  | { kind: 'check' }
-  | { kind: 'done' };
-
 // `legal_name_differs` is left to `anafMismatch`, which follows the name the member settles on.
 const advisoryFlags = new Set([
   'quote_not_found',
@@ -1302,11 +1229,6 @@ const advisoryFlags = new Set([
 ]);
 
 export type RegisteredCompany = { cui: string; legalName: string; inactive: boolean };
-
-const bareCui = (value: unknown) =>
-  String(value ?? '')
-    .replace(/^RO/i, '')
-    .trim();
 
 /**
  * ANAF's company when the CUI is another firm's than the name the review now holds, or while a new
@@ -1319,7 +1241,7 @@ export function anafMismatch(
 ): RegisteredCompany | null {
   if (!registered) return null;
   const cui = fieldState(proposal, changes, 'client.cui').value;
-  if (cui !== null && bareCui(cui) !== registered.cui) return null;
+  if (cui !== null && cuiWithoutVatPrefix(cui) !== registered.cui) return null;
   const state = fieldState(proposal, changes, 'client.legalName', undefined, registered);
   if (state.anaf?.picked === null) return registered;
   if (state.anaf?.picked === 'anaf') return null;
@@ -1334,7 +1256,10 @@ export const vatPayerPath = 'client.vatPayer';
 export const anafVatPayer = (
   registered: { cui: string; vatPayer: boolean } | null | undefined,
   cui: unknown
-) => Boolean(registered && cui !== null && bareCui(cui) === registered.cui && registered.vatPayer);
+) =>
+  Boolean(
+    registered && cui !== null && cuiWithoutVatPrefix(cui) === registered.cui && registered.vatPayer
+  );
 
 export function vatPayerInForce(
   proposal: Proposal,
@@ -1479,7 +1404,7 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
     case 'unknown_reference': {
       const noun = referenceNouns[parts.at(-1) ?? ''] ?? 'elementul';
       return flag.detail
-        ? `${noun[0]!.toUpperCase()}${noun.slice(1)} «${flag.detail}» nu se potrivește cu niciunul din propunere.`
+        ? `${capitalized(noun)} «${flag.detail}» nu se potrivește cu niciunul din propunere.`
         : `Alege ${noun}.`;
     }
     case 'cui_not_registered':
@@ -1487,7 +1412,11 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
     case 'legal_name_differs': {
       const cui = proposal.client.cui.options[0]?.value;
       return flag.detail && cui !== undefined
-        ? anafMismatchNote({ cui: bareCui(cui), legalName: flag.detail, inactive: false })
+        ? anafMismatchNote({
+            cui: cuiWithoutVatPrefix(cui),
+            legalName: flag.detail,
+            inactive: false,
+          })
         : 'Denumirea diferă de cea de la ANAF.';
     }
     case 'name_spelled_differently': {

@@ -2,7 +2,8 @@ import {
   captchaToken,
   e2ePassword as password,
   mailbox,
-  removeTestOrganization,
+  refuseLeftovers,
+  removeTestRun,
   runAddresses,
   stackClient,
 } from '@ssm-usor/spa-runtime/testing/e2e-stack';
@@ -189,27 +190,13 @@ export async function answerKey(organizationId: string, domain: 'ssm' | 'su', te
   );
 }
 
-// The same order as the app's flows: organizations first, accounts after them, and every
-// refusal reported once the rest is cleaned up.
 export async function cleanUp() {
-  const failures: string[] = [];
-  for (const id of created.organizations) {
-    await removeTestOrganization(admin, id).catch((cause: Error) =>
-      failures.push(`organization ${id}, ${cause.message}`)
-    );
-  }
-  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (error) failures.push(`listing the accounts: ${error.message}`);
-  const mine = (data?.users ?? []).filter((user) => isOfRun(user.email));
-  for (const id of new Set([...created.users, ...mine.map((user) => user.id)])) {
-    const removed = await admin.auth.admin.deleteUser(id);
-    if (removed.error && removed.error.status !== 404) {
-      failures.push(`account ${id}: ${removed.error.message}`);
-    }
-  }
+  const failures = await removeTestRun(admin, {
+    organizations: created.organizations,
+    users: created.users,
+    isOfRun,
+  });
   created.users = [];
   created.organizations = [];
-  if (failures.length > 0) {
-    throw new Error(`The clean-up left rows in the local stack:\n${failures.join('\n')}`);
-  }
+  refuseLeftovers(failures);
 }

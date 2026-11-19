@@ -86,8 +86,19 @@ function UploadForm({
     creditsNeeded: (selection) =>
       importStartCredits('client', { photos: selection.files.filter(isPhoto).length, pdfPages: 0 }),
   });
-  const { selection, totals, over, opening, busy, choosing, refusal, balance, isOwner, leave } =
-    form;
+  const {
+    selection,
+    totals,
+    over,
+    opening,
+    busy,
+    choosing,
+    refusal,
+    canSubmit,
+    balance,
+    isOwner,
+    leave,
+  } = form;
   const photos = selection.files.filter(isPhoto).length;
 
   const zipNotices = [
@@ -255,13 +266,7 @@ function UploadForm({
                   <Button type="button" variant="outline" disabled={busy} onClick={leave}>
                     Renunță
                   </Button>
-                  <Button
-                    type="submit"
-                    data-testid="import-upload-submit"
-                    disabled={
-                      !choosing || totals.count === 0 || over || opening || refusal !== null
-                    }
-                  >
+                  <Button type="submit" data-testid="import-upload-submit" disabled={!canSubmit}>
                     {busy ? 'Se încarcă…' : 'Încarcă și citește'}
                   </Button>
                 </div>

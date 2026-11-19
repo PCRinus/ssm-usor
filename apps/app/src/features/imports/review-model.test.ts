@@ -45,7 +45,6 @@ import {
   sectionStatus,
   smokingPlaceAsked,
   smokingPlaceDecision,
-  spellingCorrection,
   substancesAnswer,
   suggestedFields,
   suggestedValue,
@@ -54,6 +53,7 @@ import {
   valueInForce,
   vatPayerInForce,
 } from './review-model';
+import { spellingCorrection } from './review-types';
 
 const fixture = () => {
   const proposal = proposalFixture();

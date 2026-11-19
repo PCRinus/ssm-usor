@@ -292,13 +292,12 @@ export function JobPositionsCard({
       {removing && (
         <ConfirmDialog
           open
-          busy={remove.isPending}
           confirmDisabled={removing.employeeCount > 0}
           testId="job-position-remove"
           title="Ștergi postul de lucru?"
           confirmLabel="Șterge"
           pendingLabel="Se șterge…"
-          onConfirm={() => void removePosition(removing)}
+          onConfirm={() => removePosition(removing)}
           onClose={() => setRemoving(null)}
         >
           <span className="font-medium text-foreground">{removing.name}</span>

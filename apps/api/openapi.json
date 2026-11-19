@@ -29895,7 +29895,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`), or a current employee of the client has the CNP or number; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), or a current employee of the client has the CNP (reason `employee_cnp_taken`) or number (reason `employee_number_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -30294,7 +30294,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`), or another current employee of the client has this CNP or number; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), or another current employee of the client has this CNP (reason `employee_cnp_taken`) or number (reason `employee_number_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -30418,7 +30418,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or a current employee of the client has the CNP or number of the one being reactivated; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived, or a current employee of the client has the CNP (reason `employee_cnp_taken`) or number (reason `employee_number_taken`) of the one being reactivated; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {

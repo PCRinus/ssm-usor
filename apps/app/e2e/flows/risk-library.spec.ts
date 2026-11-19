@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createClient } from '@supabase/supabase-js';
+import { stackClient } from '@ssm-usor/spa-runtime/testing/e2e-stack';
 
 import { workshopEvaluation } from '../../../api/src/modules/documents/risk-evaluations.fixture';
 import {
@@ -12,9 +12,7 @@ import {
   signIn,
 } from './support';
 
-const admin = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const admin = stackClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!);
 
 test.afterAll(cleanUp);
 

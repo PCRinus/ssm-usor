@@ -7,6 +7,7 @@ import { ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { signingMessage } from '@/features/signatures/signature-format';
+import { commonFailure } from '@/lib/api-errors';
 import { formatDate } from '@/lib/dates';
 
 import { attendeeCountLabel } from './training-format';
@@ -74,7 +75,8 @@ function DeleteTrainingConfirm({
           signingMessage(cause) ??
             (cause instanceof ApiHttpError && cause.status === 409
               ? 'Clientul este arhivat; instruirile lui nu mai pot fi șterse.'
-              : 'Nu am putut șterge instruirea. Verifică conexiunea și încearcă din nou.')
+              : (commonFailure(cause) ??
+                'Nu am putut șterge instruirea. Verifică conexiunea și încearcă din nou.'))
         );
         return;
       }
@@ -87,7 +89,6 @@ function DeleteTrainingConfirm({
   return (
     <ConfirmDialog
       open
-      busy={remove.isPending}
       testId="training-delete"
       title="Ștergi instruirea?"
       confirmLabel="Șterge instruirea"

@@ -2648,7 +2648,15 @@ describe('the signed copy of an issued revision', () => {
       upload: () => Response.json({ message: 'down' }, { status: 500 }),
     });
     expect((await attach()).status).toBeGreaterThanOrEqual(500);
-    expect(calls('/rest/v1/document_signed_copies', 'DELETE')).toHaveLength(1);
+    const [recorded] = calls('/rest/v1/document_signed_copies', 'POST');
+    const { uploaded_at: uploadedAt } = JSON.parse(String(recorded![1]?.body)) as {
+      uploaded_at: string;
+    };
+    const [removed] = calls('/rest/v1/document_signed_copies', 'DELETE');
+    const removedWhere = new URL(String(removed![0])).searchParams;
+    expect(removedWhere.get('revision_id')).toBe(`eq.${revisionId}`);
+    // A copy that came through the return link meanwhile is newer than this try, and stays.
+    expect(removedWhere.get('uploaded_at')).toBe(`eq.${uploadedAt}`);
 
     fetchMock.mockClear();
     mockUpstream({

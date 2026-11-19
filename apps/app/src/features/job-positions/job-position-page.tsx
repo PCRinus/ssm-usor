@@ -1,3 +1,4 @@
+import { trainingIntervalLabel } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { type ErrorComponentProps, getRouteApi, Link } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -26,7 +27,7 @@ import { PositionRiskEvaluationCard } from '@/features/risk-evaluations/position
 import { JobPositionBack } from './job-position-back';
 import { JobPositionDialog } from './job-position-dialog';
 import { JobPositionPending } from './job-position-pending';
-import { employeeCountLabel, intervalLabel, staffCategoryLabels } from './job-position-schema';
+import { employeeCountLabel, staffCategoryLabels } from './job-position-schema';
 import { positionSections } from './position-sections';
 
 const jobPositionRoute = getRouteApi('/_authenticated/clienti/$clientId/posturi/$jobPositionId');
@@ -145,7 +146,7 @@ export function JobPositionPage() {
           <Fact label="Zona de lucru">{position.workZone}</Fact>
           <Fact label="Interval de instruire">
             {position.trainingIntervalMonths
-              ? intervalLabel(position.trainingIntervalMonths)
+              ? trainingIntervalLabel(position.trainingIntervalMonths)
               : 'Ca restul categoriei'}
           </Fact>
           <Fact label="Lucrători pe post">

@@ -362,11 +362,17 @@ describe('PUT /clients/{clientId}/service-contract', () => {
     });
   });
 
+  const duplicate = (key: string) =>
+    Response.json(
+      { code: '23505', message: `duplicate key value violates unique constraint "${key}"` },
+      { status: 409 }
+    );
+
   it('says so when the number is taken that year', async () => {
     mockUpstream({
       contracts: (init) =>
         init?.method === 'PATCH'
-          ? Response.json({ code: '23505', message: 'duplicate' }, { status: 409 })
+          ? duplicate('service_contracts_number_key')
           : Response.json([contractRow]),
     });
     const response = await request('PUT', validBody);
@@ -375,6 +381,42 @@ describe('PUT /clients/{clientId}/service-contract', () => {
       'contract_number_taken'
     );
   });
+
+  it('says so when the number of a first contract is taken that year', async () => {
+    mockUpstream({
+      contracts: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json([])
+          : init?.method === 'POST'
+            ? duplicate('service_contracts_number_key')
+            : Response.json([contractRow]),
+    });
+    const response = await request('PUT', validBody);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'contract_number_taken'
+    );
+  });
+
+  // The same number saved twice breaks both keys, and Postgres names either.
+  it.each(['service_contracts_client_key', 'service_contracts_number_key'])(
+    'saves over a first contract another save created in between (%s)',
+    async (key) => {
+      let updates = 0;
+      mockUpstream({
+        contracts: (init) =>
+          init?.method === 'PATCH'
+            ? Response.json(updates++ === 0 ? [] : [{ id: 'x' }])
+            : init?.method === 'POST'
+              ? duplicate(key)
+              : Response.json([contractRow]),
+      });
+      const response = await request('PUT', validBody);
+      expect(response.status).toBe(200);
+      expect(calls('/rest/v1/service_contracts', 'PATCH')).toHaveLength(2);
+      expect(calls('/rest/v1/service_contracts', 'POST')).toHaveLength(1);
+    }
+  );
 
   it('passes on the refusal for an archived client', async () => {
     mockUpstream({

@@ -389,12 +389,11 @@ export function SubstancesCard({
       {deleting && (
         <ConfirmDialog
           open
-          busy={remove.isPending}
           testId="fire-substance-delete"
           title="Ștergi substanța?"
           confirmLabel="Șterge"
           pendingLabel="Se șterge…"
-          onConfirm={() => void confirmDelete(deleting)}
+          onConfirm={() => confirmDelete(deleting)}
           onClose={() => setDeleting(null)}
         >
           <span className="font-medium text-foreground">{deleting.name}</span> nu va mai apărea în

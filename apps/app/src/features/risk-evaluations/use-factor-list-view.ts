@@ -1,8 +1,9 @@
-import { sheetComponents, sortOrderSchema } from '@ssm-usor/contracts';
+import { sheetComponents } from '@ssm-usor/contracts';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import { keepOpener } from '@/app/opener';
+import { listSortSearchSchema } from '@/components/list-filters/use-list-search';
 
 import {
   type FactorSort,
@@ -17,8 +18,7 @@ import type { RiskFactor } from './risk-evaluation-schema';
 // Without a sort the list keeps the order of the printed sheet.
 export const factorListSearch = z.object({
   tab: z.enum(sheetComponents).optional().catch(undefined),
-  sort: z.enum(factorSortKeys).optional().catch(undefined),
-  order: sortOrderSchema.optional().catch(undefined),
+  ...listSortSearchSchema(factorSortKeys).shape,
   gravity: z.int().min(1).max(7).optional().catch(undefined),
   probability: z.int().min(1).max(6).optional().catch(undefined),
 });

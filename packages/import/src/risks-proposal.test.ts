@@ -320,6 +320,9 @@ describe('entryName', () => {
   it('keeps the trade’s acronyms in capitals', () => {
     expect(entryName('EVALUARE SSM')).toBe('Evaluare SSM');
     expect(entryName('MANIPULANT GPL , LUCRU CU EIP')).toBe('Manipulant GPL, lucru cu EIP');
+    expect(entryName('OPERATOR ISCIR')).toBe('Operator ISCIR');
+    expect(entryName('RSVTI , AUTORIZAT ANRE')).toBe('RSVTI, autorizat ANRE');
+    expect(entryName('INSTRUIRE IGSU , PRAM')).toBe('Instruire IGSU, PRAM');
   });
 });
 

@@ -7,6 +7,7 @@ import { useId } from 'react';
 import type { ImportListResponseItemsItem } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
+import { longDateFormat } from '@/lib/dates';
 
 import { filesLabel } from '../import-format';
 import { isReviewable, libraryDay, partLabels, partOrder, statusLabels } from './library-model';
@@ -16,12 +17,6 @@ const order: readonly ImportLibraryPart[] = [...partOrder, 'risk_evaluations'];
 
 const labelOf = (part: ImportLibraryPart) =>
   part === 'risk_evaluations' ? 'Evaluări de risc' : partLabels[part];
-
-const dayFormat = new Intl.DateTimeFormat('ro-RO', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
 
 type OpenPart = ImportListResponseItemsItem['libraryParts'][number];
 
@@ -59,7 +54,7 @@ export function WaitingImportPanel({
           {title}
         </h2>
         <p className="mt-0.5 text-[0.8125rem] leading-5 text-muted-foreground">
-          Din importul de pe {dayFormat.format(new Date(item.confirmedAt ?? item.createdAt))}
+          Din importul de pe {longDateFormat.format(new Date(item.confirmedAt ?? item.createdAt))}
           {who && (
             <>
               {' · '}

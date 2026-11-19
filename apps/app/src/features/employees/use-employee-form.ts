@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { clientConflictReasons } from '@ssm-usor/contracts';
+import { clientConflictReasons, employeeConflictReasons } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
@@ -24,7 +24,12 @@ import {
   isEmployeesOverStepError,
   refreshEmployeesOverStep,
 } from '@/features/subscription/employees-over-step';
-import { commonFailure, type IssueTarget, setApiIssues } from '@/lib/api-errors';
+import {
+  commonFailure,
+  type IssueTarget,
+  noOrganizationMessage,
+  setApiIssues,
+} from '@/lib/api-errors';
 
 import { refreshWorkforce } from './employee-cache';
 import {
@@ -148,16 +153,15 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       if (cause instanceof ApiHttpError) {
         const body = apiErrorBody(cause);
         if (cause.status === 409) {
-          const message = body?.message ?? '';
           if (body?.reason === clientConflictReasons.clientArchived) {
             form.setError('root.server', {
               message: employee
                 ? 'Clientul este arhivat; lucrătorii lui nu se mai schimbă.'
                 : 'Clientul este arhivat; nu mai pot fi adăugați lucrători.',
             });
-          } else if (message.includes('CNP')) {
+          } else if (body?.reason === employeeConflictReasons.cnpTaken) {
             form.setError('cnp', { message: employeeMessages.cnpTaken });
-          } else if (message.includes('number')) {
+          } else if (body?.reason === employeeConflictReasons.numberTaken) {
             form.setError('employeeNumber', { message: employeeMessages.numberTaken });
           } else {
             form.setError('root.server', {
@@ -192,7 +196,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         }
         if (cause.status === 403) {
           form.setError('root.server', {
-            message: 'Contul tău nu face parte dintr-o organizație. Contactează adminul.',
+            message: noOrganizationMessage,
           });
           return;
         }

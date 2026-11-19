@@ -27,7 +27,7 @@ import { Masked } from '@/components/replay';
 import { PagePlaceholder } from '@/features/documents/editor-placeholder';
 
 import { endSentence, filesLabel, importErrorMessage } from './import-format';
-import type { LabelledSource } from './review-model';
+import type { LabelledSource } from './review-types';
 import {
   requestFileName,
   requestKind,

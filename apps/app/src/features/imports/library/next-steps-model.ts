@@ -1,5 +1,7 @@
 import { countOf, type ImportLibraryPart } from '@ssm-usor/contracts';
 
+import { shortDayMonthFormat } from '@/lib/dates';
+
 import { isExpired, isOpenPart, joinNames, libraryDay, type PartStatus } from './library-model';
 
 type PartTiming = { part: ImportLibraryPart; status: PartStatus; expiresAt: string | null };
@@ -53,8 +55,6 @@ export function foundSentence(
   return names.length > 0 ? `Am găsit în pachet ${names.join(' și ')} pe care nu le ai.` : null;
 }
 
-const shortDay = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short' });
-
 export type ImportOutcome =
   | { kind: 'open'; label: string }
   | { kind: 'done'; label: string }
@@ -66,7 +66,7 @@ export function importOutcome(parts: readonly PartTiming[], now = Date.now()): I
     const until = earliestExpiry(open);
     return {
       kind: 'open',
-      label: `${open.length} de verificat${until ? `, până pe ${shortDay.format(new Date(until))}` : ''}`,
+      label: `${open.length} de verificat${until ? `, până pe ${shortDayMonthFormat.format(new Date(until))}` : ''}`,
     };
   }
   const expired = parts.filter((part) => isExpired(part, now));

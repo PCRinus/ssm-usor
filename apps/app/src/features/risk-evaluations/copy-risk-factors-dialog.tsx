@@ -18,6 +18,7 @@ import {
 import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
@@ -98,9 +99,9 @@ export function CopyRiskFactorsDialog({
             </Notice>
           )}
           {evaluations.isError ? (
-            <Notice variant="destructive">
+            <LoadFailed error={evaluations.error}>
               Nu am putut încărca fișele de evaluare a riscurilor ale clientului.
-            </Notice>
+            </LoadFailed>
           ) : evaluations.data && sources.length === 0 ? (
             <Notice variant="info" data-testid="risk-factors-copy-none">
               Clientul nu are încă altă fișă de evaluare a riscurilor cu factori.

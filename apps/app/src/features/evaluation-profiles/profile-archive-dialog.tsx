@@ -24,7 +24,6 @@ export function ProfileArchiveDialog({
   const cache = useProfileCache();
   const update = useUpdateEvaluationProfile({ request });
   const [error, setError] = useState<string | null>(null);
-  const busy = update.isPending;
 
   function close() {
     setError(null);
@@ -62,7 +61,6 @@ export function ProfileArchiveDialog({
     change && (
       <ConfirmDialog
         open
-        busy={busy}
         error={error}
         destructive={false}
         testId="risk-profile-archive"

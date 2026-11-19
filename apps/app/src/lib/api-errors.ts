@@ -11,6 +11,9 @@ export const sessionExpiredMessage =
 export const readOnlyMessage =
   'Contul este doar pentru citire, așa că nu se mai pot face modificări.';
 
+export const noOrganizationMessage =
+  'Contul tău nu face parte dintr-o organizație. Contactează adminul.';
+
 export const isReadOnlyError = (cause: unknown) => apiErrorReason(cause) === readOnlyReason;
 
 export const isSessionExpired = (cause: unknown) =>
