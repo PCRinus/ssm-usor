@@ -469,14 +469,12 @@ jobs:
 
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v3
-        with:
-          version: 2.117.0
 
       # Forward-only: a bad migration is fixed by a corrective migration, never rolled back.
       - name: Apply pending migrations to the hosted project
         run: |
           supabase link --project-ref "$SUPABASE_PROJECT_ID"
-          supabase db push
+          supabase db push --linked --yes
 
   deploy-templates:
     name: Register document templates
@@ -987,8 +985,6 @@ jobs:
 
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v3
-        with:
-          version: 2.117.0
 
       # The push below does not ask for confirmation here, so the log keeps what it changed.
       - name: Show what the push will change

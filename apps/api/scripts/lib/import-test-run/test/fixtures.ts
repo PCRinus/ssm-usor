@@ -299,7 +299,7 @@ export function importRecord(
       outputTokens: 0,
       costUsd: 0,
       readCharacters: null,
-      bySteps: null,
+      bySteps: {},
     },
     parts: [],
     ...overrides,

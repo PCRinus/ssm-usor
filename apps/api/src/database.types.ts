@@ -26,6 +26,7 @@ export type Database = {
           storage_path: string;
           user_agent: string | null;
         };
+        ComputedFields: never;
         Insert: {
           address: string;
           certificate_serial: string;
@@ -189,6 +190,7 @@ export type Database = {
           subtotal_cents: number | null;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           amount_cents: number;
           created_at?: string;
@@ -261,6 +263,7 @@ export type Database = {
           title: string;
           type_key: string;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -368,6 +371,7 @@ export type Database = {
           updated_at: string;
           uploaded_by: string | null;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -385,7 +389,7 @@ export type Database = {
           owners_only?: boolean;
           sha256: string;
           size_bytes: number;
-          storage_path?: string;
+          storage_path?: never;
           updated_at?: string;
           uploaded_by?: string | null;
         };
@@ -406,7 +410,7 @@ export type Database = {
           owners_only?: boolean;
           sha256?: string;
           size_bytes?: number;
-          storage_path?: string;
+          storage_path?: never;
           updated_at?: string;
           uploaded_by?: string | null;
         };
@@ -504,6 +508,7 @@ export type Database = {
           waste_kinds: string[];
           worker_training_interval_months: number | null;
         };
+        ComputedFields: never;
         Insert: {
           administrative_training_interval_months?: number | null;
           client_id: string;
@@ -584,6 +589,7 @@ export type Database = {
           updated_at: string;
           updated_by: string | null;
         };
+        ComputedFields: never;
         Insert: {
           body: string;
           client_id: string;
@@ -647,6 +653,7 @@ export type Database = {
           updated_at: string;
           user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -779,6 +786,7 @@ export type Database = {
           updated_at: string;
           workplace_id: string | null;
         };
+        ComputedFields: never;
         Insert: {
           archived_at?: string | null;
           client_id: string;
@@ -933,6 +941,7 @@ export type Database = {
           specific_measures: string | null;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           activity?: string | null;
           address_line?: string | null;
@@ -1079,6 +1088,7 @@ export type Database = {
           client_search_text: string | null;
           current_employee_count: number | null;
         };
+        ComputedFields: 'client_search_name' | 'client_search_text' | 'current_employee_count';
         Insert: {
           address_line?: string | null;
           administrative_training_interval_months?: number | null;
@@ -1211,6 +1221,7 @@ export type Database = {
           page: number | null;
           reason: string | null;
         };
+        ComputedFields: never;
         Insert: {
           actor?: string | null;
           created_at?: string;
@@ -1284,6 +1295,7 @@ export type Database = {
           period_start: string;
           reported_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           id?: string;
@@ -1328,6 +1340,7 @@ export type Database = {
           period_start: string;
           shortfall: number;
         };
+        ComputedFields: never;
         Insert: {
           allowance: number;
           created_at?: string;
@@ -1372,6 +1385,7 @@ export type Database = {
           issue_date: string;
           organization_id: string;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -1474,6 +1488,7 @@ export type Database = {
           template_version_id: string | null;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           created_by?: string | null;
@@ -1583,6 +1598,7 @@ export type Database = {
           uploaded_at: string;
           uploaded_by: string | null;
         };
+        ComputedFields: never;
         Insert: {
           confirmed_at?: string | null;
           confirmed_by?: string | null;
@@ -1657,6 +1673,7 @@ export type Database = {
           template_id: string;
           version: number;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           id?: string;
@@ -1705,6 +1722,7 @@ export type Database = {
           type_key: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           id?: string;
@@ -1754,6 +1772,7 @@ export type Database = {
           storage_path: string | null;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           client_file_id?: string | null;
           client_id: string;
@@ -1917,9 +1936,9 @@ export type Database = {
           employee_client_search_name: string | null;
           employee_search_name: string | null;
           test_status: {
-            client_id: string | null;
-            employee_id: string | null;
-            organization_id: string | null;
+            client_id: string;
+            employee_id: string;
+            organization_id: string;
             ssm_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
             ssm_hiring_trained_on: string | null;
             ssm_last_passed_on: string | null;
@@ -1931,9 +1950,9 @@ export type Database = {
             su_state: Database['public']['Enums']['test_state'] | null;
           } | null;
           training_status: {
-            client_id: string | null;
-            employee_id: string | null;
-            organization_id: string | null;
+            client_id: string;
+            employee_id: string;
+            organization_id: string;
             ssm_due_on: string | null;
             ssm_has_hiring_training: boolean | null;
             ssm_interval_months: number | null;
@@ -1950,6 +1969,11 @@ export type Database = {
             su_workplace_trained_on: string | null;
           } | null;
         };
+        ComputedFields:
+          | 'employee_client_search_name'
+          | 'employee_search_name'
+          | 'test_status'
+          | 'training_status';
         Insert: {
           archived_at?: string | null;
           authorizations?: string | null;
@@ -2121,6 +2145,7 @@ export type Database = {
           sort_order: number;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           actions?: string | null;
           component: Database['public']['Enums']['work_system_component'];
@@ -2199,6 +2224,7 @@ export type Database = {
           organization_id: string;
           sort_order: number;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           created_by?: string | null;
@@ -2258,6 +2284,7 @@ export type Database = {
           updated_at: string;
           work_environment: string | null;
         };
+        ComputedFields: never;
         Insert: {
           archived_at?: string | null;
           created_at?: string;
@@ -2324,6 +2351,7 @@ export type Database = {
           workplace_id: string;
           year_built: number | null;
         };
+        ComputedFields: never;
         Insert: {
           built_area_m2?: number | null;
           classification?: Database['public']['Enums']['fire_building_classification'] | null;
@@ -2457,6 +2485,7 @@ export type Database = {
           wheeled: boolean;
           workplace_id: string;
         };
+        ComputedFields: never;
         Insert: {
           agent?: Database['public']['Enums']['fire_extinguishing_agent'] | null;
           capacity?: number | null;
@@ -2583,6 +2612,7 @@ export type Database = {
           updated_at: string;
           workplace_id: string;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -2698,6 +2728,7 @@ export type Database = {
           updated_at: string;
           workplace_id: string;
         };
+        ComputedFields: never;
         Insert: {
           checked_by: string;
           client_id: string;
@@ -2818,6 +2849,7 @@ export type Database = {
           storage_place: string | null;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           classification?: string | null;
           client_id: string;
@@ -2927,6 +2959,7 @@ export type Database = {
           started_at: string;
           target_user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           admin_user_id: string;
           ended_at?: string | null;
@@ -2958,6 +2991,7 @@ export type Database = {
           removed_at: string | null;
           written_at: string;
         };
+        ComputedFields: never;
         Insert: {
           completed_at?: string | null;
           expires_at: string;
@@ -3028,6 +3062,7 @@ export type Database = {
           updated_at: string;
           upload_path: string;
         };
+        ComputedFields: never;
         Insert: {
           cached_input_tokens?: number;
           client_file_id?: string | null;
@@ -3055,7 +3090,7 @@ export type Database = {
           size_bytes: number;
           source_file_id?: string | null;
           state?: Database['public']['Enums']['import_file_state'];
-          storage_path?: string;
+          storage_path?: never;
           text_path?: string | null;
           updated_at?: string;
           upload_path: string;
@@ -3087,7 +3122,7 @@ export type Database = {
           size_bytes?: number;
           source_file_id?: string | null;
           state?: Database['public']['Enums']['import_file_state'];
-          storage_path?: string;
+          storage_path?: never;
           text_path?: string | null;
           updated_at?: string;
           upload_path?: string;
@@ -3144,6 +3179,7 @@ export type Database = {
           updated_at: string;
           version: number;
         };
+        ComputedFields: never;
         Insert: {
           attempt?: number;
           cached_input_tokens?: number;
@@ -3216,6 +3252,7 @@ export type Database = {
           sha256: string;
           size_bytes: number;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           import_file_id: string;
@@ -3277,10 +3314,11 @@ export type Database = {
           started_at: string | null;
           status: Database['public']['Enums']['import_status'];
           updated_at: string;
-          usage_by_step: Json;
+          usage_by_step: NonNullable<Json>;
           version: number;
           closed_at: string | null;
         };
+        ComputedFields: 'closed_at';
         Insert: {
           abandoned_at?: string | null;
           cached_input_tokens?: number;
@@ -3317,7 +3355,7 @@ export type Database = {
           started_at?: string | null;
           status?: Database['public']['Enums']['import_status'];
           updated_at?: string;
-          usage_by_step?: Json;
+          usage_by_step?: NonNullable<Json>;
           version?: number;
         };
         Update: {
@@ -3356,7 +3394,7 @@ export type Database = {
           started_at?: string | null;
           status?: Database['public']['Enums']['import_status'];
           updated_at?: string;
-          usage_by_step?: Json;
+          usage_by_step?: NonNullable<Json>;
           version?: number;
         };
         Relationships: [
@@ -3400,7 +3438,7 @@ export type Database = {
       instruction_module_versions: {
         Row: {
           article_count: number;
-          body: Json;
+          body: NonNullable<Json>;
           created_at: string;
           created_by: string | null;
           id: string;
@@ -3409,9 +3447,10 @@ export type Database = {
           organization_id: string;
           text_hash: string;
         };
+        ComputedFields: never;
         Insert: {
-          article_count?: number;
-          body: Json;
+          article_count?: never;
+          body: NonNullable<Json>;
           created_at?: string;
           created_by?: string | null;
           id?: string;
@@ -3421,8 +3460,8 @@ export type Database = {
           text_hash: string;
         };
         Update: {
-          article_count?: number;
-          body?: Json;
+          article_count?: never;
+          body?: NonNullable<Json>;
           created_at?: string;
           created_by?: string | null;
           id?: string;
@@ -3474,6 +3513,7 @@ export type Database = {
           title: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           archived_at?: string | null;
           created_at?: string;
@@ -3528,6 +3568,7 @@ export type Database = {
           risk: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           allocation?: Database['public']['Enums']['equipment_allocation'];
           client_id: string;
@@ -3633,6 +3674,7 @@ export type Database = {
           module_id: string;
           organization_id: string;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -3751,6 +3793,7 @@ export type Database = {
           updated_at: string;
           work_zone: string | null;
         };
+        ComputedFields: never;
         Insert: {
           activities?: string | null;
           archived_at?: string | null;
@@ -3861,6 +3904,7 @@ export type Database = {
           updated_at: string;
           verified_consolidated_on: string | null;
         };
+        ComputedFields: never;
         Insert: {
           anchors_consolidated_on?: string | null;
           anchors_read_at?: string | null;
@@ -3900,7 +3944,7 @@ export type Database = {
           article: string | null;
           change_id: string;
           citation_form: string;
-          hunks: Json;
+          hunks: NonNullable<Json>;
           id: string;
           locator: string | null;
           manifest: string;
@@ -3912,11 +3956,12 @@ export type Database = {
           type_key: string | null;
           unit_label: string;
         };
+        ComputedFields: never;
         Insert: {
           article?: string | null;
           change_id: string;
           citation_form: string;
-          hunks?: Json;
+          hunks?: NonNullable<Json>;
           id?: string;
           locator?: string | null;
           manifest: string;
@@ -3932,7 +3977,7 @@ export type Database = {
           article?: string | null;
           change_id?: string;
           citation_form?: string;
-          hunks?: Json;
+          hunks?: NonNullable<Json>;
           id?: string;
           locator?: string | null;
           manifest?: string;
@@ -3971,6 +4016,7 @@ export type Database = {
           review: Json | null;
           seen_at: string;
         };
+        ComputedFields: never;
         Insert: {
           act_id: string;
           amended_units?: Json | null;
@@ -4024,6 +4070,7 @@ export type Database = {
           started_at: string;
           status: string;
         };
+        ComputedFields: never;
         Insert: {
           acts_checked?: number;
           acts_skipped?: number;
@@ -4062,6 +4109,7 @@ export type Database = {
           token_hash: string | null;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           accepted_at?: string | null;
           accepted_by?: string | null;
@@ -4117,6 +4165,7 @@ export type Database = {
           updated_at: string;
           user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           organization_id: string;
@@ -4180,6 +4229,7 @@ export type Database = {
           updated_at: string;
           vat_payer: boolean;
         };
+        ComputedFields: never;
         Insert: {
           address_line?: string | null;
           authorization_certificate_date?: string | null;
@@ -4263,6 +4313,7 @@ export type Database = {
           revoked_at: string | null;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           accepted_at?: string | null;
           address: string;
@@ -4405,6 +4456,7 @@ export type Database = {
           organization_id: string;
           sort_order: number;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -4506,6 +4558,7 @@ export type Database = {
           updated_at: string;
           user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           full_name: string;
@@ -4556,6 +4609,7 @@ export type Database = {
           status: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           detail?: string | null;
@@ -4623,6 +4677,7 @@ export type Database = {
           total_count: number;
           type_key: string;
         };
+        ComputedFields: never;
         Insert: {
           done_count?: number;
           failed_count?: number;
@@ -4668,7 +4723,7 @@ export type Database = {
         Row: {
           body: string;
           created_at: string;
-          features: Json;
+          features: NonNullable<Json>;
           fixes: string[];
           headline: string;
           improvements: string[];
@@ -4677,10 +4732,11 @@ export type Database = {
           tag: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           body: string;
           created_at?: string;
-          features?: Json;
+          features?: NonNullable<Json>;
           fixes?: string[];
           headline: string;
           improvements?: string[];
@@ -4692,7 +4748,7 @@ export type Database = {
         Update: {
           body?: string;
           created_at?: string;
-          features?: Json;
+          features?: NonNullable<Json>;
           fixes?: string[];
           headline?: string;
           improvements?: string[];
@@ -4720,6 +4776,7 @@ export type Database = {
           work_environment: string | null;
           work_task: string | null;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -4839,6 +4896,7 @@ export type Database = {
           source_profile_factor_id: string | null;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           actions?: string | null;
           client_id: string;
@@ -4967,6 +5025,7 @@ export type Database = {
           sent_to: string;
           token_hash: string | null;
         };
+        ComputedFields: never;
         Insert: {
           document_id: string;
           id?: string;
@@ -5048,6 +5107,7 @@ export type Database = {
           updated_at: string;
           updated_by: string | null;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           contract_date: string;
@@ -5113,6 +5173,7 @@ export type Database = {
           step: string;
           user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           skipped_at?: string;
           step: string;
@@ -5145,6 +5206,7 @@ export type Database = {
           voided_at: string | null;
           voided_by: string | null;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -5278,6 +5340,7 @@ export type Database = {
           void_noted_at: string | null;
           voided_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -5348,6 +5411,7 @@ export type Database = {
           updated_at: string;
           version: number;
         };
+        ComputedFields: never;
         Insert: {
           certified_at?: string | null;
           client_id: string;
@@ -5483,6 +5547,7 @@ export type Database = {
           subject_name: string;
           superseded_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           account_id: string;
           certificate_pem: string;
@@ -5522,6 +5587,7 @@ export type Database = {
           request_id: string | null;
           session_id: string;
         };
+        ComputedFields: never;
         Insert: {
           agreement_digest?: string | null;
           agreement_employee_id?: string | null;
@@ -5604,6 +5670,7 @@ export type Database = {
           user_agent: string | null;
           verified_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           account_id: string;
           address: string;
@@ -5657,6 +5724,7 @@ export type Database = {
           period_start: string;
           reason: string;
         };
+        ComputedFields: never;
         Insert: {
           actor: string;
           codes: number;
@@ -5708,6 +5776,7 @@ export type Database = {
           reported_at: string | null;
           sent_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           counted: boolean;
           created_at?: string;
@@ -5759,6 +5828,7 @@ export type Database = {
           received_at: string;
           type: string;
         };
+        ComputedFields: never;
         Insert: {
           error?: string | null;
           id: string;
@@ -5779,16 +5849,17 @@ export type Database = {
         Row: {
           change: string;
           changed_at: string;
-          details: Json;
+          details: NonNullable<Json>;
           id: number;
           organization_id: string;
           reason: string | null;
           source: string;
         };
+        ComputedFields: never;
         Insert: {
           change: string;
           changed_at?: string;
-          details?: Json;
+          details?: NonNullable<Json>;
           id?: never;
           organization_id: string;
           reason?: string | null;
@@ -5797,7 +5868,7 @@ export type Database = {
         Update: {
           change?: string;
           changed_at?: string;
-          details?: Json;
+          details?: NonNullable<Json>;
           id?: never;
           organization_id?: string;
           reason?: string | null;
@@ -5841,7 +5912,9 @@ export type Database = {
           tester_allowances: boolean;
           trial_ends_at: string | null;
           updated_at: string;
+          employees_over_step_limit: number | null;
         };
+        ComputedFields: 'employees_over_step_limit';
         Insert: {
           access_until?: string | null;
           billing_anchor_at?: string | null;
@@ -5906,6 +5979,7 @@ export type Database = {
           legal_change_id: string;
           template_version_id: string;
         };
+        ComputedFields: never;
         Insert: {
           legal_change_id: string;
           template_version_id: string;
@@ -5942,17 +6016,18 @@ export type Database = {
         Row: {
           attempt_id: string;
           created_at: string;
-          key: Json;
+          key: NonNullable<Json>;
         };
+        ComputedFields: never;
         Insert: {
           attempt_id: string;
           created_at?: string;
-          key: Json;
+          key: NonNullable<Json>;
         };
         Update: {
           attempt_id?: string;
           created_at?: string;
-          key?: Json;
+          key?: NonNullable<Json>;
         };
         Relationships: [
           {
@@ -5978,13 +6053,14 @@ export type Database = {
           organization_id: string;
           participant_id: string;
           passed: boolean | null;
-          questions: Json;
+          questions: NonNullable<Json>;
           score: number | null;
           started_at: string;
           test: Database['public']['Enums']['knowledge_test'];
           total: number;
           user_agent: string | null;
         };
+        ComputedFields: never;
         Insert: {
           client_address?: unknown;
           client_id: string;
@@ -5998,7 +6074,7 @@ export type Database = {
           organization_id: string;
           participant_id: string;
           passed?: boolean | null;
-          questions: Json;
+          questions: NonNullable<Json>;
           score?: number | null;
           started_at?: string;
           test: Database['public']['Enums']['knowledge_test'];
@@ -6018,7 +6094,7 @@ export type Database = {
           organization_id?: string;
           participant_id?: string;
           passed?: boolean | null;
-          questions?: Json;
+          questions?: NonNullable<Json>;
           score?: number | null;
           started_at?: string;
           test?: Database['public']['Enums']['knowledge_test'];
@@ -6133,6 +6209,7 @@ export type Database = {
           organization_id: string;
           question_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           created_by?: string | null;
@@ -6177,7 +6254,7 @@ export type Database = {
           domain: Database['public']['Enums']['training_domain'];
           explanation: string | null;
           id: string;
-          options: Json;
+          options: NonNullable<Json>;
           organization_id: string | null;
           position: number;
           replaces_question_id: string | null;
@@ -6185,6 +6262,7 @@ export type Database = {
           text: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           citation?: string | null;
           created_at?: string;
@@ -6192,7 +6270,7 @@ export type Database = {
           domain: Database['public']['Enums']['training_domain'];
           explanation?: string | null;
           id?: string;
-          options: Json;
+          options: NonNullable<Json>;
           organization_id?: string | null;
           position: number;
           replaces_question_id?: string | null;
@@ -6207,7 +6285,7 @@ export type Database = {
           domain?: Database['public']['Enums']['training_domain'];
           explanation?: string | null;
           id?: string;
-          options?: Json;
+          options?: NonNullable<Json>;
           organization_id?: string | null;
           position?: number;
           replaces_question_id?: string | null;
@@ -6258,6 +6336,7 @@ export type Database = {
           test: Database['public']['Enums']['knowledge_test'];
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           attempt_id?: string | null;
           client_id: string;
@@ -6414,6 +6493,7 @@ export type Database = {
           test_sheet_id: string;
           user_agent: string | null;
         };
+        ComputedFields: never;
         Insert: {
           address?: string | null;
           certificate_serial?: string | null;
@@ -6559,6 +6639,7 @@ export type Database = {
           updated_at: string;
           version: number;
         };
+        ComputedFields: never;
         Insert: {
           certified_at?: string | null;
           client_id: string;
@@ -6697,6 +6778,7 @@ export type Database = {
           training_id: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           admitted_by_job_title?: string | null;
           admitted_by_name?: string | null;
@@ -6857,6 +6939,7 @@ export type Database = {
           voided_at: string | null;
           voided_by: string | null;
         };
+        ComputedFields: never;
         Insert: {
           address?: string | null;
           certificate_serial?: string | null;
@@ -7015,6 +7098,7 @@ export type Database = {
           verifier_job_title: string | null;
           verifier_name: string | null;
         };
+        ComputedFields: never;
         Insert: {
           client_id: string;
           created_at?: string;
@@ -7132,6 +7216,7 @@ export type Database = {
           organization_id: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           ceiling_cents: number;
           kind: Database['public']['Enums']['usage_extra_kind'];
@@ -7168,6 +7253,7 @@ export type Database = {
           period_start: string;
           sent_at: string;
         };
+        ComputedFields: never;
         Insert: {
           kind: string;
           organization_id: string;
@@ -7208,6 +7294,7 @@ export type Database = {
           id: string;
           updated_at: string;
         };
+        ComputedFields: never;
         Insert: {
           confirmation_sent_at?: string | null;
           confirmation_token_hash: string;
@@ -7243,8 +7330,8 @@ export type Database = {
           contact_phone: string | null;
           contract_ending_within_60_days: boolean | null;
           county_code: string | null;
-          created_at: string | null;
-          cui: string | null;
+          created_at: string;
+          cui: string;
           current_employee_count: number | null;
           declared_employee_count: number | null;
           documentation_generated_type_keys: string[] | null;
@@ -7258,8 +7345,8 @@ export type Database = {
           fire_safety_last_generated_at: string | null;
           fire_safety_state: Database['public']['Enums']['documentation_state'] | null;
           fire_safety_total_count: number | null;
-          id: string | null;
-          legal_name: string | null;
+          id: string;
+          legal_name: string;
           legal_representative_name: string | null;
           locality: string | null;
           missing_basic_data: boolean | null;
@@ -7267,7 +7354,7 @@ export type Database = {
           promoted_at: string | null;
           search_text: string | null;
           signatures_pending_count: number | null;
-          stage: Database['public']['Enums']['client_stage'] | null;
+          stage: Database['public']['Enums']['client_stage'];
           tests_pending_count: number | null;
           trade_register_number: string | null;
           training_attention_count: number | null;
@@ -7277,9 +7364,10 @@ export type Database = {
           training_overdue_count: number | null;
           training_rank: number | null;
           training_untrained_count: number | null;
-          updated_at: string | null;
-          vat_payer: boolean | null;
+          updated_at: string;
+          vat_payer: boolean;
         };
+        ComputedFields: never;
         Relationships: [];
       };
       client_workplace_list: {
@@ -7288,25 +7376,26 @@ export type Database = {
           address_line: string | null;
           archived_at: string | null;
           assembly_point: string | null;
-          client_id: string | null;
+          client_id: string;
           combustible_materials: string | null;
           county_code: string | null;
-          created_at: string | null;
+          created_at: string;
           current_employee_count: number | null;
           extinguisher_norm: Database['public']['Enums']['fire_extinguisher_norm'] | null;
           fire_risk_equipment: string | null;
           floor_area_m2: number | null;
-          id: string | null;
+          id: string;
           ignition_sources: string | null;
-          is_registered_office: boolean | null;
-          kind: Database['public']['Enums']['workplace_kind'] | null;
+          is_registered_office: boolean;
+          kind: Database['public']['Enums']['workplace_kind'];
           locality: string | null;
-          name: string | null;
-          office_has_activity: boolean | null;
-          organization_id: string | null;
+          name: string;
+          office_has_activity: boolean;
+          organization_id: string;
           specific_measures: string | null;
-          updated_at: string | null;
+          updated_at: string;
         };
+        ComputedFields: never;
         Relationships: [
           {
             foreignKeyName: 'client_workplaces_client_id_fkey';
@@ -7368,11 +7457,12 @@ export type Database = {
       };
       clients_missing_basic_data: {
         Row: {
-          client_id: string | null;
-          client_name: string | null;
+          client_id: string;
+          client_name: string;
           missing: string[] | null;
-          organization_id: string | null;
+          organization_id: string;
         };
+        ComputedFields: never;
         Relationships: [
           {
             foreignKeyName: 'clients_organization_id_fkey';
@@ -7403,7 +7493,7 @@ export type Database = {
           employees: number | null;
           next_due_count: number | null;
           next_due_on: string | null;
-          organization_id: string | null;
+          organization_id: string;
           ssm_current: number | null;
           ssm_due: number | null;
           ssm_overdue: number | null;
@@ -7414,27 +7504,29 @@ export type Database = {
           su_untrained: number | null;
           tests_pending: number | null;
         };
+        ComputedFields: never;
         Relationships: [];
       };
       documents_behind: {
         Row: {
           behind_template: boolean | null;
-          client_id: string | null;
-          client_name: string | null;
-          document_id: string | null;
+          client_id: string;
+          client_name: string;
+          document_id: string;
           edited_draft: boolean | null;
           instruction_changes: Json | null;
-          newest_kind: string | null;
+          newest_kind: string;
           newest_note: string | null;
-          newest_version: number | null;
-          newest_version_id: string | null;
-          organization_id: string | null;
+          newest_version: number;
+          newest_version_id: string;
+          organization_id: string;
           revision_issue_date: string | null;
-          revision_status: Database['public']['Enums']['document_revision_status'] | null;
-          revision_version: number | null;
-          template_title: string | null;
-          type_key: string | null;
+          revision_status: Database['public']['Enums']['document_revision_status'];
+          revision_version: number;
+          template_title: string;
+          type_key: string;
         };
+        ComputedFields: never;
         Relationships: [
           {
             foreignKeyName: 'client_documents_client_id_fkey';
@@ -7498,20 +7590,20 @@ export type Database = {
         Row: {
           archived_at: string | null;
           client_archived_at: string | null;
-          client_id: string | null;
-          client_name: string | null;
-          client_stage: Database['public']['Enums']['client_stage'] | null;
-          created_at: string | null;
+          client_id: string;
+          client_name: string;
+          client_stage: Database['public']['Enums']['client_stage'];
+          created_at: string;
           email: string | null;
           employee_number: string | null;
-          first_name: string | null;
-          hired_at: string | null;
-          id: string | null;
-          job_position_id: string | null;
-          job_position_name: string | null;
-          job_title: string | null;
-          last_name: string | null;
-          organization_id: string | null;
+          first_name: string;
+          hired_at: string;
+          id: string;
+          job_position_id: string;
+          job_position_name: string;
+          job_title: string;
+          last_name: string;
+          organization_id: string;
           phone: string | null;
           portal_address: string | null;
           portal_administrator: boolean | null;
@@ -7530,16 +7622,17 @@ export type Database = {
           ssm_training_due_on: string | null;
           ssm_training_rank: number | null;
           ssm_training_state: Database['public']['Enums']['training_state'] | null;
-          status: Database['public']['Enums']['employee_status'] | null;
+          status: Database['public']['Enums']['employee_status'];
           su_test_state: Database['public']['Enums']['test_state'] | null;
           su_training_due_on: string | null;
           su_training_rank: number | null;
           su_training_state: Database['public']['Enums']['training_state'] | null;
           terminated_at: string | null;
-          updated_at: string | null;
+          updated_at: string;
           workplace_id: string | null;
           workplace_name: string | null;
         };
+        ComputedFields: never;
         Relationships: [
           {
             foreignKeyName: 'employees_client_id_fkey';
@@ -7622,9 +7715,9 @@ export type Database = {
       };
       employee_test_status: {
         Row: {
-          client_id: string | null;
-          employee_id: string | null;
-          organization_id: string | null;
+          client_id: string;
+          employee_id: string;
+          organization_id: string;
           ssm_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
           ssm_hiring_trained_on: string | null;
           ssm_last_passed_on: string | null;
@@ -7635,6 +7728,7 @@ export type Database = {
           su_last_passed_on: string | null;
           su_state: Database['public']['Enums']['test_state'] | null;
         };
+        ComputedFields: never;
         Relationships: [
           {
             foreignKeyName: 'employees_client_id_fkey';
@@ -7696,9 +7790,9 @@ export type Database = {
       };
       employee_training_status: {
         Row: {
-          client_id: string | null;
-          employee_id: string | null;
-          organization_id: string | null;
+          client_id: string;
+          employee_id: string;
+          organization_id: string;
           ssm_due_on: string | null;
           ssm_has_hiring_training: boolean | null;
           ssm_interval_months: number | null;
@@ -7714,6 +7808,7 @@ export type Database = {
           su_state: Database['public']['Enums']['training_state'] | null;
           su_workplace_trained_on: string | null;
         };
+        ComputedFields: never;
         Relationships: [
           {
             foreignKeyName: 'employees_client_id_fkey';
@@ -7777,21 +7872,22 @@ export type Database = {
         Row: {
           archived_at: string | null;
           client_count: number | null;
-          created_at: string | null;
+          created_at: string;
           exposure: string | null;
           factor_count: number | null;
           global_risk_level: number | null;
-          id: string | null;
+          id: string;
           in_use: boolean | null;
           means_of_production: string | null;
-          name: string | null;
-          organization_id: string | null;
+          name: string;
+          organization_id: string;
           search_text: string | null;
           sheet_count: number | null;
-          unacceptable_factor_count: number | null;
-          updated_at: string | null;
+          unacceptable_factor_count: number;
+          updated_at: string;
           work_environment: string | null;
         };
+        ComputedFields: never;
         Relationships: [
           {
             foreignKeyName: 'evaluation_profiles_organization_id_fkey';
@@ -7814,21 +7910,22 @@ export type Database = {
           applied_count: number | null;
           archived_at: string | null;
           client_count: number | null;
-          created_at: string | null;
-          domain: Database['public']['Enums']['instruction_domain'] | null;
-          id: string | null;
-          module_group: Database['public']['Enums']['instruction_module_group'] | null;
-          organization_id: string | null;
+          created_at: string;
+          domain: Database['public']['Enums']['instruction_domain'];
+          id: string;
+          module_group: Database['public']['Enums']['instruction_module_group'];
+          organization_id: string;
           position_count: number | null;
           search_text: string | null;
-          title: string | null;
-          updated_at: string | null;
-          version_article_count: number | null;
-          version_created_at: string | null;
-          version_id: string | null;
-          version_number: number | null;
-          version_text_hash: string | null;
+          title: string;
+          updated_at: string;
+          version_article_count: number;
+          version_created_at: string;
+          version_id: string;
+          version_number: number;
+          version_text_hash: string;
         };
+        ComputedFields: never;
         Relationships: [
           {
             foreignKeyName: 'instruction_modules_organization_id_fkey';
@@ -7855,12 +7952,12 @@ export type Database = {
           contact_name: string | null;
           contact_phone: string | null;
           county_code: string | null;
-          created_at: string | null;
-          cui: string | null;
+          created_at: string;
+          cui: string;
           current_employee_count: number | null;
           declared_employee_count: number | null;
-          id: string | null;
-          legal_name: string | null;
+          id: string;
+          legal_name: string;
           legal_representative_name: string | null;
           locality: string | null;
           promoted_at: string | null;
@@ -7868,24 +7965,26 @@ export type Database = {
           service_contract_return_expires_at: string | null;
           service_contract_state: Database['public']['Enums']['service_contract_state'] | null;
           service_contract_state_at: string | null;
-          stage: Database['public']['Enums']['client_stage'] | null;
+          stage: Database['public']['Enums']['client_stage'];
           trade_register_number: string | null;
-          updated_at: string | null;
-          vat_payer: boolean | null;
+          updated_at: string;
+          vat_payer: boolean;
         };
+        ComputedFields: never;
         Relationships: [];
       };
       release_list: {
         Row: {
-          features: Json | null;
-          fixes: string[] | null;
-          headline: string | null;
-          improvements: string[] | null;
+          features: NonNullable<Json>;
+          fixes: string[];
+          headline: string;
+          improvements: string[];
           lead: string | null;
-          published_at: string | null;
-          tag: string | null;
+          published_at: string;
+          tag: string;
           unread: boolean | null;
         };
+        ComputedFields: never;
         Relationships: [];
       };
       signature_list: {
@@ -7908,37 +8007,39 @@ export type Database = {
           worker_count: number | null;
           workers: Json | null;
         };
+        ComputedFields: never;
         Relationships: [];
       };
       training_list: {
         Row: {
           attendee_count: number | null;
-          client_id: string | null;
-          created_at: string | null;
-          domain: Database['public']['Enums']['training_domain'] | null;
+          client_id: string;
+          created_at: string;
+          domain: Database['public']['Enums']['training_domain'];
           duration_minutes: number | null;
           has_signatures: boolean | null;
-          held_on: string | null;
-          id: string | null;
+          held_on: string;
+          id: string;
           material: string | null;
           notes: string | null;
-          organization_id: string | null;
+          organization_id: string;
           pending_signer_count: number | null;
           pending_trainee_count: number | null;
-          phase: Database['public']['Enums']['training_phase'] | null;
+          phase: Database['public']['Enums']['training_phase'];
           printed: boolean | null;
           search_names: string | null;
           signature_state: string | null;
           signed: boolean | null;
-          source: Database['public']['Enums']['training_source'] | null;
+          source: Database['public']['Enums']['training_source'];
           supplementary_reason: Database['public']['Enums']['supplementary_training_reason'] | null;
           themes_revision_id: string | null;
           trainer_job_title: string | null;
           trainer_name: string | null;
-          updated_at: string | null;
+          updated_at: string;
           verifier_job_title: string | null;
           verifier_name: string | null;
         };
+        ComputedFields: never;
         Relationships: [
           {
             foreignKeyName: 'trainings_client_id_fkey';
@@ -8025,7 +8126,7 @@ export type Database = {
         };
         Returns: string;
       };
-      accept_participant_invitations: { Args: never; Returns: number };
+      accept_participant_invitations: { Args: Record<PropertyKey, never>; Returns: number };
       access_at: {
         Args: { access_until: string };
         Returns: Database['public']['Enums']['access_level'];
@@ -8044,7 +8145,7 @@ export type Database = {
           domain: Database['public']['Enums']['training_domain'];
           explanation: string | null;
           id: string;
-          options: Json;
+          options: NonNullable<Json>;
           organization_id: string | null;
           position: number;
           replaces_question_id: string | null;
@@ -8203,11 +8304,7 @@ export type Database = {
         };
       };
       answer_test_attempt: {
-        Args: {
-          p_attempt_id: string;
-          p_chosen: number[];
-          p_question_index: number;
-        };
+        Args: { p_attempt_id: string; p_chosen: number[]; p_question_index: number };
         Returns: {
           client_address: unknown;
           client_id: string;
@@ -8221,7 +8318,7 @@ export type Database = {
           organization_id: string;
           participant_id: string;
           passed: boolean | null;
-          questions: Json;
+          questions: NonNullable<Json>;
           score: number | null;
           started_at: string;
           test: Database['public']['Enums']['knowledge_test'];
@@ -8236,19 +8333,11 @@ export type Database = {
         };
       };
       apply_client_import: {
-        Args: {
-          p_expected_version: number;
-          p_import_id: string;
-          p_payload: Json;
-        };
+        Args: { p_expected_version: number; p_import_id: string; p_payload: Json };
         Returns: Json;
       };
       apply_employee_import: {
-        Args: {
-          p_expected_version: number;
-          p_import_id: string;
-          p_payload: Json;
-        };
+        Args: { p_expected_version: number; p_import_id: string; p_payload: Json };
         Returns: Json;
       };
       apply_evaluation_profile: {
@@ -8273,12 +8362,9 @@ export type Database = {
         };
         Returns: Json;
       };
-      auth_user_id_by_address: {
-        Args: { p_address: string; p_channel: string };
-        Returns: string;
-      };
+      auth_user_id_by_address: { Args: { p_address: string; p_channel: string }; Returns: string };
       built_in_document_types: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           applies_when: string;
           document_group: Database['public']['Enums']['document_group'];
@@ -8363,10 +8449,7 @@ export type Database = {
         } & 'the function public.closed_at with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
       complete_import_copy: {
-        Args: {
-          p_import_id: string;
-          p_part?: Database['public']['Enums']['import_library_part'];
-        };
+        Args: { p_import_id: string; p_part?: Database['public']['Enums']['import_library_part'] };
         Returns: string;
       };
       copy_risk_factors: {
@@ -8374,12 +8457,7 @@ export type Database = {
         Returns: number;
       };
       create_employee_invitation_at_address: {
-        Args: {
-          p_address: string;
-          p_channel: string;
-          p_client_id: string;
-          p_employee_id: string;
-        };
+        Args: { p_address: string; p_channel: string; p_client_id: string; p_employee_id: string };
         Returns: {
           accepted_at: string | null;
           address: string;
@@ -8513,11 +8591,7 @@ export type Database = {
         }[];
       };
       credit_period_counts: {
-        Args: {
-          p_organization_id: string;
-          p_period_end: string;
-          p_period_start: string;
-        };
+        Args: { p_organization_id: string; p_period_end: string; p_period_start: string };
         Returns: {
           extra: number;
           extra_used: number;
@@ -8532,7 +8606,7 @@ export type Database = {
         } & 'the function public.current_employee_count with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
       current_impersonation: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           admin_user_id: string;
           ended_at: string | null;
@@ -8550,7 +8624,7 @@ export type Database = {
         };
       };
       current_membership: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           access: Database['public']['Enums']['access_level'];
           organization_id: string;
@@ -8558,10 +8632,10 @@ export type Database = {
           user_id: string;
         }[];
       };
-      current_organization_has_offers: { Args: never; Returns: boolean };
-      current_organization_id: { Args: never; Returns: string };
+      current_organization_has_offers: { Args: Record<PropertyKey, never>; Returns: boolean };
+      current_organization_id: { Args: Record<PropertyKey, never>; Returns: string };
       current_participations: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           access: Database['public']['Enums']['access_level'];
           client_id: string;
@@ -8583,10 +8657,7 @@ export type Database = {
           month: string;
         }[];
       };
-      delete_abandoned_imports: {
-        Args: { p_import_ids: string[] };
-        Returns: string[];
-      };
+      delete_abandoned_imports: { Args: { p_import_ids: string[] }; Returns: string[] };
       delete_archived_client: {
         Args: { p_client_id: string; p_organization_id: string };
         Returns: {
@@ -8594,8 +8665,8 @@ export type Database = {
           path: string;
         }[];
       };
-      drop_import_proposals: { Args: never; Returns: number };
-      effective_user_id: { Args: never; Returns: string };
+      drop_import_proposals: { Args: Record<PropertyKey, never>; Returns: number };
+      effective_user_id: { Args: Record<PropertyKey, never>; Returns: string };
       employee_client_search_name: {
         Args: { '': Database['public']['Tables']['employees']['Row'] };
         Returns: {
@@ -8663,20 +8734,19 @@ export type Database = {
           over_since: string;
         }[];
       };
-      employees_over_step_blocks_at: {
-        Args: { p_since: string };
-        Returns: string;
-      };
-      employees_over_step_last_day: {
-        Args: { p_since: string };
-        Returns: string;
-      };
+      employees_over_step_blocks_at: { Args: { p_since: string }; Returns: string };
+      employees_over_step_last_day: { Args: { p_since: string }; Returns: string };
       employees_over_step_limit: {
-        Args: { s: Database['public']['Tables']['subscriptions']['Row'] };
+        Args: {
+          s: Omit<
+            Database['public']['Tables']['subscriptions']['Row'],
+            Database['public']['Tables']['subscriptions']['ComputedFields']
+          >;
+        };
         Returns: number;
       };
       employees_over_step_notices_due: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           employee_limit: number;
           employees: number;
@@ -8686,7 +8756,7 @@ export type Database = {
           over_since: string;
         }[];
       };
-      expired_import_ids: { Args: never; Returns: string[] };
+      expired_import_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
       extend_trial: {
         Args: {
           p_actor: string;
@@ -8714,11 +8784,7 @@ export type Database = {
         }[];
       };
       finish_test_attempt: {
-        Args: {
-          p_attempt_id: string;
-          p_client_address?: unknown;
-          p_user_agent?: string;
-        };
+        Args: { p_attempt_id: string; p_client_address?: unknown; p_user_agent?: string };
         Returns: {
           client_address: unknown;
           client_id: string;
@@ -8732,7 +8798,7 @@ export type Database = {
           organization_id: string;
           participant_id: string;
           passed: boolean | null;
-          questions: Json;
+          questions: NonNullable<Json>;
           score: number | null;
           started_at: string;
           test: Database['public']['Enums']['knowledge_test'];
@@ -8804,14 +8870,14 @@ export type Database = {
         Args: { p_allowed: string[]; p_object: Json; p_what: string };
         Returns: undefined;
       };
-      import_reference: {
-        Args: { p_item: Json; p_keys: Json; p_name: string };
-        Returns: string;
-      };
+      import_reference: { Args: { p_item: Json; p_keys: Json; p_name: string }; Returns: string };
       import_risk_text: { Args: { p_value: Json }; Returns: string };
       imported_risk_evaluation: {
         Args: {
-          p_import: Database['public']['Tables']['imports']['Row'];
+          p_import: Omit<
+            Database['public']['Tables']['imports']['Row'],
+            Database['public']['Tables']['imports']['ComputedFields']
+          >;
           p_item: Json;
           p_user: string;
         };
@@ -8841,20 +8907,14 @@ export type Database = {
       instruction_article_count: { Args: { p_body: Json }; Returns: number };
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
       is_instruction_body: { Args: { p_body: Json }; Returns: boolean };
-      is_organization_owner: { Args: never; Returns: boolean };
-      is_platform_admin: { Args: never; Returns: boolean };
-      is_readable_client_file_path: {
-        Args: { p_path: string };
-        Returns: boolean;
-      };
+      is_organization_owner: { Args: Record<PropertyKey, never>; Returns: boolean };
+      is_platform_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      is_readable_client_file_path: { Args: { p_path: string }; Returns: boolean };
       is_readable_document_path: { Args: { p_path: string }; Returns: boolean };
       is_readable_import_path: { Args: { p_path: string }; Returns: boolean };
       is_signed_copy_path: { Args: { p_path: string }; Returns: boolean };
       is_uploadable_import_path: { Args: { p_path: string }; Returns: boolean };
-      is_writable_client_file_path: {
-        Args: { p_path: string };
-        Returns: boolean;
-      };
+      is_writable_client_file_path: { Args: { p_path: string }; Returns: boolean };
       issue_document_revision: {
         Args: {
           p_docx_sha256: string;
@@ -8884,21 +8944,24 @@ export type Database = {
       link_imported_instruction: {
         Args: {
           p_domain: Database['public']['Enums']['instruction_domain'];
-          p_import: Database['public']['Tables']['imports']['Row'];
+          p_import: Omit<
+            Database['public']['Tables']['imports']['Row'],
+            Database['public']['Tables']['imports']['ComputedFields']
+          >;
           p_item: Json;
           p_user: string;
         };
         Returns: number;
       };
       list_abandoned_imports: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           import_id: string;
           paths: string[];
         }[];
       };
       list_expired_import_copies: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           copy_id: string;
           folder: string;
@@ -8908,17 +8971,14 @@ export type Database = {
         }[];
       };
       list_import_objects_to_remove: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           import_id: string;
           paths: string[];
         }[];
       };
       lock_library_part: {
-        Args: {
-          p_import_id: string;
-          p_part: Database['public']['Enums']['import_library_part'];
-        };
+        Args: { p_import_id: string; p_part: Database['public']['Enums']['import_library_part'] };
         Returns: {
           attempt: number;
           cached_input_tokens: number;
@@ -8953,7 +9013,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
-      lock_members_as_owner: { Args: never; Returns: string };
+      lock_members_as_owner: { Args: Record<PropertyKey, never>; Returns: string };
       lock_visible_import: {
         Args: { p_import_id: string };
         Returns: {
@@ -8992,7 +9052,7 @@ export type Database = {
           started_at: string | null;
           status: Database['public']['Enums']['import_status'];
           updated_at: string;
-          usage_by_step: Json;
+          usage_by_step: NonNullable<Json>;
           version: number;
         };
         SetofOptions: {
@@ -9006,14 +9066,8 @@ export type Database = {
         Args: { p_file_ids: string[]; p_import_id: string };
         Returns: undefined;
       };
-      mark_import_copies_removed: {
-        Args: { p_copy_ids: string[] };
-        Returns: string[];
-      };
-      mark_import_objects_removed: {
-        Args: { p_import_ids: string[] };
-        Returns: string[];
-      };
+      mark_import_copies_removed: { Args: { p_copy_ids: string[] }; Returns: string[] };
+      mark_import_objects_removed: { Args: { p_import_ids: string[] }; Returns: string[] };
       mark_paper_signature: {
         Args: {
           p_record_id: string;
@@ -9057,10 +9111,7 @@ export type Database = {
         };
       };
       mark_test_sheet_paper_signature: {
-        Args: {
-          p_slot: Database['public']['Enums']['signer_slot'];
-          p_test_sheet_id: string;
-        };
+        Args: { p_slot: Database['public']['Enums']['signer_slot']; p_test_sheet_id: string };
         Returns: {
           address: string | null;
           certificate_serial: string | null;
@@ -9094,7 +9145,7 @@ export type Database = {
         };
       };
       my_open_invitations: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           expires_at: string;
           inviter_name: string;
@@ -9112,10 +9163,7 @@ export type Database = {
         };
         Returns: undefined;
       };
-      organization_employee_count: {
-        Args: { p_organization_id: string };
-        Returns: number;
-      };
+      organization_employee_count: { Args: { p_organization_id: string }; Returns: number };
       organization_employee_states: {
         Args: { p_organization_id: string };
         Returns: {
@@ -9128,10 +9176,7 @@ export type Database = {
           su_training_state: Database['public']['Enums']['training_state'];
         }[];
       };
-      organization_employees_blocked: {
-        Args: { p_organization_id: string };
-        Returns: boolean;
-      };
+      organization_employees_blocked: { Args: { p_organization_id: string }; Returns: boolean };
       organization_employees_in_state: {
         Args: {
           p_domain?: Database['public']['Enums']['training_domain'];
@@ -9182,10 +9227,7 @@ export type Database = {
           isSetofReturn: true;
         };
       };
-      organization_has_offers: {
-        Args: { p_organization_id: string };
-        Returns: boolean;
-      };
+      organization_has_offers: { Args: { p_organization_id: string }; Returns: boolean };
       organization_invitation_by_token: {
         Args: { invitation_token_hash: string };
         Returns: {
@@ -9199,14 +9241,14 @@ export type Database = {
         }[];
       };
       organization_member_activity: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           last_active_at: string;
           user_id: string;
         }[];
       };
       organization_member_list: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           email: string;
           full_name: string;
@@ -9231,7 +9273,7 @@ export type Database = {
           organization_id: string;
           participant_id: string;
           passed: boolean | null;
-          questions: Json;
+          questions: NonNullable<Json>;
           score: number | null;
           started_at: string;
           test: Database['public']['Enums']['knowledge_test'];
@@ -9268,10 +9310,7 @@ export type Database = {
         Returns: number;
       };
       record_import_copy: {
-        Args: {
-          p_import_id: string;
-          p_part?: Database['public']['Enums']['import_library_part'];
-        };
+        Args: { p_import_id: string; p_part?: Database['public']['Enums']['import_library_part'] };
         Returns: string;
       };
       record_import_usage: {
@@ -9311,11 +9350,8 @@ export type Database = {
         };
         Returns: boolean;
       };
-      refresh_all_employees_over_step: { Args: never; Returns: number };
-      refresh_employees_over_step: {
-        Args: { p_organization_id: string };
-        Returns: string;
-      };
+      refresh_all_employees_over_step: { Args: Record<PropertyKey, never>; Returns: number };
+      refresh_employees_over_step: { Args: { p_organization_id: string }; Returns: string };
       refund_import_credits: { Args: { p_import_id: string }; Returns: number };
       refund_library_part_credits: {
         Args: {
@@ -9326,18 +9362,9 @@ export type Database = {
         Returns: number;
       };
       refund_safety_sheet_credits: { Args: { p_key: string }; Returns: number };
-      refuse_archived_client: {
-        Args: { p_client_id: string };
-        Returns: undefined;
-      };
-      refuse_employees_over_step: {
-        Args: { p_organization_id: string };
-        Returns: undefined;
-      };
-      refuse_lead_without_offers: {
-        Args: { p_client_id: string };
-        Returns: undefined;
-      };
+      refuse_archived_client: { Args: { p_client_id: string }; Returns: undefined };
+      refuse_employees_over_step: { Args: { p_organization_id: string }; Returns: undefined };
+      refuse_lead_without_offers: { Args: { p_client_id: string }; Returns: undefined };
       register_built_in_template_version: {
         Args: {
           p_kind: string;
@@ -9354,10 +9381,7 @@ export type Database = {
           version: number;
         }[];
       };
-      remove_organization_member: {
-        Args: { member_user_id: string };
-        Returns: boolean;
-      };
+      remove_organization_member: { Args: { member_user_id: string }; Returns: boolean };
       reorder_risk_factors: {
         Args: { p_evaluation_id: string; p_factor_ids: string[] };
         Returns: boolean;
@@ -9390,24 +9414,12 @@ export type Database = {
         };
       };
       retry_import_library_part: {
-        Args: {
-          p_import_id: string;
-          p_part: Database['public']['Enums']['import_library_part'];
-        };
+        Args: { p_import_id: string; p_part: Database['public']['Enums']['import_library_part'] };
         Returns: number;
       };
-      revoke_client_participant: {
-        Args: { p_participant_id: string };
-        Returns: boolean;
-      };
-      revoke_organization_invitation: {
-        Args: { invitation_id: string };
-        Returns: boolean;
-      };
-      revoke_participant_invitation: {
-        Args: { p_invitation_id: string };
-        Returns: boolean;
-      };
+      revoke_client_participant: { Args: { p_participant_id: string }; Returns: boolean };
+      revoke_organization_invitation: { Args: { invitation_id: string }; Returns: boolean };
+      revoke_participant_invitation: { Args: { p_invitation_id: string }; Returns: boolean };
       save_evaluation_profile_factor: {
         Args: {
           p_actions?: string;
@@ -9426,11 +9438,7 @@ export type Database = {
         Returns: string;
       };
       save_import_changes: {
-        Args: {
-          p_changes: Json;
-          p_expected_version: number;
-          p_import_id: string;
-        };
+        Args: { p_changes: Json; p_expected_version: number; p_import_id: string };
         Returns: number;
       };
       save_import_library_part_changes: {
@@ -9492,7 +9500,7 @@ export type Database = {
         Returns: boolean;
       };
       setup_progress: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           address_filled: boolean;
           authorizations_done: boolean;
@@ -9539,21 +9547,14 @@ export type Database = {
         Returns: boolean;
       };
       sms_period_usage: {
-        Args: {
-          p_organization_id: string;
-          p_period_end: string;
-          p_period_start: string;
-        };
+        Args: { p_organization_id: string; p_period_end: string; p_period_start: string };
         Returns: {
           granted: number;
           overage: number;
           used: number;
         }[];
       };
-      split_import: {
-        Args: { p_file_ids: string[]; p_import_id: string };
-        Returns: Json;
-      };
+      split_import: { Args: { p_file_ids: string[]; p_import_id: string }; Returns: Json };
       start_impersonation: {
         Args: { p_reason: string; p_target_user_id: string };
         Returns: {
@@ -9620,7 +9621,7 @@ export type Database = {
           organization_id: string;
           participant_id: string;
           passed: boolean | null;
-          questions: Json;
+          questions: NonNullable<Json>;
           score: number | null;
           started_at: string;
           test: Database['public']['Enums']['knowledge_test'];
@@ -9672,19 +9673,8 @@ export type Database = {
       test_status: {
         Args: { '': Database['public']['Tables']['employees']['Row'] };
         Returns: {
-          client_id: string | null;
-          employee_id: string | null;
-          organization_id: string | null;
-          ssm_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
-          ssm_hiring_trained_on: string | null;
-          ssm_last_passed_on: string | null;
-          ssm_state: Database['public']['Enums']['test_state'] | null;
-          su_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
-          su_due_on: string | null;
-          su_hiring_trained_on: string | null;
-          su_last_passed_on: string | null;
-          su_state: Database['public']['Enums']['test_state'] | null;
-        };
+          error: true;
+        } & 'the function public.test_status with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
         SetofOptions: {
           from: 'employees';
           to: 'employee_test_status';
@@ -9707,41 +9697,16 @@ export type Database = {
         Returns: boolean;
       };
       training_record_has_slot: {
-        Args: {
-          p_record_id: string;
-          p_slot: Database['public']['Enums']['signer_slot'];
-        };
+        Args: { p_record_id: string; p_slot: Database['public']['Enums']['signer_slot'] };
         Returns: boolean;
       };
-      training_record_is_printed: {
-        Args: { p_record_id: string };
-        Returns: boolean;
-      };
-      training_record_is_signed: {
-        Args: { p_record_id: string };
-        Returns: boolean;
-      };
+      training_record_is_printed: { Args: { p_record_id: string }; Returns: boolean };
+      training_record_is_signed: { Args: { p_record_id: string }; Returns: boolean };
       training_status: {
         Args: { '': Database['public']['Tables']['employees']['Row'] };
         Returns: {
-          client_id: string | null;
-          employee_id: string | null;
-          organization_id: string | null;
-          ssm_due_on: string | null;
-          ssm_has_hiring_training: boolean | null;
-          ssm_interval_months: number | null;
-          ssm_interval_source: string | null;
-          ssm_last_periodic_on: string | null;
-          ssm_state: Database['public']['Enums']['training_state'] | null;
-          ssm_workplace_trained_on: string | null;
-          su_due_on: string | null;
-          su_has_hiring_training: boolean | null;
-          su_interval_months: number | null;
-          su_interval_source: string | null;
-          su_last_periodic_on: string | null;
-          su_state: Database['public']['Enums']['training_state'] | null;
-          su_workplace_trained_on: string | null;
-        };
+          error: true;
+        } & 'the function public.training_status with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
         SetofOptions: {
           from: 'employees';
           to: 'employee_training_status';
@@ -9751,11 +9716,7 @@ export type Database = {
       };
       unaccent_immutable: { Args: { '': string }; Returns: string };
       void_requests_without_standing: {
-        Args: {
-          p_account_id: string;
-          p_client_id: string;
-          p_organization_id: string;
-        };
+        Args: { p_account_id: string; p_client_id: string; p_organization_id: string };
         Returns: undefined;
       };
       void_training_signatures: {
@@ -9894,9 +9855,7 @@ export type Tables<
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
     : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R;
@@ -9919,9 +9878,7 @@ export type TablesInsert<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Insert: infer I;
     }
@@ -9943,9 +9900,7 @@ export type TablesUpdate<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Update: infer U;
     }
@@ -9967,9 +9922,7 @@ export type Enums<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
     : never) = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
     ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
@@ -9983,9 +9936,7 @@ export type CompositeTypes<
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
     : never) = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
     ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]

@@ -4,7 +4,10 @@ import { fromDatabaseError } from '../../lib/db';
 import type { BillingOrganization } from './oblio-documents';
 import type { Usage } from './rules';
 
-export type SubscriptionRow = Database['public']['Tables']['subscriptions']['Row'];
+export type SubscriptionRow = Omit<
+  Database['public']['Tables']['subscriptions']['Row'],
+  Database['public']['Tables']['subscriptions']['ComputedFields']
+>;
 export type SubscriptionFields = Partial<
   Omit<
     Database['public']['Tables']['subscriptions']['Insert'],
@@ -86,7 +89,7 @@ export async function recordChange(db: AdminClient, organizationId: string, reco
     source: record.source,
     change: record.change.slice(0, 60),
     reason: record.reason?.slice(0, 500) ?? null,
-    details: (record.details ?? {}) as Json,
+    details: record.details ?? {},
   });
   if (error) throw fromDatabaseError(error, 'billing change log');
 }

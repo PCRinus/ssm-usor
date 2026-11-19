@@ -22,6 +22,7 @@ export type LegislationTables = {
       updated_at: string;
       verified_consolidated_on: string | null;
     };
+    ComputedFields: never;
     Insert: {
       anchors_consolidated_on?: string | null;
       anchors_read_at?: string | null;
@@ -61,7 +62,7 @@ export type LegislationTables = {
       article: string | null;
       change_id: string;
       citation_form: string;
-      hunks: Json;
+      hunks: NonNullable<Json>;
       id: string;
       locator: string | null;
       manifest: string;
@@ -73,11 +74,12 @@ export type LegislationTables = {
       type_key: string | null;
       unit_label: string;
     };
+    ComputedFields: never;
     Insert: {
       article?: string | null;
       change_id: string;
       citation_form: string;
-      hunks?: Json;
+      hunks?: NonNullable<Json>;
       id?: string;
       locator?: string | null;
       manifest: string;
@@ -93,7 +95,7 @@ export type LegislationTables = {
       article?: string | null;
       change_id?: string;
       citation_form?: string;
-      hunks?: Json;
+      hunks?: NonNullable<Json>;
       id?: string;
       locator?: string | null;
       manifest?: string;
@@ -132,6 +134,7 @@ export type LegislationTables = {
       review: Json | null;
       seen_at: string;
     };
+    ComputedFields: never;
     Insert: {
       act_id: string;
       amended_units?: Json | null;
@@ -185,6 +188,7 @@ export type LegislationTables = {
       started_at: string;
       status: string;
     };
+    ComputedFields: never;
     Insert: {
       acts_checked?: number;
       acts_skipped?: number;
