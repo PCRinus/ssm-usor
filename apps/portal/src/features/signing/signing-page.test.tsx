@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createPortalSigningSession,
+  getPortalEmployeeSigningAgreementLink,
   getPortalSigningAgreementLink,
   getPortalTrainingSheetLink,
   type PortalSignatureRequestsResponse,
@@ -718,6 +719,11 @@ describe('the client administrator', () => {
   const second = '6f0c3e43-0c1b-4f4b-8a1e-0000000000e3';
 
   beforeEach(() => {
+    vi.mocked(getPortalEmployeeSigningAgreementLink).mockResolvedValue({
+      url: 'https://files.example.test/signed/employee-agreement',
+      fileName: 'Act-aditional-semnare-electronica-Pop-Ana.pdf',
+      expiresInSeconds: 600,
+    });
     mockQuery(useGetPortalMe, { participations: [administrator] });
     mockQuery(useListPortalSignatureRequests, { items: [] });
     mockQuery(useListPortalSigningAgreements, {
