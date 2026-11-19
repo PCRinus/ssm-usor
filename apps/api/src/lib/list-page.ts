@@ -47,8 +47,15 @@ export function matchingEveryTerm<Query extends { ilike(column: string, pattern:
   return terms.reduce((each, term) => each.ilike(column, `*${term}*`), query);
 }
 
-// `rows` asks for `count: 'exact'`. `unfiltered` is left out while nothing narrows the list,
-// whose total is then its unfiltered total too.
+// PostgREST counts only when asked with `count: 'exact'`; a read without it answers no count,
+// which must not pass for an empty list.
+function exactCount(count: number | null, what: string) {
+  if (count === null) throw new Error(`The ${what} list was read without count: 'exact'.`);
+  return count;
+}
+
+// `unfiltered` is left out while nothing narrows the list, whose total is then its unfiltered
+// total too.
 export async function listPage<Row>({
   page,
   pageSize,
@@ -67,16 +74,16 @@ export async function listPage<Row>({
   const { from, to } = pageRange(page, pageSize);
   const [listed, all] = await Promise.all([rows(from, to), unfiltered?.()]);
   if (all?.error) throw fromDatabaseError(all.error, `count ${what}`);
-  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
+  const unfilteredTotal = (total: number) => (all ? exactCount(all.count, what) : total);
   // PostgREST refuses a range past the end, which a page left open while rows went reaches:
   // it comes back empty, with the real totals.
   if (listed.error?.code === 'PGRST103') {
     const counted = await recount();
     if (counted.error) throw fromDatabaseError(counted.error, `count ${what}`);
-    const total = counted.count ?? 0;
+    const total = exactCount(counted.count, what);
     return { rows: [] as Row[], total, unfilteredTotal: unfilteredTotal(total) };
   }
   if (listed.error) throw fromDatabaseError(listed.error, `list ${what}`);
-  const total = listed.count ?? 0;
+  const total = exactCount(listed.count, what);
   return { rows: listed.data ?? [], total, unfilteredTotal: unfilteredTotal(total) };
 }

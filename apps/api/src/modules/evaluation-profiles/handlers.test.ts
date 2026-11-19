@@ -149,7 +149,8 @@ function mockUpstream(
       handlers.list?.({ method }, url) ??
       new Response(null, { headers: { 'Content-Range': '*/86' } }),
     'GET /rest/v1/evaluation_profile_list': ({ method, url }) =>
-      handlers.list?.({ method }, url) ?? Response.json([officeProfile]),
+      handlers.list?.({ method }, url) ??
+      Response.json([officeProfile], { headers: { 'Content-Range': '0-0/1' } }),
     '/rest/v1/evaluation_profiles': (call) => {
       const { method, url } = call;
       const custom = handlers.profiles?.({ method }, url);
@@ -303,7 +304,7 @@ describe('GET /evaluation-profiles', () => {
         isGet(init) && url.searchParams.get('select') === missingLevelsColumns
           ? Response.json([{ id: profileId, evaluation_profile_factors: [{ id: factorId }] }])
           : undefined,
-      list: () => Response.json([]),
+      list: () => Response.json([], { headers: { 'Content-Range': '*/0' } }),
     });
     expect((await request('/evaluation-profiles')).status).toBe(200);
     const [missing] = calls('evaluation_profiles', 'GET');
@@ -321,7 +322,7 @@ describe('GET /evaluation-profiles', () => {
   });
 
   it('writes nothing when every entry with factors has its levels', async () => {
-    mockUpstream({ list: () => Response.json([]) });
+    mockUpstream({ list: () => Response.json([], { headers: { 'Content-Range': '*/0' } }) });
     expect((await request('/evaluation-profiles')).status).toBe(200);
     expect(storedLevels()).toEqual([]);
   });
@@ -329,14 +330,17 @@ describe('GET /evaluation-profiles', () => {
   it('lists only the archived entries when asked for the archive', async () => {
     mockUpstream({
       list: () =>
-        Response.json([
-          summary(profileId, 'Lucrător de birou', {
-            sheetCount: 0,
-            clientCount: 0,
-            inUse: false,
-            archivedAt: stamp,
-          }),
-        ]),
+        Response.json(
+          [
+            summary(profileId, 'Lucrător de birou', {
+              sheetCount: 0,
+              clientCount: 0,
+              inUse: false,
+              archivedAt: stamp,
+            }),
+          ],
+          { headers: { 'Content-Range': '0-0/1' } }
+        ),
     });
     const response = await request('/evaluation-profiles?status=archived');
     expect(response.status).toBe(200);
@@ -346,7 +350,10 @@ describe('GET /evaluation-profiles', () => {
   });
 
   it('searches the names without diacritics, every term, within the tab', async () => {
-    mockUpstream({ list: (init) => (isGet(init) ? Response.json([]) : undefined) });
+    mockUpstream({
+      list: (init) =>
+        isGet(init) ? Response.json([], { headers: { 'Content-Range': '*/0' } }) : undefined,
+    });
     const response = await request(
       `/evaluation-profiles?status=archived&q=${encodeURIComponent('ȘOFER  royal')}`
     );
@@ -364,7 +371,10 @@ describe('GET /evaluation-profiles', () => {
     ['within', 'global_risk_level.lte.3.5'],
     ['none', 'factor_count.eq.0'],
   ])('filters by the global level %s the acceptable limit', async (level, expected) => {
-    mockUpstream({ list: (init) => (isGet(init) ? Response.json([]) : undefined) });
+    mockUpstream({
+      list: (init) =>
+        isGet(init) ? Response.json([], { headers: { 'Content-Range': '*/0' } }) : undefined,
+    });
     expect((await request(`/evaluation-profiles?level=${level}`)).status).toBe(200);
     expect(listQuery().get('or')).toBe(`(${expected})`);
   });
@@ -415,7 +425,7 @@ describe('GET /evaluation-profiles', () => {
     ['updatedAt', 'desc', 'updated_at.desc,name.asc,id.asc'],
     ['name', 'desc', 'name.desc,id.asc'],
   ])('sorts by %s %s in the database', async (sort, order, expected) => {
-    mockUpstream({ list: () => Response.json([]) });
+    mockUpstream({ list: () => Response.json([], { headers: { 'Content-Range': '*/0' } }) });
     const response = await request(`/evaluation-profiles?sort=${sort}&order=${order}`);
     expect(response.status).toBe(200);
     expect(listQuery().get('order')).toBe(expected);
@@ -573,7 +583,7 @@ describe('GET /evaluation-profiles/{profileId}', () => {
   });
 
   it('answers 404 for a profile outside the organization', async () => {
-    mockUpstream({ list: () => Response.json([]) });
+    mockUpstream({ list: () => Response.json([], { headers: { 'Content-Range': '*/0' } }) });
     expect((await request(profilePath)).status).toBe(404);
   });
 });

@@ -50,6 +50,29 @@ describe('listPage', () => {
     expect(page).toEqual({ rows: [], total: 3, unfilteredTotal: 7 });
   });
 
+  it('refuses a read that was not counted, rather than answer an empty list', async () => {
+    const page = (counts: { rows: number | null; recount: number | null; all: number | null }) =>
+      listPage({
+        page: 1,
+        pageSize: 25,
+        rows: () => listed([{ id: 'a' }], counts.rows),
+        recount: () => counted(counts.recount),
+        unfiltered: () => counted(counts.all),
+        what: 'clients',
+      });
+    await expect(page({ rows: null, recount: 1, all: 1 })).rejects.toThrow(/count: 'exact'/);
+    await expect(page({ rows: 1, recount: 1, all: null })).rejects.toThrow(/count: 'exact'/);
+
+    const pastTheEnd = listPage({
+      page: 9,
+      pageSize: 25,
+      rows: () => listed(null, null, 'PGRST103'),
+      recount: () => counted(null),
+      what: 'clients',
+    });
+    await expect(pastTheEnd).rejects.toThrow(/count: 'exact'/);
+  });
+
   it('turns any other failure into the API error of its database code', async () => {
     const failed = listPage({
       page: 1,
