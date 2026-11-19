@@ -25,6 +25,7 @@ sources:
   - apps/api/src/modules/clients/handlers.ts
   - apps/api/src/modules/documents/context.ts
   - apps/app/src/routes/_authenticated/clienti/index.tsx
+  - apps/app/src/features/clients/clients-page.tsx
   - apps/app/src/features/clients/client-columns.tsx
   - apps/app/src/features/clients/training-cell.tsx
   - apps/app/src/components/list-filters/list-filters.tsx

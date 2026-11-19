@@ -11,10 +11,12 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { getGetClientQueryKey, getListClientsQueryKey, usePromoteLead } from '@/api/generated/api';
+import { usePromoteLead } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { commonFailure } from '@/lib/api-errors';
+
+import { storeClient } from './client-cache';
 
 function serverMessage(cause: unknown) {
   const common = commonFailure(cause);
@@ -57,9 +59,7 @@ export function PromoteLeadDialog({
     setError(null);
     try {
       const saved = await promote.mutateAsync({ clientId: id });
-      // The client page reads the record through its loader, which keeps whatever is cached.
-      queryClient.setQueriesData({ queryKey: getGetClientQueryKey(id) }, saved);
-      await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+      await storeClient(queryClient, saved);
       toast.success(`${legalName} este acum client.`);
       close();
       await navigate({ to: '/clienti/$clientId/detalii', params: { clientId: id } });

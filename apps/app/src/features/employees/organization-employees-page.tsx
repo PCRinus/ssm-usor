@@ -8,6 +8,7 @@ import { useMemo } from 'react';
 
 import {
   getListOrganizationEmployeesQueryKey,
+  getListOrganizationEmployeesQueryOptions,
   type ListOrganizationEmployeesParams,
   useListOrganizationEmployees,
 } from '@/api/generated/api';
@@ -18,12 +19,14 @@ import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
+import { PendingCountLabel } from '@/components/list-filters/pending-count-label';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { useListSearch } from '@/components/list-filters/use-list-search';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
 
-import { employeeStatusLabels, pendingWorkersLabel, workerNoun } from './employee-format';
+import { employeeStatusLabels, workerNoun } from './employee-format';
 import {
   formerOrganizationEmployeeColumns,
   organizationEmployeeColumns,
@@ -61,20 +64,6 @@ type FilterKey = (typeof organizationWorkerFilterKeys)[number];
 type Filters = Pick<ListOrganizationEmployeesParams, FilterKey>;
 
 const rowKey = (row: OrganizationEmployeeRow) => row.id;
-
-function PendingEmployeesLabel({ params }: { params: ListOrganizationEmployeesParams }) {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const total = useListOrganizationEmployees(params, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListOrganizationEmployeesQueryKey(params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
-      placeholderData: keepPreviousData,
-    },
-  }).data?.total;
-  return pendingWorkersLabel(total);
-}
 
 export function OrganizationEmployeesPage() {
   const search = route.useSearch();
@@ -118,14 +107,27 @@ export function OrganizationEmployeesPage() {
   });
   const meta = employees.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const unfilteredTotal = employees.data?.unfilteredTotal ?? 0;
-  const changeSearch = (next: Partial<typeof search>) =>
-    void navigate({
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({ ...prev, ...next, page: undefined }),
+  const { changeQuery, changeFilters, onSortChange, onPageChange } = useListSearch({
+    search,
+    navigate,
+    defaultSort,
+    searchOf: (values: ListFilterValues<FilterKey>) => listFilters.searchOf(values) as Filters,
+  });
+  const pendingQuery = (pending: ListFilterValues<FilterKey>) => {
+    const counted: ListOrganizationEmployeesParams = {
+      ...params,
+      page: 1,
+      pageSize: 1,
+      ...(listFilters.searchOf(pending) as Filters),
+    };
+    return getListOrganizationEmployeesQueryOptions(counted, {
+      request: apiRequest,
+      query: {
+        queryKey: [...getListOrganizationEmployeesQueryKey(counted), session?.user.id],
+        enabled: Boolean(session && apiRequest.baseUrl),
+      },
     });
-  const changeFilters = (values: ListFilterValues<FilterKey>) =>
-    changeSearch(listFilters.searchOf(values) as Filters);
+  };
 
   return (
     <div data-testid="organization-employees-page" className="space-y-7">
@@ -155,7 +157,7 @@ export function OrganizationEmployeesPage() {
             <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
               <SearchInput
                 value={q}
-                onSearch={(next) => changeSearch({ q: next || undefined })}
+                onSearch={changeQuery}
                 placeholder={phone ? 'Caută lucrători' : 'Caută după nume sau marcă'}
                 label="Caută lucrători"
                 testId="organization-employees-search"
@@ -166,14 +168,7 @@ export function OrganizationEmployeesPage() {
                 onChange={changeFilters}
                 total={employees.isSuccess && !employees.isPlaceholderData ? meta.total : undefined}
                 applyLabel={(pending) => (
-                  <PendingEmployeesLabel
-                    params={{
-                      ...params,
-                      page: 1,
-                      pageSize: 1,
-                      ...(listFilters.searchOf(pending) as Filters),
-                    }}
-                  />
+                  <PendingCountLabel query={pendingQuery(pending)} noun={workerNoun} />
                 )}
                 countLabel={workerNoun}
                 testId="organization-employees-filters"
@@ -217,18 +212,8 @@ export function OrganizationEmployeesPage() {
           isFetching={employees.isFetching}
           isPlaceholderData={employees.isPlaceholderData}
           sort={{ sort, order }}
-          onSortChange={(next) =>
-            changeSearch({
-              sort:
-                next.sort === defaultSort.sort
-                  ? undefined
-                  : (next.sort as OrganizationEmployeeSortKey),
-              order: next.order === defaultSort.order ? undefined : next.order,
-            })
-          }
-          onPageChange={(next) =>
-            void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
-          }
+          onSortChange={onSortChange}
+          onPageChange={onPageChange}
           error={
             <WorkersListError
               error={employees.error}
@@ -244,7 +229,7 @@ export function OrganizationEmployeesPage() {
                 filtered={filtered}
                 q={q}
                 testId="organization-employees-empty-filtered"
-                onClear={() => (filtered ? changeFilters({}) : changeSearch({ q: undefined }))}
+                onClear={() => (filtered ? changeFilters({}) : changeQuery(undefined))}
               />
             ) : (
               <EmptyState

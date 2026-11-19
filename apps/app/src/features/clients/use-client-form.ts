@@ -3,15 +3,11 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouteContext, useRouter } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
-import {
-  getGetClientQueryKey,
-  getListClientsQueryKey,
-  useCreateClient,
-  useUpdateClient,
-} from '@/api/generated/api';
+import { getListClientsQueryKey, useCreateClient, useUpdateClient } from '@/api/generated/api';
 import { keepOpener } from '@/app/opener';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 
+import { storeClient } from './client-cache';
 import {
   type Client,
   clientFormSchema,
@@ -49,9 +45,7 @@ export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
           clientId: lead.id,
           data: toUpdateClientRequest(values, 'lead'),
         });
-        // The lead page reads the record through its loader, which keeps whatever is cached.
-        queryClient.setQueriesData({ queryKey: getGetClientQueryKey(lead.id) }, saved);
-        await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+        await storeClient(queryClient, saved);
         await router.invalidate();
         toast.success('Datele ofertei au fost salvate.');
         if (returnToRecord()) return;

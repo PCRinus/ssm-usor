@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import {
   getListInstructionModulesQueryKey,
+  getListInstructionModulesQueryOptions,
   type ListInstructionModulesParams,
   useListInstructionModules,
 } from '@/api/generated/api';
@@ -26,8 +27,10 @@ import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
+import { PendingCountLabel } from '@/components/list-filters/pending-count-label';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { useListSearch } from '@/components/list-filters/use-list-search';
 import { SearchInput } from '@/components/search-input';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
@@ -95,25 +98,6 @@ const moduleCount = (count: number) => countOf(count, ...moduleNoun);
 
 const rowKey = (row: InstructionModule) => row.id;
 
-function PendingModulesLabel({
-  params,
-  userId,
-}: {
-  params: ListInstructionModulesParams;
-  userId: string;
-}) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const counted = { ...params, page: 1, pageSize: 1 };
-  const total = useListInstructionModules(counted, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListInstructionModulesQueryKey(counted), userId],
-      placeholderData: keepPreviousData,
-    },
-  }).data?.total;
-  return total === undefined ? 'Arată rezultatele' : `Arată ${moduleCount(total)}`;
-}
-
 export function InstructionLibrary({
   domain,
   search,
@@ -163,22 +147,25 @@ export function InstructionLibrary({
   );
   const label = domainLabels[domain];
   const state = archived ? 'arhivată' : 'activă';
-  const changeFilters = (values: ListFilterValues<FilterKey>) =>
-    void navigate({
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({
-        ...prev,
-        ...(listFilters.searchOf(values) as InstructionModuleListFilters),
-        page: undefined,
-      }),
+  const { changeQuery, changeFilters, onSortChange, onPageChange } = useListSearch({
+    search,
+    navigate,
+    defaultSort,
+    searchOf: (values: ListFilterValues<FilterKey>) =>
+      listFilters.searchOf(values) as InstructionModuleListFilters,
+  });
+  const pendingQuery = (pending: ListFilterValues<FilterKey>) => {
+    const counted: ListInstructionModulesParams = {
+      ...tabParams,
+      ...(listFilters.searchOf(pending) as InstructionModuleListFilters),
+      page: 1,
+      pageSize: 1,
+    };
+    return getListInstructionModulesQueryOptions(counted, {
+      request: apiRequest,
+      query: { queryKey: [...getListInstructionModulesQueryKey(counted), userId] },
     });
-  const clearSearch = () =>
-    void navigate({
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({ ...prev, q: undefined, page: undefined }),
-    });
+  };
 
   return (
     <div
@@ -205,13 +192,7 @@ export function InstructionLibrary({
           <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
             <SearchInput
               value={q}
-              onSearch={(next) =>
-                void navigate({
-                  replace: true,
-                  resetScroll: false,
-                  search: (prev) => ({ ...prev, q: next || undefined, page: undefined }),
-                })
-              }
+              onSearch={changeQuery}
               placeholder="Caută după titlu"
               label="Caută instrucțiuni după titlu"
               testId="instruction-search"
@@ -222,13 +203,7 @@ export function InstructionLibrary({
               onChange={changeFilters}
               total={modules.isSuccess && !modules.isPlaceholderData ? meta.total : undefined}
               applyLabel={(pending) => (
-                <PendingModulesLabel
-                  params={{
-                    ...tabParams,
-                    ...(listFilters.searchOf(pending) as InstructionModuleListFilters),
-                  }}
-                  userId={userId}
-                />
+                <PendingCountLabel query={pendingQuery(pending)} noun={moduleCount} />
               )}
               countLabel={moduleCount}
               testId="instruction-filters"
@@ -274,24 +249,8 @@ export function InstructionLibrary({
         isFetching={modules.isFetching}
         isPlaceholderData={modules.isPlaceholderData}
         sort={{ sort, order }}
-        onSortChange={(next) =>
-          void navigate({
-            replace: true,
-            resetScroll: false,
-            search: (prev) => ({
-              ...prev,
-              sort:
-                next.sort === defaultSort.sort
-                  ? undefined
-                  : (next.sort as InstructionModuleSortKey),
-              order: next.order === defaultSort.order ? undefined : next.order,
-              page: undefined,
-            }),
-          })
-        }
-        onPageChange={(next) =>
-          void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
-        }
+        onSortChange={onSortChange}
+        onPageChange={onPageChange}
         error={
           <>
             <p data-testid="instruction-load-error" role="alert" className="text-sm">
@@ -317,7 +276,7 @@ export function InstructionLibrary({
                 <Button
                   variant="outline"
                   data-testid="instruction-empty-clear"
-                  onClick={filtered ? () => changeFilters({}) : clearSearch}
+                  onClick={() => (filtered ? changeFilters({}) : changeQuery(undefined))}
                 >
                   {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
                 </Button>

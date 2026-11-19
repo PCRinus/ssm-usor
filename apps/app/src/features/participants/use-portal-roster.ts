@@ -24,6 +24,7 @@ import {
 import { keepOpener } from '@/app/opener';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { useListSearch } from '@/components/list-filters/use-list-search';
 import { clientPlaceFacets, workplacePlaces } from '@/features/employees/worker-filters';
 
 import { portalAccessLabels } from './portal-access-format';
@@ -158,15 +159,15 @@ export function usePortalRoster(clientId: string, userId: string) {
     });
   const clearChoice = () => setSelection({ scope, chosen: noneChosen, capped: false });
 
-  const changeSearch = (next: Partial<typeof search>) =>
-    navigate({
-      state: keepOpener,
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({ ...prev, ...next, page: undefined }),
-    });
-  const changeFilters = (values: ListFilterValues<RosterFilterKey>) =>
-    void changeSearch(listFilters.searchOf(values) as RosterFilters);
+  const listSearch = useListSearch({
+    search,
+    navigate,
+    defaultSort,
+    searchOf: (values: ListFilterValues<RosterFilterKey>) =>
+      listFilters.searchOf(values) as RosterFilters,
+    state: keepOpener,
+  });
+  const { changeSearch } = listSearch;
 
   const [choosing, setChoosing] = useState(false);
   const [chooseOutcome, setChooseOutcome] = useState<'failed' | 'nobody' | null>(null);
@@ -216,7 +217,6 @@ export function usePortalRoster(clientId: string, userId: string) {
 
   return {
     search,
-    navigate,
     q,
     sort,
     order,
@@ -231,8 +231,7 @@ export function usePortalRoster(clientId: string, userId: string) {
     capped,
     choose,
     clearChoice,
-    changeSearch,
-    changeFilters,
+    ...listSearch,
     chooseUninvited,
     choosing,
     chooseOutcome,
