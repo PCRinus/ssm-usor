@@ -13,7 +13,7 @@ import { type FormEvent, type Ref, useEffect, useRef, useState } from 'react';
 import { PublicFrame } from '@/app/public-frame';
 import { CodeInput } from '@/components/code-input';
 import { deviceLocale, useActiveLocale } from '@/features/language/locale';
-import { unreachableMessage } from '@/features/signing/signing-messages';
+import { unreachableMessage } from '@/lib/messages';
 
 import { useAuth } from './auth-context';
 import type { CodeRequestResult, CodeVerificationResult, SignInAddress } from './auth-store';
