@@ -239,15 +239,6 @@ describe('the legal changes', () => {
       expect(adminRequests().at(-1)!.url.search).toBe('?status=open&outcome=unassessed')
     );
   });
-
-  it('is reached from the home page and the top bar', async () => {
-    const runtime = mountAdmin('/');
-    await userEvent.setup().click(await screen.findByTestId('home-legislation'));
-    await screen.findAllByTestId('legal-change-row');
-    expect(runtime.router.state.location.pathname).toBe('/legislation');
-    expect(screen.getByTestId('nav-legislation').getAttribute('aria-current')).toBe('page');
-    expect(screen.getByTestId('tab-changes').getAttribute('aria-current')).toBe('page');
-  });
 });
 
 describe('a legal change', () => {

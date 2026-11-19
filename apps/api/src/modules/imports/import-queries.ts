@@ -58,6 +58,7 @@ export type ImportRow = Pick<
   | 'ready_at'
   | 'failed_at'
   | 'confirmed_at'
+  | 'abandoned_at'
 > & {
   clients: { id: string; legal_name: string } | null;
   import_files: { count: number }[];
@@ -69,7 +70,7 @@ export type ImportRow = Pick<
 };
 
 export const summaryColumns =
-  'id, kind, status, client_id, into_existing_client, company_name, company_cui, source_import_id, failure_reason, created_by, created_at, updated_at, started_at, ready_at, failed_at, confirmed_at, clients!imports_client_in_organization(id, legal_name), import_files(count), last_file:import_files(updated_at), import_library_parts(part, status)';
+  'id, kind, status, client_id, into_existing_client, company_name, company_cui, source_import_id, failure_reason, created_by, created_at, updated_at, started_at, ready_at, failed_at, confirmed_at, abandoned_at, clients!imports_client_in_organization(id, legal_name), import_files(count), last_file:import_files(updated_at), import_library_parts(part, status)';
 
 // The clean-up fails an import uploading or ready with no change to it or its files for 14 days
 // (fail_stalled_imports).
@@ -127,6 +128,7 @@ export function toSummary(
     readyAt: row.ready_at,
     failedAt: row.failed_at,
     confirmedAt: row.confirmed_at,
+    abandonedAt: row.abandoned_at,
     expiresAt: expiresAtOf(row),
     people,
     uninvited,

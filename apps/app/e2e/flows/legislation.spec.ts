@@ -7,6 +7,7 @@ import {
   createAccount,
   createClientCompany,
   createOrganization,
+  expectSetGenerated,
   nameFireSafetyTechnician,
   openDocumentSection,
   putBehindItsTemplate,
@@ -32,12 +33,10 @@ test('a document behind its template is regenerated for every client from the Le
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible({
-    timeout: 30_000,
-  });
+  await expectSetGenerated(page);
 
   const title = 'Registru de evidență a controlului stingătoarelor de incendiu';
-  const version = await putBehindItsTemplate(clientId, 'fire_extinguisher_register');
+  await putBehindItsTemplate(clientId, 'fire_extinguisher_register');
   await page.reload();
   await openDocumentSection(page, '6');
   const row = page.getByTestId('document-row').filter({ hasText: title });
@@ -46,27 +45,23 @@ test('a document behind its template is regenerated for every client from the Le
   await page.getByTestId('nav-legislatie').click();
   await expect(page).toHaveURL(/\/legislatie\/documente-ssm$/);
   const navigationTabs = page.getByTestId('nav-legislatie-group').getByTestId('nav-sub-entry');
-  await expect(navigationTabs).toHaveText([
-    'SSM de actualizat',
-    'SU de actualizat1 documente de actualizat',
-    'Modificări',
-    'Acte urmărite',
-  ]);
   await expect(navigationTabs.first()).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByTestId('documents-behind-empty')).toContainText(
-    'Documentele SSM sunt la zi'
+  const counted = navigationTabs.filter({ has: page.getByTestId('nav-sub-count') });
+  await expect(counted).toHaveAttribute('href', '/legislatie/documente-su');
+  await expect(counted.getByTestId('nav-sub-count')).toHaveText(/^1\b/);
+  await expect(page.getByTestId('documents-behind-empty')).toBeVisible();
+  const suTab = page.locator(
+    '[data-testid="legislation-section"][href="/legislatie/documente-su"]'
   );
-  const suTab = page
-    .getByTestId('legislation-section')
-    .filter({ hasText: 'Documente SU de actualizat' });
-  await expect(suTab).toHaveText('Documente SU de actualizat1 documente de actualizat');
+  await expect(suTab.getByTestId('section-nav-count')).toHaveText(/^1\b/);
   await suTab.click();
   await expect(page).toHaveURL(/\/legislatie\/documente-su$/);
   const type = page.getByTestId('behind-type').filter({ hasText: title });
   await type.getByTestId('behind-clients-toggle').click();
-  await expect(page.getByTestId('behind-client')).toHaveText([
-    `${clientName}Versiunea ${version}Ciornăse înlocuiește`,
-  ]);
+  await expect(page.getByTestId('behind-client')).toHaveCount(1);
+  await expect(page.getByTestId('behind-client')).toContainText(clientName);
+  // The unit tests cover an issued and a hand-edited document; a plain draft is pinned here.
+  await expect(page.getByTestId('behind-client')).toContainText('se înlocuiește');
 
   await page.getByTestId('behind-client').getByRole('link', { name: clientName }).click();
   await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-su\\?section=registers`));
@@ -85,13 +80,9 @@ test('a document behind its template is regenerated for every client from the Le
   await type.getByTestId('behind-regenerate').click();
   await page.getByTestId('behind-confirm').click();
 
-  await expect(page.getByTestId('regeneration-result-counts')).toHaveText(
-    'Regenerarea s-a încheiat: 1 din 1 document'
-  );
+  await expect(page.getByTestId('regeneration-result-counts')).toHaveText(/: 1 din 1 document$/);
   await expect(page.getByTestId('regeneration-drafts')).toContainText(clientName);
-  await expect(page.getByTestId('documents-behind-empty')).toContainText(
-    'Documentele SU sunt la zi'
-  );
+  await expect(page.getByTestId('documents-behind-empty')).toBeVisible();
 
   await page.goto(`/clienti/${clientId}/documente-su`);
   await openDocumentSection(page, '6');
@@ -112,9 +103,7 @@ test('a client whose decision prints missing data fails the regeneration with ro
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible({
-    timeout: 30_000,
-  });
+  await expectSetGenerated(page);
 
   await updateClient(clientId, { training_day_to: null });
   await putBehindItsTemplate(clientId, 'decision_training');

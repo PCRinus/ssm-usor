@@ -1760,6 +1760,7 @@ describe('a smoking rule the decisions disagree on', () => {
     expect(within(row).getByTestId('review-not-applicable').textContent).toBe(
       'Nu se aplică: fumatul e interzis peste tot, așa că locul nu se preia.'
     );
+    expect(screen.queryByTestId('review-fact')).toBeNull();
   });
 
   it('takes the place as any value under designated places', async () => {
@@ -2800,20 +2801,6 @@ describe('the assembly point and the smoking place', () => {
     expect(savedChanges(0).changes.fields).toEqual({
       [placePath]: { option: 0, value: 'LA POARTA UNITATII' },
     });
-  });
-
-  it('asks nothing of the place while smoking is forbidden everywhere', async () => {
-    mockReview(
-      siteDetail({
-        fields: { 'fireSafety.smokingPolicy': { value: 'forbidden_everywhere' } },
-        blockers: [],
-      })
-    );
-    mount('/fire-safety');
-
-    await screen.findByText('Locul pentru fumat');
-    expect(screen.queryByTestId('review-fact')).toBeNull();
-    expect(screen.getByTestId('review-not-applicable')).toBeTruthy();
   });
 
   it('keeps a workplace’s assembly point, writes another, or leaves it empty', async () => {

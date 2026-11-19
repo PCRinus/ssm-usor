@@ -1,6 +1,7 @@
 import { releaseSchema } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
+import { parseReleaseBody } from '../../../../packages/release-notes/src/parse';
 import { bucharestTag, inventedReleases } from './seed-releases';
 
 describe('bucharestTag', () => {
@@ -55,23 +56,19 @@ describe('inventedReleases', () => {
   });
 
   it('writes the body in the dialect, leaving out empty sections', () => {
-    expect(rows[3]!.body).toBe(
-      [
-        '# Prima versiune publică',
-        'SSM Ușor se deschide pentru primii clienți: documentația SSM și PSI, semnătura electronică avansată și portalul participanților.',
-        '',
-        '## Ce e nou',
-        '### Documentația SSM și PSI, generată din datele clientului',
-        'Cele 23 de documente ale celor două seturi se generează din posturi, angajați și instruiri, și se emit ca PDF.',
-        'Unde o găsești: Client, fila Documente',
-        'Pictogramă: files',
-        '### Semnătură electronică avansată',
-        'Fișele individuale se semnează din portal, cu certificat per participant, fără hârtie.',
-        'Unde o găsești: Semnături',
-        'Pictogramă: pen-line',
-        '',
-      ].join('\n')
-    );
+    for (const row of rows) {
+      expect(parseReleaseBody(row.body), row.tag).toEqual({
+        kind: 'update',
+        update: {
+          headline: row.headline,
+          lead: row.lead,
+          features: row.features,
+          improvements: row.improvements,
+          fixes: row.fixes,
+        },
+        source: expect.any(String),
+      });
+    }
     expect(rows[2]!.body).not.toContain('## Ce e nou');
     expect(rows[2]!.body).toContain('## Remedieri\n- Arhiva setului');
   });

@@ -96,7 +96,12 @@ describe('the dialogs that correct the data read from the sheets', () => {
     ]);
     await user.click(screen.getByRole('button', { name: 'Renunță' }));
 
-    await open(user, 'Modifică datele de angajare');
+    const employment = within(screen.getByTestId('person-fields-employment')).getByRole('button', {
+      name: 'Modifică datele de angajare',
+    });
+    expect(employment.textContent).toBe('Modifică');
+    await user.click(employment);
+    expect(within(dialog()).getByRole('heading').textContent).toBe('Angajare');
     expect(rows()).toEqual([['jobTitle'], ['hiredAt', 'leftOn'], ['employeeNumber']]);
     await user.click(screen.getByRole('button', { name: 'Renunță' }));
 
@@ -340,19 +345,6 @@ describe('the card of the data read from the sheets', () => {
         value: commuteMeansKey({ means: ['on_foot', 'public_transport'], other: null }),
       },
     });
-  });
-
-  it('opens the whole group from its Modifică button', async () => {
-    const user = userEvent.setup();
-    render(<Data />);
-    const button = within(screen.getByTestId('person-fields-employment')).getByRole('button', {
-      name: 'Modifică datele de angajare',
-    });
-    expect(button.textContent).toBe('Modifică');
-
-    await user.click(button);
-    expect(within(dialog()).getByRole('heading').textContent).toBe('Angajare');
-    expect(rows()).toEqual([['jobTitle'], ['hiredAt', 'leftOn'], ['employeeNumber']]);
   });
 
   const pending = () => screen.getByTestId('person-data-pending').textContent;

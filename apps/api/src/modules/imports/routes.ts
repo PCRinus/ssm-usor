@@ -1,6 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   addFoundSheetsRequestSchema,
+  closedImportListResponseSchema,
   confirmImportLibraryPartRequestSchema,
   confirmImportRequestSchema,
   confirmImportResponseSchema,
@@ -17,6 +18,7 @@ import {
   importSourceResponseSchema,
   importSummarySchema,
   instructionsPartDetailSchema,
+  listClosedImportsQuerySchema,
   listImportsQuerySchema,
   registerImportFilesRequestSchema,
   registerImportFilesResponseSchema,
@@ -109,7 +111,7 @@ export const listImportsRoute = createRoute({
   operationId: 'listImports',
   summary: "List the organization's open or last confirmed imports",
   description:
-    "Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: the last ten, or every one of a client's client imports with `clientId`, which its Detalii tab lists with what is left of each; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.",
+    "Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: the last ten, or every one of a client's client imports with `clientId`, which its Detalii tab lists with what is left of each; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left. With `withOpenParts` and the open imports of `client` or `all`, also the confirmed client imports confirmed less than 14 days ago with a library part not yet confirmed, among the others newest first by when they were created: the open rows of the imports page. Such an import is in `GET /imports/closed` too: it is confirmed, and its parts are still open.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: listImportsQuerySchema },
@@ -119,6 +121,30 @@ export const listImportsRoute = createRoute({
       content: {
         'application/json': {
           schema: importListResponseSchema.meta({ id: 'ImportListResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid query', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const listClosedImportsRoute = createRoute({
+  method: 'get',
+  path: '/imports/closed',
+  operationId: 'listClosedImports',
+  summary: "List a page of the organization's confirmed and abandoned imports",
+  description:
+    'The confirmed and abandoned imports of `kind`, latest first by when they ended (when they were confirmed or abandoned, or, for one abandoned after it failed, when it failed), ties by id: the history the imports page shows under Încheiate. An abandoned import is listed until the clean-up deletes it, 14 days after it was abandoned. A confirmed client import with a library part still open is also among the open rows of `GET /imports` with `withOpenParts`: it is confirmed, and its parts are still open.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { query: listClosedImportsQuerySchema },
+  responses: {
+    200: {
+      description: 'A page of the closed imports',
+      content: {
+        'application/json': {
+          schema: closedImportListResponseSchema.meta({ id: 'ClosedImportListResponse' }),
         },
       },
     },

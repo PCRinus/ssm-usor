@@ -8790,6 +8790,8 @@ export interface ImportSummary {
   /** @nullable */
   confirmedAt: string | null;
   /** @nullable */
+  abandonedAt: string | null;
+  /** @nullable */
   expiresAt: string | null;
   /** @nullable */
   people: ImportSummaryPeople;
@@ -8945,6 +8947,8 @@ export type ImportListResponseItemsItem = {
   /** @nullable */
   confirmedAt: string | null;
   /** @nullable */
+  abandonedAt: string | null;
+  /** @nullable */
   expiresAt: string | null;
   /** @nullable */
   people: ImportListResponseItemsItemPeople;
@@ -8960,6 +8964,158 @@ export type ImportListResponseItemsItem = {
 
 export interface ImportListResponse {
   items: ImportListResponseItemsItem[];
+}
+
+export type ClosedImportListResponseItemsItemKind =
+  (typeof ClosedImportListResponseItemsItemKind)[keyof typeof ClosedImportListResponseItemsItemKind];
+
+export const ClosedImportListResponseItemsItemKind = {
+  client: 'client',
+  employees: 'employees',
+} as const;
+
+export type ClosedImportListResponseItemsItemStatus =
+  (typeof ClosedImportListResponseItemsItemStatus)[keyof typeof ClosedImportListResponseItemsItemStatus];
+
+export const ClosedImportListResponseItemsItemStatus = {
+  uploading: 'uploading',
+  preparing: 'preparing',
+  sorting: 'sorting',
+  reading: 'reading',
+  checking: 'checking',
+  ready: 'ready',
+  confirmed: 'confirmed',
+  abandoned: 'abandoned',
+  failed: 'failed',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClosedImportListResponseItemsItemClient = {
+  id: string;
+  legalName: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ClosedImportListResponseItemsItemCreatedBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ClosedImportListResponseItemsItemPeople = {
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  toCheck: number;
+  /** @minimum 0 */
+  checked: number;
+  /** @minimum 0 */
+  setAside: number;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ClosedImportListResponseItemsItemProgress = {
+  /** @minimum 0 */
+  files: number;
+  /** @minimum 0 */
+  prepared: number;
+  /** @minimum 0 */
+  scans: number;
+  /** @minimum 0 */
+  scansRead: number;
+} | null;
+
+export type ClosedImportListResponseItemsItemLibraryPartsItemPart =
+  (typeof ClosedImportListResponseItemsItemLibraryPartsItemPart)[keyof typeof ClosedImportListResponseItemsItemLibraryPartsItemPart];
+
+export const ClosedImportListResponseItemsItemLibraryPartsItemPart = {
+  instructions_ssm: 'instructions_ssm',
+  instructions_su: 'instructions_su',
+  risk_evaluations: 'risk_evaluations',
+} as const;
+
+export type ClosedImportListResponseItemsItemLibraryPartsItemStatus =
+  (typeof ClosedImportListResponseItemsItemLibraryPartsItemStatus)[keyof typeof ClosedImportListResponseItemsItemLibraryPartsItemStatus];
+
+export const ClosedImportListResponseItemsItemLibraryPartsItemStatus = {
+  reading: 'reading',
+  to_review: 'to_review',
+  nothing_new: 'nothing_new',
+  failed: 'failed',
+  confirmed: 'confirmed',
+} as const;
+
+export type ClosedImportListResponseItemsItemLibraryPartsItem = {
+  part: ClosedImportListResponseItemsItemLibraryPartsItemPart;
+  status: ClosedImportListResponseItemsItemLibraryPartsItemStatus;
+  /** @nullable */
+  expiresAt: string | null;
+};
+
+export type ClosedImportListResponseItemsItem = {
+  id: string;
+  kind: ClosedImportListResponseItemsItemKind;
+  status: ClosedImportListResponseItemsItemStatus;
+  /** @nullable */
+  client: ClosedImportListResponseItemsItemClient;
+  intoExistingClient: boolean;
+  /** @nullable */
+  companyName: string | null;
+  /** @nullable */
+  companyCui: string | null;
+  /** @nullable */
+  sourceImportId: string | null;
+  /** @nullable */
+  failureReason: string | null;
+  /** @minimum 0 */
+  fileCount: number;
+  /** @nullable */
+  createdBy: ClosedImportListResponseItemsItemCreatedBy;
+  createdAt: string;
+  /** @nullable */
+  startedAt: string | null;
+  /** @nullable */
+  readyAt: string | null;
+  /** @nullable */
+  failedAt: string | null;
+  /** @nullable */
+  confirmedAt: string | null;
+  /** @nullable */
+  abandonedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @nullable */
+  people: ClosedImportListResponseItemsItemPeople;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  uninvited: number | null;
+  /** @nullable */
+  progress: ClosedImportListResponseItemsItemProgress;
+  libraryParts: ClosedImportListResponseItemsItemLibraryPartsItem[];
+};
+
+export interface ClosedImportListResponse {
+  items: ClosedImportListResponseItemsItem[];
+  /** @minimum 1 */
+  page: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize: number;
+  /** @minimum 0 */
+  total: number;
 }
 
 export type ImportDetailKind = (typeof ImportDetailKind)[keyof typeof ImportDetailKind];
@@ -11544,6 +11700,8 @@ export interface ImportDetail {
   failedAt: string | null;
   /** @nullable */
   confirmedAt: string | null;
+  /** @nullable */
+  abandonedAt: string | null;
   /** @nullable */
   expiresAt: string | null;
   /** @nullable */
@@ -17483,6 +17641,10 @@ export type ListImportsParams = {
    * The open imports when left out; `confirmed` the 10 confirmed last, or, with `clientId` and client imports (`kind` left out or `client`), every confirmed import of that client; with `uninvited` counted for a client's employee imports.
    */
   status?: ListImportsStatus;
+  /**
+   * With the open imports: also the confirmed client imports with a library part neither confirmed nor expired.
+   */
+  withOpenParts?: string;
 };
 
 export type ListImportsKind = (typeof ListImportsKind)[keyof typeof ListImportsKind];
@@ -17498,6 +17660,27 @@ export type ListImportsStatus = (typeof ListImportsStatus)[keyof typeof ListImpo
 export const ListImportsStatus = {
   open: 'open',
   confirmed: 'confirmed',
+} as const;
+
+export type ListClosedImportsParams = {
+  kind: ListClosedImportsKind;
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: number;
+};
+
+export type ListClosedImportsKind =
+  (typeof ListClosedImportsKind)[keyof typeof ListClosedImportsKind];
+
+export const ListClosedImportsKind = {
+  client: 'client',
+  employees: 'employees',
 } as const;
 
 export type GetImportSourceParams = {
@@ -38053,7 +38236,7 @@ export const getListImportsUrl = (params?: ListImportsParams) => {
 };
 
 /**
- * Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: the last ten, or every one of a client's client imports with `clientId`, which its Detalii tab lists with what is left of each; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.
+ * Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: the last ten, or every one of a client's client imports with `clientId`, which its Detalii tab lists with what is left of each; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left. With `withOpenParts` and the open imports of `client` or `all`, also the confirmed client imports confirmed less than 14 days ago with a library part not yet confirmed, among the others newest first by when they were created: the open rows of the imports page. Such an import is in `GET /imports/closed` too: it is confirmed, and its parts are still open.
  * @summary List the organization's open or last confirmed imports
  */
 export const listImports = async (
@@ -38162,6 +38345,140 @@ export function useListImports<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListImportsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListClosedImportsUrl = (params: ListClosedImportsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/imports/closed?${stringifiedParams}` : `/imports/closed`;
+};
+
+/**
+ * The confirmed and abandoned imports of `kind`, latest first by when they ended (when they were confirmed or abandoned, or, for one abandoned after it failed, when it failed), ties by id: the history the imports page shows under Încheiate. An abandoned import is listed until the clean-up deletes it, 14 days after it was abandoned. A confirmed client import with a library part still open is also among the open rows of `GET /imports` with `withOpenParts`: it is confirmed, and its parts are still open.
+ * @summary List a page of the organization's confirmed and abandoned imports
+ */
+export const listClosedImports = async (
+  params: ListClosedImportsParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClosedImportListResponse> => {
+  return apiFetch<ClosedImportListResponse>(getListClosedImportsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListClosedImportsQueryKey = (params?: ListClosedImportsParams) => {
+  return [`/imports/closed`, ...(params ? [params] : [])] as const;
+};
+
+export const getListClosedImportsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listClosedImports>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListClosedImportsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClosedImports>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListClosedImportsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listClosedImports>>> = ({ signal }) =>
+    listClosedImports(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listClosedImports>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListClosedImportsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listClosedImports>>
+>;
+export type ListClosedImportsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListClosedImports<
+  TData = Awaited<ReturnType<typeof listClosedImports>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListClosedImportsParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClosedImports>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listClosedImports>>,
+          TError,
+          Awaited<ReturnType<typeof listClosedImports>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListClosedImports<
+  TData = Awaited<ReturnType<typeof listClosedImports>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListClosedImportsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClosedImports>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listClosedImports>>,
+          TError,
+          Awaited<ReturnType<typeof listClosedImports>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListClosedImports<
+  TData = Awaited<ReturnType<typeof listClosedImports>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListClosedImportsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClosedImports>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List a page of the organization's confirmed and abandoned imports
+ */
+
+export function useListClosedImports<
+  TData = Awaited<ReturnType<typeof listClosedImports>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: ListClosedImportsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClosedImports>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListClosedImportsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

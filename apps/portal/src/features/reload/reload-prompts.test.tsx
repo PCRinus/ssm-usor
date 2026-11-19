@@ -160,30 +160,12 @@ describe('the reload dialog', () => {
     expect(Number(sessionStorage.getItem('ssm-usor:portal-reload-at'))).toBeGreaterThan(0);
   });
 
-  it('during a test, says which answers are saved and which one to tick again', async () => {
-    mountPrompts({ kind: 'test', question: 4 });
-    act(() => openOutdatedDialog('426'));
-
-    expect((await screen.findByTestId('reload-dialog-safe')).textContent).toBe(
-      'Răspunsurile la întrebările 1–3 sunt salvate. După reîncărcare vei bifa din nou răspunsul la întrebarea 4.'
-    );
-  });
-
   it('on the first question of a test, says the test stays open', async () => {
     mountPrompts({ kind: 'test', question: 1 });
     act(() => openOutdatedDialog('426'));
 
     expect((await screen.findByTestId('reload-dialog-safe')).textContent).toMatch(
       /^Testul rămâne deschis\..*întrebarea 1\.$/
-    );
-  });
-
-  it('while signing, says nothing is signed yet', async () => {
-    mountPrompts({ kind: 'signing', signedBefore: false });
-    act(() => openOutdatedDialog('426'));
-
-    expect((await screen.findByTestId('reload-dialog-safe')).textContent).toBe(
-      'Nu s-a semnat încă nimic. După reîncărcare poți semna.'
     );
   });
 

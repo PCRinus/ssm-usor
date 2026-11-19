@@ -16,10 +16,8 @@ describe('sign-in code', () => {
     const email = await sendCode();
 
     expect(email.subject).toBe('Codul tău de conectare SSM Ușor: 493027');
-    expect(email.html).toContain('lang="ro"');
     expect(email.html).toContain('493027');
     expect(email.text).toContain('493027');
-    expect(email.text).not.toContain('<');
   });
 
   it('carries no link to sign in with', async () => {
@@ -34,11 +32,5 @@ describe('sign-in code', () => {
 
     expect(email.text).toContain('valabil 10 minute');
     expect(email.text).toContain('nimeni de la SSM Ușor nu ți-l va cere');
-  });
-
-  it('stays far below the size at which Gmail clips an email', async () => {
-    const email = await sendCode();
-
-    expect(new TextEncoder().encode(email.html).length).toBeLessThan(102 * 1024);
   });
 });

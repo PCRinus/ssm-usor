@@ -1579,6 +1579,12 @@ the substances `apply_client_import` writes by `20261111140000_import_substances
 `expensive_alerted_at`, by a `when` on its trigger, as on `import_library_parts` but a report: the
 14 days of a ready import and the 6 hours before a reading part counts as stalled run from it.
 
+The closed imports, the confirmed and abandoned ones, are ordered by the computed field
+`closed_at(imports)`: `confirmed_at` or `abandoned_at`, which for a failed import abandoned is its
+`failed_at`. `imports_closed_idx` indexes the same expression after the organization and kind. It
+is not a stored generated column, which would stop `imports_set_updated_at`, whose `when` reads
+`to_jsonb(new)`, from being created again.
+
 `import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
 composite key to `imports (id, organization_id)`, deleted with the import:
 

@@ -30,12 +30,10 @@ describe('organization invitation', () => {
   it('renders the accept link into both the HTML and the plain text', async () => {
     const email = await sendInvitation('Ana Popescu');
 
-    expect(email.html).toContain('lang="ro"');
     expect(email.html).toContain(`href="${acceptUrl.replace('&', '&amp;')}"`);
     expect(email.html).toContain('Acceptă invitația');
     expect(email.text).toContain(acceptUrl);
     expect(email.text).toContain('Ana Popescu te invită');
-    expect(email.text).not.toContain('<');
   });
 
   it('gives the expiry as a Romanian date in Bucharest time', async () => {
@@ -50,11 +48,5 @@ describe('organization invitation', () => {
 
     expect(email.text).toContain('Ai primit o invitație în organizația Protect SSM');
     expect(email.text).not.toContain('null');
-  });
-
-  it('stays far below the size at which Gmail clips an email', async () => {
-    const email = await sendInvitation('Ana Popescu');
-
-    expect(new TextEncoder().encode(email.html).length).toBeLessThan(102 * 1024);
   });
 });

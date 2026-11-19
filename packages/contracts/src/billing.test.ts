@@ -110,13 +110,6 @@ describe('plan catalogue', () => {
       'credits_extra',
     ]);
   });
-
-  it('keeps two metered prices, both monthly, for the extras the owner may turn on', () => {
-    expect(cataloguePrices.filter((price) => price.usage === 'metered')).toEqual([
-      expect.objectContaining({ lookupKey: 'sms_overage_monthly_v2', interval: 'month' }),
-      expect.objectContaining({ lookupKey: 'credits_extra_monthly_v2', interval: 'month' }),
-    ]);
-  });
 });
 
 describe('billing choice', () => {

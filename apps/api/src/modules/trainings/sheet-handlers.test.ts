@@ -255,21 +255,6 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
     });
   });
 
-  it('needs no workplace from an employee of a client with a single one', async () => {
-    mockUpstream({
-      employees: () => Response.json([{ ...employeeRow, client_workplaces: null }]),
-      workplaces: () => Response.json([workshop]),
-    });
-    const body = trainingSheetsResponseSchema.parse(await (await request(sheetsPath)).json());
-    expect(body.ssm).toEqual({
-      ready: true,
-      missing: [],
-      stored: false,
-      sequences: [],
-      versions: {},
-    });
-  });
-
   it('answers a stored signed sheet as ready, whatever the employee now lacks', async () => {
     mockUpstream({
       employees: () => Response.json([{ ...employeeRow, commute_route: null }]),

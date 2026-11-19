@@ -4,6 +4,6 @@
     "sourceMap": true,
     "rootDir": "src"
   },
-  "exclude": ["src/**/*.test.ts", "src/templates"],
+  "exclude": ["src/**/*.test.ts", "src/templates", "src/test"],
   "include": ["src"]
 }
