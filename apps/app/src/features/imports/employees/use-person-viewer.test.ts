@@ -112,6 +112,13 @@ describe('the viewer state', () => {
     expect(state).toEqual({ ...closedViewer, opened: { section: 'data', photo: 'p3' } });
   });
 
+  it('keeps the state as it is when the underlines or the typing do not change', () => {
+    const state = open(photoViewer, { highlight, typing: true });
+    expect(viewerReducer(state, { type: 'highlight', highlight })).toBe(state);
+    expect(viewerReducer(state, { type: 'typing', typing: true })).toBe(state);
+    expect(viewerReducer(state, { type: 'typing', typing: false }).typing).toBe(false);
+  });
+
   it('closing clears the underlines and the typing, and keeps the photo ringed', () => {
     const opened = { section: 'data', photo: 'p1' };
     const state = viewerReducer(open(choiceViewer, { highlight, typing: true, opened }), {

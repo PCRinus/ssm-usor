@@ -79,9 +79,11 @@ export function viewerReducer(state: ViewerState, action: ViewerAction): ViewerS
         opened: { section: action.section, photo: action.photo },
       };
     case 'highlight':
-      return { ...state, highlight: action.highlight };
+      return action.highlight === state.highlight
+        ? state
+        : { ...state, highlight: action.highlight };
     case 'typing':
-      return { ...state, typing: action.typing };
+      return action.typing === state.typing ? state : { ...state, typing: action.typing };
     case 'close':
       return { ...state, viewer: null, highlight: null, typing: false };
   }
