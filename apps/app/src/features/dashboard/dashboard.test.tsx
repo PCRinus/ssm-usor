@@ -20,7 +20,8 @@ const me = (role: 'owner' | 'specialist', fullName: string | null = 'Mircea Casa
 function mockDashboardApi(
   summary: DashboardSummary | (() => Response),
   role: 'owner' | 'specialist' = 'owner',
-  fullName?: string | null
+  fullName?: string | null,
+  behind = { occupational_safety: 7, fire_safety: 4 }
 ) {
   mockApi(
     (_init, { pathname }) => {
@@ -28,6 +29,9 @@ function mockDashboardApi(
         return typeof summary === 'function' ? summary() : Response.json(summary);
       }
       if (pathname === '/releases') return Response.json({ items: [] });
+      if (pathname === '/documents/behind/summary') {
+        return Response.json({ counts: behind, running: [] });
+      }
     },
     { me: me(role, fullName) }
   );
@@ -52,18 +56,27 @@ afterEach(() => {
 installFetchMock();
 
 describe('the dashboard', () => {
+  it('leads the documents to update to the SU tab when only SU documents are behind', async () => {
+    mockDashboardApi(busySummary, 'owner', undefined, { occupational_safety: 0, fire_safety: 11 });
+    mount();
+    expect(await screen.findByTestId('dashboard-documents-behind')).toBeTruthy();
+    await vi.waitFor(() =>
+      expect(hrefOf('dashboard-documents-behind')).toBe('/legislatie/documente-su')
+    );
+  });
+
   it("shows an owner everything to do, the clients' trainings, the portfolio and the contracts", async () => {
     mockDashboardApi(busySummary);
     mount();
     expect(await screen.findByTestId('dashboard-todo')).toBeTruthy();
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeTruthy();
     expect(screen.getByTestId('dashboard-greeting').textContent).toBe(
-      'Bună ziua, Mircea. Ai 18 lucruri de făcut, iar la clienți sunt 51 de instruiri depășite.'
+      'Bună ziua, Mircea. Ai 29 de lucruri de făcut, iar la clienți sunt 51 de instruiri depășite.'
     );
     expect(screen.getByTestId('dashboard-today').textContent).toBe('Sâmbătă, 24 octombrie 2026');
 
     const todo = screen.getByTestId('dashboard-todo');
-    expect(within(todo).getByTestId('dashboard-todo-total').textContent).toBe('18 în total');
+    expect(within(todo).getByTestId('dashboard-todo-total').textContent).toBe('29 în total');
     expect(screen.getByTestId('dashboard-todo-signatures').textContent).toContain(
       '9 semnături de dat'
     );
@@ -103,10 +116,10 @@ describe('the dashboard', () => {
     expect(screen.getByTestId('dashboard-trainings-su-chip-untrained').getAttribute('title')).toBe(
       'fără instruire la angajare: 46'
     );
-    expect(screen.getByTestId('dashboard-documents-behind').textContent).toContain(
+    expect(within(todo).getByTestId('dashboard-documents-behind').textContent).toContain(
       '11 documente de actualizat'
     );
-    expect(hrefOf('dashboard-documents-behind')).toBe('/legislatie/documente');
+    expect(hrefOf('dashboard-documents-behind')).toBe('/legislatie/documente-ssm');
 
     const waiting = screen.getByTestId('dashboard-waiting');
     expect(within(waiting).getByTestId('dashboard-waiting-signatures').textContent).toBe(
