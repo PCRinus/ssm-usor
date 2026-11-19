@@ -2,8 +2,10 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fetchMock, installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord } from '@/test/records';
 
 // The real editor is three megabytes of layout engine and needs a browser; the flow tests
 // drive it. Here a stand-in reports ready, changes, and failures on demand.
@@ -64,24 +66,11 @@ vi.mock('./document-editor', async () => {
   };
 });
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const documentId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
+const sampleClient = clientRecord({
   tradeRegisterNumber: 'J40/1234/2019',
-  countyCode: 'B',
-  locality: 'București',
   addressLine: 'Calea Victoriei 122A',
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+});
 const revision = (overrides: Record<string, unknown> = {}) => ({
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   revision: 1,
@@ -107,8 +96,6 @@ const firstAid = {
   issued: null as ReturnType<typeof revision> | null,
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi({
   client = sampleClient,
   items = [firstAid] as unknown[],
@@ -118,12 +105,8 @@ function mockApi({
   print = (() =>
     new Response('%PDF-1.7', { headers: { 'Content-Type': 'application/pdf' } })) as () => Response,
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockRoutes((init, { pathname }) => {
     const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === `/clients/${clientId}/documents`) {
       return Response.json({ items, lastGeneration: null });
@@ -139,19 +122,12 @@ function mockApi({
     if (pathname === `/documents/${documentId}/draft/file` && method === 'PUT') return save();
     if (pathname === `/documents/${documentId}/draft` && method === 'POST') return start();
     if (pathname === `/documents/${documentId}/print` && method === 'POST') return print();
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
 
-const prints = () =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) => String(input).endsWith('/print') && init?.method === 'POST'
-  );
+const prints = () => requestsTo(`/documents/${documentId}/print`, 'POST');
 
-const saves = () =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) => String(input).endsWith('/draft/file') && init?.method === 'PUT'
-  );
+const saves = () => requestsTo(`/documents/${documentId}/draft/file`, 'PUT');
 
 const mount = () =>
   mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/documente-ssm/${documentId}`);
@@ -160,15 +136,13 @@ beforeEach(() => {
   editorMock.fail = false;
   editorMock.holdReady = false;
   editorMock.releaseReady = null;
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
 });
 
 afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
+
+installFetchMock();
 
 describe('the document editor page', () => {
   it('opens the draft for editing, with nothing to save yet', async () => {

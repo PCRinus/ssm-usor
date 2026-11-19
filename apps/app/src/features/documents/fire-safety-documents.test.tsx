@@ -2,30 +2,20 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { MeResponseMembershipRole } from '@/api/generated/api';
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, meRecord, meResponse } from '@/test/records';
 
 import { fireSafetyHeadcountRule } from './document-labels';
 
 vi.mock('./document-editor', () => import('@/test/fake-document-editor'));
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
+const sampleClient = clientRecord({
   tradeRegisterNumber: 'J40/1234/2019',
-  countyCode: 'B',
-  locality: 'București',
   addressLine: 'Calea Victoriei 122A',
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+});
 
 const revision = (overrides: Record<string, unknown> = {}) => ({
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
@@ -109,11 +99,9 @@ const documentDetails = {
 
 type Route = (init: RequestInit | undefined) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi({
   client = sampleClient,
-  role = 'owner',
+  role = 'owner' as MeResponseMembershipRole,
   fireItems = [] as unknown[],
   ssmItems = [] as unknown[],
   readiness = { ready: true, missing: [] as string[] },
@@ -123,69 +111,65 @@ function mockApi({
     Response.json({ created: [cover, registers], skipped: [] }, { status: 201 })) as Route,
   behind = [] as unknown[],
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    const { pathname } = url;
-    const method = init?.method ?? 'GET';
-    const fireSafety = url.searchParams.get('set') === 'fire_safety';
-    if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        profile: { fullName: 'Ana Ionescu', professionalTitle: null },
+  mockRoutes(
+    (init, url) => {
+      const { pathname } = url;
+      const fireSafety = url.searchParams.get('set') === 'fire_safety';
+      if (pathname === `/clients/${clientId}`) return Response.json({ client });
+      if (pathname === '/documents/behind') return Response.json({ items: behind });
+      if (pathname === `/clients/${clientId}/documents`) {
+        return Response.json(
+          fireSafety
+            ? { items: fireItems, lastGeneration: null, notApplicable, currentEmployeeCount }
+            : {
+                items: ssmItems,
+                lastGeneration: null,
+                notApplicable: [],
+                currentEmployeeCount: 6,
+              }
+        );
+      }
+      if (pathname === `/clients/${clientId}/documents/readiness`) {
+        return Response.json({
+          currentEmployeeCount,
+          hints: [],
+          workersRepresentativeClash: null,
+          undecidedJobPositions: [],
+          incompleteRiskEvaluations: [],
+          ...readiness,
+        });
+      }
+      if (pathname === `/clients/${clientId}/document-details`) {
+        return Response.json({ documentDetails });
+      }
+      if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
+      if (pathname === `/clients/${clientId}/documents/generate`) return generate(init);
+      if (pathname.endsWith('/download')) {
+        return Response.json({
+          url: 'https://files.example.test/signed',
+          fileName: 'Registre SU - rev. 1.docx',
+          expiresInSeconds: 60,
+        });
+      }
+      if (pathname === '/signed') return new Response(new Uint8Array([80, 75, 3, 4]));
+    },
+    {
+      me: meRecord({
+        profile: { ...meResponse.profile, fullName: 'Ana Ionescu' },
         membership: {
-          organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'Safety' },
+          organization: { ...meResponse.membership.organization, name: 'Safety' },
           role,
         },
-      });
+      }),
     }
-    if (pathname === `/clients/${clientId}`) return Response.json({ client });
-    if (pathname === '/documents/behind') return Response.json({ items: behind });
-    if (pathname === `/clients/${clientId}/documents`) {
-      return Response.json(
-        fireSafety
-          ? { items: fireItems, lastGeneration: null, notApplicable, currentEmployeeCount }
-          : {
-              items: ssmItems,
-              lastGeneration: null,
-              notApplicable: [],
-              currentEmployeeCount: 6,
-            }
-      );
-    }
-    if (pathname === `/clients/${clientId}/documents/readiness`) {
-      return Response.json({
-        currentEmployeeCount,
-        hints: [],
-        workersRepresentativeClash: null,
-        undecidedJobPositions: [],
-        incompleteRiskEvaluations: [],
-        ...readiness,
-      });
-    }
-    if (pathname === `/clients/${clientId}/document-details`) {
-      return Response.json({ documentDetails });
-    }
-    if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
-    if (pathname === `/clients/${clientId}/documents/generate`) return generate(init);
-    if (pathname.endsWith('/download')) {
-      return Response.json({
-        url: 'https://files.example.test/signed',
-        fileName: 'Registre SU - rev. 1.docx',
-        expiresInSeconds: 60,
-      });
-    }
-    if (pathname === '/signed') return new Response(new Uint8Array([80, 75, 3, 4]));
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
-  });
+  );
 }
 
 const requests = (suffix: string, method = 'GET') =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname.endsWith(suffix) && (init?.method ?? 'GET') === method
-    )
-    .map(([input, init]) => ({ url: new URL(String(input)), init }));
+  requestsTo(`/clients/${clientId}${suffix}`, method).map(([input, init]) => ({
+    url: new URL(String(input)),
+    init,
+  }));
 
 const firePath = `/clienti/${clientId}/documente-su`;
 
@@ -267,20 +251,18 @@ const allBuilt = [
   fireDocument('ce7f8a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', 'fire_site_sheet', 'Fișa obiectivului'),
 ];
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+installFetchMock();
+
 beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
   const media = window.matchMedia;
   vi.stubGlobal(
     'matchMedia',
     vi.fn((query: string) => ({ ...media(query), matches: query === '(min-width: 1280px)' }))
   );
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
 });
 
 describe('client fire-safety documents', () => {
