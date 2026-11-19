@@ -3246,6 +3246,7 @@ export type Database = {
           cached_input_tokens: number;
           changes: Json | null;
           client_id: string | null;
+          closed_at: string | null;
           company_cui: string | null;
           company_name: string | null;
           confirmed_at: string | null;
@@ -3285,6 +3286,7 @@ export type Database = {
           cached_input_tokens?: number;
           changes?: Json | null;
           client_id?: string | null;
+          closed_at?: string | null;
           company_cui?: string | null;
           company_name?: string | null;
           confirmed_at?: string | null;
@@ -3324,6 +3326,7 @@ export type Database = {
           cached_input_tokens?: number;
           changes?: Json | null;
           client_id?: string | null;
+          closed_at?: string | null;
           company_cui?: string | null;
           company_name?: string | null;
           confirmed_at?: string | null;
@@ -8954,6 +8957,7 @@ export type Database = {
           cached_input_tokens: number;
           changes: Json | null;
           client_id: string | null;
+          closed_at: string | null;
           company_cui: string | null;
           company_name: string | null;
           confirmed_at: string | null;
