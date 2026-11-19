@@ -2,8 +2,7 @@ import type { Context } from 'hono';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ApiEnv } from './env';
-import { ApiError } from './errors';
-import { failureLabel, later } from './later';
+import { later } from './later';
 
 const contextWith = (executionCtx: () => { waitUntil: (work: Promise<unknown>) => void }) =>
   ({
@@ -33,19 +32,5 @@ describe('later', () => {
         work
       )
     ).not.toThrow();
-  });
-});
-
-describe('failureLabel', () => {
-  it('names an API error by its reason, else its code', () => {
-    expect(failureLabel(new ApiError('conflict', 'x', undefined, 'slot_signed'))).toBe(
-      'slot_signed'
-    );
-    expect(failureLabel(new ApiError('service_unavailable'))).toBe('service_unavailable');
-  });
-
-  it('names any other error by its name alone, never its message', () => {
-    expect(failureLabel(new TypeError('the row of Popescu Ion'))).toBe('TypeError');
-    expect(failureLabel('a string')).toBe('unknown');
   });
 });

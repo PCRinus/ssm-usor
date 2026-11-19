@@ -18,9 +18,8 @@ import type { Context } from 'hono';
 
 import { createLastingAdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, failureLabel } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
-import { failureLabel } from '../../lib/later';
 import { createPdfConverter, type PdfConverter } from '../../lib/pdf';
 import { createSigner } from '../../lib/signer';
 import { builtInTemplates, merge } from '../documents/documents';

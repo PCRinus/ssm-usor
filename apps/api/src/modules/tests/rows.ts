@@ -9,8 +9,7 @@ import type { Context } from 'hono';
 
 import type { Database, Json } from '../../database.types';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
-import { failureLabel } from '../../lib/later';
+import { ApiError, failureLabel } from '../../lib/errors';
 import { signedSheetContext, syncResultRows } from '../signed-sheets/signed-sheets';
 
 type Tables = Database['public']['Tables'];
