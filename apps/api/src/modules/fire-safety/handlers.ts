@@ -14,9 +14,9 @@ import {
   type FireMaintenanceItemRequest,
   type FireSubstance,
   type FireSubstanceRequest,
-  type FireSubstancesState,
   type UpdateClientFireSafetyRequest,
 } from '@ssm-usor/contracts';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
@@ -55,6 +55,28 @@ type Tables = Database['public']['Tables'];
 function fireSafetyError(error: { code: string }, context: string) {
   if (error.code === '23503') return workplaceNotOfClient();
   return fromDatabaseError(error, context);
+}
+
+type Saved<T> = PromiseLike<{ data: T; error: PostgrestError | null }>;
+
+// Not an upsert: PostgREST's would also set the keys, which members may not update.
+async function saveByKey<T>(save: {
+  update: () => Saved<T>;
+  insert: () => Saved<T>;
+  refusal: (error: PostgrestError, step: 'update' | 'insert') => Error;
+}): Promise<NonNullable<T>> {
+  const updated = await save.update();
+  if (updated.error) throw save.refusal(updated.error, 'update');
+  if (updated.data) return updated.data;
+  const inserted = await save.insert();
+  if (inserted.error?.code === '23505') {
+    // Another first save got there in between.
+    const again = await save.update();
+    if (again.error) throw save.refusal(again.error, 'update');
+    if (again.data) return again.data;
+  }
+  if (inserted.error) throw save.refusal(inserted.error, 'insert');
+  return inserted.data!;
 }
 
 async function activeWorkplaceOrder(db: DataClient, clientId: string) {
@@ -173,7 +195,6 @@ export const getClientFireSafety: RouteHandler<typeof getClientFireSafetyRoute, 
   return c.json({ fireSafety: saved ? toFireSafety(data) : noFireSafety, exists: saved }, 200);
 };
 
-// Not an upsert: PostgREST's would also set the keys, which members may not update.
 export const updateClientFireSafety: RouteHandler<
   typeof updateClientFireSafetyRoute,
   ApiEnv
@@ -182,34 +203,32 @@ export const updateClientFireSafety: RouteHandler<
   const fields = fireSafetyFields(c.req.valid('json'));
   const db = createDataClient(c);
   await requireClient(db, clientId);
-  const update = () =>
-    db
-      .from('client_fire_safety')
-      .update(fields)
-      .eq('client_id', clientId)
-      .select(fireSafetyColumns)
-      .maybeSingle();
-  const updated = await update();
-  if (updated.error) throw fromDatabaseError(updated.error, 'update client fire safety');
-  if (updated.data) return c.json({ fireSafety: toFireSafety(updated.data), exists: true }, 200);
-  const inserted = await db
-    .from('client_fire_safety')
-    .insert({
-      ...fields,
-      client_id: clientId,
-      organization_id: c.get('membership').organizationId,
-      created_by: c.get('user').id,
-    })
-    .select(fireSafetyColumns)
-    .single();
-  if (inserted.error?.code === '23505') {
-    // Another first save got there in between.
-    const again = await update();
-    if (again.error) throw fromDatabaseError(again.error, 'update client fire safety');
-    if (again.data) return c.json({ fireSafety: toFireSafety(again.data), exists: true }, 200);
-  }
-  if (inserted.error) throw fromDatabaseError(inserted.error, 'create client fire safety');
-  return c.json({ fireSafety: toFireSafety(inserted.data), exists: true }, 200);
+  const saved = await saveByKey({
+    update: () =>
+      db
+        .from('client_fire_safety')
+        .update(fields)
+        .eq('client_id', clientId)
+        .select(fireSafetyColumns)
+        .maybeSingle(),
+    insert: () =>
+      db
+        .from('client_fire_safety')
+        .insert({
+          ...fields,
+          client_id: clientId,
+          organization_id: c.get('membership').organizationId,
+          created_by: c.get('user').id,
+        })
+        .select(fireSafetyColumns)
+        .single(),
+    refusal: (error, step) =>
+      fromDatabaseError(
+        error,
+        step === 'update' ? 'update client fire safety' : 'create client fire safety'
+      ),
+  });
+  return c.json({ fireSafety: toFireSafety(saved), exists: true }, 200);
 };
 
 const equipmentColumns =
@@ -724,36 +743,31 @@ export const updateFireBuilding: RouteHandler<typeof updateFireBuildingRoute, Ap
   if (!workplace.data.office_has_activity) {
     throw new ApiError('conflict', 'No activity takes place at this registered office.');
   }
-  const update = () =>
-    db
-      .from('fire_buildings')
-      .update(fields)
-      .eq('client_id', clientId)
-      .eq('workplace_id', workplaceId)
-      .select(buildingColumns)
-      .maybeSingle();
-  const updated = await update();
-  if (updated.error) throw fromDatabaseError(updated.error, 'update fire building');
-  if (updated.data) return c.json({ building: toBuilding(updated.data) }, 200);
-  const inserted = await db
-    .from('fire_buildings')
-    .insert({
-      ...fields,
-      client_id: clientId,
-      workplace_id: workplaceId,
-      organization_id: c.get('membership').organizationId,
-      created_by: c.get('user').id,
-    })
-    .select(buildingColumns)
-    .single();
-  if (inserted.error?.code === '23505') {
-    // Another first save got there in between.
-    const again = await update();
-    if (again.error) throw fromDatabaseError(again.error, 'update fire building');
-    if (again.data) return c.json({ building: toBuilding(again.data) }, 200);
-  }
-  if (inserted.error) throw fromDatabaseError(inserted.error, 'create fire building');
-  return c.json({ building: toBuilding(inserted.data) }, 200);
+  const saved = await saveByKey({
+    update: () =>
+      db
+        .from('fire_buildings')
+        .update(fields)
+        .eq('client_id', clientId)
+        .eq('workplace_id', workplaceId)
+        .select(buildingColumns)
+        .maybeSingle(),
+    insert: () =>
+      db
+        .from('fire_buildings')
+        .insert({
+          ...fields,
+          client_id: clientId,
+          workplace_id: workplaceId,
+          organization_id: c.get('membership').organizationId,
+          created_by: c.get('user').id,
+        })
+        .select(buildingColumns)
+        .single(),
+    refusal: (error, step) =>
+      fromDatabaseError(error, step === 'update' ? 'update fire building' : 'create fire building'),
+  });
+  return c.json({ building: toBuilding(saved) }, 200);
 };
 
 export const deleteFireBuilding: RouteHandler<typeof deleteFireBuildingRoute, ApiEnv> = async (
@@ -867,43 +881,36 @@ export const updateFireSubstancesState: RouteHandler<
   const { state } = c.req.valid('json');
   const db = createDataClient(c);
   await requireClient(db, clientId);
-  const refusal = (error: { code: string }) =>
-    error.code === 'SUB01'
-      ? new ApiError(
-          'conflict',
-          'The client has dangerous substances listed; delete them before saying it uses none.',
-          undefined,
-          'substances_listed'
-        )
-      : fromDatabaseError(error, 'update fire substances state');
-  const update = () =>
-    db
-      .from('client_fire_safety')
-      .update({ substances_state: state })
-      .eq('client_id', clientId)
-      .select('substances_state')
-      .maybeSingle();
-  const respond = (saved: FireSubstancesState) => c.json({ state: saved }, 200);
-  const updated = await update();
-  if (updated.error) throw refusal(updated.error);
-  if (updated.data) return respond(updated.data.substances_state);
-  const inserted = await db
-    .from('client_fire_safety')
-    .insert({
-      client_id: clientId,
-      organization_id: c.get('membership').organizationId,
-      substances_state: state,
-      created_by: c.get('user').id,
-    })
-    .select('substances_state')
-    .single();
-  if (inserted.error?.code === '23505') {
-    const again = await update();
-    if (again.error) throw refusal(again.error);
-    if (again.data) return respond(again.data.substances_state);
-  }
-  if (inserted.error) throw refusal(inserted.error);
-  return respond(inserted.data.substances_state);
+  const saved = await saveByKey({
+    update: () =>
+      db
+        .from('client_fire_safety')
+        .update({ substances_state: state })
+        .eq('client_id', clientId)
+        .select('substances_state')
+        .maybeSingle(),
+    insert: () =>
+      db
+        .from('client_fire_safety')
+        .insert({
+          client_id: clientId,
+          organization_id: c.get('membership').organizationId,
+          substances_state: state,
+          created_by: c.get('user').id,
+        })
+        .select('substances_state')
+        .single(),
+    refusal: (error) =>
+      error.code === 'SUB01'
+        ? new ApiError(
+            'conflict',
+            'The client has dangerous substances listed; delete them before saying it uses none.',
+            undefined,
+            'substances_listed'
+          )
+        : fromDatabaseError(error, 'update fire substances state'),
+  });
+  return c.json({ state: saved.substances_state }, 200);
 };
 
 export const createFireSubstance: RouteHandler<typeof createFireSubstanceRoute, ApiEnv> = async (

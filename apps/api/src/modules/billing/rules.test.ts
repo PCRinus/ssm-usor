@@ -1,11 +1,15 @@
+import { cataloguePrices, meteredProducts, readOnlyDays } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
   addInterval,
   choiceFromItems,
+  deletesAtOf,
+  itemGroupOf,
   minimumStepFor,
   parseLookupKey,
   problemsWith,
+  productOf,
   recurringPrice,
   splitChange,
   usageLimits,
@@ -178,6 +182,45 @@ describe('a subscription read back from its items', () => {
   });
 });
 
+describe('what a Stripe item is, by its lookup key', () => {
+  const v1Keys = ['monthly', 'annual'].flatMap((interval) =>
+    [
+      'start',
+      'profesional',
+      'employees50',
+      'employees500',
+      'member',
+      'sms_overage',
+      'credits_extra',
+    ].map((product) => `${product}_${interval}_v1`)
+  );
+  const keys = [...cataloguePrices.map((price) => price.lookupKey), ...v1Keys];
+
+  it('groups every catalogue key, v1 and v2, as plan, pack or member', () => {
+    const groups = Object.fromEntries(keys.map((key) => [key, itemGroupOf(key)]));
+    for (const key of keys) {
+      const expected = /^(start|profesional)_/.test(key)
+        ? 'plan'
+        : /^employees/.test(key)
+          ? 'pack'
+          : /^member_/.test(key)
+            ? 'member'
+            : null;
+      expect(groups[key], key).toBe(expected);
+    }
+    expect(itemGroupOf(null)).toBeNull();
+    expect(itemGroupOf('start_plus_monthly')).toBeNull();
+  });
+
+  it('names the metered product of every version of its price', () => {
+    for (const product of meteredProducts) {
+      expect(keys.filter((key) => productOf(key) === product.key)).toEqual(
+        keys.filter((key) => key.startsWith(`${product.key}_`))
+      );
+    }
+  });
+});
+
 describe('usage limits', () => {
   const now = new Date('2026-10-27T10:00:00Z');
   const row = {
@@ -232,5 +275,15 @@ describe('the next renewal', () => {
   it('falls a year on, on 28 February for a plan bought on 29 February', () => {
     expect(next('2027-06-10T09:00:00.000Z', 'year')).toBe('2028-06-10T09:00:00.000Z');
     expect(next('2028-02-29T09:00:00.000Z', 'year')).toBe('2029-02-28T09:00:00.000Z');
+  });
+});
+
+describe('when a read-only organization is deleted', () => {
+  it('is the read-only days after access ends, and only while read-only', () => {
+    expect(deletesAtOf('2026-11-01T10:00:00.000Z', 'read_only')).toBe(
+      new Date(Date.parse('2026-11-01T10:00:00.000Z') + readOnlyDays * 86_400_000).toISOString()
+    );
+    expect(deletesAtOf('2026-11-01T10:00:00.000Z', 'full')).toBeNull();
+    expect(deletesAtOf(null, 'read_only')).toBeNull();
   });
 });

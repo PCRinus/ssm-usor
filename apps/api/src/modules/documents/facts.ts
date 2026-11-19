@@ -7,6 +7,7 @@ import {
 
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import { clientNotFound } from '../clients/lookup';
+import { bySortOrder } from '../risk-evaluations/evaluation';
 import { type DocumentFacts, romanianDay } from './context';
 import type { FireYearRecords } from './fire-safety';
 import { loadTestQuestions } from './knowledge-tests';
@@ -476,11 +477,6 @@ export async function loadDocumentFacts(
     riskEvaluations,
   };
 }
-
-const bySortOrder = (
-  a: { sort_order: number; id: string },
-  b: { sort_order: number; id: string }
-) => a.sort_order - b.sort_order || a.id.localeCompare(b.id);
 
 export async function loadRiskEvaluations(
   db: DataClient,

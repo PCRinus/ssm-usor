@@ -13,9 +13,6 @@ import {
 } from '../billing/entitlements';
 import { smsExtraCents } from '../extras/policy';
 
-// Kept so that code importing it from here keeps working until it imports billing/entitlements.
-export { addMonths } from '../billing/entitlements';
-
 export type SmsPolicy =
   | { sends: false }
   | {
