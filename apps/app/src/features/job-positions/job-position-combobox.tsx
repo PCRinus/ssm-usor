@@ -27,7 +27,6 @@ export function JobPositionCombobox({
   id,
   testId,
   clientId,
-  userId,
   value,
   onChange,
   onBlur,
@@ -38,7 +37,6 @@ export function JobPositionCombobox({
   id: string;
   testId: string;
   clientId: string;
-  userId: string;
   /** The id of one of the client's positions. */
   value: string;
   onChange: (value: string, name: string) => void;
@@ -48,7 +46,7 @@ export function JobPositionCombobox({
   describedBy?: string;
   /** Inside a dialog, so the list takes the focus the dialog would otherwise trap. */
 }) {
-  const positions = useJobPositionOptions(clientId, userId);
+  const positions = useJobPositionOptions(clientId);
   // `null` is closed; a string is what the new position's name starts as.
   const [adding, setAdding] = useState<string | null>(null);
   const options = positions.data?.items ?? [];

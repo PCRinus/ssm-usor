@@ -1,7 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { getRouteApi, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { BriefcaseBusiness, Plus, SearchX } from 'lucide-react';
 import { forwardRef, useMemo, useRef, useState } from 'react';
 
@@ -13,6 +13,7 @@ import {
   useRemoveJobPosition,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { keepOpener, openedHere } from '@/app/opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
@@ -49,29 +50,27 @@ const rowKey = (row: JobPositionRow) => row.position.id;
 // The posts a client employs people in (ADR 006). `readOnly` is an archived client.
 export function JobPositionsCard({
   clientId,
-  userId,
   readOnly,
   focus,
 }: {
   clientId: string;
-  userId: string;
   readOnly: boolean;
   focus?: 'add-position';
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const search = route.useSearch();
   const navigate = useNavigate();
   const routeNavigate = route.useNavigate();
   const phone = useIsMobile();
   const positions = useListJobPositions(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListJobPositionsQueryKey(clientId)) },
   });
   const evaluations = useListRiskEvaluations(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListRiskEvaluationsQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListRiskEvaluationsQueryKey(clientId)) },
   });
-  const remove = useRemoveJobPosition({ request: apiRequest });
+  const remove = useRemoveJobPosition({ request });
   const [editing, setEditing] = useState<JobPositionEditing>(null);
   const [removing, setRemoving] = useState<JobPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
