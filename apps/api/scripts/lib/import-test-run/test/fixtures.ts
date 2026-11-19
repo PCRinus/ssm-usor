@@ -15,6 +15,7 @@ import {
   toEmployeeProposal,
   toProposal,
 } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 
 import type { CopyContext } from '../../../../src/modules/imports/copies';
 import {
@@ -34,7 +35,7 @@ const quoted = { file: decision, quote: 'citat', otherCompany: null };
 const fact = (field: string, value: string) => ({ field, value, ...quoted });
 
 export function clientReading(overrides: Partial<Reading> = {}): Reading {
-  return {
+  return emptyReading({
     facts: [
       fact('client.legalName', 'BRUTĂRIA FICTIVĂ S.R.L.'),
       fact('client.cui', '12345674'),
@@ -64,8 +65,6 @@ export function clientReading(overrides: Partial<Reading> = {}): Reading {
         ...quoted,
       },
     ],
-    workplaceFacts: [],
-    workplaceSuggestions: [],
     jobPositions: ['Brutar', 'Vânzător'].map((name) => ({
       name,
       trainingIntervalMonths: null,
@@ -74,16 +73,8 @@ export function clientReading(overrides: Partial<Reading> = {}): Reading {
       needsProtectiveEquipment: null,
       ...quoted,
     })),
-    jobPositionFacts: [],
-    responsiblePersons: [],
-    fireEquipment: [],
-    fireInstallations: [],
-    substances: [],
-    protectiveEquipment: [],
-    employees: [],
-    notes: [],
     ...overrides,
-  };
+  });
 }
 
 export const clientProposal = (reading: Reading = clientReading()): Proposal => toProposal(reading);

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { checkAllowedValues, checkQuotes, withChecks } from './checks';
 import { proposalSchema } from './proposal';
 import { fromWire, type Reading, readingAnswer, toProposal } from './reading';
+import { emptyReading } from './testing';
 
 type Suggestion = Reading['workplaceSuggestions'][number];
 
@@ -28,22 +29,11 @@ const workplace = (
   ...overrides,
 });
 
-const reading = (overrides: Partial<Reading> = {}): Reading => ({
-  facts: [],
-  workplaces: [workplace('Atelier')],
-  workplaceFacts: [],
-  workplaceSuggestions: [],
-  jobPositions: [],
-  jobPositionFacts: [],
-  responsiblePersons: [],
-  fireEquipment: [],
-  fireInstallations: [],
-  substances: [],
-  protectiveEquipment: [],
-  employees: [],
-  notes: [],
-  ...overrides,
-});
+const reading = (overrides: Partial<Reading> = {}): Reading =>
+  emptyReading({
+    workplaces: [workplace('Atelier')],
+    ...overrides,
+  });
 
 const materials: Suggestion = {
   workplace: 'Atelier',

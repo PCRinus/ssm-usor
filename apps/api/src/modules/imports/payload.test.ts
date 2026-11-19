@@ -6,6 +6,7 @@ import {
   toProposal,
   withChecks,
 } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 import { describe, expect, it } from 'vitest';
 
 import { type ExistingRecords, noExistingRecords, resolveField, toClientPayload } from './payload';
@@ -35,7 +36,7 @@ const role = (code: Reading['responsiblePersons'][number]['roles'][number]['role
 });
 
 function reading(overrides: Partial<Reading> = {}): Reading {
-  return {
+  return emptyReading({
     facts: [
       fact('client.legalName', 'BRUTĂRIA FICTIVĂ S.R.L.'),
       fact('client.cui', '12345674'),
@@ -68,8 +69,6 @@ function reading(overrides: Partial<Reading> = {}): Reading {
         ...quoted(),
       },
     ],
-    workplaceFacts: [],
-    workplaceSuggestions: [],
     jobPositions: [
       {
         name: 'Brutar',
@@ -150,10 +149,8 @@ function reading(overrides: Partial<Reading> = {}): Reading {
         ...quoted(),
       },
     ],
-    substances: [],
-    notes: [],
     ...overrides,
-  };
+  });
 }
 
 const proposalOf = (...readings: Reading[]): Proposal => toProposal(...readings);
