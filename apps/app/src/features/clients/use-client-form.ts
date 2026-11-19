@@ -3,15 +3,11 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouteContext, useRouter } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
-import {
-  getGetClientQueryKey,
-  getListClientsQueryKey,
-  useCreateClient,
-  useUpdateClient,
-} from '@/api/generated/api';
+import { getListClientsQueryKey, useCreateClient, useUpdateClient } from '@/api/generated/api';
 import { keepOpener } from '@/app/opener';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 
+import { storeClient } from './client-cache';
 import {
   type Client,
   clientFormSchema,
@@ -23,7 +19,7 @@ import {
   toUpdateClientRequest,
 } from './client-form-schema';
 import { clientWording, reportClientSaveError } from './client-save-error';
-import { useCompanyLookup } from './use-company-lookup';
+import { useClientCompanyLookup } from './use-company-lookup';
 
 // With a lead, the form corrects what was entered about it; without, it adds a client or a
 // lead. A client is corrected card by card on its Detalii tab instead.
@@ -40,7 +36,7 @@ export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
   });
   const create = useCreateClient({ request: apiRequest });
   const update = useUpdateClient({ request: apiRequest });
-  const { lookup, lookupCui } = useCompanyLookup(form);
+  const { lookup, lookupCui } = useClientCompanyLookup(form);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -49,9 +45,7 @@ export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
           clientId: lead.id,
           data: toUpdateClientRequest(values, 'lead'),
         });
-        // The lead page reads the record through its loader, which keeps whatever is cached.
-        queryClient.setQueriesData({ queryKey: getGetClientQueryKey(lead.id) }, saved);
-        await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+        await storeClient(queryClient, saved);
         await router.invalidate();
         toast.success('Datele ofertei au fost salvate.');
         if (returnToRecord()) return;

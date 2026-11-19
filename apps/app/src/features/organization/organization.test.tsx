@@ -927,6 +927,8 @@ describe('company details', () => {
     await user.click(screen.getByTestId('company-lookup'));
     const status = await screen.findByTestId('company-lookup-status');
     expect(status.textContent).toContain('compania figurează ca inactivă');
+    // The help article is about a client found inactive, not the organization's own firm.
+    expect(status.querySelector('[data-help-topic]')).toBeNull();
   });
 
   it.each([
@@ -1013,6 +1015,39 @@ describe('authorizations', () => {
       ...authorizations,
       authorizationCertificateNumber: '17664',
       authorizationCertificateDate: '2022-09-30',
+    });
+  });
+
+  it('flags an unfinished certificate date instead of saving it as no date, and clears an emptied one', async () => {
+    mockApi({
+      savedAuthorizations: {
+        ...authorizations,
+        authorizationCertificateNumber: '17664',
+        authorizationCertificateDate: '2022-09-30',
+      },
+    });
+    mountAuthorizations();
+    const user = userEvent.setup();
+
+    const form = await screen.findByTestId('authorizations-form');
+    const date = within(form).getByTestId('authorizations-authorizationCertificateDate');
+    await user.clear(date);
+    await user.type(date, '30.09.20');
+    await user.click(within(form).getByTestId('authorizations-save'));
+
+    const error = await within(form).findByText('Alege o dată validă.');
+    expect(error.id).toBe('authorizations-authorizationCertificateDate-error');
+    expect(date.getAttribute('aria-invalid')).toBe('true');
+    expect(requests('/organization/authorizations', 'PUT')).toHaveLength(0);
+
+    await user.clear(date);
+    await user.click(within(form).getByTestId('authorizations-save'));
+    expect(await screen.findByText('Abilitările au fost salvate.')).toBeTruthy();
+    expect(
+      JSON.parse(String(requests('/organization/authorizations', 'PUT')[0]![1]?.body))
+    ).toMatchObject({
+      authorizationCertificateNumber: '17664',
+      authorizationCertificateDate: null,
     });
   });
 

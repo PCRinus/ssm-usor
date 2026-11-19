@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { equipmentAllocations } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -25,6 +24,8 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -57,7 +58,7 @@ export function EquipmentEntryDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={editing !== null} onClose={onClose}>
       {editing && (
         <EquipmentEntryForm
           key={editing === 'new' ? 'new' : editing.id}
@@ -67,7 +68,7 @@ export function EquipmentEntryDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -118,6 +119,7 @@ function EquipmentEntryForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  useHoldOpen(busy);
   const allocation = useWatch({ control: form.control, name: 'allocation' });
   const risk = useWatch({ control: form.control, name: 'risk' });
   const item = useWatch({ control: form.control, name: 'item' });
@@ -154,7 +156,7 @@ function EquipmentEntryForm({
   });
 
   return (
-    <DialogContent data-testid="equipment-dialog" className="sm:max-w-2xl">
+    <DialogContent data-testid="equipment-dialog" className="sm:max-w-2xl" showCloseButton={!busy}>
       <form
         {...replayShow}
         ref={formRef}

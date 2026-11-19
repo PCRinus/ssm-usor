@@ -10,8 +10,11 @@ import type {
   ClientFireSafetyResponse,
   UpdateClientFireSafetyRequest,
 } from '@/api/generated/api';
+import {
+  dayOrderProblem,
+  monthNames,
+} from '@/features/clients/document-details/document-details-schema';
 
-import { dayOrderProblem, monthNames } from './document-details-schema';
 import { type CategoryPosts, intervalChoices, intervalFieldId } from './schedule-rules';
 
 export type FireSafety = ClientFireSafetyResponse['fireSafety'];

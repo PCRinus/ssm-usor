@@ -20,7 +20,8 @@ export function listQuerySchema<const Keys extends readonly [string, ...string[]
   });
 }
 
-export const listSearchSchema = z.string().trim().max(100);
+export const listSearchMaxLength = 100;
+export const listSearchSchema = z.string().trim().max(listSearchMaxLength);
 
 // One value arrives as a string and a repeated parameter as an array.
 export const repeatedQueryValue = <Value extends z.ZodType>(value: Value) =>

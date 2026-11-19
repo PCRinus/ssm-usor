@@ -1,57 +1,13 @@
 import type { AdminImportDetail, AdminImportList } from '@ssm-usor/contracts';
-import type { Session } from '@supabase/supabase-js';
-import { createMemoryHistory } from '@tanstack/react-router';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type AdminRuntime, createAdminRuntime } from '@/app/admin-runtime';
-import App from '@/app/App';
-import type { AuthClient } from '@/features/auth/auth-store';
-import { createQueryClient } from '@/lib/query-client';
-
-const encode = (value: unknown) =>
-  btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-const session = {
-  access_token: `${encode({ alg: 'HS256' })}.${encode({ sub: 'user-1', aal: 'aal2' })}.signature`,
-  refresh_token: 'refresh-token',
-  expires_in: 3600,
-  token_type: 'bearer',
-  user: {
-    id: 'user-1',
-    app_metadata: { role: 'admin' },
-    user_metadata: {},
-    aud: 'authenticated',
-    created_at: '2026-11-04T08:00:00Z',
-    email: 'mircea@example.ro',
-    factors: [
-      {
-        id: 'factor-1',
-        factor_type: 'totp',
-        status: 'verified',
-        created_at: '2026-11-04T08:00:00Z',
-        updated_at: '2026-11-04T08:00:00Z',
-      },
-    ],
-  },
-} as Session;
-
-const client = {
-  getSession: vi.fn(async () => ({ data: { session }, error: null })),
-  onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
-  signInWithPassword: vi.fn(),
-  signOut: vi.fn(async () => ({ error: null })),
-  mfa: {
-    listFactors: vi.fn(async () => ({ data: { all: session.user.factors ?? [] }, error: null })),
-    unenroll: vi.fn(),
-    enroll: vi.fn(),
-    challengeAndVerify: vi.fn(),
-  },
-} as unknown as AuthClient;
+import { adminRequests, installAdminFetch, mockAdminApi, mountAdmin } from '@/test/admin-app';
 
 const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
 const goneId = '7a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
+const missingId = 'aaaaaaaa-0000-4000-8000-00000000ffff';
 const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 
 const list: AdminImportList = {
@@ -195,32 +151,12 @@ const detail: AdminImportDetail = {
   ],
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-const runtimes: AdminRuntime[] = [];
+installAdminFetch();
 
-function mount(path: string) {
-  const runtime = createAdminRuntime(
-    client,
-    createQueryClient(),
-    createMemoryHistory({ initialEntries: [path] }),
-    'http://localhost:5176'
-  );
-  runtimes.push(runtime);
-  render(<App runtime={runtime} />);
-  return runtime;
-}
-
-const requested = () =>
-  fetchMock.mock.calls
-    .map(([input]) => new URL(String(input)))
-    .filter((url) => url.pathname !== '/api/impersonation');
+const requested = () => adminRequests().map(({ url }) => url);
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-  fetchMock.mockImplementation(async (input) => {
-    const url = new URL(String(input));
-    if (url.pathname === '/api/impersonation') return Response.json({ impersonation: null });
+  mockAdminApi((url) => {
     if (url.pathname === '/api/imports') return Response.json(list);
     if (url.pathname === `/api/imports/${importId}`) return Response.json(detail);
     if (url.pathname === `/api/imports/${importId}/files`) {
@@ -243,18 +179,15 @@ beforeEach(() => {
         },
       });
     }
-    return Response.json({ error: 'not_found', message: 'No such import.' }, { status: 404 });
+    if (url.pathname === `/api/imports/${missingId}`) {
+      return Response.json({ error: 'not_found', message: 'No such import.' }, { status: 404 });
+    }
   });
-});
-
-afterEach(() => {
-  runtimes.splice(0).forEach((runtime) => runtime.dispose());
-  vi.unstubAllGlobals();
 });
 
 describe('the imports list', () => {
   it('shows every import with its organization, flags, report and copy, and pages on', async () => {
-    const runtime = mount('/imports');
+    const runtime = mountAdmin('/imports');
     const rows = await screen.findAllByTestId('import-row');
 
     expect(rows).toHaveLength(2);
@@ -283,7 +216,7 @@ describe('the imports list', () => {
   });
 
   it('filters by kind, status, reports and copies through the address', async () => {
-    const runtime = mount('/imports?page=2');
+    const runtime = mountAdmin('/imports?page=2');
     await screen.findAllByTestId('import-row');
     const user = userEvent.setup();
 
@@ -308,7 +241,7 @@ describe('the imports list', () => {
   });
 
   it('opens an import from its row', async () => {
-    const runtime = mount('/imports');
+    const runtime = mountAdmin('/imports');
     const [row] = await screen.findAllByTestId('import-row');
     await userEvent.setup().click(within(row!).getByText('Protecția Muncii Expert SRL'));
     await screen.findByTestId('import-title');
@@ -316,10 +249,7 @@ describe('the imports list', () => {
   });
 
   it('is reached from the home page and the top bar', async () => {
-    fetchMock.mockImplementationOnce(async () =>
-      Response.json({ id: 'user-1', email: 'mircea@example.ro' })
-    );
-    const runtime = mount('/');
+    const runtime = mountAdmin('/');
     await userEvent.setup().click(await screen.findByTestId('home-imports'));
     await screen.findAllByTestId('import-row');
     expect(runtime.router.state.location.pathname).toBe('/imports');
@@ -329,7 +259,7 @@ describe('the imports list', () => {
 
 describe('an import', () => {
   it('shows its header, flags, quality, report, parts and its copy side by side, loaded once', async () => {
-    mount(`/imports/${importId}`);
+    mountAdmin(`/imports/${importId}`);
 
     expect((await screen.findByTestId('import-title')).textContent).toBe('Client import');
     const flags = screen.getByTestId('import-flags');
@@ -358,7 +288,7 @@ describe('an import', () => {
   });
 
   it('marks a copy that has not finished writing, and says the clean-up retries it', async () => {
-    mount(`/imports/${importId}`);
+    mountAdmin(`/imports/${importId}`);
 
     const [own, part] = await screen.findAllByTestId('copy-row');
     expect(within(own!).queryByTestId('copy-incomplete')).toBeNull();
@@ -373,7 +303,7 @@ describe('an import', () => {
     const tab = { opener: {}, location: { href: '' }, close: vi.fn() };
     const open = vi.fn(() => tab);
     vi.stubGlobal('open', open);
-    mount(`/imports/${importId}`);
+    mountAdmin(`/imports/${importId}`);
     const [file] = await screen.findAllByTestId('copy-file');
 
     await userEvent.setup().click(within(file!).getByRole('button', { name: 'Open' }));
@@ -389,7 +319,7 @@ describe('an import', () => {
   });
 
   it('shows what the copy holds of an import whose row is gone', async () => {
-    mount(`/imports/${goneId}`);
+    mountAdmin(`/imports/${goneId}`);
     expect((await screen.findByTestId('import-title')).textContent).toBe('Employees import');
     expect(screen.getByTestId('row-deleted')).toBeTruthy();
     expect(screen.getByTestId('copy-proposal').textContent).toContain('people');
@@ -399,7 +329,7 @@ describe('an import', () => {
   });
 
   it('says so for an import with neither row nor copy', async () => {
-    mount('/imports/aaaaaaaa-0000-4000-8000-00000000ffff');
+    mountAdmin(`/imports/${missingId}`);
     expect((await screen.findByTestId('import-not-found')).textContent).toContain('No such import');
   });
 });

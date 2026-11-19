@@ -805,14 +805,87 @@ describe("a client's trainings held", () => {
     expect(requests('POST', trainingsPath)[0]!.body.employeeIds).toEqual([popescu.id, taranu.id]);
   });
 
-  it('lists every current employee for an introductory training, and puts an API issue on its field', async () => {
+  it('keeps the dialog open while the training saves', async () => {
+    let answer: (response: Response) => void = () => undefined;
+    mockApi({
+      [`POST ${trainingsPath}`]: () =>
+        new Promise<Response>((resolve) => {
+          answer = resolve;
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('trainings-record'));
+    const dialog = await screen.findByTestId('training-dialog');
+    await user.selectOptions(within(dialog).getByTestId('training-phase'), 'introductory_general');
+    await user.click((await within(dialog).findAllByTestId('training-attendee'))[0]!);
+    await waitFor(() =>
+      expect((within(dialog).getByTestId('training-duration') as HTMLInputElement).value).toBe(
+        '120'
+      )
+    );
+    await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
+    await user.click(within(dialog).getByTestId('training-save'));
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('training-save').textContent).toBe('Se salvează…')
+    );
+
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('training-dialog')).toBeTruthy();
+
+    answer(
+      Response.json({ error: 'validation_error', message: 'Invalid', issues: [] }, { status: 400 })
+    );
+    expect(await within(dialog).findByTestId('training-error')).toBeTruthy();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('training-dialog')).toBeNull());
+  });
+
+  it('puts a signer refusal on the signer field in its own words', async () => {
     mockApi({
       [`POST ${trainingsPath}`]: () =>
         Response.json(
           {
             error: 'validation_error',
             message: 'Invalid',
-            issues: [{ path: 'trainer.jobTitle', message: 'Funcția este prea lungă.' }],
+            reason: 'signer_name_mismatch',
+            issues: [{ path: 'signers.trainer', message: 'Signer name does not match the slot' }],
+          },
+          { status: 400 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('trainings-record'));
+    const dialog = await screen.findByTestId('training-dialog');
+    await user.selectOptions(within(dialog).getByTestId('training-phase'), 'introductory_general');
+    await user.click((await within(dialog).findAllByTestId('training-attendee'))[0]!);
+    await waitFor(() =>
+      expect((within(dialog).getByTestId('training-duration') as HTMLInputElement).value).toBe(
+        '120'
+      )
+    );
+    await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
+    await user.click(within(dialog).getByTestId('training-save'));
+    expect(
+      await within(dialog).findByText(
+        'Contul ales nu poartă numele tipărit în rubrică. Alege persoana cu acest nume sau folosește numele semnatarului.'
+      )
+    ).toBeTruthy();
+    expect(within(dialog).queryByText(/does not match/)).toBeNull();
+    expect(within(dialog).queryByTestId('training-error')).toBeNull();
+  });
+
+  it('lists every current employee for an introductory training, and marks the field an API issue names', async () => {
+    mockApi({
+      [`POST ${trainingsPath}`]: () =>
+        Response.json(
+          {
+            error: 'validation_error',
+            message: 'Invalid',
+            issues: [
+              { path: 'trainer.jobTitle', message: 'String must contain at most 200 character(s)' },
+            ],
           },
           { status: 400 }
         ),
@@ -834,7 +907,10 @@ describe("a client's trainings held", () => {
     );
     await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
     await user.click(within(dialog).getByTestId('training-save'));
-    expect(await within(dialog).findByText('Funcția este prea lungă.')).toBeTruthy();
+    expect(
+      await within(dialog).findByText('Valoarea nu a fost acceptată. Verifică acest câmp.')
+    ).toBeTruthy();
+    expect(within(dialog).queryByText(/must contain/)).toBeNull();
     expect(screen.getByTestId('training-dialog')).toBeTruthy();
   });
 

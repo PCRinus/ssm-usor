@@ -79,7 +79,7 @@ const filesPath = `/clients/${clientId}/files`;
 const employeePath = `/clients/${clientId}/employees/${employee.id}`;
 const employeePage = `/clienti/${clientId}/angajati/${employee.id}/documente`;
 
-type Handler = (init: RequestInit | undefined, url: URL) => Response;
+type Handler = (init: RequestInit | undefined, url: URL) => Response | Promise<Response>;
 
 function mockFilesApi({
   role = 'specialist' as 'owner' | 'specialist',
@@ -550,6 +550,34 @@ describe('changing a client file', () => {
 
     expect((await screen.findByTestId('client-file-dialog-error')).textContent).toBe(
       readOnlyMessage
+    );
+  });
+
+  it('has no close button and ignores Escape while the rename saves, so its failure stays on screen', async () => {
+    let fail = () => {};
+    mockFilesApi({
+      update: () =>
+        new Promise<Response>((resolve) => {
+          fail = () => resolve(Response.json({ error: 'internal' }, { status: 500 }));
+        }),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    const [first] = await screen.findAllByTestId('client-file-row');
+    await user.click(within(first!).getByTestId('client-file-actions'));
+    await user.click(await screen.findByTestId('client-file-rename'));
+    await user.type(await screen.findByTestId('client-file-name'), ' nou');
+    await user.click(screen.getByTestId('client-file-save'));
+    expect(screen.getByTestId('client-file-save').textContent).toBe('Se salvează…');
+
+    expect(screen.queryByRole('button', { name: 'Închide' })).toBeNull();
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('client-file-dialog')).toBeTruthy();
+
+    fail();
+    expect((await screen.findByTestId('client-file-dialog-error')).textContent).toBe(
+      'Nu am putut salva fișierul. Verifică conexiunea și încearcă din nou.'
     );
   });
 

@@ -1941,6 +1941,38 @@ describe('signing from the Semnături place', () => {
     expect(within(dialog).queryByTestId('signing-code')).toBeNull();
   });
 
+  it('has no close button and ignores Escape while the code is being sent', async () => {
+    let refuse = () => {};
+    const { user, dialog } = await openSigning({
+      [`POST ${sessionPath}`]: () =>
+        new Promise((resolve) => {
+          refuse = () =>
+            resolve(
+              Response.json(
+                {
+                  error: 'refused',
+                  message: 'signing_code_not_sent',
+                  reason: 'signing_code_not_sent',
+                },
+                { status: 503 }
+              )
+            );
+        }),
+    });
+    await user.click(within(dialog).getByTestId('signing-send'));
+    expect(within(dialog).getByTestId('signing-send').textContent).toBe('Se trimite…');
+
+    expect(within(dialog).queryByRole('button', { name: 'Închide' })).toBeNull();
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('signing-dialog')).toBeTruthy();
+
+    refuse();
+    expect((await within(dialog).findByTestId('signing-send-error')).textContent).toBe(
+      'Codul nu a putut fi trimis. Nu s-a semnat nimic; încearcă din nou.'
+    );
+    expect(within(dialog).getByRole('button', { name: 'Închide' })).toBeTruthy();
+  });
+
   it('lets go of a request that no longer waits, once the session says so', async () => {
     const { user, dialog } = await openSigning({
       [`POST ${sessionPath}`]: session,

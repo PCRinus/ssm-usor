@@ -28,6 +28,7 @@ import type {
   FireMaintenanceItemListResponse,
   FireMaintenanceItemRequest,
 } from '@/api/generated/api';
+import { isOptionalIsoDate, isoToDate } from '@/lib/dates';
 
 export type FireEquipment = FireEquipmentListResponse['items'][number];
 export type FireInstallation = FireInstallationListResponse['items'][number];
@@ -94,9 +95,10 @@ const optionalText = (min: number, max: number, what: string) =>
       `${what} are cel puțin ${min} caractere.`
     );
 
-const isoDate = z.string();
+const isoDate = z.string().refine(isOptionalIsoDate, 'Alege o dată validă.');
 
-const laterThan = (last: string, next: string) => last === '' || next === '' || last <= next;
+const laterThan = (last: string, next: string) =>
+  !isoToDate(last) || !isoToDate(next) || last <= next;
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 export const equipmentFormSchema = z

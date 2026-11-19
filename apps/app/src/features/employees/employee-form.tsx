@@ -400,6 +400,7 @@ export function EmployeeForm({
                     onChange={field.onChange}
                     onBlur={field.onBlur}
                     max={today}
+                    keepUnfinished
                     {...dateControl('birthDate')}
                   />
                 )}

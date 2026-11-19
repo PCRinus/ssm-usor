@@ -1,57 +1,36 @@
+import '@/test/api-mock';
+
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createPortalSigningSession,
+  getPortalEmployeeSigningAgreementLink,
   getPortalSigningAgreementLink,
   getPortalTrainingSheetLink,
   type PortalSignatureRequestsResponse,
   signPortalSigningSession,
-  useGetPortalEmployeeData,
   useGetPortalMe,
   useGetPortalSigningAgreementState,
-  useGetPortalTests,
   useGetPortalTrainingSheets,
-  useListPortalClientEmployees,
   useListPortalClientSignatureRequests,
-  useListPortalResponsiblePersons,
   useListPortalSignatureRequests,
   useListPortalSigningAgreements,
-  useListPortalTrainingRecords,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { openOutdatedDialog, resetReloadStore } from '@/features/reload/reload-store';
 import {
   disposeRuntimes,
-  employeeData,
   fakeAuthClient,
   fakeSession,
+  mockQuery,
   mountPortal,
   participation,
-  queryPending,
-  queryResult,
+  readySheets,
+  stubEmployeePortal,
   trainingRecords,
 } from '@/test/portal';
-
-vi.mock('@/api/generated/api', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/api/generated/api')>()),
-  useGetPortalMe: vi.fn(),
-  useListPortalTrainingRecords: vi.fn(),
-  useGetPortalTests: vi.fn(),
-  useGetPortalEmployeeData: vi.fn(),
-  useGetPortalTrainingSheets: vi.fn(),
-  useListPortalClientEmployees: vi.fn(),
-  useListPortalResponsiblePersons: vi.fn(),
-  useListPortalSignatureRequests: vi.fn(),
-  useListPortalClientSignatureRequests: vi.fn(),
-  useListPortalSigningAgreements: vi.fn(),
-  useGetPortalSigningAgreementState: vi.fn(),
-  createPortalSigningSession: vi.fn(),
-  signPortalSigningSession: vi.fn(),
-  getPortalTrainingSheetLink: vi.fn(),
-  getPortalSigningAgreementLink: vi.fn(),
-}));
 
 const employee = participation();
 const employeeId = employee.employeeId!;
@@ -153,26 +132,13 @@ const refusal = (reason: string, message = 'Refused.', extra: Record<string, unk
   new ApiHttpError(409, { error: 'conflict', message, reason, ...extra });
 
 beforeEach(() => {
-  vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [employee] }));
-  vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
-  vi.mocked(useGetPortalTests).mockReturnValue(queryPending());
-  vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
-  vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
-    queryResult({
-      ssm: { ready: true, missing: [], stored: true, sequences: [1], versions: {} },
-      su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
-    })
-  );
-  vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());
-  vi.mocked(useListPortalResponsiblePersons).mockReturnValue(queryPending());
-  vi.mocked(useListPortalSignatureRequests).mockReturnValue(
-    queryResult({ items: [requestA, requestB] })
-  );
-  vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-    queryResult({ unavailable: null, agreement: agreementAwaitingEmployee })
-  );
+  stubEmployeePortal();
+  mockQuery(useGetPortalTrainingSheets, readySheets({ ssm: { stored: true, sequences: [1] } }));
+  mockQuery(useListPortalSignatureRequests, { items: [requestA, requestB] });
+  mockQuery(useGetPortalSigningAgreementState, {
+    unavailable: null,
+    agreement: agreementAwaitingEmployee,
+  });
   vi.mocked(createPortalSigningSession).mockResolvedValue(session);
   vi.mocked(getPortalTrainingSheetLink).mockImplementation(async (_participant, domain, params) =>
     Promise.resolve({
@@ -191,8 +157,6 @@ beforeEach(() => {
 afterEach(() => {
   act(() => resetReloadStore());
   disposeRuntimes();
-  vi.mocked(createPortalSigningSession).mockReset();
-  vi.mocked(signPortalSigningSession).mockReset();
 });
 
 const signedIn = () => fakeAuthClient(fakeSession());
@@ -220,9 +184,7 @@ describe('Acasă', () => {
   });
 
   it('offers the agreement first, before any member recorded it', async () => {
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ unavailable: null, agreement: null })
-    );
+    mockQuery(useGetPortalSigningAgreementState, { unavailable: null, agreement: null });
     mountPortal(signedIn());
     const panel = await screen.findByTestId('home-todo');
     const items = within(panel).getAllByTestId('home-todo-item');
@@ -231,10 +193,11 @@ describe('Acasă', () => {
   });
 
   it('keeps the empty text when nothing waits', async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ unavailable: null, agreement: agreementSignedOnPaper })
-    );
+    mockQuery(useListPortalSignatureRequests, { items: [] });
+    mockQuery(useGetPortalSigningAgreementState, {
+      unavailable: null,
+      agreement: agreementSignedOnPaper,
+    });
     mountPortal(signedIn());
     expect((await screen.findByTestId('home-todo')).textContent).toContain(
       'Nimic de semnat deocamdată'
@@ -243,9 +206,10 @@ describe('Acasă', () => {
   });
 
   it('warns about the unsigned agreement on a record when the agreement cannot be signed yet', async () => {
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ agreement: null, unavailable: missingRepresentative })
-    );
+    mockQuery(useGetPortalSigningAgreementState, {
+      agreement: null,
+      unavailable: missingRepresentative,
+    });
     mountPortal(signedIn());
     const panel = await screen.findByTestId('home-todo');
     expect(within(panel).getAllByTestId('home-todo-item')).toHaveLength(2);
@@ -253,9 +217,10 @@ describe('Acasă', () => {
   });
 
   it('stops warning on the own records once the employee signed the agreement', async () => {
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ unavailable: null, agreement: agreementAwaitingEmployer })
-    );
+    mockQuery(useGetPortalSigningAgreementState, {
+      unavailable: null,
+      agreement: agreementAwaitingEmployer,
+    });
     mountPortal(signedIn());
     const panel = await screen.findByTestId('home-todo');
     expect(within(panel).getAllByTestId('home-todo-item')).toHaveLength(2);
@@ -263,13 +228,11 @@ describe('Acasă', () => {
   });
 
   it('counts what is not shown as +N', async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
-      queryResult({
-        items: Array.from({ length: 6 }, (_, index) =>
-          request(`6f0c3e43-0c1b-4f4b-8a1e-00000000010${index}`)
-        ),
-      })
-    );
+    mockQuery(useListPortalSignatureRequests, {
+      items: Array.from({ length: 6 }, (_, index) =>
+        request(`6f0c3e43-0c1b-4f4b-8a1e-00000000010${index}`)
+      ),
+    });
     mountPortal(signedIn());
     expect((await screen.findByTestId('home-todo-more')).textContent).toBe('+3');
   });
@@ -277,9 +240,7 @@ describe('Acasă', () => {
 
 describe('test-sheet requests', () => {
   it('lists a test sheet beside the records, and signs it in the same session', async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
-      queryResult({ items: [requestA, testSheetRequest] })
-    );
+    mockQuery(useListPortalSignatureRequests, { items: [requestA, testSheetRequest] });
     mountPortal(signedIn());
     const items = within(await screen.findByTestId('home-todo')).getAllByTestId('home-todo-item');
     expect(items).toHaveLength(3);
@@ -289,19 +250,17 @@ describe('test-sheet requests', () => {
   });
 
   it("dates a request without its document's payload by its day in Romania", async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
-      queryResult({
-        items: [
-          request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r5', {
-            kind: 'test_sheet',
-            label: 'Fișa de test · Test la angajare SSM · 21.10.2026',
-            issuedAt: '2026-10-20T22:30:00Z',
-            record: null,
-            testSheet: null,
-          }),
-        ],
-      })
-    );
+    mockQuery(useListPortalSignatureRequests, {
+      items: [
+        request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r5', {
+          kind: 'test_sheet',
+          label: 'Fișa de test · Test la angajare SSM · 21.10.2026',
+          issuedAt: '2026-10-20T22:30:00Z',
+          record: null,
+          testSheet: null,
+        }),
+      ],
+    });
     mountPortal(signedIn());
     const item = (await screen.findAllByTestId('home-todo-item')).find(
       (each) => each.dataset.kind === 'request'
@@ -311,12 +270,11 @@ describe('test-sheet requests', () => {
   });
 
   it('sends the test sheet with a record in one session', async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
-      queryResult({ items: [requestA, testSheetRequest] })
-    );
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ unavailable: null, agreement: agreementAwaitingEmployer })
-    );
+    mockQuery(useListPortalSignatureRequests, { items: [requestA, testSheetRequest] });
+    mockQuery(useGetPortalSigningAgreementState, {
+      unavailable: null,
+      agreement: agreementAwaitingEmployer,
+    });
     vi.mocked(signPortalSigningSession).mockResolvedValueOnce({
       signed: [
         { requestId: requestA.id, agreementState: 'generated' },
@@ -337,12 +295,11 @@ describe('test-sheet requests', () => {
   });
 
   it('says a lone test sheet was signed', async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
-      queryResult({ items: [testSheetRequest] })
-    );
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ unavailable: null, agreement: agreementAwaitingEmployer })
-    );
+    mockQuery(useListPortalSignatureRequests, { items: [testSheetRequest] });
+    mockQuery(useGetPortalSigningAgreementState, {
+      unavailable: null,
+      agreement: agreementAwaitingEmployer,
+    });
     vi.mocked(signPortalSigningSession).mockResolvedValueOnce({
       signed: [{ requestId: testSheetRequest.id, agreementState: 'generated' }],
       failed: [],
@@ -357,22 +314,20 @@ describe('test-sheet requests', () => {
   });
 
   it("names the examiner's slot and whose test sheet it is", async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
-      queryResult({
-        items: [
-          request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r4', {
-            ...testSheetRequest,
-            id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000r4',
-            slot: 'examiner',
-            employee: {
-              id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000e9',
-              lastName: 'Ionescu',
-              firstName: 'Dan',
-            },
-          }),
-        ],
-      })
-    );
+    mockQuery(useListPortalSignatureRequests, {
+      items: [
+        request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r4', {
+          ...testSheetRequest,
+          id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000r4',
+          slot: 'examiner',
+          employee: {
+            id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000e9',
+            lastName: 'Ionescu',
+            firstName: 'Dan',
+          },
+        }),
+      ],
+    });
     mountPortal(signedIn());
     const item = (await screen.findAllByTestId('home-todo-item')).find(
       (each) => each.dataset.kind === 'request'
@@ -483,7 +438,7 @@ describe('the signing screen', () => {
   });
 
   it('says what one signed item was, by its kind and whose record it is', async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
+    mockQuery(useListPortalSignatureRequests, { items: [] });
     vi.mocked(signPortalSigningSession).mockResolvedValueOnce({
       signed: [],
       failed: [],
@@ -500,13 +455,11 @@ describe('the signing screen', () => {
   });
 
   it('ticks at most what one code signs and holds the code back over the limit', async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
-      queryResult({
-        items: Array.from({ length: 31 }, (_, index) =>
-          request(`6f0c3e43-0c1b-4f4b-8a1e-0000000002${String(index).padStart(2, '0')}`)
-        ),
-      })
-    );
+    mockQuery(useListPortalSignatureRequests, {
+      items: Array.from({ length: 31 }, (_, index) =>
+        request(`6f0c3e43-0c1b-4f4b-8a1e-0000000002${String(index).padStart(2, '0')}`)
+      ),
+    });
     const user = userEvent.setup();
     mountPortal(signedIn(), '/semneaza');
     const checks = await screen.findAllByTestId('signing-item-check');
@@ -671,10 +624,11 @@ describe('the signing screen', () => {
   });
 
   it('says nothing waits when the lists are empty', async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ unavailable: null, agreement: agreementSignedOnPaper })
-    );
+    mockQuery(useListPortalSignatureRequests, { items: [] });
+    mockQuery(useGetPortalSigningAgreementState, {
+      unavailable: null,
+      agreement: agreementSignedOnPaper,
+    });
     mountPortal(signedIn(), '/semneaza');
     expect(await screen.findByTestId('signing-nothing')).toBeTruthy();
   });
@@ -765,22 +719,25 @@ describe('the client administrator', () => {
   const second = '6f0c3e43-0c1b-4f4b-8a1e-0000000000e3';
 
   beforeEach(() => {
-    vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [administrator] }));
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-    vi.mocked(useListPortalSigningAgreements).mockReturnValue(
-      queryResult({ items: [awaiting(first, 'Pop'), awaiting(second, 'Stan')] })
-    );
-    vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(
-      queryResult({
-        items: [
-          requestA,
-          request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r3', {
-            slot: 'trainer',
-            signerName: 'Ana Ionescu',
-          }),
-        ],
-      })
-    );
+    vi.mocked(getPortalEmployeeSigningAgreementLink).mockResolvedValue({
+      url: 'https://files.example.test/signed/employee-agreement',
+      fileName: 'Act-aditional-semnare-electronica-Pop-Ana.pdf',
+      expiresInSeconds: 600,
+    });
+    mockQuery(useGetPortalMe, { participations: [administrator] });
+    mockQuery(useListPortalSignatureRequests, { items: [] });
+    mockQuery(useListPortalSigningAgreements, {
+      items: [awaiting(first, 'Pop'), awaiting(second, 'Stan')],
+    });
+    mockQuery(useListPortalClientSignatureRequests, {
+      items: [
+        requestA,
+        request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r3', {
+          slot: 'trainer',
+          signerName: 'Ana Ionescu',
+        }),
+      ],
+    });
   });
 
   it('sees the agreements awaiting the employer and the client’s pending requests on Acasă', async () => {
@@ -818,7 +775,7 @@ describe('the client administrator', () => {
   });
 
   it('signs all the agreements, and only them, from Semnează toate', async () => {
-    vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [requestB] }));
+    mockQuery(useListPortalSignatureRequests, { items: [requestB] });
     const user = userEvent.setup();
     mountPortal(signedIn(), '/angajati/semnaturi');
     await user.click(await screen.findByTestId('agreements-sign-all'));
@@ -832,8 +789,8 @@ describe('the client administrator', () => {
 
   it('signs their own agreement as the employee when the administrator is one', async () => {
     const both = { ...administrator, employeeId };
-    vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [both] }));
-    vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
+    mockQuery(useGetPortalMe, { participations: [both] });
+    mockQuery(useListPortalSigningAgreements, { items: [] });
     const user = userEvent.setup();
     mountPortal(signedIn(), '/contul-meu');
     await user.click(await screen.findByTestId('account-agreement-sign'));
@@ -913,7 +870,7 @@ describe('Instruiri and Contul meu', () => {
         ssm: { ready: true, missing: [], stored: true, sequences: [1], versions: { 1: 'sheet:1' } },
         su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
       };
-      vi.mocked(useGetPortalTrainingSheets).mockImplementation(() => queryResult(sheets));
+      mockQuery(useGetPortalTrainingSheets, sheets);
       vi.mocked(getPortalTrainingSheetLink).mockImplementation(async () => ({
         url: `https://files.example.test/${sheets.ssm.versions[1]}.pdf`,
         fileName: 'sheet.pdf',
@@ -935,11 +892,9 @@ describe('Instruiri and Contul meu', () => {
   );
 
   it('offers the originals of a sheet continued on a second one beside the reading copy', async () => {
-    vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
-      queryResult({
-        ssm: { ready: true, missing: [], stored: true, sequences: [1, 2], versions: {} },
-        su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
-      })
+    mockQuery(
+      useGetPortalTrainingSheets,
+      readySheets({ ssm: { stored: true, sequences: [1, 2] } })
     );
     mountPortal(signedIn(), '/instruiri');
     const originals = await screen.findByTestId('training-sheet-ssm-originals');
@@ -964,9 +919,10 @@ describe('Instruiri and Contul meu', () => {
   });
 
   it('opens a signed agreement from a real link', async () => {
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ unavailable: null, agreement: agreementAwaitingEmployer })
-    );
+    mockQuery(useGetPortalSigningAgreementState, {
+      unavailable: null,
+      agreement: agreementAwaitingEmployer,
+    });
     mountPortal(signedIn(), '/contul-meu');
     await waitFor(() =>
       expect(screen.getByTestId('agreement-pdf').getAttribute('href')).toContain('/files/download?')
@@ -979,25 +935,24 @@ describe('Instruiri and Contul meu', () => {
   });
 
   it('renews the cached agreement after the employer signs remotely', async () => {
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ unavailable: null, agreement: agreementAwaitingEmployer })
-    );
+    mockQuery(useGetPortalSigningAgreementState, {
+      unavailable: null,
+      agreement: agreementAwaitingEmployer,
+    });
     const runtime = mountPortal(signedIn(), '/contul-meu');
     const source = () =>
       new URL(screen.getByTestId('agreement-pdf').getAttribute('href')!).searchParams.get('source');
     await waitFor(() => expect(source()).toBe('https://files.example.test/signed/agreement'));
 
     await act(() => runtime.router.navigate({ to: '/instruiri' }));
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({
-        unavailable: null,
-        agreement: {
-          ...agreementAwaitingEmployer,
-          employerSignedAt: '2026-10-18T09:00:00Z',
-          awaiting: null,
-        },
-      })
-    );
+    mockQuery(useGetPortalSigningAgreementState, {
+      unavailable: null,
+      agreement: {
+        ...agreementAwaitingEmployer,
+        employerSignedAt: '2026-10-18T09:00:00Z',
+        awaiting: null,
+      },
+    });
     vi.mocked(getPortalSigningAgreementLink).mockResolvedValue({
       url: 'https://files.example.test/signed/agreement-v2',
       fileName: 'agreement.pdf',
@@ -1034,9 +989,7 @@ describe('Instruiri and Contul meu', () => {
       false,
     ],
   ])('shows the agreement %#', async (agreement, text, signable) => {
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ unavailable: null, agreement })
-    );
+    mockQuery(useGetPortalSigningAgreementState, { unavailable: null, agreement });
     mountPortal(signedIn(), '/contul-meu');
     expect((await screen.findByTestId('account-agreement-state')).textContent).toBe(text);
     expect(screen.queryByTestId('account-agreement-sign') !== null).toBe(signable);
@@ -1044,9 +997,10 @@ describe('Instruiri and Contul meu', () => {
   });
 
   it('tells the employee what the specialist must fill in before the agreement can be signed', async () => {
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ agreement: null, unavailable: missingRepresentative })
-    );
+    mockQuery(useGetPortalSigningAgreementState, {
+      agreement: null,
+      unavailable: missingRepresentative,
+    });
     mountPortal(signedIn(), '/contul-meu');
     expect((await screen.findByTestId('account-agreement-state')).textContent).toBe(
       'Specialistul trebuie să completeze mai întâi reprezentantul legal al angajatorului în datele firmei.'

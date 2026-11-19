@@ -1,7 +1,19 @@
 import { defaultParseSearch } from '@tanstack/react-router';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import { filterSearchSchema } from '@/components/list-filters/url';
+import { Route as organizationEmployees } from '@/routes/_authenticated/angajati/index';
+import { Route as clientFiles } from '@/routes/_authenticated/clienti/$clientId/alte-documente/index';
+import { Route as employees } from '@/routes/_authenticated/clienti/$clientId/angajati/index';
+import { Route as trainings } from '@/routes/_authenticated/clienti/$clientId/instruiri-tinute';
+import { Route as portal } from '@/routes/_authenticated/clienti/$clientId/portal';
+import { Route as clients } from '@/routes/_authenticated/clienti/index';
+import { Route as riskLibrary } from '@/routes/_authenticated/evaluari-de-risc/index';
+import { Route as instructions } from '@/routes/_authenticated/instructiuni/_library/ssm';
+import { Route as watchedActs } from '@/routes/_authenticated/legislatie/acte';
+import { Route as leads } from '@/routes/_authenticated/oferte/index';
+import { Route as signatures } from '@/routes/_authenticated/semnaturi';
 
 import { stringifySearch } from './search-params';
 
@@ -56,5 +68,29 @@ describe('filterSearchSchema', () => {
 
   it('reads a value that the parser turned into a number as text', () => {
     expect(filterSearchSchema(['12']).parse(12)).toEqual(['12']);
+  });
+});
+
+describe('the search box of every list', () => {
+  const lists = [
+    ['/clienti', clients],
+    ['/oferte', leads],
+    ['/angajati', organizationEmployees],
+    ['/semnaturi', signatures],
+    ['/clienti/$clientId/angajati', employees],
+    ['/clienti/$clientId/portal', portal],
+    ['/clienti/$clientId/instruiri-tinute', trainings],
+    ['/clienti/$clientId/alte-documente', clientFiles],
+    ['/instructiuni/ssm', instructions],
+    ['/evaluari-de-risc', riskLibrary],
+    ['/legislatie/acte', watchedActs],
+  ] as const;
+
+  it.each(lists)('%s keeps a search of digits typed into the address', (_, route) => {
+    const search: Record<string, unknown> = defaultParseSearch('?q=1590082');
+    expect(search.q).toBe(1590082);
+    expect(z.parse(route.options.validateSearch as z.ZodType<{ q?: string }>, search).q).toBe(
+      '1590082'
+    );
   });
 });

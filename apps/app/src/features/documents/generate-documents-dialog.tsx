@@ -7,7 +7,6 @@ import {
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogFooter,
@@ -29,7 +28,9 @@ import {
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -75,13 +76,10 @@ export function GenerateDocumentsDialog({
   generatedTypeKeys: readonly string[];
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const generate = useGenerateClientDocuments({ request: apiRequest });
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && !generate.isPending && onClose()}>
+    <FormDialog open={open} onClose={onClose}>
       {open && (
         <GenerateDocumentsForm
-          generate={generate}
           set={set}
           clientId={clientId}
           userId={userId}
@@ -90,12 +88,11 @@ export function GenerateDocumentsDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
 function GenerateDocumentsForm({
-  generate,
   set,
   clientId,
   userId,
@@ -108,7 +105,6 @@ function GenerateDocumentsForm({
   userId: string;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
   generatedTypeKeys: readonly string[];
-  generate: ReturnType<typeof useGenerateClientDocuments>;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -122,6 +118,7 @@ function GenerateDocumentsForm({
   });
   const occupationalSafety = set === 'occupational_safety';
   const { templatesUnavailable } = documentSetCopy[set];
+  const generate = useGenerateClientDocuments({ request: apiRequest });
   // Only an owner can fill in the organization's details; a specialist is told whom to ask.
   const isOwner = useMe().data?.membership?.role === 'owner';
   const startWayBack = useStartWayBack();
@@ -136,6 +133,7 @@ function GenerateDocumentsForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = generate.isPending;
+  useHoldOpen(busy);
   const missing = readiness.data
     ? documentMissingGroups({
         missing: readiness.data.missing,
@@ -194,6 +192,7 @@ function GenerateDocumentsForm({
 
   return (
     <DialogContent
+      showCloseButton={!busy}
       data-testid="generate-documents-dialog"
       className="sm:max-w-2xl"
       aria-describedby={undefined}

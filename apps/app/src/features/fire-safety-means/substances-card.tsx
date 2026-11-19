@@ -1,13 +1,6 @@
 import { type FireSubstancesState, missingSubstanceEssentials } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@ssm-usor/ui/components/dropdown-menu';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   Table,
@@ -20,7 +13,7 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { ExternalLink, MoreHorizontal, Plus } from 'lucide-react';
+import { ExternalLink, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -33,6 +26,7 @@ import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
+import { RowActionsMenu } from '@/components/row-actions-menu';
 import { SectionCard } from '@/components/section-card';
 import { warningBadge } from '@/features/documents/pack-styles';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
@@ -371,34 +365,12 @@ export function SubstancesCard({
                           </TableCell>
                           {!readOnly && (
                             <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    data-testid="fire-substance-actions"
-                                    aria-label={`Acțiuni pentru ${substance.name}`}
-                                  >
-                                    <MoreHorizontal aria-hidden="true" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    data-testid="fire-substance-edit"
-                                    onSelect={() => setEditing(substance)}
-                                  >
-                                    Modifică
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    data-testid="fire-substance-delete"
-                                    variant="destructive"
-                                    onSelect={() => setDeleting(substance)}
-                                  >
-                                    Șterge
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              <RowActionsMenu
+                                name={substance.name}
+                                testId="fire-substance"
+                                onEdit={() => setEditing(substance)}
+                                onDelete={() => setDeleting(substance)}
+                              />
                             </TableCell>
                           )}
                         </TableRow>

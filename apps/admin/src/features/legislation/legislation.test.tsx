@@ -6,9 +6,9 @@ import type {
 } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { disposeAdmins, mountAdmin } from '@/test/admin-app';
+import { adminRequests, installAdminFetch, mockAdminApi, mountAdmin } from '@/test/admin-app';
 
 const changeId = 'd1d1d1d1-0000-4000-8000-000000000001';
 const versionId = 'a1a1a1a1-0000-4000-8000-000000000001';
@@ -153,29 +153,16 @@ const runs: AdminLegalCheckRunList = {
   total: 30,
 };
 
-const fetchMock = vi.fn<typeof fetch>();
 let current: AdminLegalChangeDetail = detail;
 let refusal: string | null = null;
 
-const requests = () =>
-  fetchMock.mock.calls
-    .map(([input, init]) => ({
-      url: new URL(String(input)),
-      method: init?.method ?? 'GET',
-      body: typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
-    }))
-    .filter((call) => call.url.pathname !== '/api/impersonation');
+installAdminFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   current = detail;
   refusal = null;
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
+  mockAdminApi((url, init) => {
     const method = init?.method ?? 'GET';
-    if (url.pathname === '/api/impersonation') return Response.json({ impersonation: null });
-    if (url.pathname === '/api/me') return Response.json({ id: 'user-1', email: 'm@example.ro' });
     if (url.pathname === '/api/legislation/changes') return Response.json(list);
     if (refusal && method === 'POST') {
       current =
@@ -221,13 +208,7 @@ beforeEach(() => {
       return Response.json({ ...acts.items[0], verifiedConsolidatedOn: '2026-11-06' });
     }
     if (url.pathname === '/api/legislation/runs') return Response.json(runs);
-    return Response.json({ error: 'not_found', message: 'No such route.' }, { status: 404 });
   });
-});
-
-afterEach(() => {
-  disposeAdmins();
-  vi.unstubAllGlobals();
 });
 
 describe('the legal changes', () => {
@@ -255,7 +236,7 @@ describe('the legal changes', () => {
       })
     );
     await waitFor(() =>
-      expect(requests().at(-1)!.url.search).toBe('?status=open&outcome=unassessed')
+      expect(adminRequests().at(-1)!.url.search).toBe('?status=open&outcome=unassessed')
     );
   });
 
@@ -317,7 +298,7 @@ describe('a legal change', () => {
 
     await user.click(within(dialog).getByTestId('no-impact-submit'));
     expect(within(dialog).getByTestId('no-impact-note-error')).toBeTruthy();
-    expect(requests().some((call) => call.method === 'POST')).toBe(false);
+    expect(adminRequests().some((call) => call.method === 'POST')).toBe(false);
 
     await user.type(
       within(dialog).getByTestId('no-impact-note'),
@@ -328,7 +309,7 @@ describe('a legal change', () => {
     expect((await screen.findByTestId('change-note')).textContent).toBe(
       'Art. 36 alin. (2) nu e citat ca regulă.'
     );
-    const post = requests().find((call) => call.method === 'POST')!;
+    const post = adminRequests().find((call) => call.method === 'POST')!;
     expect(post.url.pathname).toBe(`/api/legislation/changes/${changeId}/no-impact`);
     expect(post.body).toEqual({ note: 'Art. 36 alin. (2) nu e citat ca regulă.' });
   });
@@ -344,7 +325,7 @@ describe('a legal change', () => {
 
     const resolution = await screen.findByTestId('change-resolution');
     expect(resolution.textContent).toContain('Answered by');
-    const post = requests().find((call) => call.method === 'POST')!;
+    const post = adminRequests().find((call) => call.method === 'POST')!;
     expect(post.url.pathname).toBe(`/api/legislation/changes/${changeId}/template-version`);
     expect(post.body).toEqual({ templateVersionId: versionId });
   });
@@ -448,7 +429,7 @@ describe('the watched acts', () => {
     await user.click(submit);
 
     await waitFor(() => expect(screen.queryByTestId('verified-form-dialog')).toBeNull());
-    const put = requests().find((call) => call.method === 'PUT')!;
+    const put = adminRequests().find((call) => call.method === 'PUT')!;
     expect(put.url.pathname).toBe('/api/legislation/acts/oug-195-2002/verified-form');
     expect(put.body).toEqual({ consolidatedOn: '2026-11-05' });
   });
@@ -499,6 +480,6 @@ describe('the runs', () => {
 
     await userEvent.setup().click(screen.getByTestId('pager-next'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({ page: 2 }));
-    await waitFor(() => expect(requests().at(-1)!.url.searchParams.get('page')).toBe('2'));
+    await waitFor(() => expect(adminRequests().at(-1)!.url.searchParams.get('page')).toBe('2'));
   });
 });

@@ -10,7 +10,7 @@ import { type CompanyFocus, useFocusRequest } from '@/features/missing-data/focu
 import { IdentificationFields, RegisteredOfficeFields, RegistrationFields } from './client-fields';
 import { addressField, type Client, type ClientFormValues } from './client-form-schema';
 import { useClientFieldsForm } from './use-client-fields-form';
-import { useCompanyLookup } from './use-company-lookup';
+import { useClientCompanyLookup } from './use-company-lookup';
 
 const fields: readonly (keyof ClientFormValues)[] = [
   'cui',
@@ -98,7 +98,7 @@ export function CompanyForm({ client, onClose }: { client: Client; onClose: () =
     successMessage: 'Datele firmei au fost salvate.',
     onSaved: onClose,
   });
-  const { lookup, lookupCui } = useCompanyLookup(form);
+  const { lookup, lookupCui } = useClientCompanyLookup(form);
   const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
   const busy = isSaving || lookup.status === 'loading';

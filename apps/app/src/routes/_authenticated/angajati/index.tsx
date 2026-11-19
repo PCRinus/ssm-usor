@@ -1,7 +1,8 @@
-import { organizationEmployeeSortKeys, sortOrderSchema } from '@ssm-usor/contracts';
+import { organizationEmployeeSortKeys } from '@ssm-usor/contracts';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
+import { listPageSearchSchema } from '@/components/list-filters/use-list-search';
 import { OrganizationEmployeesPage } from '@/features/employees/organization-employees-page';
 import {
   fromLegacyWorkerFilters,
@@ -9,13 +10,9 @@ import {
   organizationWorkerFilterSearch,
 } from '@/features/employees/worker-filters';
 
-const searchSchema = z
-  .object({
+const searchSchema = listPageSearchSchema(organizationEmployeeSortKeys)
+  .extend({
     status: z.literal('terminated').optional().catch(undefined),
-    q: z.string().max(100).optional().catch(undefined),
-    page: z.number().int().min(1).optional().catch(undefined),
-    sort: z.enum(organizationEmployeeSortKeys).optional().catch(undefined),
-    order: sortOrderSchema.optional().catch(undefined),
     ...organizationWorkerFilterSearch,
     ...legacyWorkerFilterSearch,
     // The single client the list filtered by before it took several.

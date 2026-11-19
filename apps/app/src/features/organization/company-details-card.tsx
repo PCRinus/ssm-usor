@@ -1,23 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  bankNameAfterIbanChange,
-  formatIban,
-  isValidCuiInput,
-  normalizeCui,
-} from '@ssm-usor/contracts';
+import { bankNameAfterIbanChange, formatIban } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
-import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
   getGetBillingQueryKey,
   getGetOrganizationCompanyDetailsQueryKey,
-  lookupCompany,
   type OrganizationCompanyDetailsResponse,
   useGetOrganizationCompanyDetails,
   useUpdateOrganizationCompanyDetails,
@@ -30,7 +23,9 @@ import { Notice } from '@/components/notice';
 import { sheetPadding } from '@/components/page-spacing';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { AnafLookupButton } from '@/features/clients/anaf-lookup-button';
+import { CompanyLookupStatus } from '@/features/clients/company-lookup-status';
 import { CountyCombobox } from '@/features/clients/county-combobox';
+import { anafFill, useCompanyLookup } from '@/features/clients/use-company-lookup';
 import { type OrganizationCompanyFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { commonFailure } from '@/lib/api-errors';
@@ -114,11 +109,6 @@ export function CompanyDetailsCard({
   );
 }
 
-type LookupState =
-  | { status: 'idle' | 'loading' }
-  | { status: 'done'; inactive: boolean; message: string }
-  | { status: 'error'; message: string };
-
 type TextField = Exclude<keyof CompanyDetailsFormValues, 'countyCode' | 'vatPayer'>;
 
 const shownInReplay = new Set<TextField>([
@@ -143,62 +133,28 @@ function CompanyDetailsForm({
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
   const update = useUpdateOrganizationCompanyDetails({ request: apiRequest });
-  const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
   const form = useForm<CompanyDetailsFormValues>({
     resolver: zodResolver(companyDetailsFormSchema),
     defaultValues: toCompanyDetailsForm(saved),
   });
   const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
-  const busy = update.isPending || lookup.status === 'loading';
-  const locked = busy || !canEdit;
   function followIban(iban: string) {
     const bankName = bankNameAfterIbanChange(iban, form.getValues('bankName'));
     if (bankName !== form.getValues('bankName')) {
       form.setValue('bankName', bankName, { shouldDirty: true, shouldValidate: false });
     }
   }
-
-  async function lookupCui() {
-    const input = form.getValues('cui');
-    if (!isValidCuiInput(input)) {
-      form.setError('cui', { message: 'Introdu un CUI valid înainte de căutare.' });
-      return;
+  const { lookup, lookupCui } = useCompanyLookup(form, (company) => {
+    // ANAF rarely holds them, so an empty answer keeps what the owner wrote.
+    if (company.phone) form.setValue('phone', company.phone, anafFill);
+    if (company.iban) {
+      form.setValue('iban', formatIban(company.iban), anafFill);
+      followIban(company.iban);
     }
-    form.clearErrors('cui');
-    setLookup({ status: 'loading' });
-    try {
-      const { company } = await lookupCompany({ cui: normalizeCui(input)!.cui }, apiRequest);
-      const fill = { shouldDirty: true, shouldValidate: false };
-      form.setValue('legalName', company.legalName, fill);
-      form.setValue('vatPayer', company.vatPayer, fill);
-      form.setValue('tradeRegisterNumber', company.tradeRegisterNumber ?? '', fill);
-      form.setValue('countyCode', company.countyCode ?? '', fill);
-      form.setValue('locality', company.locality ?? '', fill);
-      form.setValue('addressLine', company.addressLine ?? '', fill);
-      // ANAF rarely holds them, so an empty answer keeps what the owner wrote.
-      if (company.phone) form.setValue('phone', company.phone, fill);
-      if (company.iban) {
-        form.setValue('iban', formatIban(company.iban), fill);
-        followIban(company.iban);
-      }
-      setLookup({
-        status: 'done',
-        inactive: company.inactive,
-        message: company.inactive
-          ? `Date preluate de la ANAF pentru ${company.legalName}. Atenție: compania figurează ca inactivă.`
-          : `Date preluate de la ANAF pentru ${company.legalName}. Verifică-le înainte de salvare.`,
-      });
-    } catch (cause) {
-      setLookup({
-        status: 'error',
-        message:
-          cause instanceof ApiHttpError && cause.status === 404
-            ? 'Nu am găsit nicio companie cu acest CUI la ANAF. Completează datele manual.'
-            : 'Serviciul ANAF nu este disponibil momentan. Completează datele manual.',
-      });
-    }
-  }
+  });
+  const busy = update.isPending || lookup.status === 'loading';
+  const locked = busy || !canEdit;
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -297,25 +253,7 @@ function CompanyDetailsForm({
               )}
             </div>
           </Field>
-          {lookup.status === 'done' && (
-            <Notice
-              variant={lookup.inactive ? 'warning' : 'success'}
-              data-testid="company-lookup-status"
-              className="sm:col-span-2"
-            >
-              {lookup.message}
-            </Notice>
-          )}
-          {lookup.status === 'error' && (
-            <Notice
-              variant="warning"
-              role="alert"
-              data-testid="company-lookup-status"
-              className="sm:col-span-2"
-            >
-              {lookup.message}
-            </Notice>
-          )}
+          <CompanyLookupStatus lookup={lookup} testId="company-lookup-status" />
           {text('legalName', 'Denumire juridică', {
             hint: 'Așa cum apare în actele firmei.',
             className: 'sm:col-span-2',

@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { fireInstallationKindLabels, fireInstallationKinds } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -23,7 +22,9 @@ import {
   useUpdateFireInstallation,
 } from '@/api/generated/api';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -59,7 +60,7 @@ export function InstallationDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={editing !== null} onClose={onClose}>
       {editing && (
         <InstallationForm
           key={editing.installation?.id ?? `new-${editing.workplaceId}`}
@@ -70,7 +71,7 @@ export function InstallationDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -100,6 +101,7 @@ function InstallationForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  useHoldOpen(busy);
   const kind = useWatch({ control: form.control, name: 'kind' });
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -136,6 +138,7 @@ function InstallationForm({
             value={field.value}
             onChange={field.onChange}
             onBlur={field.onBlur}
+            keepUnfinished
             disabled={busy}
             invalid={Boolean(errors[name])}
             describedBy={errors[name] ? `${id}-error` : undefined}
@@ -146,7 +149,11 @@ function InstallationForm({
   );
 
   return (
-    <DialogContent data-testid="fire-installation-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="fire-installation-dialog"
+      className="sm:max-w-2xl"
+      showCloseButton={!busy}
+    >
       <form
         {...replayShow}
         ref={formRef}
