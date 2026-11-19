@@ -1,8 +1,8 @@
 import {
   countOf,
   decodeCnp,
-  employeeImportTextLimits,
   employeeImportValueAllowed,
+  employeeTextLimitsOf,
   foldText,
   heldTrainingKey,
   hiringTestRowIds,
@@ -508,7 +508,7 @@ function invalidField(
     return decision(
       `Corectează ${lower}: între ${minutesRange.min} și ${minutesRange.max} de minute`
     );
-  const limits = employeeImportTextLimits(name);
+  const limits = employeeTextLimitsOf(name);
   if (!limits || typeof value !== 'string') return decision(`Corectează ${lower}`);
   return decision(
     value.trim().length < limits[0]

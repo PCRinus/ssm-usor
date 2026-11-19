@@ -19,7 +19,9 @@ type FieldValue = string | number;
 
 const isoDate = /^\d{4}-\d{2}-\d{2}$/;
 
-const limitOf = (name: EmployeeImportFieldName): readonly [number, number] | undefined =>
+export const employeeTextLimitsOf = (
+  name: EmployeeImportFieldName
+): readonly [number, number] | undefined =>
   (employeeTextLimits as Partial<Record<EmployeeImportFieldName, readonly [number, number]>>)[name];
 
 export function employeeImportValueAllowed(name: EmployeeImportFieldName, value: FieldValue) {
@@ -35,12 +37,10 @@ export function employeeImportValueAllowed(name: EmployeeImportFieldName, value:
   if (name === 'commuteMeans') {
     return typeof value === 'string' && parseCommuteMeansKey(value) !== null;
   }
-  const limits = limitOf(name);
+  const limits = employeeTextLimitsOf(name);
   if (!limits || typeof value !== 'string') return typeof value === 'string';
   return value.trim().length >= limits[0] && value.trim().length <= limits[1];
 }
-
-export const employeeImportTextLimits = limitOf;
 
 export const employeeImportValuesDiffer = (
   name: EmployeeImportFieldName,
