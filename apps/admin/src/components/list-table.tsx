@@ -43,7 +43,8 @@ export function ListTable<List extends { items: readonly unknown[] }>({
   empty: ReactNode;
   row: (item: List['items'][number]) => ReactNode;
   pager?: List extends Paged ? PagerOptions : never;
-  // A short list, as a section under a page, shows no pager while it fits on one page.
+  // A short list shown as a section under a page: fewer placeholder rows, a lower empty row, and
+  // no pager while it fits on one page.
   compact?: boolean;
 }) {
   if (query.isError && !query.data) {
