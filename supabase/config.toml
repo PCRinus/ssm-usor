@@ -84,8 +84,9 @@ uri = "http://host.docker.internal:8797/hooks/supabase/send-email"
 secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI="
 
 # The portal's sign-in by code (ADR 022). With signups on (`[auth] enable_signup`, which
-# registration needs), anyone can have Auth make an account for a number. The API's Send SMS hook texts only the accounts it made for an
-# invitation (apps/api's auth-hooks module), so a stranger's number gets no SMS.
+# registration needs), anyone can have Auth make an account for a number. The API's Send SMS
+# hook texts only the accounts it made for an invitation (apps/api's auth-hooks module), so a
+# stranger's number gets no SMS.
 #
 # The code's expiry (`sms_otp_exp`) is not a property of this file: the local stack fixes it at
 # 100 minutes, and the deployment workflow sets 10 on the hosted projects.
