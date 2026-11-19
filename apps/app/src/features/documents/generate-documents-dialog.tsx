@@ -75,10 +75,13 @@ export function GenerateDocumentsDialog({
   generatedTypeKeys: readonly string[];
   onClose: () => void;
 }) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const generate = useGenerateClientDocuments({ request: apiRequest });
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog open={open} onOpenChange={(next) => !next && !generate.isPending && onClose()}>
       {open && (
         <GenerateDocumentsForm
+          generate={generate}
           set={set}
           clientId={clientId}
           userId={userId}
@@ -92,6 +95,7 @@ export function GenerateDocumentsDialog({
 }
 
 function GenerateDocumentsForm({
+  generate,
   set,
   clientId,
   userId,
@@ -104,6 +108,7 @@ function GenerateDocumentsForm({
   userId: string;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
   generatedTypeKeys: readonly string[];
+  generate: ReturnType<typeof useGenerateClientDocuments>;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -117,7 +122,6 @@ function GenerateDocumentsForm({
   });
   const occupationalSafety = set === 'occupational_safety';
   const { templatesUnavailable } = documentSetCopy[set];
-  const generate = useGenerateClientDocuments({ request: apiRequest });
   // Only an owner can fill in the organization's details; a specialist is told whom to ask.
   const isOwner = useMe().data?.membership?.role === 'owner';
   const startWayBack = useStartWayBack();

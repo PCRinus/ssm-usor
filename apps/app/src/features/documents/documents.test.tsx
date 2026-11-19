@@ -327,6 +327,30 @@ describe('client documents', () => {
     expect(screen.queryByTestId('generate-missing-place')).toBeNull();
   });
 
+  it('stays open while the documents are being generated', async () => {
+    mockApi();
+    const answer = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    fetchMock.mockImplementation(async (input, init) => {
+      if (new URL(String(input)).pathname === `/clients/${clientId}/documents/generate`) {
+        await held;
+      }
+      return answer(input, init);
+    });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('documents-generate'));
+    await user.click(await screen.findByTestId('generate-submit'));
+    await waitFor(() =>
+      expect(screen.getByTestId('generate-submit').textContent).toBe('Se generează…')
+    );
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('generate-documents-dialog')).toBeTruthy();
+    release();
+    await waitFor(() => expect(screen.queryByTestId('generate-documents-dialog')).toBeNull());
+  });
+
   it('hints at the missing risk evaluator, with the way to the authorizations for an owner', async () => {
     mockApi({ readiness: { ready: true, missing: [], hints: ['provider.riskEvaluator'] } });
     mount();
