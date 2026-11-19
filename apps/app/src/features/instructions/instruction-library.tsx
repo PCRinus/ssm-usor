@@ -12,7 +12,7 @@ import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Archive, BookOpenText, BriefcaseBusiness, PenLine, SearchX, Tag } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
   getListInstructionModulesQueryKey,
@@ -25,7 +25,13 @@ import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
-import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
+import {
+  FilterTab,
+  FilterTabs,
+  ListActions,
+  ListCardHeader,
+  ListCount,
+} from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import { PendingCountLabel } from '@/components/list-filters/pending-count-label';
@@ -48,7 +54,7 @@ import {
   type InstructionModule,
   type LibrarySearch,
 } from './instruction-schema';
-import { useInstructionStart } from './instruction-start-context';
+import { InstructionStartDialog } from './instruction-start-dialog';
 
 const libraryPaths = { ssm: '/instructiuni/ssm', su: '/instructiuni/su' } as const;
 
@@ -111,7 +117,7 @@ export function InstructionLibrary({
   const archived = status === 'archived';
   const { request, key } = useApi();
   const navigate = useNavigate({ from: libraryPaths[domain] });
-  const { start, setTabEmpty } = useInstructionStart();
+  const [starting, setStarting] = useState(false);
   const phone = useIsMobile();
   const facets = useMemo(() => facetsOf(domain, archived), [domain, archived]);
   const listFilters = listFilterSearch({ keys: filterKeys, facets, search });
@@ -137,8 +143,6 @@ export function InstructionLibrary({
   const meta = modules.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const unfilteredTotal = modules.data?.unfilteredTotal ?? 0;
   const tabEmpty = !archived && isEmptyOrLoading(modules.status, unfilteredTotal) && !narrowed;
-  useEffect(() => setTabEmpty(tabEmpty), [setTabEmpty, tabEmpty]);
-  useEffect(() => () => setTabEmpty(false), [setTabEmpty]);
   const [editing, setEditing] = useState<ModuleEditing>(null);
   const [archiveChange, setArchiveChange] = useState<InstructionArchiveChange | null>(null);
   const columns = useMemo(
@@ -168,11 +172,8 @@ export function InstructionLibrary({
   };
 
   return (
-    <div
-      data-testid={`instruction-library-${domain}`}
-      className="overflow-hidden rounded-lg border bg-card"
-    >
-      <ListCardHeader>
+    <div data-testid={`instruction-library-${domain}`}>
+      <ListCardHeader data-testid="instruction-toolbar">
         <FilterTabs label="Filtrează instrucțiunile">
           {tabs.map((tab) => (
             <FilterTab
@@ -210,18 +211,34 @@ export function InstructionLibrary({
             />
           </div>
         )}
-        {modules.isSuccess && (unfilteredTotal > 0 || narrowed) && (
-          <ListCount testId="instruction-count">
-            {narrowed ? (
-              <>
-                <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
-                {phone ? unfilteredTotal : moduleCount(unfilteredTotal)}
-              </>
-            ) : (
-              moduleCount(meta.total)
-            )}
-          </ListCount>
-        )}
+        <ListActions
+          count={
+            modules.isSuccess &&
+            (unfilteredTotal > 0 || narrowed) && (
+              <ListCount testId="instruction-count">
+                {narrowed ? (
+                  <>
+                    <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
+                    {phone ? unfilteredTotal : moduleCount(unfilteredTotal)}
+                  </>
+                ) : (
+                  moduleCount(meta.total)
+                )}
+              </ListCount>
+            )
+          }
+        >
+          {!tabEmpty && (
+            <Button
+              className="h-11 md:h-9"
+              data-testid="instruction-write"
+              onClick={() => setStarting(true)}
+            >
+              <PenLine aria-hidden="true" />
+              Scrie o instrucțiune
+            </Button>
+          )}
+        </ListActions>
       </ListCardHeader>
       <AppliedFilters
         facets={facets}
@@ -295,7 +312,7 @@ export function InstructionLibrary({
               title={`Nicio instrucțiune proprie ${label} încă`}
               data-testid="instruction-empty"
               actions={
-                <Button data-testid="instruction-write" onClick={start}>
+                <Button data-testid="instruction-write" onClick={() => setStarting(true)}>
                   <PenLine aria-hidden="true" />
                   Scrie o instrucțiune
                 </Button>
@@ -309,6 +326,15 @@ export function InstructionLibrary({
       />
       <InstructionModuleDialog editing={editing} onClose={() => setEditing(null)} />
       <InstructionArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
+      <InstructionStartDialog
+        open={starting}
+        initial={{ domain }}
+        onClose={() => setStarting(false)}
+        onSubmit={(values) => {
+          setStarting(false);
+          void navigate({ to: '/instructiuni/nou', search: values, state: openedHere });
+        }}
+      />
     </div>
   );
 }

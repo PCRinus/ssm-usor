@@ -353,6 +353,11 @@ describe('the instruction library', () => {
     );
     expect(within(rows[0]!).getByTestId('instruction-usage').textContent).toBe('—');
     expect(screen.getByTestId('instruction-count').textContent).toBe('3 instrucțiuni');
+    const toolbar = screen.getByTestId('instruction-toolbar');
+    expect(screen.getByTestId('instruction-library-ssm').contains(toolbar)).toBe(true);
+    expect(screen.getAllByTestId('instruction-write')).toEqual([
+      within(toolbar).getByTestId('instruction-write'),
+    ]);
   });
 
   it('shows the archived ones on their own tab, kept in the address', async () => {
@@ -380,12 +385,16 @@ describe('the instruction library', () => {
     expect(screen.queryByTestId('instruction-edit')).toBeNull();
   });
 
-  it('says when there is nothing archived', async () => {
+  it('says when there is nothing archived, and still offers to write one from the toolbar', async () => {
     mockInstructionsApi();
     mountApp(authFixture(makeSession()).client, '/instructiuni/ssm?status=archived');
-    expect((await screen.findByTestId('instruction-empty')).textContent).toContain(
-      'Nicio instrucțiune proprie SSM arhivată'
-    );
+    const empty = await screen.findByTestId('instruction-empty');
+    expect(empty.textContent).toContain('Nicio instrucțiune proprie SSM arhivată');
+    expect(within(empty).queryByTestId('instruction-write')).toBeNull();
+    await userEvent
+      .setup()
+      .click(within(screen.getByTestId('instruction-toolbar')).getByTestId('instruction-write'));
+    expect(await screen.findByTestId('instruction-start-dialog')).toBeTruthy();
   });
 
   it('reads status=active in the address as the active tab', async () => {
