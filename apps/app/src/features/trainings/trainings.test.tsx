@@ -805,14 +805,16 @@ describe("a client's trainings held", () => {
     expect(requests('POST', trainingsPath)[0]!.body.employeeIds).toEqual([popescu.id, taranu.id]);
   });
 
-  it('lists every current employee for an introductory training, and puts an API issue on its field', async () => {
+  it('lists every current employee for an introductory training, and marks the field an API issue names', async () => {
     mockApi({
       [`POST ${trainingsPath}`]: () =>
         Response.json(
           {
             error: 'validation_error',
             message: 'Invalid',
-            issues: [{ path: 'trainer.jobTitle', message: 'Funcția este prea lungă.' }],
+            issues: [
+              { path: 'trainer.jobTitle', message: 'String must contain at most 200 character(s)' },
+            ],
           },
           { status: 400 }
         ),
@@ -834,7 +836,10 @@ describe("a client's trainings held", () => {
     );
     await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
     await user.click(within(dialog).getByTestId('training-save'));
-    expect(await within(dialog).findByText('Funcția este prea lungă.')).toBeTruthy();
+    expect(
+      await within(dialog).findByText('Valoarea nu a fost acceptată. Verifică acest câmp.')
+    ).toBeTruthy();
+    expect(within(dialog).queryByText(/must contain/)).toBeNull();
     expect(screen.getByTestId('training-dialog')).toBeTruthy();
   });
 

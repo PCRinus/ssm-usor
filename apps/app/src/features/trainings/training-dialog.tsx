@@ -55,13 +55,12 @@ import { useRevealErrors } from '@/components/use-reveal-errors';
 import { signingMessage } from '@/features/signatures/signature-format';
 import { matchSigner } from '@/features/signatures/signer-match';
 import { SignerSelect } from '@/features/signatures/signer-select';
-import { commonFailure } from '@/lib/api-errors';
+import { commonFailure, setApiIssues } from '@/lib/api-errors';
 import { todayIso } from '@/lib/dates';
 
 import { AttendeeChecklist, type AttendeeOption } from './attendee-checklist';
 import {
   emptySigners,
-  fieldOfIssue,
   type ProposedField,
   proposedFields,
   proposedValues,
@@ -73,6 +72,7 @@ import {
   toTrainingRequest,
   trainingFormSchema,
   type TrainingFormValues,
+  trainingIssueTarget,
 } from './training-form-schema';
 import { attendeeCountLabel, notOnSheet } from './training-format';
 import { type CurrentEmployee, invalidateTrainings, useCurrentEmployees } from './training-queries';
@@ -481,24 +481,18 @@ function TrainingForm({
         });
         return;
       }
-      const fieldIssues =
-        status === 400 || status === 422
-          ? (body?.issues ?? []).flatMap((issue) => {
-              const field = fieldOfIssue[issue.path];
-              return field ? [{ field, message: issue.message }] : [];
-            })
-          : [];
-      if (fieldIssues.length > 0) {
-        for (const { field, message } of fieldIssues) {
-          form.setError(field, {
-            message:
-              field === 'employeeIds'
-                ? 'Un participant nu mai este lucrător al clientului. Reîncarcă lista și alege din nou.'
-                : field === 'heldOn'
-                  ? 'O instruire se înregistrează după ce a avut loc.'
-                  : (signingMessage(cause, training) ?? message),
-          });
-        }
+      if (
+        (status === 400 || status === 422) &&
+        setApiIssues(form.setError, body?.issues, (path) => {
+          const target = trainingIssueTarget(path);
+          return (
+            target && {
+              field: target.field,
+              message: target.message ?? signingMessage(cause, training) ?? undefined,
+            }
+          );
+        })
+      ) {
         return;
       }
       form.setError('root.server', {
