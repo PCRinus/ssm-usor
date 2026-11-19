@@ -17,7 +17,6 @@ import {
   type LegalChangeOutcome,
   type LegalChangeResolution,
   type LegalCheckRunStatus,
-  pageRange,
   type TemplateVersionKind,
 } from '@ssm-usor/contracts';
 import {
@@ -35,6 +34,7 @@ import { type AdminClient, createAdminClient } from '../../lib/admin-db';
 import { createDataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { listPage } from '../../lib/list-page';
 import { parsed } from '../../lib/validation';
 
 type ActRow = Database['public']['Tables']['legal_acts']['Row'];
@@ -385,24 +385,17 @@ export async function listRuns(c: Context<ApiEnv>) {
       .select('*', { count: 'exact' })
       .order('started_at', { ascending: false })
       .order('id');
-  const { from, to } = pageRange(page, pageSize);
-  const { data, error, count } = await listed().range(from, to);
-  if (error?.code === 'PGRST103') {
-    // PostgREST refuses a range past the last row, and counts nothing then.
-    const recount = await listed().range(0, 0);
-    if (recount.error) throw fromDatabaseError(recount.error, 'count legislation check runs');
-    return c.json({
-      items: [],
-      page,
-      pageSize,
-      total: recount.count ?? 0,
-    } satisfies AdminLegalCheckRunList);
-  }
-  if (error) throw fromDatabaseError(error, 'list legislation check runs');
-  return c.json({
-    items: data.map(toRun),
+  const { rows, total } = await listPage({
     page,
     pageSize,
-    total: count ?? data.length,
+    rows: (from, to) => listed().range(from, to),
+    recount: () => listed().range(0, 0),
+    what: 'legislation check runs',
+  });
+  return c.json({
+    items: rows.map(toRun),
+    page,
+    pageSize,
+    total,
   } satisfies AdminLegalCheckRunList);
 }

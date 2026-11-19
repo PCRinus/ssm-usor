@@ -8,7 +8,6 @@ import {
   type AdminMemberList,
   type AdminMemberListItem,
   adminMemberListQuerySchema,
-  pageRange,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
@@ -23,6 +22,7 @@ import {
   type ImpersonationRow,
   readCurrentImpersonation,
 } from '../../lib/impersonation';
+import { listPage } from '../../lib/list-page';
 import { parsed } from '../../lib/validation';
 
 type Nullable<Row, Column extends keyof Row> = Omit<Row, Column> & {
@@ -205,24 +205,17 @@ export async function listImpersonations(c: Context<ApiEnv>) {
       .eq('admin_user_id', c.get('user').id)
       .order('started_at', { ascending: false })
       .order('id', { ascending: false });
-  const { from, to } = pageRange(page, pageSize);
-  const { data, error, count } = await listed().range(from, to);
-  if (error?.code === 'PGRST103') {
-    // PostgREST refuses a range past the last row, and counts nothing then.
-    const recount = await listed().range(0, 0);
-    if (recount.error) throw fromDatabaseError(recount.error, 'count impersonations');
-    return c.json({
-      items: [],
-      page,
-      pageSize,
-      total: recount.count ?? 0,
-    } satisfies AdminImpersonationList);
-  }
-  if (error) throw fromDatabaseError(error, 'list impersonations');
-  return c.json({
-    items: await withTargets(c, data),
+  const { rows, total } = await listPage({
     page,
     pageSize,
-    total: count ?? data.length,
+    rows: (from, to) => listed().range(from, to),
+    recount: () => listed().range(0, 0),
+    what: 'impersonations',
+  });
+  return c.json({
+    items: await withTargets(c, rows),
+    page,
+    pageSize,
+    total,
   } satisfies AdminImpersonationList);
 }

@@ -1,4 +1,4 @@
-import { createRoute, z } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   jobPositionListResponseSchema,
   jobPositionRequestSchema,
@@ -12,10 +12,9 @@ import {
   clientNotFoundResponse,
   clientParams,
   errorContent,
+  jobPositionParams,
   membershipErrors,
 } from '../../lib/openapi';
-
-const jobPositionParams = clientParams.extend({ jobPositionId: z.uuid() });
 
 const noSuchJobPosition = {
   description: 'The job position does not exist under this client',

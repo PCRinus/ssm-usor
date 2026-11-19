@@ -8,9 +8,7 @@ import {
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
-
-const employeeParams = z.object({ clientId: z.uuid(), employeeId: z.uuid() });
+import { bearerSecurity, employeeParams, errorContent, membershipErrors } from '../../lib/openapi';
 
 const noSuchEmployee = {
   description: 'The employee does not exist under this client in the organization',

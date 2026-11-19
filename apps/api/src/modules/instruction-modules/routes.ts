@@ -21,10 +21,14 @@ import {
 import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  errorContent,
+  jobPositionParams,
+  membershipErrors,
+} from '../../lib/openapi';
 
 const moduleParams = z.object({ moduleId: z.uuid() });
-const positionParams = z.object({ clientId: z.uuid(), jobPositionId: z.uuid() });
 
 const versionParams = z.object({ moduleId: z.uuid(), versionId: z.uuid() });
 
@@ -302,7 +306,7 @@ export const listPositionInstructionsRoute = createRoute({
     'The modules of `domain`, occupational safety by default, by group and title (ADR 012). Every post applies at least one module of each domain; until it does, the documents of that domain cannot be generated.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: positionParams, query: positionInstructionsQuerySchema },
+  request: { params: jobPositionParams, query: positionInstructionsQuerySchema },
   responses: {
     200: { description: 'The modules', content: positionContent },
     400: { description: 'Invalid path or query', content: errorContent },
@@ -321,7 +325,7 @@ export const applyPositionInstructionsRoute = createRoute({
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
-    params: positionParams,
+    params: jobPositionParams,
     body: {
       required: true,
       content: {
@@ -354,7 +358,7 @@ export const copyPositionInstructionsRoute = createRoute({
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
-    params: positionParams,
+    params: jobPositionParams,
     body: {
       required: true,
       content: {

@@ -2,7 +2,7 @@ import type { SigningAgreementParty, SigningAgreementState } from '@ssm-usor/con
 import type { Context } from 'hono';
 
 import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
-import { fromDatabaseError } from '../../lib/db';
+import { archivedClientError, fromDatabaseError } from '../../lib/db';
 import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
@@ -147,7 +147,7 @@ export async function signAgreement(
     ? { organization_id: row.organization_id, archived_at: row.clients.archived_at }
     : await clientOfEmployee(admin, clientId, employeeId);
   if (client.archived_at) {
-    throw new ApiError('conflict', undefined, undefined, 'client_archived');
+    throw archivedClientError();
   }
 
   const ctx = pdfSigningServices(c);

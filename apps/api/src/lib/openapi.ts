@@ -6,6 +6,8 @@ export const errorContent = {
 };
 
 export const clientParams = z.object({ clientId: z.uuid() });
+export const employeeParams = clientParams.extend({ employeeId: z.uuid() });
+export const jobPositionParams = clientParams.extend({ jobPositionId: z.uuid() });
 
 export const clientNotFoundResponse = {
   description: 'The client does not exist in the organization',

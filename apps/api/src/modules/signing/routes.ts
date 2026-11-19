@@ -27,6 +27,7 @@ import {
   bearerSecurity,
   clientNotFoundResponse,
   clientParams,
+  employeeParams,
   errorContent,
   inPersonMembershipErrors,
   membershipErrors,
@@ -34,7 +35,6 @@ import {
 import { requireParticipant } from '../../lib/participant';
 
 const recordParams = clientParams.extend({ recordId: z.uuid() });
-const employeeParams = clientParams.extend({ employeeId: z.uuid() });
 const participantParams = z.object({ participantId: z.uuid() });
 
 // The portal's generated client is made of the operations with this tag and no others.
