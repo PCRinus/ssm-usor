@@ -5,7 +5,7 @@ import type {
   MissingDocumentData,
 } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 
 import {
@@ -21,6 +21,7 @@ import {
   useUploadClientDocument,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { behindSummaryQueryKey } from '@/features/legislation/use-behind-summary';
 import { commonFailure } from '@/lib/api-errors';
@@ -55,13 +56,13 @@ export function documentActionFailure(cause: unknown, document: ClientDocument):
 }
 
 export function useDocumentActions({ set, clientId }: { set: DocumentSet; clientId: string }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const navigate = useNavigate();
-  const regenerate = useRegenerateDocument({ request: apiRequest });
-  const issue = useIssueDocument({ request: apiRequest });
-  const remove = useDeleteDocumentDraft({ request: apiRequest });
-  const upload = useUploadClientDocument({ request: apiRequest });
-  const startDraft = useStartDocumentDraft({ request: apiRequest });
+  const regenerate = useRegenerateDocument({ request });
+  const issue = useIssueDocument({ request });
+  const remove = useDeleteDocumentDraft({ request });
+  const upload = useUploadClientDocument({ request });
+  const startDraft = useStartDocumentDraft({ request });
   const { printing, print } = usePrint();
   // One file input for the whole card; what it was opened for waits here until a file is chosen.
   const fileInput = useRef<HTMLInputElement>(null);
@@ -118,7 +119,7 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
   async function download(document: ClientDocument, revision: Revision) {
     setError(null);
     try {
-      const file = await getDocumentWord(document.id, revision.id, apiRequest);
+      const file = await getDocumentWord(document.id, revision.id, request);
       saveFile(file, file instanceof File ? file.name : `${document.title}.docx`);
     } catch {
       setError(
@@ -132,7 +133,7 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
     setArchiving(true);
     const pending = toast.loading('Se pregătește arhiva documentației…');
     try {
-      const archive = await getDocumentArchive(clientId, { set, format }, apiRequest);
+      const archive = await getDocumentArchive(clientId, { set, format }, request);
       saveFile(
         archive,
         archive instanceof File ? archive.name : `Documentatie ${documentSetCopy[set].name}.zip`
@@ -155,7 +156,7 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
   async function downloadAnnex(document: ClientDocument, revision: Revision, annex: DocumentAnnex) {
     setError(null);
     try {
-      const file = await getDocumentAnnex(document.id, revision.id, annex.number, apiRequest);
+      const file = await getDocumentAnnex(document.id, revision.id, annex.number, request);
       saveFile(file, file instanceof File ? file.name : `Anexa ${annex.number}.docx`);
     } catch {
       setError(
@@ -166,7 +167,7 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
 
   async function printRevision(document: ClientDocument, revision: Revision) {
     setError(null);
-    setError(await print(document.title, () => pdfOfRevision(apiRequest, document.id, revision)));
+    setError(await print(document.title, () => pdfOfRevision(request, document.id, revision)));
   }
 
   async function startDraftFromIssued(document: ClientDocument) {
@@ -225,7 +226,7 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
   }
 
   return {
-    apiRequest,
+    apiRequest: request,
     busy,
     printing,
     archiving,

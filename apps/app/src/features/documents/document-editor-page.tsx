@@ -2,7 +2,7 @@ import type { DocumentSet } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useBlocker, useRouteContext } from '@tanstack/react-router';
+import { useBlocker } from '@tanstack/react-router';
 import { Download, Pencil, Printer, Save } from 'lucide-react';
 import { lazy, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
@@ -14,6 +14,7 @@ import {
   useStartDocumentDraft,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
@@ -53,19 +54,17 @@ export function DocumentEditorPage({
   set,
   clientId,
   documentId,
-  userId,
   readOnly,
 }: {
   set: DocumentSet;
   clientId: string;
   documentId: string;
-  userId: string;
   readOnly: boolean;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const documents = useListClientDocuments(clientId, setParams(set), {
-    request: apiRequest,
-    query: { queryKey: [...getListClientDocumentsQueryKey(clientId, setParams(set)), userId] },
+    request,
+    query: { queryKey: key(getListClientDocumentsQueryKey(clientId, setParams(set))) },
   });
   const document = documents.data?.items.find((item) => item.id === documentId);
   const copy = documentSetCopy[set];
@@ -106,13 +105,13 @@ export function DocumentEditorView({
   readOnly: boolean;
   readOnlyReason?: { label: string; title: string };
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const documents = source;
   const { document, back } = source;
   const arrow = source.arrow ?? back;
   const documentId = document?.id ?? '';
-  const saveDraft = useSaveDocumentDraftFile({ request: apiRequest });
-  const startDraft = useStartDocumentDraft({ request: apiRequest });
+  const saveDraft = useSaveDocumentDraftFile({ request });
+  const startDraft = useStartDocumentDraft({ request });
   const editor = useRef<DocumentEditorHandle>(null);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   // The revision whose file could not be fetched, so that another revision starts clean.
@@ -139,7 +138,7 @@ export function DocumentEditorView({
     let cancelled = false;
     void (async () => {
       try {
-        const link = await getDocumentDownload(documentId, revisionId, undefined, apiRequest);
+        const link = await getDocumentDownload(documentId, revisionId, undefined, request);
         const response = await fetch(link.url);
         if (!response.ok) throw new Error(`Download failed (${response.status}).`);
         const bytes = new Uint8Array(await response.arrayBuffer());
@@ -151,7 +150,7 @@ export function DocumentEditorView({
     return () => {
       cancelled = true;
     };
-  }, [apiRequest, documentId, revisionId, loaded?.revisionId, failedRevisionId]);
+  }, [request, documentId, revisionId, loaded?.revisionId, failedRevisionId]);
 
   useBlocker({
     shouldBlockFn: () =>
@@ -207,9 +206,9 @@ export function DocumentEditorView({
     setPrintError(null);
     setPrintError(
       await print(document.title, async () => {
-        if (!editable && revision.hasPdf) return pdfOfRevision(apiRequest, documentId, revision);
+        if (!editable && revision.hasPdf) return pdfOfRevision(request, documentId, revision);
         const current = ready ? await editor.current?.copy() : null;
-        return pdfOf(apiRequest, documentId, current ?? loaded.bytes);
+        return pdfOf(request, documentId, current ?? loaded.bytes);
       })
     );
   }

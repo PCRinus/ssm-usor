@@ -16,7 +16,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
@@ -27,6 +27,7 @@ import {
   useGetDocumentReadiness,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
@@ -107,18 +108,18 @@ function GenerateDocumentsForm({
   generatedTypeKeys: readonly string[];
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   // Asked again every time the form opens: the data is filled in on other pages.
   const readiness = useGetDocumentReadiness(clientId, setParams(set), {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetDocumentReadinessQueryKey(clientId, setParams(set)), userId],
+      queryKey: key(getGetDocumentReadinessQueryKey(clientId, setParams(set))),
       staleTime: 0,
     },
   });
   const occupationalSafety = set === 'occupational_safety';
   const { templatesUnavailable } = documentSetCopy[set];
-  const generate = useGenerateClientDocuments({ request: apiRequest });
+  const generate = useGenerateClientDocuments({ request });
   // Only an owner can fill in the organization's details; a specialist is told whom to ask.
   const isOwner = useMe().data?.membership?.role === 'owner';
   const startWayBack = useStartWayBack();
