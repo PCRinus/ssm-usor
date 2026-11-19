@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { apiRequest, testAccessToken } from '../../test/request';
 import {
-  fetchMock,
+  callsTo,
   membershipRow,
   mockUpstream as mockSignedInUpstream,
   stubFetch,
@@ -16,6 +16,7 @@ import {
   testOrganizationId as organizationId,
   testUser as user,
   type UpstreamCall,
+  upstreamCalls,
 } from '../../test/upstream';
 
 const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
@@ -118,14 +119,11 @@ function mockUpstream(
   });
 }
 
-const calls = (pathname: string, method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname.startsWith(pathname) && (init?.method ?? 'GET') === method
+const storageCalls = (method: string) =>
+  upstreamCalls().filter(
+    (call) =>
+      call.method === method && call.url.pathname.startsWith('/storage/v1/object/client-files')
   );
-
-const sent = (pathname: string, method: string) =>
-  JSON.parse(String(calls(pathname, method)[0]![1]?.body)) as Record<string, unknown>;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
   apiRequest(path, { method, body }, env);
@@ -170,7 +168,7 @@ describe('GET /clients/{clientId}/files', () => {
       ['Certificat de înregistrare', 'Ana Popescu', true],
       ['Anexă prețuri', 'Ion Ionescu', false],
     ]);
-    const listed = new URL(String(calls('/rest/v1/client_files', 'GET')[0]![0]));
+    const listed = callsTo('/rest/v1/client_files', 'GET')[0]!.url;
     expect(listed.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(listed.searchParams.get('order')).toBe('created_at.desc,id.asc');
     expect(listed.searchParams.get('employee_id')).toBe('is.null');
@@ -195,12 +193,10 @@ describe('GET /clients/{clientId}/files', () => {
         expiresInSeconds: 600,
       },
     ]);
-    const [signing] = calls('/storage/v1/object/sign/client-files', 'POST');
+    const [signing] = callsTo('/storage/v1/object/sign/client-files', 'POST');
     expect(signing).toBeDefined();
-    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
-      `Bearer ${testAccessToken}`
-    );
-    expect(JSON.parse(String(signing![1]?.body))).toEqual({
+    expect(signing!.headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
+    expect(signing!.body).toEqual({
       expiresIn: 600,
       paths: [pathOf(ownFileId, 'pdf'), pathOf(colleagueFileId, 'xlsx')],
     });
@@ -236,7 +232,7 @@ describe('GET /clients/{clientId}/files', () => {
     expect(items.map((item) => item.employee)).toEqual([
       { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
     ]);
-    const listed = new URL(String(calls('/rest/v1/client_files', 'GET')[0]![0]));
+    const listed = callsTo('/rest/v1/client_files', 'GET')[0]!.url;
     expect(listed.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(listed.searchParams.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(listed.searchParams.get('select')).toContain('employees(id,last_name,first_name)');
@@ -287,7 +283,7 @@ describe('GET /clients/{clientId}/files', () => {
       [sheetsImportId, 'employees', 'Fise', true, null],
       [null, null, null, null, null],
     ]);
-    const listed = new URL(String(calls('/rest/v1/client_files', 'GET')[0]![0]));
+    const listed = callsTo('/rest/v1/client_files', 'GET')[0]!.url;
     expect(listed.searchParams.get('select')).toContain(
       'import_files!import_files_client_file_id_fkey(state,reason),imports!client_files_import_in_organization(kind)'
     );
@@ -296,7 +292,7 @@ describe('GET /clients/{clientId}/files', () => {
   it('refuses an employee filter that is not an id', async () => {
     mockUpstream();
     expect((await request(`/clients/${clientId}/files?employeeId=popescu`)).status).toBe(400);
-    expect(calls('/rest/v1/client_files', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_files', 'GET')).toHaveLength(0);
   });
 
   it('lets an owner change every file', async () => {
@@ -321,7 +317,7 @@ describe('POST /clients/{clientId}/files', () => {
     expect(response.status).toBe(201);
     const { file } = clientFileResponseSchema.parse(await response.json());
     expect(file.canChange).toBe(true);
-    const row = sent('/rest/v1/client_files', 'POST');
+    const row = callsTo('/rest/v1/client_files', 'POST')[0]!.body as Record<string, unknown>;
     expect(row).toMatchObject({
       organization_id: organizationId,
       client_id: clientId,
@@ -335,10 +331,11 @@ describe('POST /clients/{clientId}/files', () => {
       employee_id: null,
     });
     expect(row.sha256).toMatch(/^[0-9a-f]{64}$/);
-    const [stored] = calls(`/storage/v1/object/client-files/${pathOf(ownFileId, 'pdf')}`, 'POST');
+    const [stored] = callsTo(`/storage/v1/object/client-files/${pathOf(ownFileId, 'pdf')}`, 'POST');
     expect(stored).toBeDefined();
-    expect(fetchMock.mock.calls.indexOf(stored!)).toBeGreaterThan(
-      fetchMock.mock.calls.indexOf(calls('/rest/v1/client_files', 'POST')[0]!)
+    const order = upstreamCalls().map(({ method, url }) => `${method} ${url.pathname}`);
+    expect(order.indexOf(`POST ${stored!.url.pathname}`)).toBeGreaterThan(
+      order.indexOf('POST /rest/v1/client_files')
     );
   });
 
@@ -348,7 +345,7 @@ describe('POST /clients/{clientId}/files', () => {
       { fileName: 'scan0001.png', name: 'Fișă de aptitudine', note: 'Expiră în mai' },
       png
     );
-    expect(sent('/rest/v1/client_files', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/client_files', 'POST')[0]!.body).toMatchObject({
       name: 'Fișă de aptitudine',
       note: 'Expiră în mai',
       mime_type: 'image/png',
@@ -359,11 +356,11 @@ describe('POST /clients/{clientId}/files', () => {
     mockUpstream();
     const response = await upload({ fileName: 'fisa instruire.png', employeeId }, png);
     expect(response.status).toBe(201);
-    expect(sent('/rest/v1/client_files', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/client_files', 'POST')[0]!.body).toMatchObject({
       client_id: clientId,
       employee_id: employeeId,
     });
-    const checked = new URL(String(calls('/rest/v1/employees', 'GET')[0]![0]));
+    const checked = callsTo('/rest/v1/employees', 'GET')[0]!.url;
     expect(checked.searchParams.get('id')).toBe(`eq.${employeeId}`);
     expect(checked.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(checked.searchParams.get('archived_at')).toBe('is.null');
@@ -375,8 +372,8 @@ describe('POST /clients/{clientId}/files', () => {
     expect(response.status).toBe(400);
     const body = apiErrorResponseSchema.parse(await response.json());
     expect(body.issues?.map((issue) => issue.path)).toEqual(['employeeId']);
-    expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
-    expect(calls('/storage/v1/object/client-files', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_files', 'POST')).toHaveLength(0);
+    expect(storageCalls('POST')).toHaveLength(0);
   });
 
   it.each([
@@ -400,7 +397,9 @@ describe('POST /clients/{clientId}/files', () => {
   ])('keeps %s', async (fileName, bytes, type) => {
     mockUpstream();
     expect((await upload({ fileName }, bytes)).status).toBe(201);
-    expect(sent('/rest/v1/client_files', 'POST').mime_type).toBe(type);
+    expect(
+      (callsTo('/rest/v1/client_files', 'POST')[0]!.body as Record<string, unknown>).mime_type
+    ).toBe(type);
   });
 
   it.each([
@@ -416,7 +415,7 @@ describe('POST /clients/{clientId}/files', () => {
     const response = await upload({ fileName }, bytes);
     expect(response.status).toBe(400);
     expect(await reasonOf(response)).toBe(reason);
-    expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_files', 'POST')).toHaveLength(0);
   });
 
   it('refuses a file larger than 25 MiB and takes one of 25 MiB', async () => {
@@ -474,24 +473,28 @@ describe('POST /clients/{clientId}/files', () => {
       expect(response.status).toBe(400);
       expect(await reasonOf(response)).toBe('client_file_too_large');
     }
-    expect(calls('/rest/v1/clients', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients', 'GET')).toHaveLength(0);
   });
 
   it('keeps a file for owners only only when an owner asks', async () => {
     mockUpstream();
     expect((await upload({ fileName: 'oferta.pdf', ownersOnly: 'true' }, pdf)).status).toBe(403);
-    expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_files', 'POST')).toHaveLength(0);
 
     role = 'owner';
     expect((await upload({ fileName: 'oferta.pdf', ownersOnly: 'true' }, pdf)).status).toBe(201);
-    expect(sent('/rest/v1/client_files', 'POST').owners_only).toBe(true);
+    expect(
+      (callsTo('/rest/v1/client_files', 'POST')[0]!.body as Record<string, unknown>).owners_only
+    ).toBe(true);
   });
 
   it("keeps a lead's file for owners only", async () => {
     role = 'owner';
     mockUpstream({ clients: () => Response.json([{ ...clientRow, stage: 'lead' }]) });
     expect((await upload({ fileName: 'oferta.pdf' }, pdf)).status).toBe(201);
-    expect(sent('/rest/v1/client_files', 'POST').owners_only).toBe(true);
+    expect(
+      (callsTo('/rest/v1/client_files', 'POST')[0]!.body as Record<string, unknown>).owners_only
+    ).toBe(true);
   });
 
   it('adds nothing to an archived client', async () => {
@@ -501,7 +504,7 @@ describe('POST /clients/{clientId}/files', () => {
     const response = await upload({ fileName: 'oferta.pdf' }, pdf);
     expect(response.status).toBe(409);
     expect(await reasonOf(response)).toBe('client_archived');
-    expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_files', 'POST')).toHaveLength(0);
   });
 
   it('removes the row again when the file cannot be stored', async () => {
@@ -510,8 +513,8 @@ describe('POST /clients/{clientId}/files', () => {
         method === 'POST' ? Response.json({ message: 'down' }, { status: 500 }) : undefined,
     });
     expect((await upload({ fileName: 'oferta.pdf' }, pdf)).status).toBe(503);
-    const [removed] = calls('/rest/v1/client_files', 'DELETE');
-    expect(new URL(String(removed![0])).searchParams.get('id')).toBe(`eq.${ownFileId}`);
+    const [removed] = callsTo('/rest/v1/client_files', 'DELETE');
+    expect(removed!.url.searchParams.get('id')).toBe(`eq.${ownFileId}`);
   });
 });
 
@@ -523,7 +526,10 @@ describe('PATCH /clients/{clientId}/files/{fileId}', () => {
       note: '',
     });
     expect(response.status).toBe(200);
-    expect(sent('/rest/v1/client_files', 'PATCH')).toEqual({ name: 'Certificat ONRC', note: null });
+    expect(callsTo('/rest/v1/client_files', 'PATCH')[0]!.body).toEqual({
+      name: 'Certificat ONRC',
+      note: null,
+    });
   });
 
   it("refuses a specialist a colleague's file", async () => {
@@ -532,7 +538,7 @@ describe('PATCH /clients/{clientId}/files/{fileId}', () => {
       name: 'Altceva',
     });
     expect(response.status).toBe(403);
-    expect(calls('/rest/v1/client_files', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_files', 'PATCH')).toHaveLength(0);
   });
 
   it('answers the archived client', async () => {
@@ -566,14 +572,14 @@ describe('PUT /clients/{clientId}/files/{fileId}/owners-only', () => {
   it('is for owners', async () => {
     mockUpstream();
     expect((await setFlag(true)).status).toBe(403);
-    expect(calls('/rest/v1/client_files', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_files', 'PATCH')).toHaveLength(0);
   });
 
   it('lets an owner hide a file from the team', async () => {
     role = 'owner';
     mockUpstream();
     expect((await setFlag(true)).status).toBe(200);
-    expect(sent('/rest/v1/client_files', 'PATCH')).toEqual({ owners_only: true });
+    expect(callsTo('/rest/v1/client_files', 'PATCH')[0]!.body).toEqual({ owners_only: true });
   });
 
   it("keeps a lead's file for owners only", async () => {
@@ -596,18 +602,18 @@ describe('DELETE /clients/{clientId}/files/{fileId}', () => {
   it('removes the stored file, then the row', async () => {
     mockUpstream();
     expect((await remove(ownFileId)).status).toBe(204);
-    const [object] = calls('/storage/v1/object/client-files', 'DELETE');
-    expect(JSON.parse(String(object![1]?.body))).toEqual({ prefixes: [pathOf(ownFileId, 'pdf')] });
-    const [row] = calls('/rest/v1/client_files', 'DELETE');
-    expect(fetchMock.mock.calls.indexOf(row!)).toBeGreaterThan(
-      fetchMock.mock.calls.indexOf(object!)
+    const [object] = callsTo('/storage/v1/object/client-files', 'DELETE');
+    expect(object!.body).toEqual({ prefixes: [pathOf(ownFileId, 'pdf')] });
+    const order = upstreamCalls().map(({ method, url }) => `${method} ${url.pathname}`);
+    expect(order.indexOf('DELETE /rest/v1/client_files')).toBeGreaterThan(
+      order.indexOf('DELETE /storage/v1/object/client-files')
     );
   });
 
   it("refuses a specialist a colleague's file", async () => {
     mockUpstream();
     expect((await remove(colleagueFileId)).status).toBe(403);
-    expect(calls('/storage/v1/object/client-files', 'DELETE')).toHaveLength(0);
+    expect(storageCalls('DELETE')).toHaveLength(0);
   });
 
   it("lets an owner delete a colleague's file", async () => {
@@ -623,8 +629,8 @@ describe('DELETE /clients/{clientId}/files/{fileId}', () => {
     const response = await remove(ownFileId);
     expect(response.status).toBe(409);
     expect(await reasonOf(response)).toBe('client_archived');
-    expect(calls('/storage/v1/object/client-files', 'DELETE')).toHaveLength(0);
-    expect(calls('/rest/v1/client_files', 'DELETE')).toHaveLength(0);
+    expect(storageCalls('DELETE')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_files', 'DELETE')).toHaveLength(0);
   });
 });
 
@@ -642,15 +648,15 @@ describe('the files of a lead on a plan without offers', () => {
     const response = await upload({ fileName: 'oferta.pdf' }, pdf);
     expect(response.status).toBe(403);
     expect(await reasonOf(response)).toBe('offers_not_in_plan');
-    expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_files', 'POST')).toHaveLength(0);
   });
 
   it('removes no file, from the storage or the database', async () => {
     mockUpstream({ clients: () => Response.json([{ ...clientRow, stage: 'lead' }]) });
     const response = await request(`/clients/${clientId}/files/${ownFileId}`, 'DELETE');
     expect(response.status).toBe(403);
-    expect(calls('/storage/v1/object/client-files', 'DELETE')).toHaveLength(0);
-    expect(calls('/rest/v1/client_files', 'DELETE')).toHaveLength(0);
+    expect(storageCalls('DELETE')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_files', 'DELETE')).toHaveLength(0);
   });
 
   it('keeps every file of a client open', async () => {

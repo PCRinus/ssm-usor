@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { apiRequest } from '../../test/request';
 import {
+  callsTo,
   fetchMock,
   membershipRow,
   mockUpstream as mockSignedInUpstream,
@@ -167,12 +168,6 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   });
 }
 
-const calls = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-  );
-
 const request = (method = 'GET', body?: unknown) =>
   apiRequest(`/clients/${clientId}/service-contract`, { method, body }, env);
 
@@ -264,8 +259,8 @@ describe('GET /clients/{clientId}/service-contract', () => {
       lastSend: null,
       draftOutdated: false,
     });
-    const [documents] = calls('/rest/v1/client_documents')[0]!;
-    expect(new URL(String(documents)).searchParams.get('type_key')).toBe('eq.service_contract');
+    const { url: documents } = callsTo('/rest/v1/client_documents', 'GET')[0]!;
+    expect(documents.searchParams.get('type_key')).toBe('eq.service_contract');
   });
 
   it('takes a contract whose only draft was deleted for one that was never generated', async () => {
@@ -320,10 +315,10 @@ describe('PUT /clients/{clientId}/service-contract', () => {
     });
     const response = await request('PUT', validBody);
     expect(response.status).toBe(200);
-    expect(calls('/rest/v1/clients', 'PATCH')).toHaveLength(0);
-    expect(calls('/rest/v1/service_contracts', 'POST')).toHaveLength(0);
-    const [url, init] = calls('/rest/v1/service_contracts', 'PATCH')[0]!;
-    expect(new URL(String(url)).searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    expect(callsTo('/rest/v1/clients', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/service_contracts', 'POST')).toHaveLength(0);
+    const { url, init } = callsTo('/rest/v1/service_contracts', 'PATCH')[0]!;
+    expect(url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(JSON.parse(String(init?.body))).toEqual({
       contract_number: 51,
       contract_date: '2026-02-15',
@@ -349,13 +344,11 @@ describe('PUT /clients/{clientId}/service-contract', () => {
       clientRepresentativeRole: 'Administrator',
     });
     expect(response.status).toBe(200);
-    expect(JSON.parse(String(calls('/rest/v1/clients', 'PATCH')[0]![1]?.body))).toEqual({
+    expect(callsTo('/rest/v1/clients', 'PATCH')[0]!.body).toEqual({
       legal_representative_name: 'Adnana POPA',
       legal_representative_role: 'Administrator',
     });
-    expect(
-      JSON.parse(String(calls('/rest/v1/service_contracts', 'POST')[0]![1]?.body))
-    ).toMatchObject({
+    expect(callsTo('/rest/v1/service_contracts', 'POST')[0]!.body).toMatchObject({
       organization_id: organizationId,
       client_id: clientId,
       created_by: user.id,
@@ -413,8 +406,8 @@ describe('PUT /clients/{clientId}/service-contract', () => {
       });
       const response = await request('PUT', validBody);
       expect(response.status).toBe(200);
-      expect(calls('/rest/v1/service_contracts', 'PATCH')).toHaveLength(2);
-      expect(calls('/rest/v1/service_contracts', 'POST')).toHaveLength(1);
+      expect(callsTo('/rest/v1/service_contracts', 'PATCH')).toHaveLength(2);
+      expect(callsTo('/rest/v1/service_contracts', 'POST')).toHaveLength(1);
     }
   );
 
@@ -439,13 +432,13 @@ describe('PUT /clients/{clientId}/service-contract', () => {
     const response = await request('PUT', body);
     expect(response.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(path);
-    expect(calls('/rest/v1/service_contracts', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/service_contracts', 'PATCH')).toHaveLength(0);
   });
 
   it('writes nothing for a client that is not there, or for a specialist', async () => {
     mockUpstream({ clients: () => Response.json([]) });
     expect((await request('PUT', validBody)).status).toBe(404);
-    expect(calls('/rest/v1/service_contracts', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/service_contracts', 'PATCH')).toHaveLength(0);
 
     mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await request('PUT', validBody)).status).toBe(403);
@@ -472,7 +465,7 @@ describe('POST /clients/{clientId}/service-contract/generate', () => {
     const body = serviceContractResponseSchema.parse(await response.json());
     expect(body.document).toBeNull();
 
-    expect(JSON.parse(String(calls('/rest/v1/client_documents', 'POST')[0]![1]?.body))).toEqual({
+    expect(callsTo('/rest/v1/client_documents', 'POST')[0]!.body).toEqual({
       organization_id: organizationId,
       client_id: clientId,
       type_key: 'service_contract',
@@ -481,7 +474,9 @@ describe('POST /clients/{clientId}/service-contract/generate', () => {
       owners_only: true,
       created_by: user.id,
     });
-    const revision = JSON.parse(String(calls('/rest/v1/document_revisions', 'POST')[0]![1]?.body));
+    const revision = callsTo('/rest/v1/document_revisions', 'POST')[0]!.body as {
+      data_snapshot: { contract: { number: number } };
+    };
     expect(revision).toMatchObject({
       revision: 1,
       template_version_id: 'v1',
@@ -506,11 +501,13 @@ describe('POST /clients/{clientId}/service-contract/generate', () => {
   it('overwrites the draft that is there, as not edited', async () => {
     mockUpstream({ documents: documents([documentRow]) });
     expect((await generate()).status).toBe(200);
-    expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(0);
-    expect(calls('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
-    expect(
-      JSON.parse(String(calls('/rest/v1/document_revisions', 'PATCH')[0]![1]?.body))
-    ).toMatchObject({ template_version_id: 'v1', edited_at: null, edited_by: null });
+    expect(callsTo('/rest/v1/client_documents', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/document_revisions', 'PATCH')[0]!.body).toMatchObject({
+      template_version_id: 'v1',
+      edited_at: null,
+      edited_by: null,
+    });
   });
 
   it('says what is missing, and generates nothing', async () => {
@@ -523,7 +520,7 @@ describe('POST /clients/{clientId}/service-contract/generate', () => {
     const error = apiErrorResponseSchema.parse(await response.json());
     expect(error.reason).toBe('missing_contract_data');
     expect(error.message).toContain('provider.bankAccount');
-    expect(calls('/rest/v1/document_templates')).toHaveLength(0);
+    expect(callsTo('/rest/v1/document_templates', 'GET')).toHaveLength(0);
   });
 
   it('refuses an archived client, a missing template, and a specialist', async () => {
@@ -624,9 +621,10 @@ describe('POST /clients/{clientId}/service-contract/send', () => {
       attachment: { fileName: 'Contract nr. 51 din 15.02.2026.pdf', contentBase64: 'JVBERg==' },
     });
     const returnUrl = new URL(sendServiceContract.mock.calls[0]![0].returnUrl);
-    const recorded = JSON.parse(
-      String(calls('/rest/v1/service_contract_sends', 'POST')[0]![1]?.body)
-    );
+    const recorded = callsTo('/rest/v1/service_contract_sends', 'POST')[0]!.body as {
+      token_hash: string;
+      return_expires_at: string;
+    };
     expect(recorded).toEqual({
       organization_id: organizationId,
       document_id: documentId,
@@ -654,7 +652,7 @@ describe('POST /clients/{clientId}/service-contract/send', () => {
     });
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     expect((await send()).status).toBe(503);
-    expect(calls('/rest/v1/service_contract_sends', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/service_contract_sends', 'POST')).toHaveLength(0);
   });
 
   it.each([
@@ -741,8 +739,8 @@ describe('the contract of a lead on a plan without offers', () => {
     const response = await post('/generate');
     expect(response.status).toBe(403);
     expect(await reasonOf(response)).toBe('offers_not_in_plan');
-    expect(calls('/rest/v1/document_templates')).toHaveLength(0);
-    expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/document_templates', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_documents', 'POST')).toHaveLength(0);
   });
 
   it('sends nothing', async () => {
@@ -764,7 +762,7 @@ describe('the contract of a lead on a plan without offers', () => {
             : Response.json([documentRow]),
     });
     expect((await post('/generate')).status).toBe(200);
-    expect(calls('/rest/v1/rpc/current_organization_has_offers', 'POST')).toHaveLength(1);
+    expect(callsTo('/rest/v1/rpc/current_organization_has_offers', 'POST')).toHaveLength(1);
   });
 
   it('does not reach the contract of a client, which every plan drafts', async () => {
@@ -778,6 +776,6 @@ describe('the contract of a lead on a plan without offers', () => {
             : Response.json([documentRow]),
     });
     expect((await post('/generate')).status).toBe(200);
-    expect(calls('/rest/v1/rpc/current_organization_has_offers', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/current_organization_has_offers', 'POST')).toHaveLength(0);
   });
 });

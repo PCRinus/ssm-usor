@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 
 import { apiRequest, testAccessToken } from '../../test/request';
 import {
-  fetchMock,
+  callsTo,
   mockUpstream as mockSignedInUpstream,
   stubFetch,
   testEnv,
@@ -175,15 +175,6 @@ function mockUpstream(
   });
 }
 
-const calls = (pathname: string, method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-  );
-
-const sent = (pathname: string, method: string, index = 0) =>
-  JSON.parse(String(calls(pathname, method)[index]![1]?.body)) as Record<string, unknown>;
-
 const request = (path: string, method = 'GET', body?: unknown) =>
   apiRequest(path, { method, body }, env);
 
@@ -199,7 +190,7 @@ const officeBody: InstructionBody = {
 stubFetch();
 
 const listQuery = (index = 0) =>
-  new URL(String(calls('/rest/v1/instruction_module_list', 'GET')[index]![0])).searchParams;
+  callsTo('/rest/v1/instruction_module_list', 'GET')[index]!.url.searchParams;
 
 describe('GET /instruction-modules', () => {
   it('lists a page of the library by title with the current version and where each is used', async () => {
@@ -234,7 +225,7 @@ describe('GET /instruction-modules', () => {
     expect(query.get('order')).toBe('title.asc,id.asc');
     expect(query.get('offset')).toBe('0');
     expect(query.get('limit')).toBe('25');
-    expect(calls('/rest/v1/instruction_module_list', 'HEAD')).toHaveLength(0);
+    expect(callsTo('/rest/v1/instruction_module_list', 'HEAD')).toHaveLength(0);
   });
 
   it('lists only the archived ones when asked', async () => {
@@ -282,8 +273,8 @@ describe('GET /instruction-modules', () => {
     const query = listQuery();
     expect(query.get('module_group')).toBe('in.(work_equipment,protective_equipment)');
     expect(query.get('position_count')).toBe('eq.0');
-    const [counted] = calls('/rest/v1/instruction_module_list', 'HEAD');
-    const tab = new URL(String(counted![0])).searchParams;
+    const [counted] = callsTo('/rest/v1/instruction_module_list', 'HEAD');
+    const tab = counted!.url.searchParams;
     expect(tab.get('domain')).toBe('eq.ssm');
     expect(tab.get('archived_at')).toBe('is.null');
     expect(tab.get('module_group')).toBeNull();
@@ -294,7 +285,7 @@ describe('GET /instruction-modules', () => {
     mockUpstream();
     expect((await request('/instruction-modules?category=other')).status).toBe(400);
     expect((await request('/instruction-modules?usage=used')).status).toBe(400);
-    expect(calls('/rest/v1/instruction_module_list', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/instruction_module_list', 'GET')).toHaveLength(0);
   });
 
   it.each([
@@ -351,12 +342,12 @@ describe('GET /instruction-modules', () => {
     mockUpstream();
     expect((await request('/instruction-modules?usage=unused')).status).toBe(200);
     const sent = [
-      ...calls('/rest/v1/instruction_module_list', 'GET'),
-      ...calls('/rest/v1/instruction_module_list', 'HEAD'),
+      ...callsTo('/rest/v1/instruction_module_list', 'GET'),
+      ...callsTo('/rest/v1/instruction_module_list', 'HEAD'),
     ];
     expect(sent).toHaveLength(2);
-    for (const [, init] of sent) {
-      expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${testAccessToken}`);
+    for (const { headers } of sent) {
+      expect(headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     }
   });
 
@@ -364,7 +355,7 @@ describe('GET /instruction-modules', () => {
     mockUpstream();
     expect((await request('/instruction-modules?sort=updatedAt')).status).toBe(400);
     expect((await request('/instruction-modules?pageSize=101')).status).toBe(400);
-    expect(calls('/rest/v1/instruction_module_list', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/instruction_module_list', 'GET')).toHaveLength(0);
   });
 });
 
@@ -415,15 +406,15 @@ describe('POST /instruction-modules', () => {
     const created = instructionModuleResponseSchema.parse(await response.json());
     expect(created.module.title).toBe('Sudură oxiacetilenică');
     expect(created.body).toEqual(laddersBody);
-    expect(sent('/rest/v1/rpc/create_instruction_module', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/rpc/create_instruction_module', 'POST')[0]!.body).toEqual({
       p_title: 'Sudură oxiacetilenică',
       p_group: 'work_equipment',
       p_domain: 'ssm',
       p_body: laddersBody,
       p_text_hash: laddersHash,
     });
-    expect(calls('/rest/v1/instruction_modules', 'POST')).toHaveLength(0);
-    expect(calls('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/instruction_modules', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
   });
 
   it('creates a fire-safety module with a fire-safety category', async () => {
@@ -438,7 +429,7 @@ describe('POST /instruction-modules', () => {
     });
     expect(response.status).toBe(201);
     expect(instructionModuleResponseSchema.parse(await response.json()).module.domain).toBe('su');
-    expect(sent('/rest/v1/rpc/create_instruction_module', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/rpc/create_instruction_module', 'POST')[0]!.body).toMatchObject({
       p_domain: 'su',
       p_group: 'hazardous_work',
     });
@@ -456,7 +447,7 @@ describe('POST /instruction-modules', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
       'instruction_module_category_domain'
     );
-    expect(calls('/rest/v1/rpc/create_instruction_module', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/create_instruction_module', 'POST')).toHaveLength(0);
   });
 
   it('refuses a body without an article, or with a character the database cannot hold', async () => {
@@ -473,7 +464,7 @@ describe('POST /instruction-modules', () => {
       });
       expect(response.status).toBe(400);
     }
-    expect(calls('/rest/v1/rpc/create_instruction_module', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/create_instruction_module', 'POST')).toHaveLength(0);
   });
 
   it('refuses a title the library already has', async () => {
@@ -507,7 +498,7 @@ describe('GET /instruction-modules/{moduleId}', () => {
     });
     expect(read.body).toEqual(laddersBody);
     const versionRead = new URL(
-      String(calls('/rest/v1/instruction_module_versions', 'GET')[0]![0])
+      String(callsTo('/rest/v1/instruction_module_versions', 'GET')[0]!.url)
     );
     expect(versionRead.searchParams.get('id')).toBe(`eq.${version.id}`);
   });
@@ -520,7 +511,10 @@ describe('PATCH /instruction-modules/{moduleId}', () => {
       archived: true,
     });
     expect(response.status).toBe(200);
-    const patched = sent('/rest/v1/instruction_modules', 'PATCH');
+    const patched = callsTo('/rest/v1/instruction_modules', 'PATCH')[0]!.body as Record<
+      string,
+      unknown
+    >;
     expect(typeof patched.archived_at).toBe('string');
   });
 
@@ -547,7 +541,7 @@ describe('PATCH /instruction-modules/{moduleId}', () => {
       group: 'installation_equipment',
     });
     expect(response.status).toBe(200);
-    expect(sent('/rest/v1/instruction_modules', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/instruction_modules', 'PATCH')[0]!.body).toEqual({
       domain: 'su',
       module_group: 'installation_equipment',
     });
@@ -562,7 +556,7 @@ describe('PATCH /instruction-modules/{moduleId}', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
       'instruction_module_category_domain'
     );
-    expect(calls('/rest/v1/instruction_modules', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/instruction_modules', 'PATCH')).toHaveLength(0);
   });
 
   it('refuses to move a module a position applies to the other domain, and says why', async () => {
@@ -599,7 +593,7 @@ describe('PUT /instruction-modules/{moduleId}/body', () => {
     const response = await request(`/instruction-modules/${laddersId}/body`, 'PUT', officeBody);
     expect(response.status).toBe(200);
     expect(saveInstructionBodyResponseSchema.parse(await response.json()).changed).toBe(true);
-    expect(sent('/rest/v1/instruction_module_versions', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/instruction_module_versions', 'POST')[0]!.body).toMatchObject({
       module_id: laddersId,
       number: 3,
       body: officeBody,
@@ -622,7 +616,7 @@ describe('PUT /instruction-modules/{moduleId}/body', () => {
     expect(saved.changed).toBe(false);
     expect(saved.module.version.number).toBe(2);
     expect(saved.body).toEqual(laddersBody);
-    expect(calls('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
   });
 
   it('stores a text that only puts back diacritics, changes case or turns a symbol, spaced', async () => {
@@ -643,7 +637,7 @@ describe('PUT /instruction-modules/{moduleId}/body', () => {
     const response = await request(`/instruction-modules/${laddersId}/body`, 'PUT', corrected);
     expect(response.status).toBe(200);
     expect(saveInstructionBodyResponseSchema.parse(await response.json()).changed).toBe(true);
-    expect(sent('/rest/v1/instruction_module_versions', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/instruction_module_versions', 'POST')[0]!.body).toMatchObject({
       number: 3,
       body: {
         blocks: [
@@ -671,7 +665,7 @@ describe('PUT /instruction-modules/{moduleId}/body', () => {
       blocks: [{ kind: 'article', paragraphs: ['Rândul unu\nrândul doi'] }],
     });
     expect(response.status).toBe(400);
-    expect(calls('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
   });
 
   it('refuses a text on an archived module', async () => {
@@ -696,7 +690,7 @@ describe('GET /instruction-modules/{moduleId}/versions/{versionId}', () => {
     expect(read.version.number).toBe(2);
     expect(read.body).toEqual(laddersBody);
     const versionRead = new URL(
-      String(calls('/rest/v1/instruction_module_versions', 'GET')[0]![0])
+      String(callsTo('/rest/v1/instruction_module_versions', 'GET')[0]!.url)
     );
     expect(versionRead.searchParams.get('module_id')).toBe(`eq.${laddersId}`);
   });
@@ -749,7 +743,7 @@ describe('POST /instruction-modules/preview', () => {
     expect(text).toContain('I.P.S.U. Lucrul cu foc deschis');
     expect(text).toContain('Mihai STANCU');
     expect(text).toMatch(/Art\. 1\.\s*Instrucțiunea se aplică personalului din birouri\./);
-    expect(calls('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
   });
 
   it('refuses a body that is not one', async () => {
@@ -772,7 +766,7 @@ describe('GET …/instructions', () => {
     const body = positionInstructionsResponseSchema.parse(await response.json());
     expect(body.domain).toBe('ssm');
     expect(body.items.map((item) => item.title)).toEqual(['Scări metalice']);
-    const listed = calls('/rest/v1/job_position_instructions', 'GET')[0]![0];
+    const listed = callsTo('/rest/v1/job_position_instructions', 'GET')[0]!.url;
     expect(new URL(String(listed)).searchParams.get('domain')).toBe('eq.ssm');
   });
 
@@ -781,7 +775,7 @@ describe('GET …/instructions', () => {
     const response = await request(`${instructionsPath}?domain=su`);
     const body = positionInstructionsResponseSchema.parse(await response.json());
     expect([body.domain, body.items]).toEqual(['su', []]);
-    const listed = calls('/rest/v1/job_position_instructions', 'GET')[0]![0];
+    const listed = callsTo('/rest/v1/job_position_instructions', 'GET')[0]!.url;
     expect(new URL(String(listed)).searchParams.get('domain')).toBe('eq.su');
   });
 
@@ -798,7 +792,7 @@ describe('PUT …/instructions', () => {
     mockUpstream();
     const response = await request(instructionsPath, 'PUT', { moduleIds: [officesId] });
     expect(response.status).toBe(200);
-    expect(sent('/rest/v1/job_position_instructions', 'POST')).toEqual([
+    expect(callsTo('/rest/v1/job_position_instructions', 'POST')[0]!.body).toEqual([
       {
         organization_id: organizationId,
         client_id: clientId,
@@ -808,7 +802,7 @@ describe('PUT …/instructions', () => {
         created_by: user.id,
       },
     ]);
-    const removed = new URL(String(calls('/rest/v1/job_position_instructions', 'DELETE')[0]![0]));
+    const removed = callsTo('/rest/v1/job_position_instructions', 'DELETE')[0]!.url;
     expect(removed.searchParams.get('module_id')).toBe(`in.(${laddersId})`);
     expect(removed.searchParams.get('domain')).toBe('eq.ssm');
   });
@@ -822,10 +816,10 @@ describe('PUT …/instructions', () => {
     expect(response.status).toBe(200);
     const body = positionInstructionsResponseSchema.parse(await response.json());
     expect(body.domain).toBe('su');
-    expect(sent('/rest/v1/job_position_instructions', 'POST')).toEqual([
+    expect(callsTo('/rest/v1/job_position_instructions', 'POST')[0]!.body).toEqual([
       expect.objectContaining({ module_id: hotWorkId, domain: 'su' }),
     ]);
-    expect(calls('/rest/v1/job_position_instructions', 'DELETE')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_position_instructions', 'DELETE')).toHaveLength(0);
   });
 
   it('refuses a module of the other domain by its title', async () => {
@@ -839,7 +833,7 @@ describe('PUT …/instructions', () => {
     expect(error.reason).toBe('instruction_module_other_domain');
     expect(error.message).toContain('"Scări metalice"');
     expect(error.message).not.toContain('Lucrul cu foc deschis');
-    expect(calls('/rest/v1/job_position_instructions', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_position_instructions', 'POST')).toHaveLength(0);
   });
 
   it('refuses a module that is not in the library', async () => {
@@ -848,7 +842,7 @@ describe('PUT …/instructions', () => {
       moduleIds: ['0e0e0e0e-0000-4000-8000-000000000001'],
     });
     expect(response.status).toBe(400);
-    expect(calls('/rest/v1/job_position_instructions', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_position_instructions', 'POST')).toHaveLength(0);
   });
 
   it('refuses an archived module', async () => {
@@ -878,7 +872,7 @@ describe('POST …/instructions/copy', () => {
       fromJobPositionId: fitterId,
     });
     expect(response.status).toBe(200);
-    expect(sent('/rest/v1/job_position_instructions', 'POST')).toEqual([
+    expect(callsTo('/rest/v1/job_position_instructions', 'POST')[0]!.body).toEqual([
       expect.objectContaining({ module_id: officesId }),
     ]);
   });

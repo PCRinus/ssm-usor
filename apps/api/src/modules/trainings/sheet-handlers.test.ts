@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiEnv } from '../../lib/env';
 import { apiRequest } from '../../test/request';
 import {
+  callsTo,
   fetchMock,
   membershipRow,
   mockUpstream as mockSignedInUpstream,
@@ -20,6 +21,7 @@ import {
   testEnv,
   testOrganizationId,
   type UpstreamCall,
+  upstreamCalls,
 } from '../../test/upstream';
 
 const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
@@ -176,9 +178,6 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   });
 }
 
-const calls = (pathname: string) =>
-  fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === pathname);
-
 const pdfBytes = new TextEncoder().encode('%PDF-1.7 sheet');
 const convertDocx = vi.fn<(docx: ArrayBuffer) => Promise<ArrayBuffer>>(
   async () => pdfBytes.slice().buffer
@@ -223,11 +222,11 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
       ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
       su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
     });
-    expect(calls('/rest/v1/training_records')).toHaveLength(0);
-    const query = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams;
+    expect(callsTo('/rest/v1/training_records')).toHaveLength(0);
+    const query = callsTo('/rest/v1/employees')[0]!.url.searchParams;
     expect(query.get('id')).toBe(`eq.${employeeId}`);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    const workplaces = new URL(String(calls('/rest/v1/client_workplaces')[0]![0])).searchParams;
+    const workplaces = callsTo('/rest/v1/client_workplaces')[0]!.url.searchParams;
     expect(workplaces.get('archived_at')).toBe('is.null');
     expect(workplaces.get('office_has_activity')).toBe('eq.true');
   });
@@ -297,7 +296,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
         versions: { 1: 'sheet-1:2', 2: 'sheet-2:1' },
       },
     });
-    const query = new URL(String(calls('/rest/v1/signed_sheets')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/signed_sheets')[0]!.url.searchParams;
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
   });
@@ -321,13 +320,13 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
     );
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(pdfBytes);
 
-    const records = new URL(String(calls('/rest/v1/training_records')[0]![0])).searchParams;
+    const records = callsTo('/rest/v1/training_records')[0]!.url.searchParams;
     expect(records.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(records.get('trainings.domain')).toBe('eq.ssm');
-    const templates = new URL(String(calls('/rest/v1/document_templates')[0]![0])).searchParams;
+    const templates = callsTo('/rest/v1/document_templates')[0]!.url.searchParams;
     expect(templates.get('type_key')).toBe('in.(training_sheet_ssm)');
-    const signed = fetchMock.mock.calls
-      .map(([input]) => new URL(String(input)).pathname)
+    const signed = upstreamCalls()
+      .map(({ url }) => url.pathname)
       .filter((pathname) => pathname.startsWith('/storage/v1/object/sign/'));
     expect(signed[0]).toBe(
       '/storage/v1/object/sign/document-templates/built-in/training_sheet_ssm/new.docx'
@@ -341,7 +340,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
     expect(text).toContain('Str. Lungă – Str. Fabricii, cu autobuzul 33 (25 de minute)');
     expect(text).toContain('Test de verificare a cunoștințelor la angajare (TASSM)');
     expect(text).toContain('Dan MARIN, Inspector SSM');
-    const results = new URL(String(calls('/rest/v1/test_results')[0]![0])).searchParams;
+    const results = callsTo('/rest/v1/test_results')[0]!.url.searchParams;
     expect(results.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(results.get('domain')).toBe('eq.ssm');
   });
@@ -377,10 +376,10 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Disposition')).toContain('Fisa-SSM-Popescu-Ion.pdf');
     expect(await response.text()).toBe('%PDF-1.7 ssm-1');
-    const query = new URL(String(calls('/rest/v1/signed_sheets')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/signed_sheets')[0]!.url.searchParams;
     expect(query.get('domain')).toBe('eq.ssm');
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    expect(calls('/rest/v1/document_templates')).toHaveLength(0);
+    expect(callsTo('/rest/v1/document_templates')).toHaveLength(0);
     expect(convertDocx).not.toHaveBeenCalled();
   });
 
@@ -428,7 +427,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
       reason: 'missing_sheet_data',
       missing: ['employee.commute_route'],
     });
-    expect(calls('/rest/v1/document_templates')).toHaveLength(0);
+    expect(callsTo('/rest/v1/document_templates')).toHaveLength(0);
     expect(convertDocx).not.toHaveBeenCalled();
   });
 
@@ -437,7 +436,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
     const response = await request(sheetPath('ssm'), env);
     expect(response.status).toBe(503);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('pdf_unavailable');
-    expect(calls('/rest/v1/document_templates')).toHaveLength(0);
+    expect(callsTo('/rest/v1/document_templates')).toHaveLength(0);
   });
 
   it('answers 503 template_missing while the template is not registered', async () => {
@@ -457,7 +456,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
   it('rejects a domain it does not know', async () => {
     mockUpstream();
     expect((await request(sheetPath('fire'))).status).toBe(400);
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employees')).toHaveLength(0);
   });
 
   describe('the link to a stored sheet', () => {
@@ -475,12 +474,10 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
         fileName: 'Fisa-SSM-Popescu-Ion.pdf',
         expiresInSeconds: 600,
       });
-      const [signing] = calls(`/storage/v1/object/sign/documents/${storedSheet(1).storage_path}`);
-      expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
-        'Bearer sb_secret_test_key_value'
-      );
-      expect(JSON.parse(String(signing![1]?.body))).toEqual({ expiresIn: 600 });
-      expect(calls('/rest/v1/document_templates')).toHaveLength(0);
+      const [signing] = callsTo(`/storage/v1/object/sign/documents/${storedSheet(1).storage_path}`);
+      expect(signing!.headers.get('Authorization')).toBe('Bearer sb_secret_test_key_value');
+      expect(signing!.body).toEqual({ expiresIn: 600 });
+      expect(callsTo('/rest/v1/document_templates')).toHaveLength(0);
       expect(convertDocx).not.toHaveBeenCalled();
     });
 

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { toProposal } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 
 import { cleanUp, createAccount, createLibraryImport, createOrganization, signIn } from './support';
 
@@ -14,24 +15,14 @@ test('smoking choices remain readable and selectable at 320px with a long source
   const legalName = 'Brutăria Spicul Auriu SRL';
   const cui = '1590082';
   const file = 'Dosar/DECIZIEPRIVINDREGLEMENTAREAFUMATULUIBRUTARIASPICULAURIUSIBIU2026.docx';
-  const proposal = toProposal({
-    facts: [
-      { field: 'client.legalName', value: legalName, file, quote: legalName, otherCompany: null },
-      { field: 'client.cui', value: cui, file, quote: cui, otherCompany: null },
-    ],
-    workplaces: [],
-    workplaceFacts: [],
-    workplaceSuggestions: [],
-    jobPositionFacts: [],
-    jobPositions: [],
-    responsiblePersons: [],
-    fireEquipment: [],
-    fireInstallations: [],
-    substances: [],
-    protectiveEquipment: [],
-    employees: [],
-    notes: [],
-  });
+  const proposal = toProposal(
+    emptyReading({
+      facts: [
+        { field: 'client.legalName', value: legalName, file, quote: legalName, otherCompany: null },
+        { field: 'client.cui', value: cui, file, quote: cui, otherCompany: null },
+      ],
+    })
+  );
   proposal.fireSafety.smokingPolicy = {
     options: [
       {

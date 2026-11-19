@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RegenerationMessage } from '../../lib/env';
 import { apiRequest } from '../../test/request';
 import {
-  fetchMock,
+  callsTo,
   mockUpstream as mockSignedInUpstream,
   stubFetch,
   testEnv,
@@ -204,15 +204,6 @@ function mockUpstream(
   });
 }
 
-const calls = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-  );
-
-const authorization = (call: Parameters<typeof fetch>) =>
-  new Headers(call[1]?.headers).get('Authorization');
-
 const request = (path: string, method = 'GET', body?: unknown, bindings = env) =>
   apiRequest(path, { method, body }, bindings);
 
@@ -316,16 +307,14 @@ describe('GET /documents/behind', () => {
         ],
       },
     ]);
-    const [read] = calls('/rest/v1/documents_behind');
-    expect(new URL(String(read![0])).searchParams.get('organization_id')).toBe(
-      `eq.${organizationId}`
-    );
-    expect(authorization(read!)).toBe('Bearer test-access-token');
-    const [changes] = calls('/rest/v1/template_version_legal_changes');
-    expect(new URL(String(changes![0])).searchParams.get('template_version_id')).toBe(
+    const [read] = callsTo('/rest/v1/documents_behind', 'GET');
+    expect(read!.url.searchParams.get('organization_id')).toBe(`eq.${organizationId}`);
+    expect(read!.headers.get('Authorization')).toBe('Bearer test-access-token');
+    const [changes] = callsTo('/rest/v1/template_version_legal_changes', 'GET');
+    expect(changes!.url.searchParams.get('template_version_id')).toBe(
       `in.(${decisionVersionId},${fireVersionId},${coverVersionId})`
     );
-    expect(authorization(changes!)).toBe('Bearer test-access-token');
+    expect(changes!.headers.get('Authorization')).toBe('Bearer test-access-token');
   });
 
   it('names what moved in the instructions of a client behind on them, leaving out a change it does not know', async () => {
@@ -399,7 +388,7 @@ describe('GET /documents/behind', () => {
     const response = await request('/documents/behind');
     const [type] = documentsBehindResponseSchema.parse(await response.json()).items;
     expect(type!.clients).toHaveLength(1001);
-    const pages = calls('/rest/v1/documents_behind').map((call) => new URL(String(call[0])));
+    const pages = callsTo('/rest/v1/documents_behind', 'GET').map(({ url }) => url);
     expect(pages.map((url) => url.searchParams.get('offset'))).toEqual(['0', '1000']);
     expect(pages.every((url) => url.searchParams.get('order') === 'document_id.asc')).toBe(true);
   });
@@ -411,7 +400,7 @@ describe('GET /documents/behind', () => {
     });
     const response = await request('/documents/behind');
     expect(documentsBehindResponseSchema.parse(await response.json())).toEqual({ items: [] });
-    expect(calls('/rest/v1/template_version_legal_changes')).toHaveLength(0);
+    expect(callsTo('/rest/v1/template_version_legal_changes', 'GET')).toHaveLength(0);
   });
 });
 
@@ -446,14 +435,13 @@ describe('GET /documents/behind/summary', () => {
         },
       ],
     });
-    const heads = calls('/rest/v1/documents_behind', 'HEAD');
-    expect(
-      heads.map((call) => new URL(String(call[0])).searchParams.get('type_key')).sort()
-    ).toEqual(['like.fire\\_%', 'not.like.fire\\_%']);
+    const heads = callsTo('/rest/v1/documents_behind', 'HEAD');
+    expect(heads.map(({ url }) => url.searchParams.get('type_key')).sort()).toEqual([
+      'like.fire\\_%',
+      'not.like.fire\\_%',
+    ]);
     for (const call of heads) {
-      expect(new URL(String(call[0])).searchParams.get('organization_id')).toBe(
-        `eq.${organizationId}`
-      );
+      expect(call.url.searchParams.get('organization_id')).toBe(`eq.${organizationId}`);
     }
   });
 
@@ -482,20 +470,20 @@ describe('POST /documents/behind/regenerate', () => {
     expect(job).toMatchObject({ id: jobId, typeKey: 'decision_training', total: 2, done: 1 });
     expect(job.items.map((item) => item.clientName)).toEqual(['Alba S.R.L.', 'Zebra S.R.L.']);
 
-    const [behind] = calls('/rest/v1/documents_behind');
-    expect(new URL(String(behind![0])).searchParams.get('type_key')).toBe('eq.decision_training');
-    expect(authorization(behind!)).toBe('Bearer test-access-token');
-    const [start] = calls('/rest/v1/rpc/start_regeneration_job', 'POST');
-    expect(authorization(start!)).toBe(`Bearer ${secretKey}`);
-    expect(JSON.parse(String(start![1]?.body))).toEqual({
+    const [behind] = callsTo('/rest/v1/documents_behind', 'GET');
+    expect(behind!.url.searchParams.get('type_key')).toBe('eq.decision_training');
+    expect(behind!.headers.get('Authorization')).toBe('Bearer test-access-token');
+    const [start] = callsTo('/rest/v1/rpc/start_regeneration_job', 'POST');
+    expect(start!.headers.get('Authorization')).toBe(`Bearer ${secretKey}`);
+    expect(start!.body).toEqual({
       p_organization_id: organizationId,
       p_type_key: 'decision_training',
       p_requested_by: user.id,
       p_client_ids: [zebraId],
     });
     expect(sent).toEqual([{ jobId, clientId: zebraId }]);
-    const [read] = calls('/rest/v1/regeneration_jobs');
-    expect(authorization(read!)).toBe('Bearer test-access-token');
+    const [read] = callsTo('/rest/v1/regeneration_jobs', 'GET');
+    expect(read!.headers.get('Authorization')).toBe('Bearer test-access-token');
   });
 
   it('refuses a type nobody is behind on', async () => {
@@ -505,7 +493,7 @@ describe('POST /documents/behind/regenerate', () => {
     });
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('nothing_behind');
-    expect(calls('/rest/v1/rpc/start_regeneration_job', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/start_regeneration_job', 'POST')).toHaveLength(0);
     expect(queue.sendBatch).not.toHaveBeenCalled();
   });
 
@@ -518,7 +506,7 @@ describe('POST /documents/behind/regenerate', () => {
     });
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('nothing_behind');
-    expect(calls('/rest/v1/rpc/start_regeneration_job', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/start_regeneration_job', 'POST')).toHaveLength(0);
   });
 
   it('refuses a second job while one of the same type runs', async () => {
@@ -545,9 +533,9 @@ describe('POST /documents/behind/regenerate', () => {
       typeKey: 'decision_training',
     });
     expect(response.status).toBe(503);
-    const [removed] = calls('/rest/v1/regeneration_jobs', 'DELETE');
-    expect(new URL(String(removed![0])).searchParams.get('id')).toBe(`eq.${jobId}`);
-    expect(authorization(removed!)).toBe(`Bearer ${secretKey}`);
+    const [removed] = callsTo('/rest/v1/regeneration_jobs', 'DELETE');
+    expect(removed!.url.searchParams.get('id')).toBe(`eq.${jobId}`);
+    expect(removed!.headers.get('Authorization')).toBe(`Bearer ${secretKey}`);
   });
 
   it('starts nothing where no queue is bound', async () => {
@@ -560,7 +548,7 @@ describe('POST /documents/behind/regenerate', () => {
       { ...env, REGENERATION_QUEUE: undefined }
     );
     expect(response.status).toBe(503);
-    expect(calls('/rest/v1/rpc/start_regeneration_job', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/start_regeneration_job', 'POST')).toHaveLength(0);
   });
 
   it('takes only a built-in document type', async () => {
@@ -569,7 +557,7 @@ describe('POST /documents/behind/regenerate', () => {
       typeKey: 'service_contract',
     });
     expect(response.status).toBe(400);
-    expect(calls('/rest/v1/documents_behind')).toHaveLength(0);
+    expect(callsTo('/rest/v1/documents_behind', 'GET')).toHaveLength(0);
   });
 });
 
@@ -614,11 +602,11 @@ describe('POST /documents/behind/regenerate-all', () => {
       ],
       notStarted: [],
     });
-    const [behind] = calls('/rest/v1/documents_behind');
-    expect(new URL(String(behind![0])).searchParams.get('type_key')).toBe('not.like.fire\\_%');
-    expect(authorization(behind!)).toBe('Bearer test-access-token');
-    const starts = calls('/rest/v1/rpc/start_regeneration_job', 'POST');
-    expect(starts.map((call) => JSON.parse(String(call[1]?.body)))).toEqual([
+    const [behind] = callsTo('/rest/v1/documents_behind', 'GET');
+    expect(behind!.url.searchParams.get('type_key')).toBe('not.like.fire\\_%');
+    expect(behind!.headers.get('Authorization')).toBe('Bearer test-access-token');
+    const starts = callsTo('/rest/v1/rpc/start_regeneration_job', 'POST');
+    expect(starts.map(({ body }) => body)).toEqual([
       {
         p_organization_id: organizationId,
         p_type_key: 'cover_decisions',
@@ -626,7 +614,7 @@ describe('POST /documents/behind/regenerate-all', () => {
         p_client_ids: [zebraId],
       },
     ]);
-    expect(authorization(starts[0]!)).toBe(`Bearer ${secretKey}`);
+    expect(starts[0]!.headers.get('Authorization')).toBe(`Bearer ${secretKey}`);
     expect(sent).toEqual([{ jobId: startedIds[0], clientId: zebraId }]);
   });
 
@@ -660,10 +648,10 @@ describe('POST /documents/behind/regenerate-all', () => {
     });
     const response = await regenerateAll('occupational_safety');
     expect(response.status).toBe(201);
-    const [start] = calls('/rest/v1/rpc/start_regeneration_job', 'POST');
-    expect(JSON.parse(String(start![1]?.body)).p_client_ids).toHaveLength(1200);
+    const [start] = callsTo('/rest/v1/rpc/start_regeneration_job', 'POST');
+    expect((start!.body as { p_client_ids: string[] }).p_client_ids).toHaveLength(1200);
     expect(sent).toHaveLength(1200);
-    expect(calls('/rest/v1/documents_behind')).toHaveLength(2);
+    expect(callsTo('/rest/v1/documents_behind', 'GET')).toHaveLength(2);
   });
 
   it('starts a type again whose job has been unfinished for over an hour', async () => {
@@ -678,10 +666,8 @@ describe('POST /documents/behind/regenerate-all', () => {
     expect(
       setRegenerationResponseSchema.parse(await response.json()).jobs.map((job) => job.typeKey)
     ).toEqual(['cover_decisions', 'decision_training']);
-    const [running] = calls('/rest/v1/regeneration_jobs');
-    expect(new URL(String(running![0])).searchParams.get('requested_at')?.startsWith('gt.')).toBe(
-      true
-    );
+    const [running] = callsTo('/rest/v1/regeneration_jobs', 'GET');
+    expect(running!.url.searchParams.get('requested_at')?.startsWith('gt.')).toBe(true);
   });
 
   it('answers the jobs that started when the queue fails on a later type', async () => {
@@ -696,8 +682,8 @@ describe('POST /documents/behind/regenerate-all', () => {
     const body = setRegenerationResponseSchema.parse(await response.json());
     expect(body.jobs.map((job) => job.id)).toEqual([startedIds[0]]);
     expect(body.notStarted).toEqual(['decision_training']);
-    const [removed] = calls('/rest/v1/regeneration_jobs', 'DELETE');
-    expect(new URL(String(removed![0])).searchParams.get('id')).toBe(`eq.${startedIds[1]}`);
+    const [removed] = callsTo('/rest/v1/regeneration_jobs', 'DELETE');
+    expect(removed!.url.searchParams.get('id')).toBe(`eq.${startedIds[1]}`);
   });
 
   it('is 503 when the queue fails before any job started', async () => {
@@ -714,7 +700,7 @@ describe('POST /documents/behind/regenerate-all', () => {
     const response = await regenerateAll('occupational_safety');
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('nothing_behind');
-    expect(calls('/rest/v1/rpc/start_regeneration_job', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/start_regeneration_job', 'POST')).toHaveLength(0);
   });
 
   it('refuses when every type that could start is already regenerating', async () => {
@@ -733,7 +719,7 @@ describe('POST /documents/behind/regenerate-all', () => {
       REGENERATION_QUEUE: undefined,
     });
     expect(response.status).toBe(503);
-    expect(calls('/rest/v1/documents_behind')).toHaveLength(0);
+    expect(callsTo('/rest/v1/documents_behind', 'GET')).toHaveLength(0);
   });
 
   it('takes only a known set', async () => {

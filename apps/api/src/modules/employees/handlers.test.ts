@@ -10,6 +10,7 @@ import { createApp } from '../../app';
 import { openApiConfig } from '../../lib/openapi';
 import { apiRequest } from '../../test/request';
 import {
+  callsTo,
   fetchMock,
   membershipRow,
   routeUpstream,
@@ -199,9 +200,6 @@ function mockUpstream(
   });
 }
 
-const calls = (pathname: string) =>
-  fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === pathname);
-
 const request = (path: string, init: RequestInit = {}, token?: string | null) =>
   apiRequest(path, { ...init, token }, env);
 
@@ -218,10 +216,10 @@ afterEach(() => {
 
 describe('GET /clients/{clientId}/employees', () => {
   const listCalls = () =>
-    calls('/rest/v1/employee_list').map(([input, init]) => ({
-      query: new URL(String(input)).searchParams,
-      method: init?.method ?? 'GET',
-      headers: new Headers(init?.headers),
+    callsTo('/rest/v1/employee_list').map(({ url, method, headers }) => ({
+      query: url.searchParams,
+      method,
+      headers,
     }));
   const listQuery = (index = 0) =>
     listCalls().filter((call) => call.method === 'GET')[index]!.query;
@@ -265,8 +263,8 @@ describe('GET /clients/{clientId}/employees', () => {
       ],
     });
     expect(JSON.stringify(body)).not.toContain('cnp');
-    const [clientUrl] = calls('/rest/v1/clients')[0]!;
-    expect(new URL(String(clientUrl)).searchParams.get('id')).toBe(`eq.${clientId}`);
+    const { url: clientUrl } = callsTo('/rest/v1/clients')[0]!;
+    expect(clientUrl.searchParams.get('id')).toBe(`eq.${clientId}`);
     const [list] = listCalls();
     expect(list!.query.get('select')).not.toContain('cnp');
     expect(list!.query.get('select')).toContain('portal_state');
@@ -279,10 +277,8 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(list!.headers.get('Authorization')).toBe('Bearer test-access-token');
     expect(list!.headers.get('Prefer')).toContain('count=exact');
     expect(countQueries()).toHaveLength(0);
-    const [trainingUrl] = calls('/rest/v1/employee_training_status')[0]!;
-    expect(new URL(String(trainingUrl)).searchParams.get('employee_id')).toBe(
-      `in.(${employeeRow.id})`
-    );
+    const { url: trainingUrl } = callsTo('/rest/v1/employee_training_status')[0]!;
+    expect(trainingUrl.searchParams.get('employee_id')).toBe(`in.(${employeeRow.id})`);
   });
 
   it('reads no statuses for an empty page', async () => {
@@ -297,7 +293,7 @@ describe('GET /clients/{clientId}/employees', () => {
       total: 0,
       unfilteredTotal: 0,
     });
-    expect(calls('/rest/v1/employee_training_status')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employee_training_status')).toHaveLength(0);
   });
 
   it('pages and sorts by one whitelisted key with a stable tiebreaker', async () => {
@@ -370,7 +366,7 @@ describe('GET /clients/{clientId}/employees', () => {
     mockUpstream({});
     const response = await request(`${employeesPath}?${search}`);
     expect(response.status).toBe(400);
-    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
   });
 
   it('filters by status when asked, and counts the tab alone', async () => {
@@ -451,8 +447,8 @@ describe('GET /clients/{clientId}/employees', () => {
     mockUpstream({});
     const response = await request(`${employeesPath}?status=fired`);
     expect(response.status).toBe(400);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
-    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
   });
 
   it('rejects a malformed client id before touching the database', async () => {
@@ -460,7 +456,7 @@ describe('GET /clients/{clientId}/employees', () => {
     const response = await request('/clients/not-a-uuid/employees');
     expect(response.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('validation_error');
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('answers 404 when the client is not visible to the organization', async () => {
@@ -468,7 +464,7 @@ describe('GET /clients/{clientId}/employees', () => {
     const response = await request(employeesPath);
     expect(response.status).toBe(404);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('not_found');
-    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
   });
 
   it('still lists employees of an archived client', async () => {
@@ -498,7 +494,7 @@ describe('GET /clients/{clientId}/employees', () => {
         expect(response.status).toBe(400);
         expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('validation_error');
       }
-      expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+      expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
       mockUpstream({ clients: () => Response.json([client]) });
       const allowed = await request(
         `${employeesPath}?status=terminated&attention=noPhone&attention=signaturesPending&sort=hiredAt`
@@ -664,7 +660,7 @@ describe('GET /clients/{clientId}/employees', () => {
       mockUpstream({});
       const response = await request(`${employeesPath}?portal=pending`);
       expect(response.status).toBe(400);
-      expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+      expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
     });
   });
 
@@ -679,15 +675,15 @@ describe('GET /clients/{clientId}/employees', () => {
     mockUpstream({ membership: () => Response.json([]) });
     const response = await request(employeesPath);
     expect(response.status).toBe(403);
-    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
   });
 });
 
 describe('GET /clients/{clientId}/employee-invitees', () => {
   const inviteesPath = `/clients/${clientId}/employee-invitees`;
   const inviteeQuery = () => {
-    const [input, init] = calls('/rest/v1/employee_list')[0]!;
-    return { query: new URL(String(input)).searchParams, headers: new Headers(init?.headers) };
+    const { url, headers } = callsTo('/rest/v1/employee_list')[0]!;
+    return { query: url.searchParams, headers };
   };
   const inviteeRow = (id: string, last: string, portal_state: string) => ({
     id,
@@ -758,7 +754,7 @@ describe('GET /clients/{clientId}/employee-invitees', () => {
     mockUpstream({ clients: () => Response.json([]) });
     const response = await request(inviteesPath);
     expect(response.status).toBe(404);
-    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
   });
 
   it.each(['portal=pending', 'jobPosition=not-a-uuid', 'workplace=1', 'workplace=nowhere'])(
@@ -767,7 +763,7 @@ describe('GET /clients/{clientId}/employee-invitees', () => {
       mockUpstream({});
       const response = await request(`${inviteesPath}?${search}`);
       expect(response.status).toBe(400);
-      expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+      expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
     }
   );
 
@@ -776,7 +772,7 @@ describe('GET /clients/{clientId}/employee-invitees', () => {
     expect((await request(inviteesPath)).status).toBe(403);
     mockUpstream({});
     expect((await request(inviteesPath, {}, null)).status).toBe(401);
-    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
   });
 });
 
@@ -828,7 +824,7 @@ describe('POST /clients/{clientId}/employees', () => {
     const { employee } = employeeResponseSchema.parse(await response.json());
     expect(employee.cnp).toBe('1900101400127');
     expect(employee.bloodGroup).toBe('A(II)');
-    const [, init] = calls('/rest/v1/employees')[0]!;
+    const { init } = callsTo('/rest/v1/employees')[0]!;
     expect(init?.method).toBe('POST');
     expect(JSON.parse(String(init?.body))).toEqual({
       organization_id: testOrganizationId,
@@ -871,7 +867,7 @@ describe('POST /clients/{clientId}/employees', () => {
       hiredAt: '2020-03-01',
     });
     expect(response.status).toBe(201);
-    expect(JSON.parse(String(calls('/rest/v1/employees')[0]![1]?.body))).toMatchObject({
+    expect(callsTo('/rest/v1/employees')[0]!.body).toMatchObject({
       cnp: null,
       email: null,
       birth_date: null,
@@ -895,15 +891,15 @@ describe('POST /clients/{clientId}/employees', () => {
     const error = apiErrorResponseSchema.parse(await response.json());
     expect(error.error).toBe('validation_error');
     expect(error.issues?.map((issue) => issue.path)).toContain(path);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employees')).toHaveLength(0);
   });
 
   it('answers 404 when the client is not visible to the organization', async () => {
     mockUpstream({ clients: () => Response.json([]) });
     const response = await postEmployee(validBody);
     expect(response.status).toBe(404);
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employees')).toHaveLength(0);
   });
 
   it('refuses to add employees to an archived client', async () => {
@@ -913,7 +909,7 @@ describe('POST /clients/{clientId}/employees', () => {
     const response = await postEmployee(validBody);
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employees')).toHaveLength(0);
   });
 
   it('names the duplicated identifier on a conflict', async () => {
@@ -990,8 +986,8 @@ describe('GET /clients/{clientId}/employees/{employeeId}', () => {
       rhFactor: '+',
       archivedAt: null,
     });
-    const [url] = calls('/rest/v1/employees')[0]!;
-    const query = new URL(String(url)).searchParams;
+    const { url } = callsTo('/rest/v1/employees')[0]!;
+    const query = url.searchParams;
     expect(query.get('id')).toBe(`eq.${employeeRow.id}`);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('select')).toContain('cnp');
@@ -1007,7 +1003,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}', () => {
   it('rejects a malformed employee id', async () => {
     mockUpstream({});
     expect((await request(`${employeesPath}/nope`)).status).toBe(400);
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employees')).toHaveLength(0);
   });
 });
 
@@ -1048,12 +1044,12 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
     const { employee } = employeeResponseSchema.parse(await response.json());
     expect(employee.status).toBe('terminated');
     expect(employee.terminatedAt).toBe('2026-09-10');
-    const patch = calls('/rest/v1/employees').find(([, init]) => init?.method === 'PATCH')!;
-    expect(JSON.parse(String(patch[1]?.body))).toEqual({
+    const patch = callsTo('/rest/v1/employees').find((call) => call.method === 'PATCH')!;
+    expect(patch.body).toEqual({
       status: 'terminated',
       terminated_at: '2026-09-10',
     });
-    const query = new URL(String(patch[0])).searchParams;
+    const query = patch.url.searchParams;
     expect(query.get('id')).toBe(`eq.${employeeRow.id}`);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
   });
@@ -1067,8 +1063,8 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
     });
     const response = await patchStatus({ status: 'active' });
     expect(response.status).toBe(200);
-    const patch = calls('/rest/v1/employees').find(([, init]) => init?.method === 'PATCH')!;
-    expect(JSON.parse(String(patch[1]?.body))).toEqual({ status: 'active', terminated_at: null });
+    const patch = callsTo('/rest/v1/employees').find((call) => call.method === 'PATCH')!;
+    expect(patch.body).toEqual({ status: 'active', terminated_at: null });
   });
 
   it('refuses to reactivate a month after the employees passed the step', async () => {
@@ -1116,7 +1112,7 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
     expect(response.status).toBe(400);
     const error = apiErrorResponseSchema.parse(await response.json());
     expect(error.issues?.map((issue) => issue.path)).toEqual(['terminatedAt']);
-    expect(calls('/rest/v1/employees').some(([, init]) => init?.method === 'PATCH')).toBe(false);
+    expect(callsTo('/rest/v1/employees').some((call) => call.method === 'PATCH')).toBe(false);
   });
 
   it.each([
@@ -1129,7 +1125,7 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
     expect(response.status).toBe(400);
     const error = apiErrorResponseSchema.parse(await response.json());
     expect(error.issues?.map((issue) => issue.path)).toContain(path);
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employees')).toHaveLength(0);
   });
 
   it('answers 404 when the employee is not under this client', async () => {
@@ -1156,9 +1152,10 @@ describe('PUT /clients/{clientId}/employees/{employeeId}', () => {
       body: JSON.stringify(payload),
     });
   const patched = () =>
-    JSON.parse(
-      String(calls('/rest/v1/employees').find(([, init]) => init?.method === 'PATCH')![1]?.body)
-    ) as Record<string, unknown>;
+    callsTo('/rest/v1/employees').find((call) => call.method === 'PATCH')!.body as Record<
+      string,
+      unknown
+    >;
 
   it('passes on the refusal of the database for an archived client', async () => {
     mockUpstream({
@@ -1258,19 +1255,16 @@ describe('PUT /clients/{clientId}/employees/{employeeId}', () => {
 describe('job positions on employees (ADR 006)', () => {
   const employeePath = `${employeesPath}/${employeeRow.id}`;
   const sentToEmployees = (index = 0) =>
-    JSON.parse(
-      String(
-        calls('/rest/v1/employees').filter(([, init]) => (init?.method ?? 'GET') !== 'GET')[
-          index
-        ]![1]?.body
-      )
-    ) as Record<string, unknown>;
+    callsTo('/rest/v1/employees').filter((call) => call.method !== 'GET')[index]!.body as Record<
+      string,
+      unknown
+    >;
   const body = { lastName: 'Popescu', firstName: 'Ion', jobTitle: 'Sudor', hiredAt: '2020-03-01' };
 
   it('sorts the list by the name of the position', async () => {
     mockUpstream({});
     expect((await request(`${employeesPath}?sort=jobPosition&order=desc`)).status).toBe(200);
-    const order = new URL(String(calls('/rest/v1/employee_list')[0]![0])).searchParams.get('order');
+    const order = callsTo('/rest/v1/employee_list')[0]!.url.searchParams.get('order');
     expect(order).toBe('job_position_name.desc,last_name.desc,first_name.desc,id.asc');
   });
 
@@ -1282,14 +1276,14 @@ describe('job positions on employees (ADR 006)', () => {
       'Sudor autorizat'
     );
     expect(sentToEmployees()).not.toHaveProperty('job_position_id');
-    expect(calls('/rest/v1/job_positions')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_positions')).toHaveLength(0);
   });
 
   it('puts the employee in the chosen position, once it is one of this client', async () => {
     mockUpstream({ employees: () => Response.json(employeeRow) });
     expect((await postEmployee({ ...body, jobPositionId: positionId })).status).toBe(201);
     expect(sentToEmployees().job_position_id).toBe(positionId);
-    const lookup = new URL(String(calls('/rest/v1/job_positions')[0]![0])).searchParams;
+    const lookup = callsTo('/rest/v1/job_positions')[0]!.url.searchParams;
     expect([lookup.get('client_id'), lookup.get('archived_at')]).toEqual([
       `eq.${clientId}`,
       'is.null',
@@ -1339,13 +1333,9 @@ describe('training sheet fields on employees (ADR 021)', () => {
     commuteMinutes: 35,
   };
   const sent = (method: 'POST' | 'PATCH') =>
-    JSON.parse(
-      String(
-        calls('/rest/v1/employees')
-          .filter(([, init]) => init?.method === method)
-          .at(-1)![1]?.body
-      )
-    ) as Record<string, unknown>;
+    callsTo('/rest/v1/employees')
+      .filter((call) => call.method === method)
+      .at(-1)!.body as Record<string, unknown>;
   const put = (payload: unknown) =>
     request(employeePath, {
       method: 'PUT',
@@ -1382,7 +1372,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       commute_means_other: 'Trotineta firmei',
       commute_minutes: 35,
     });
-    const lookup = new URL(String(calls('/rest/v1/client_workplaces')[0]![0])).searchParams;
+    const lookup = callsTo('/rest/v1/client_workplaces')[0]!.url.searchParams;
     expect([lookup.get('id'), lookup.get('client_id'), lookup.get('archived_at')]).toEqual([
       `eq.${workplaceId}`,
       `eq.${clientId}`,
@@ -1405,7 +1395,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(apiErrorResponseSchema.parse(await created.json()).issues?.[0]?.path).toBe(
       'workplaceId'
     );
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employees')).toHaveLength(0);
 
     mockUpstream({
       employees: () => Response.json(employeeRow),
@@ -1416,7 +1406,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(apiErrorResponseSchema.parse(await updated.json()).issues?.[0]?.path).toBe(
       'workplaceId'
     );
-    expect(calls('/rest/v1/employees').some(([, init]) => init?.method === 'PATCH')).toBe(false);
+    expect(callsTo('/rest/v1/employees').some((call) => call.method === 'PATCH')).toBe(false);
   });
 
   it('puts a new employee at the only active workplace of the client', async () => {
@@ -1426,7 +1416,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     });
     expect((await postEmployee(body)).status).toBe(201);
     expect(sent('POST').workplace_id).toBe(workplaceId);
-    const lookup = new URL(String(calls('/rest/v1/client_workplaces')[0]![0])).searchParams;
+    const lookup = callsTo('/rest/v1/client_workplaces')[0]!.url.searchParams;
     expect([
       lookup.get('client_id'),
       lookup.get('office_has_activity'),
@@ -1445,7 +1435,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
         'workplaceId'
       );
     }
-    expect(calls('/rest/v1/employees').some(([, init]) => init?.method !== 'GET')).toBe(false);
+    expect(callsTo('/rest/v1/employees').some((call) => call.method !== 'GET')).toBe(false);
   });
 
   it('leaves a new employee without a workplace when the body clears it, even at a client with one', async () => {
@@ -1455,7 +1445,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     });
     expect((await postEmployee({ ...body, workplaceId: null })).status).toBe(201);
     expect(sent('POST').workplace_id).toBeNull();
-    expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_workplaces')).toHaveLength(0);
   });
 
   it('leaves the workplace empty when the client has several or none', async () => {
@@ -1475,7 +1465,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     mockUpstream({ employees: () => Response.json(employeeRow) });
     expect((await put(body)).status).toBe(200);
     expect(sent('PATCH')).not.toHaveProperty('workplace_id');
-    expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_workplaces')).toHaveLength(0);
 
     mockUpstream({ employees: () => Response.json(employeeRow) });
     expect((await put({ ...body, workplaceId: null })).status).toBe(200);
@@ -1506,20 +1496,16 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(
       apiErrorResponseSchema.parse(await response.json()).issues?.map((i) => i.path)
     ).toContain(path);
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(callsTo('/rest/v1/employees')).toHaveLength(0);
   });
 });
 
 describe('the employment contract number', () => {
   const body = { lastName: 'Popescu', firstName: 'Ion', jobTitle: 'Sudor', hiredAt: '2020-03-01' };
   const sent = (method: 'POST' | 'PATCH') =>
-    JSON.parse(
-      String(
-        calls('/rest/v1/employees')
-          .filter(([, init]) => init?.method === method)
-          .at(-1)![1]?.body
-      )
-    ) as Record<string, unknown>;
+    callsTo('/rest/v1/employees')
+      .filter((call) => call.method === method)
+      .at(-1)!.body as Record<string, unknown>;
 
   it('is stored trimmed, read with the full record and returned', async () => {
     mockUpstream({
@@ -1529,7 +1515,7 @@ describe('the employment contract number', () => {
     const response = await postEmployee({ ...body, contractNumber: ' 118/2020 ' });
     expect(response.status).toBe(201);
     expect(sent('POST').contract_number).toBe('118/2020');
-    const select = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams.get('select');
+    const select = callsTo('/rest/v1/employees')[0]!.url.searchParams.get('select');
     expect(select).toContain('contract_number');
     expect(employeeResponseSchema.parse(await response.json()).employee.contractNumber).toBe(
       '118/2020'
@@ -1561,7 +1547,7 @@ describe('the employment contract number', () => {
       expect(
         apiErrorResponseSchema.parse(await response.json()).issues?.map((i) => i.path)
       ).toContain('contractNumber');
-      expect(calls('/rest/v1/employees')).toHaveLength(0);
+      expect(callsTo('/rest/v1/employees')).toHaveLength(0);
     }
   );
 });

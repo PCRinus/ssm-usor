@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { apiRequest } from '../../test/request';
 import {
-  fetchMock,
+  callsTo,
   membershipRow,
   mockUpstream as mockSignedInUpstream,
   stubFetch,
@@ -126,12 +126,6 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
   });
 }
 
-const calls = (pathname: string) =>
-  fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === pathname);
-
-const sentBody = (pathname: string, index = 0) =>
-  JSON.parse(String(calls(pathname)[index]![1]?.body)) as Record<string, unknown>;
-
 const request = (path: string, method = 'GET', body?: unknown) =>
   apiRequest(path, { method, body }, env);
 
@@ -175,9 +169,9 @@ describe('/organization/company-details', () => {
       iban: 'ro49 aaaa 1b31 0075 9384 0000',
     });
     expect(response.status).toBe(200);
-    const [url] = calls('/rest/v1/organizations')[0]!;
-    expect(new URL(String(url)).searchParams.get('id')).toBe(`eq.${organizationId}`);
-    expect(sentBody('/rest/v1/organizations')).toEqual({
+    const { url } = callsTo('/rest/v1/organizations')[0]!;
+    expect(url.searchParams.get('id')).toBe(`eq.${organizationId}`);
+    expect(callsTo('/rest/v1/organizations')[0]!.body).toEqual({
       legal_name: 'S.C. SAFETY S.R.L.',
       cui: '1590082',
       vat_payer: false,
@@ -197,7 +191,7 @@ describe('/organization/company-details', () => {
     mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     const response = await request('/organization/company-details', 'PUT', { legalName: 'Firma' });
     expect(response.status).toBe(403);
-    expect(calls('/rest/v1/organizations')).toHaveLength(0);
+    expect(callsTo('/rest/v1/organizations')).toHaveLength(0);
   });
 
   it.each([
@@ -209,7 +203,7 @@ describe('/organization/company-details', () => {
     const response = await request('/organization/company-details', 'PUT', body);
     expect(response.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(path);
-    expect(calls('/rest/v1/organizations')).toHaveLength(0);
+    expect(callsTo('/rest/v1/organizations')).toHaveLength(0);
   });
 });
 
@@ -254,9 +248,9 @@ describe('/organization/authorizations', () => {
       authorizationCertificateDate: '2022-09-30',
     });
     expect(response.status).toBe(200);
-    const [url] = calls('/rest/v1/organizations')[0]!;
-    expect(new URL(String(url)).searchParams.get('id')).toBe(`eq.${organizationId}`);
-    expect(sentBody('/rest/v1/organizations')).toEqual({
+    const { url } = callsTo('/rest/v1/organizations')[0]!;
+    expect(url.searchParams.get('id')).toBe(`eq.${organizationId}`);
+    expect(callsTo('/rest/v1/organizations')[0]!.body).toEqual({
       authorization_certificate_number: null,
       authorization_certificate_date: '2022-09-30',
       authorization_certificate_issuer: null,
@@ -276,7 +270,7 @@ describe('/organization/authorizations', () => {
       riskEvaluatorTitle: 'evaluator de riscuri atestat',
       riskEvaluatorCertificate: 'seria A nr. 1842/2024',
     });
-    expect(sentBody('/rest/v1/organizations')).toMatchObject({
+    expect(callsTo('/rest/v1/organizations')[0]!.body).toMatchObject({
       risk_evaluator_name: 'Ing. Maria IONESCU',
       risk_evaluator_title: 'evaluator de riscuri atestat',
       risk_evaluator_certificate: 'seria A nr. 1842/2024',
@@ -290,7 +284,7 @@ describe('/organization/authorizations', () => {
       expect(response.status).toBe(400);
       expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(path);
     }
-    expect(calls('/rest/v1/organizations')).toHaveLength(1);
+    expect(callsTo('/rest/v1/organizations')).toHaveLength(1);
   });
 
   it('saves the fire-safety authorization trimmed, and refuses one longer than 200 characters', async () => {
@@ -299,7 +293,7 @@ describe('/organization/authorizations', () => {
       fireSafetyTechnicianName: 'Radu Stan',
       fireSafetyAuthorization: ' nr. 12 din 15.09.2026, ISU Cluj ',
     });
-    expect(sentBody('/rest/v1/organizations')).toMatchObject({
+    expect(callsTo('/rest/v1/organizations')[0]!.body).toMatchObject({
       fire_safety_technician_name: 'Radu Stan',
       fire_safety_authorization: 'nr. 12 din 15.09.2026, ISU Cluj',
     });
@@ -311,7 +305,7 @@ describe('/organization/authorizations', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
       'fireSafetyAuthorization'
     );
-    expect(calls('/rest/v1/organizations')).toHaveLength(1);
+    expect(callsTo('/rest/v1/organizations')).toHaveLength(1);
   });
 
   it('refuses a date that is not one', async () => {
@@ -323,13 +317,13 @@ describe('/organization/authorizations', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
       'authorizationCertificateDate'
     );
-    expect(calls('/rest/v1/organizations')).toHaveLength(0);
+    expect(callsTo('/rest/v1/organizations')).toHaveLength(0);
   });
 
   it('refuses a specialist who writes', async () => {
     mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await request('/organization/authorizations', 'PUT', {})).status).toBe(403);
-    expect(calls('/rest/v1/organizations')).toHaveLength(0);
+    expect(callsTo('/rest/v1/organizations')).toHaveLength(0);
   });
 });
 
@@ -366,7 +360,7 @@ describe('/clients/{clientId}/document-details', () => {
       periodicTrainingMinutes: 120,
     });
     expect(response.status).toBe(200);
-    expect(sentBody('/rest/v1/clients')).toEqual({
+    expect(callsTo('/rest/v1/clients')[0]!.body).toEqual({
       legal_representative_name: 'Maria Popescu',
       legal_representative_role: 'Administrator',
       periodic_training_minutes: 120,
@@ -383,7 +377,7 @@ describe('/clients/{clientId}/document-details', () => {
       workerTrainingNotApplicable: false,
     });
     expect(response.status).toBe(200);
-    expect(sentBody('/rest/v1/clients')).toEqual({
+    expect(callsTo('/rest/v1/clients')[0]!.body).toEqual({
       legal_representative_role: null,
       training_day_from: null,
       training_day_to: null,
@@ -397,7 +391,7 @@ describe('/clients/{clientId}/document-details', () => {
     expect((await request(path, 'PATCH', {})).status).toBe(400);
     expect((await request(path, 'PATCH', { trainingDayTo: 9 })).status).toBe(400);
     expect((await request(path, 'PATCH', { workerTrainingNotApplicable: true })).status).toBe(400);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 
   it("links the representative to one of the client's current employees, and reads them back", async () => {
@@ -420,11 +414,11 @@ describe('/clients/{clientId}/document-details', () => {
       legalRepresentativeEmployeeId: employeeId,
     });
     expect(response.status).toBe(200);
-    const lookup = new URL(String(calls('/rest/v1/employees')[0]![0]));
+    const lookup = callsTo('/rest/v1/employees')[0]!.url;
     expect(lookup.searchParams.get('id')).toBe(`eq.${employeeId}`);
     expect(lookup.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(lookup.searchParams.get('archived_at')).toBe('is.null');
-    expect(sentBody('/rest/v1/clients')).toMatchObject({
+    expect(callsTo('/rest/v1/clients')[0]!.body).toMatchObject({
       legal_representative_employee_id: employeeId,
     });
     expect(clientDocumentDetailsResponseSchema.parse(await response.json())).toMatchObject({
@@ -447,7 +441,7 @@ describe('/clients/{clientId}/document-details', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
       'legalRepresentativeEmployeeId'
     );
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('refuses days out of order and a worker interval above six months', async () => {
@@ -460,7 +454,7 @@ describe('/clients/{clientId}/document-details', () => {
       workerTrainingNotApplicable: false,
     });
     expect(interval.status).toBe(400);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('takes every month from one to six for execution staff', async () => {
@@ -470,7 +464,9 @@ describe('/clients/{clientId}/document-details', () => {
       workerTrainingNotApplicable: false,
     });
     expect(response.status).toBe(200);
-    expect(sentBody('/rest/v1/clients')).toMatchObject({ worker_training_interval_months: 5 });
+    expect(callsTo('/rest/v1/clients')[0]!.body).toMatchObject({
+      worker_training_interval_months: 5,
+    });
   });
 
   it('refuses a technical-administrative interval outside the list, even the saved one', async () => {
@@ -487,7 +483,7 @@ describe('/clients/{clientId}/document-details', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
       'administrativeTrainingIntervalMonths'
     );
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('saves an explicit category exclusion without inventing an interval', async () => {
@@ -499,7 +495,7 @@ describe('/clients/{clientId}/document-details', () => {
       workerTrainingNotApplicable: true,
     });
     expect(response.status).toBe(200);
-    expect(sentBody('/rest/v1/clients')).toEqual({
+    expect(callsTo('/rest/v1/clients')[0]!.body).toEqual({
       administrative_training_interval_months: 6,
       administrative_training_not_applicable: false,
       worker_training_interval_months: null,
@@ -553,14 +549,14 @@ describe('/clients/{clientId}/workplaces', () => {
         currentEmployeeCount: 16,
       },
     ]);
-    const [url] = calls('/rest/v1/client_workplace_list')[0]!;
-    const query = new URL(String(url)).searchParams;
+    const { url } = callsTo('/rest/v1/client_workplace_list')[0]!;
+    const query = url.searchParams;
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('archived_at')).toBe('is.null');
     expect(query.get('order')).toBe('is_registered_office.desc,name.asc,id.asc');
-    const [countUrl, countInit] = calls('/rest/v1/employees')[0]!;
+    const { url: countUrl, init: countInit } = callsTo('/rest/v1/employees')[0]!;
     expect(countInit?.method).toBe('HEAD');
-    const counted = new URL(String(countUrl)).searchParams;
+    const counted = countUrl.searchParams;
     expect(counted.get('client_id')).toBe(`eq.${clientId}`);
     expect(counted.get('workplace_id')).toBe('is.null');
     expect(counted.get('status')).toBe('eq.active');
@@ -577,7 +573,7 @@ describe('/clients/{clientId}/workplaces', () => {
     expect(workplaceResponseSchema.parse(await response.json()).workplace.name).toBe(
       'Sediu social'
     );
-    expect(sentBody('/rest/v1/client_workplaces')).toEqual({
+    expect(callsTo('/rest/v1/client_workplaces')[0]!.body).toEqual({
       organization_id: organizationId,
       client_id: clientId,
       name: 'Sediu social',
@@ -610,7 +606,7 @@ describe('/clients/{clientId}/workplaces', () => {
       combustibleMaterials: 'Ambalaje de carton',
     });
     expect(response.status).toBe(200);
-    expect(sentBody('/rest/v1/client_workplaces')).toMatchObject({
+    expect(callsTo('/rest/v1/client_workplaces')[0]!.body).toMatchObject({
       activity: 'Gelaterie',
       floor_area_m2: 85,
       extinguisher_norm: 'commercial_200',
@@ -631,7 +627,7 @@ describe('/clients/{clientId}/workplaces', () => {
       extinguisherNorm: 'none',
     });
     expect(response.status).toBe(200);
-    expect(sentBody('/rest/v1/client_workplaces')).toMatchObject({
+    expect(callsTo('/rest/v1/client_workplaces')[0]!.body).toMatchObject({
       kind: 'mobile_site',
       floor_area_m2: 85,
       extinguisher_norm: 'none',
@@ -647,7 +643,7 @@ describe('/clients/{clientId}/workplaces', () => {
     ]) {
       expect((await request(path, 'POST', { name: 'Gelaterie', ...fields })).status).toBe(400);
     }
-    expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_workplaces')).toHaveLength(0);
   });
 
   it('refuses an archived client and a second registered office with 409', async () => {
@@ -655,7 +651,7 @@ describe('/clients/{clientId}/workplaces', () => {
     const archived = await request(path, 'POST', { name: 'Punct de lucru' });
     expect(archived.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await archived.json()).reason).toBe('client_archived');
-    expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_workplaces')).toHaveLength(0);
 
     mockUpstream({ workplaces: () => databaseError('23505', 409) });
     const second = await request(path, 'POST', { name: 'Alt sediu', isRegisteredOffice: true });
@@ -683,17 +679,15 @@ describe('/clients/{clientId}/workplaces', () => {
     const item = `${path}/${workplaceRow.id}`;
     expect((await request(item, 'PUT', { name: 'Sediu' })).status).toBe(200);
     expect((await request(item, 'DELETE')).status).toBe(204);
-    const writes = calls('/rest/v1/client_workplaces').filter(
-      ([, init]) => init?.method === 'PATCH'
-    );
+    const writes = callsTo('/rest/v1/client_workplaces').filter((call) => call.method === 'PATCH');
     expect(writes).toHaveLength(2);
-    for (const [url] of writes) {
-      const query = new URL(String(url)).searchParams;
+    for (const { url } of writes) {
+      const query = url.searchParams;
       expect(query.get('id')).toBe(`eq.${workplaceRow.id}`);
       expect(query.get('client_id')).toBe(`eq.${clientId}`);
       expect(query.get('archived_at')).toBe('is.null');
     }
-    expect(JSON.parse(String(writes[1]![1]?.body))).toHaveProperty('archived_at');
+    expect(writes[1]!.body).toHaveProperty('archived_at');
   });
 
   describe('a registered office with no activity (ADR 041)', () => {
@@ -716,18 +710,18 @@ describe('/clients/{clientId}/workplaces', () => {
       expect(workplaceResponseSchema.parse(await response.json()).workplace.officeHasActivity).toBe(
         false
       );
-      const [others] = calls('/rest/v1/client_workplaces');
-      const query = new URL(String(others![0])).searchParams;
+      const [others] = callsTo('/rest/v1/client_workplaces');
+      const query = others!.url.searchParams;
       expect(query.get('is_registered_office')).toBe('eq.false');
       expect(query.get('id')).toBe(`neq.${workplaceRow.id}`);
-      const [employees] = calls('/rest/v1/employees');
-      const counted = new URL(String(employees![0])).searchParams;
+      const [employees] = callsTo('/rest/v1/employees');
+      const counted = employees!.url.searchParams;
       expect(counted.get('workplace_id')).toBe(`eq.${workplaceRow.id}`);
       expect(counted.get('status')).toBe('eq.active');
-      const writes = calls('/rest/v1/client_workplaces').filter(
-        ([, init]) => init?.method === 'PATCH'
+      const writes = callsTo('/rest/v1/client_workplaces').filter(
+        (call) => call.method === 'PATCH'
       );
-      expect(JSON.parse(String(writes[0]![1]?.body))).toMatchObject({
+      expect(writes[0]!.body).toMatchObject({
         is_registered_office: true,
         office_has_activity: false,
       });
@@ -741,7 +735,7 @@ describe('/clients/{clientId}/workplaces', () => {
         officeHasActivity: false,
       });
       expect(response.status).toBe(400);
-      expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
+      expect(callsTo('/rest/v1/client_workplaces')).toHaveLength(0);
     });
 
     it('is refused while the office is the only active workplace', async () => {
@@ -753,9 +747,9 @@ describe('/clients/{clientId}/workplaces', () => {
         expect(response.status).toBe(409);
         expect((await reasonOf(response)).reason).toBe('office_needs_workplace');
       }
-      expect(
-        calls('/rest/v1/client_workplaces').filter(([, init]) => init?.method !== 'GET')
-      ).toEqual([]);
+      expect(callsTo('/rest/v1/client_workplaces').filter((call) => call.method !== 'GET')).toEqual(
+        []
+      );
     });
 
     it('is refused while current employees work at the office, saying how many', async () => {
@@ -796,7 +790,7 @@ describe('/clients/{clientId}/workplaces', () => {
       expect(response.status).toBe(409);
       expect((await reasonOf(response)).reason).toBe('office_needs_workplace');
       expect(
-        calls('/rest/v1/client_workplaces').filter(([, init]) => init?.method === 'PATCH')
+        callsTo('/rest/v1/client_workplaces').filter((call) => call.method === 'PATCH')
       ).toEqual([]);
       expect((await request(item, 'DELETE')).status).toBe(204);
     });
@@ -836,14 +830,12 @@ describe('/clients/{clientId}/responsible-persons', () => {
       portal: 'invited',
       workplaceId: null,
     });
-    const portal = new URL(String(calls('/rest/v1/employee_list')[0]![0])).searchParams;
+    const portal = callsTo('/rest/v1/employee_list')[0]!.url.searchParams;
     expect(portal.get('id')).toBe(`in.(${employeeId})`);
     expect(portal.get('client_id')).toBe(`eq.${clientId}`);
-    const [url] = calls('/rest/v1/client_responsible_persons')[0]!;
-    expect(new URL(String(url)).searchParams.get('select')).toContain(
-      'employees(job_title,status,archived_at)'
-    );
-    expect(new URL(String(url)).searchParams.get('order')).toBe('full_name.asc,id.asc');
+    const { url } = callsTo('/rest/v1/client_responsible_persons')[0]!;
+    expect(url.searchParams.get('select')).toContain('employees(job_title,status,archived_at)');
+    expect(url.searchParams.get('order')).toBe('full_name.asc,id.asc');
   });
 
   it('says whether the linked employee still works for the client', async () => {
@@ -873,7 +865,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
     const response = await request(path, 'POST', { ...body, employeeId: undefined });
     expect(response.status).toBe(201);
     responsiblePersonResponseSchema.parse(await response.json());
-    expect(sentBody('/rest/v1/client_responsible_persons')).toEqual({
+    expect(callsTo('/rest/v1/client_responsible_persons')[0]!.body).toEqual({
       organization_id: organizationId,
       client_id: clientId,
       employee_id: null,
@@ -896,13 +888,11 @@ describe('/clients/{clientId}/responsible-persons', () => {
       workplaceId: workplaceRow.id,
     });
     expect(response.status).toBe(201);
-    const [find] = calls('/rest/v1/client_workplaces').map(
-      ([url]) => new URL(String(url)).searchParams
-    );
+    const [find] = callsTo('/rest/v1/client_workplaces').map(({ url }) => url.searchParams);
     expect(find!.get('id')).toBe(`eq.${workplaceRow.id}`);
     expect(find!.get('client_id')).toBe(`eq.${clientId}`);
     expect(find!.get('archived_at')).toBe('is.null');
-    expect(sentBody('/rest/v1/client_responsible_persons')).toMatchObject({
+    expect(callsTo('/rest/v1/client_responsible_persons')[0]!.body).toMatchObject({
       workplace_id: workplaceRow.id,
       roles: ['fire_safety_coordinator', 'fire_intervention_leader'],
     });
@@ -920,7 +910,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
         'workplaceId'
       );
     }
-    expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_responsible_persons')).toHaveLength(0);
   });
 
   describe('tied to a registered office with no activity (ADR 041)', () => {
@@ -928,7 +918,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
     const item = `${path}/${responsiblePersonRow.id}`;
     const tied = { ...body, workplaceId: workplaceRow.id };
     const writes = () =>
-      calls('/rest/v1/client_responsible_persons').filter(([, init]) => init?.method !== 'GET');
+      callsTo('/rest/v1/client_responsible_persons').filter((call) => call.method !== 'GET');
 
     it('is refused on a new person and on a new tie, naming the workplace field', async () => {
       mockUpstream({
@@ -960,7 +950,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
             : Response.json({ workplace_id: workplaceRow.id }),
       });
       expect((await request(item, 'PUT', tied)).status).toBe(200);
-      expect(JSON.parse(String(writes()[0]![1]?.body))).toMatchObject({
+      expect(writes()[0]!.body).toMatchObject({
         workplace_id: workplaceRow.id,
       });
     });
@@ -971,7 +961,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
     for (const roles of [[], ['janitor'], ['first_aid', 'first_aid']]) {
       expect((await request(path, 'POST', { ...body, roles })).status).toBe(400);
     }
-    expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_responsible_persons')).toHaveLength(0);
   });
 
   it('names the employee field when the employee is of another client', async () => {
@@ -988,7 +978,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
     const response = await request(path, 'POST', body);
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
-    expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_responsible_persons')).toHaveLength(0);
   });
 
   it('passes on the refusal of the database for an archived client on a change', async () => {
@@ -1021,7 +1011,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
       mockUpstream({});
       const response = await request(path, 'POST', { ...representative, employeeId: null });
       expect(response.status).toBe(400);
-      expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
+      expect(callsTo('/rest/v1/client_responsible_persons')).toHaveLength(0);
     });
 
     it("refuses the client's legal representative, however the name is typed", async () => {
@@ -1036,7 +1026,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
           'workers_representative_is_legal_representative'
         );
       }
-      expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
+      expect(callsTo('/rest/v1/client_responsible_persons')).toHaveLength(0);
     });
 
     it('takes another employee', async () => {

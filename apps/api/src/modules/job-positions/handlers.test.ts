@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import { apiRequest } from '../../test/request';
 import {
-  fetchMock,
+  callsTo,
   mockUpstream as mockSignedInUpstream,
   stubFetch,
   testEnv,
@@ -78,16 +78,6 @@ function mockUpstream(handlers: { clients?: Handler; positions?: Handler } = {})
   });
 }
 
-const calls = (method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === '/rest/v1/job_positions' &&
-      (init?.method ?? 'GET') === method
-  );
-
-const sent = (method: string, index = 0) =>
-  JSON.parse(String(calls(method)[index]![1]?.body)) as Record<string, unknown>;
-
 const request = (path: string, method = 'GET', body?: unknown) =>
   apiRequest(path, { method, body }, env);
 
@@ -111,7 +101,9 @@ describe('GET /clients/{clientId}/job-positions', () => {
       ['Sudor', 'execution', 3],
     ]);
 
-    const [list, counts] = calls('GET').map(([input]) => new URL(String(input)).searchParams);
+    const [list, counts] = callsTo('/rest/v1/job_positions', 'GET').map(
+      ({ url }) => url.searchParams
+    );
     expect(list!.get('archived_at')).toBe('is.null');
     expect(list!.get('order')).toBe('name.asc,id.asc');
     // People who left, and rows archived as mistakes, are not in a position any more.
@@ -134,7 +126,7 @@ describe('GET /clients/{clientId}/job-positions', () => {
       ['Sudor', 2],
     ]);
 
-    const counts = new URL(String(calls('GET')[1]![0])).searchParams;
+    const counts = callsTo('/rest/v1/job_positions', 'GET')[1]!.url.searchParams;
     expect(counts.get('select')).toContain('to_train:employee_list(count)');
     expect(counts.get('to_train.status')).toBe('neq.terminated');
     expect(counts.get('to_train.archived_at')).toBe('is.null');
@@ -144,7 +136,7 @@ describe('GET /clients/{clientId}/job-positions', () => {
   it('answers 404 for a client of another organization', async () => {
     mockUpstream({ clients: () => Response.json([]) });
     expect((await request(path)).status).toBe(404);
-    expect(calls('GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_positions', 'GET')).toHaveLength(0);
   });
 });
 
@@ -158,7 +150,7 @@ describe('POST /clients/{clientId}/job-positions', () => {
     expect(jobPositionResponseSchema.parse(await response.json()).jobPosition.employeeCount).toBe(
       0
     );
-    expect(sent('POST')).toEqual({
+    expect(callsTo('/rest/v1/job_positions', 'POST')[0]!.body).toEqual({
       name: 'Sudor',
       staff_category: 'execution',
       work_zone: 'Atelier, teren',
@@ -192,7 +184,7 @@ describe('POST /clients/{clientId}/job-positions', () => {
     expect(
       (await request(path, 'POST', { name: 'Sudor', trainingIntervalMonths: 12 })).status
     ).toBe(400);
-    expect(calls('POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_positions', 'POST')).toHaveLength(0);
   });
 });
 
@@ -214,14 +206,14 @@ describe('PUT /clients/{clientId}/job-positions/{jobPositionId}', () => {
     expect(response.status).toBe(200);
     const { jobPosition } = jobPositionResponseSchema.parse(await response.json());
     expect([jobPosition.name, jobPosition.employeeCount]).toEqual(['Sudor autorizat', 3]);
-    expect(sent('PATCH')).toEqual({
+    expect(callsTo('/rest/v1/job_positions', 'PATCH')[0]!.body).toEqual({
       name: 'Sudor autorizat',
       staff_category: 'execution',
       work_zone: null,
       activities: null,
       training_interval_months: 2,
     });
-    const filter = new URL(String(calls('PATCH')[0]![0])).searchParams;
+    const filter = callsTo('/rest/v1/job_positions', 'PATCH')[0]!.url.searchParams;
     expect([filter.get('id'), filter.get('client_id'), filter.get('archived_at')]).toEqual([
       `eq.${welderId}`,
       `eq.${clientId}`,
@@ -273,7 +265,7 @@ describe('DELETE /clients/{clientId}/job-positions/{jobPositionId}', () => {
         (init?.method === 'DELETE' ? new Response(null, { status: 204 }) : undefined!),
     });
     expect((await remove()).status).toBe(204);
-    expect(calls('PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_positions', 'PATCH')).toHaveLength(0);
   });
 
   it('archives one that only people who left point at', async () => {
@@ -283,7 +275,8 @@ describe('DELETE /clients/{clientId}/job-positions/{jobPositionId}', () => {
         (init?.method === 'DELETE' ? pointedAt() : new Response(null, { status: 204 })),
     });
     expect((await remove()).status).toBe(204);
-    expect(Date.parse(String(sent('PATCH').archived_at))).not.toBeNaN();
+    const archived = callsTo('/rest/v1/job_positions', 'PATCH')[0]!.body as { archived_at: string };
+    expect(Date.parse(archived.archived_at)).not.toBeNaN();
   });
 
   it('refuses while current employees are in it, and says so', async () => {
@@ -307,6 +300,6 @@ describe('DELETE /clients/{clientId}/job-positions/{jobPositionId}', () => {
       positions: (init) => ((init?.method ?? 'GET') === 'GET' ? Response.json(null) : undefined!),
     });
     expect((await remove()).status).toBe(404);
-    expect(calls('DELETE')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_positions', 'DELETE')).toHaveLength(0);
   });
 });
