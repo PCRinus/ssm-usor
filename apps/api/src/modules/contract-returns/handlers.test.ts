@@ -6,23 +6,27 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
 import { hashToken } from '../../lib/tokens';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+} from '../../test/upstream';
 
 const sendSignedCopyReceived = vi.fn<MailService['sendSignedCopyReceived']>();
 const mail = { sendSignedCopyReceived } as unknown as MailService;
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_0000',
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   APP_ORIGIN: 'https://app.ssmusor.ro',
   MAIL: mail,
-};
+});
 
 const token = 'a-token-of-a-reasonable-length-1234567890';
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const documentId = 'c2a5b1d0-2b7e-4d3f-9a1c-5e6f7a8b9c0d';
 const revisionId = 'e7d6c5b4-a3f2-4e1d-8c9b-0a1b2c3d4e5f';
@@ -50,52 +54,36 @@ const revisionRow = {
 type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined;
 type Upstream = 'sends' | 'revision' | 'copies' | 'upload' | 'sign';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(
   handlers: Partial<Record<Upstream, Handler>> & { stage?: 'lead' | 'client' } = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    if (url.pathname.startsWith('/storage/v1/object/sign/documents/')) {
-      return (
-        handlers.sign?.(init, url) ??
-        Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` })
-      );
-    }
-    if (url.pathname.startsWith('/storage/v1/object/documents')) {
-      return handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' });
-    }
-    if (url.pathname.startsWith('/auth/v1/admin/users/')) {
-      return Response.json({ id: ownerId, email: 'olga@safety.example' });
-    }
-    switch (url.pathname) {
-      case '/rest/v1/service_contract_sends':
-        return (
-          handlers.sends?.(init, url) ??
-          (method === 'PATCH' ? new Response(null, { status: 204 }) : Response.json(sendRow))
-        );
-      case '/rest/v1/document_revisions':
-        return handlers.revision?.(init, url) ?? Response.json(revisionRow);
-      case '/rest/v1/client_documents':
-        return Response.json({ id: documentId, client_id: clientId, title: 'Contract' });
-      case '/rest/v1/organizations':
-        return Response.json({ name: 'Safety', legal_name: 'S.C. SAFETY S.R.L.' });
-      case '/rest/v1/clients':
-        return Response.json({
-          id: clientId,
-          legal_name: 'S.C. VELOCITA URBANA S.R.L.',
-          stage: handlers.stage ?? 'lead',
-          archived_at: null,
-        });
-      case '/rest/v1/service_contracts':
-        return Response.json({ contract_number: 51, contract_date: '2026-02-15' });
-      case '/rest/v1/document_signed_copies':
-        return handlers.copies?.(init, url) ?? new Response(null, { status: 201 });
-      default:
-        throw new Error(`Unexpected upstream request: ${method} ${url}`);
-    }
+  routeUpstream({
+    '/storage/v1/object/sign/documents/*': ({ init, url }) =>
+      handlers.sign?.(init, url) ??
+      Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` }),
+    '/storage/v1/object/documents*': ({ init, url }) =>
+      handlers.upload?.(init, url) ?? Response.json({ Key: 'documents/x' }),
+    '/auth/v1/admin/users/*': () => Response.json({ id: ownerId, email: 'olga@safety.example' }),
+    '/rest/v1/service_contract_sends': ({ init, url, method }) =>
+      handlers.sends?.(init, url) ??
+      (method === 'PATCH' ? new Response(null, { status: 204 }) : Response.json(sendRow)),
+    '/rest/v1/document_revisions': ({ init, url }) =>
+      handlers.revision?.(init, url) ?? Response.json(revisionRow),
+    '/rest/v1/client_documents': () =>
+      Response.json({ id: documentId, client_id: clientId, title: 'Contract' }),
+    '/rest/v1/organizations': () =>
+      Response.json({ name: 'Safety', legal_name: 'S.C. SAFETY S.R.L.' }),
+    '/rest/v1/clients': () =>
+      Response.json({
+        id: clientId,
+        legal_name: 'S.C. VELOCITA URBANA S.R.L.',
+        stage: handlers.stage ?? 'lead',
+        archived_at: null,
+      }),
+    '/rest/v1/service_contracts': () =>
+      Response.json({ contract_number: 51, contract_date: '2026-02-15' }),
+    '/rest/v1/document_signed_copies': ({ init, url }) =>
+      handlers.copies?.(init, url) ?? new Response(null, { status: 201 }),
   });
 }
 
@@ -106,11 +94,7 @@ const calls = (pathname: string, method = 'GET') =>
   );
 
 const post = (path: string, body: unknown) =>
-  createApp().request(
-    path,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
-    env
-  );
+  apiRequest(path, { method: 'POST', body, token: null }, env);
 
 const pdf = new Uint8Array([...new TextEncoder().encode('%PDF-1.7 semnat'), 1, 2, 3]);
 const upload = (bytes: Uint8Array = pdf, withToken = token) => {
@@ -120,16 +104,16 @@ const upload = (bytes: Uint8Array = pdf, withToken = token) => {
     'file',
     new File([new Uint8Array(bytes)], 'contract semnat.pdf', { type: 'application/pdf' })
   );
-  return createApp().request('/contract-returns/upload', { method: 'POST', body: form }, env);
+  return apiRequest('/contract-returns/upload', { method: 'POST', body: form, token: null }, env);
 };
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
   sendSignedCopyReceived.mockResolvedValue({ id: 'msg_1' });
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.resetAllMocks();
 });
 
