@@ -14,7 +14,10 @@ import {
 import { type ReactNode, useId, useState } from 'react';
 
 import { Segmented } from '@/components/segmented';
-import { dayOrderProblem, monthNames } from '@/features/training/document-details-schema';
+import {
+  dayOrderProblem,
+  monthNames,
+} from '@/features/clients/document-details/document-details-schema';
 import { TrainingScheduleFields } from '@/features/training/schedule-fields';
 import {
   categoriesWithPosts,

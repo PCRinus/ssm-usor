@@ -9,7 +9,7 @@ import {
   trainingMonths,
 } from '@ssm-usor/contracts';
 
-import { monthNames } from './document-details-schema';
+import { monthNames } from '@/features/clients/document-details/document-details-schema';
 
 export type ScheduleDomain = TrainingDomain;
 
