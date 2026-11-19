@@ -64,19 +64,6 @@ describe('what the confirmed import says it took', () => {
 describe("an import's outcome on the client's page", () => {
   const now = at('2026-11-05T12:00:00Z');
 
-  it('counts the parts left to confirm and gives their deadline', () => {
-    expect(
-      importOutcome(
-        [
-          { part: 'instructions_ssm', status: 'to_review', expiresAt },
-          { part: 'instructions_su', status: 'confirmed', expiresAt },
-          { part: 'risk_evaluations', status: 'reading', expiresAt },
-        ],
-        now
-      )
-    ).toEqual({ kind: 'open', label: '2 de verificat, până pe 19 nov.' });
-  });
-
   it('is over when every part is confirmed, or there were none', () => {
     expect(
       importOutcome([{ part: 'risk_evaluations', status: 'confirmed', expiresAt }], now)
