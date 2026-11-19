@@ -1,4 +1,4 @@
-import { formatEmployeeName } from '@ssm-usor/contracts';
+import { type ApiErrorResponse, formatEmployeeName } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DialogContent,
@@ -11,7 +11,6 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { type FormEvent, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   type EmployeeListResponse,
   useUpdateEmployeeStatus,
 } from '@/api/generated/api';

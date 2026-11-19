@@ -34,7 +34,6 @@ import {
   storedEmployeeProposal,
 } from './employees';
 import {
-  conflict,
   creatorNames,
   decisionError,
   existingRecords,
@@ -284,7 +283,7 @@ export const confirmImport: RouteHandler<typeof confirmImportRoute, ApiEnv> = as
     return c.json(await confirmEmployeeImport(c, db, row, version), 200);
   const stored = storedProposal(row.proposal);
   if (row.status !== 'ready' || !stored) {
-    throw conflict('The import is not ready for review.', importErrorReasons.notReady);
+    throw ApiError.conflict(importErrorReasons.notReady, 'The import is not ready for review.');
   }
   if (row.version !== version) throw decisionError({ code: 'IMP02' }, 'confirm import');
   const { payload, blockers } = await clientMapping(db, row, stored, storedChanges(row.changes));
@@ -327,7 +326,7 @@ async function confirmEmployeeImport(
 ) {
   const proposal = storedEmployeeProposal(row.proposal);
   if (row.status !== 'ready' || !proposal || !row.client_id) {
-    throw conflict('The import is not ready for review.', importErrorReasons.notReady);
+    throw ApiError.conflict(importErrorReasons.notReady, 'The import is not ready for review.');
   }
   if (row.version !== version) throw decisionError({ code: 'IMP02' }, 'confirm import');
   const { payload, blockers } = await employeeMapping(

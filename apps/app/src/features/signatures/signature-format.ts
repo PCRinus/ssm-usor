@@ -1,4 +1,5 @@
 import {
+  type ApiErrorReason,
   clientConflictReasons,
   countOf,
   signatureErrorReasons,
@@ -161,7 +162,7 @@ export function signingFailure(cause: unknown, fallback: string) {
   return commonFailure(cause) ?? signingMessage(cause) ?? fallback;
 }
 
-export const hasSigningReason = (cause: unknown, reason: string) =>
+export const hasSigningReason = (cause: unknown, reason: ApiErrorReason) =>
   apiErrorReason(cause) === reason;
 
 const sessionMessages: Partial<Record<string, string>> = {

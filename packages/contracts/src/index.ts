@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { ApiErrorReason } from './api-error-reasons';
 import {
   billingCreditsUsageSchema,
   billingSmsUsageSchema,
@@ -15,6 +16,7 @@ import { subscriptionSummarySchema } from './subscriptions';
 export * from './admin-impersonation';
 export * from './admin-imports';
 export * from './admin-legislation';
+export * from './api-error-reasons';
 export * from './banks';
 export * from './billing';
 export * from './caen';
@@ -152,7 +154,9 @@ export const apiErrorResponseSchema = z.object({
   message: z.string(),
   // Field-level details for validation errors; paths use dot notation.
   issues: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
-  // A stable identifier for errors a client words itself, such as `already_member`.
+  // A stable identifier for errors a client words itself, such as `already_member`. A string, not
+  // an enum of `apiErrorReasons`: an enum would change the clients' contract fingerprints
+  // (ADR 040) with every new reason.
   reason: z.string().optional(),
   // With the reason `missing_document_data`: what is missing, in the order of the readiness list.
   missing: z.array(missingDocumentDataSchema).optional(),
@@ -172,4 +176,6 @@ export const apiErrorResponseSchema = z.object({
   creditsRefunded: z.boolean().optional(),
 });
 
-export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
+export type ApiErrorResponse = Omit<z.infer<typeof apiErrorResponseSchema>, 'reason'> & {
+  reason?: ApiErrorReason;
+};

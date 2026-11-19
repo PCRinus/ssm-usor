@@ -1,4 +1,5 @@
 import {
+  type ApiErrorReason,
   clientConflictReasons,
   employeesOverStepReason,
   offersNotInPlanReason,
@@ -180,7 +181,12 @@ function brokenConstraint(error: PostgrestError): BrokenConstraint | undefined {
 export function fromDatabaseError(error: PostgrestError, context: string): ApiError {
   const known = error.code ? (signingErrors[error.code] ?? testErrors[error.code]) : undefined;
   if (known) {
-    return new ApiError(known.code, known.message, undefined, error.message || undefined);
+    return new ApiError(
+      known.code,
+      known.message,
+      undefined,
+      (error.message || undefined) as ApiErrorReason | undefined
+    );
   }
   const rejected = (apiError: ApiError) => {
     const constraint = brokenConstraint(error);

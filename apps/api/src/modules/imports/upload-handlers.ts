@@ -30,7 +30,6 @@ import { blocksReporterOf } from '../extras/reporting';
 import { alertBusyOrganization } from './import-alerts';
 import {
   adminImportStore,
-  conflict,
   creatorNames,
   decisionError,
   findImport,
@@ -103,7 +102,10 @@ function checkedPaths(files: { uploadPath: string; mimeType: ImportFileType }[])
   const seen = new Set<string>();
   for (const [index, file] of files.entries()) {
     if (seen.has(file.uploadPath)) {
-      throw conflict('The same path is in the upload twice.', importErrorReasons.duplicatePath);
+      throw ApiError.conflict(
+        importErrorReasons.duplicatePath,
+        'The same path is in the upload twice.'
+      );
     }
     seen.add(file.uploadPath);
     if (isSystemPath(file.uploadPath)) {
@@ -151,7 +153,10 @@ const tooLarge = (limits: ImportLimits) =>
   );
 
 const notUploading = () =>
-  conflict('Files are added only before the reading starts.', importErrorReasons.notUploading);
+  ApiError.conflict(
+    importErrorReasons.notUploading,
+    'Files are added only before the reading starts.'
+  );
 
 export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, ApiEnv> = async (
   c
@@ -165,9 +170,9 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
   const admin = createAdminClient(c);
   const known = await adminImportStore(c, admin).listFiles(importId);
   if (known.some((file) => files.some((each) => each.uploadPath === file.upload_path))) {
-    throw conflict(
-      'A file with this path is in the import already.',
-      importErrorReasons.duplicatePath
+    throw ApiError.conflict(
+      importErrorReasons.duplicatePath,
+      'A file with this path is in the import already.'
     );
   }
   const { fresh, skipped } = withoutCopies(files, known);
@@ -351,7 +356,7 @@ export const startImport: RouteHandler<typeof startImportRoute, ApiEnv> = async 
   const db = createDataClient(c);
   const row = await findImport(db, importId);
   if (row.status !== 'uploading') {
-    throw conflict('The reading has started already.', importErrorReasons.notUploading);
+    throw ApiError.conflict(importErrorReasons.notUploading, 'The reading has started already.');
   }
   await beginReading(
     c,
@@ -367,7 +372,7 @@ export const startImport: RouteHandler<typeof startImportRoute, ApiEnv> = async 
 function splitError(error: { code?: string | null }) {
   switch (error.code) {
     case 'IMP01':
-      return conflict('This import cannot be split now.', importErrorReasons.ended);
+      return ApiError.conflict(importErrorReasons.ended, 'This import cannot be split now.');
     case 'IMP07':
       return new ApiError(
         'unprocessable',
@@ -376,7 +381,10 @@ function splitError(error: { code?: string | null }) {
         importErrorReasons.notOtherCompany
       );
     case 'IMP08':
-      return conflict('These files were split off already.', importErrorReasons.alreadySplit);
+      return ApiError.conflict(
+        importErrorReasons.alreadySplit,
+        'These files were split off already.'
+      );
   }
   return decisionError(error, 'split import');
 }
@@ -435,7 +443,7 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
   const row = await findImport(db, importId);
   if (row.kind !== 'client') throw wrongKind();
   if (row.status !== 'ready') {
-    throw conflict('The import is not ready for review.', importErrorReasons.notReady);
+    throw ApiError.conflict(importErrorReasons.notReady, 'The import is not ready for review.');
   }
   const files = await listFilesOf(db, importId);
   const file = files.find((each) => each.id === fileId);

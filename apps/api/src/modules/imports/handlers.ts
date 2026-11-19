@@ -7,10 +7,10 @@ import {
 
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
+import { ApiError } from '../../lib/errors';
 import { uninvitedOfImports } from '../participants/standings';
 import { peopleCounts, personStates, storedEmployeeChanges } from './employees';
 import {
-  conflict,
   creatorNames,
   decisionError,
   type ImportProgress,
@@ -133,7 +133,10 @@ export const abandonImport: RouteHandler<typeof abandonImportRoute, ApiEnv> = as
   const { importId } = c.req.valid('param');
   const { error } = await createDataClient(c).rpc('abandon_import', { p_import_id: importId });
   if (error?.code === 'IMP01') {
-    throw conflict('The import is already confirmed or abandoned.', importErrorReasons.ended);
+    throw ApiError.conflict(
+      importErrorReasons.ended,
+      'The import is already confirmed or abandoned.'
+    );
   }
   if (error) throw decisionError(error, 'abandon import');
   await queueEnded(c, importId);

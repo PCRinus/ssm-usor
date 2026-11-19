@@ -1,11 +1,14 @@
-import { importErrorReasons } from '@ssm-usor/contracts';
+import {
+  type ApiErrorReason,
+  type ApiErrorResponse,
+  importErrorReasons,
+} from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   confirmImportLibraryPart,
   type ConfirmImportLibraryPartResponse,
   getListImportLibraryPartsQueryKey,
@@ -44,7 +47,7 @@ export function usePartConfirm({
   reasons: Record<string, string>;
   failed: string;
   // Undefined leaves the sentence to `reasons` and `failed`.
-  onRefused?: (reason: string | undefined, body: ConfirmBody) => string | undefined;
+  onRefused?: (reason: ApiErrorReason | undefined, body: ConfirmBody) => string | undefined;
 }) {
   const { request } = useApi();
   const queryClient = useQueryClient();

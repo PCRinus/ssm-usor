@@ -1,14 +1,18 @@
 import {
   apiErrorBody as readApiErrorBody,
+  apiErrorReason as readApiErrorReason,
   ApiHttpError,
   type ApiRequestOptions,
   createApiHttp,
 } from '@ssm-usor/api-http';
-import type { ApiErrorResponse } from '@ssm-usor/contracts';
+import type { ApiErrorReason, ApiErrorResponse } from '@ssm-usor/contracts';
 
-export { apiErrorReason, ApiHttpError, type ApiRequestOptions } from '@ssm-usor/api-http';
+export { ApiHttpError, type ApiRequestOptions } from '@ssm-usor/api-http';
 
 export const apiErrorBody = (cause: unknown) => readApiErrorBody<ApiErrorResponse>(cause);
+
+export const apiErrorReason = (cause: unknown) =>
+  readApiErrorReason(cause) as ApiErrorReason | undefined;
 
 const http = createApiHttp({ credentials: 'same-origin' });
 
