@@ -185,7 +185,7 @@ function identicalPairs(pack: readonly PackRiskFactor[], entry: LibraryEvaluatio
   });
 }
 
-// Within the database's 160 characters of a name: the client's name cut to 60, then the name.
+// Within the database's limit on a sheet name (160) or instruction title (200): the client's name cut to 60, then the name.
 export function freeName(name: string, clientName: string, taken: ReadonlySet<string>, max = 160) {
   if (!taken.has(foldText(name))) return name;
   const client = clientName.trim().slice(0, 60).trim();

@@ -11,7 +11,7 @@ import type { CompletionRequest } from './gateway';
 import { foldName, namesCompany } from './match';
 import { similarityModel } from './models';
 import { dataNotInstructions, oneLine } from './prompts';
-import { freeName } from './risks-library';
+import { freeName, jaccard } from './risks-library';
 import { type AnswerFormat, answerFormat } from './wire';
 
 type Body = { blocks: readonly InstructionBlock[] };
@@ -85,13 +85,6 @@ function trigrams(body: Body) {
     set.add(`${list[index]} ${list[index + 1]} ${list[index + 2]}`);
   }
   return set;
-}
-
-function jaccard(a: ReadonlySet<string>, b: ReadonlySet<string>) {
-  if (a.size === 0 && b.size === 0) return 1;
-  let shared = 0;
-  for (const item of a) if (b.has(item)) shared++;
-  return shared / (a.size + b.size - shared);
 }
 
 export function bodyText(body: Body) {
