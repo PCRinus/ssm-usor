@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { SelectedFile } from '../upload-selection';
 import { maxPhotoEdge, shrinkPhoto, shrinkSelected } from './shrink-photo';
+import type { SelectedFile } from './upload-selection';
 
 const drawn: { width: number; height: number }[] = [];
 const painted: string[] = [];

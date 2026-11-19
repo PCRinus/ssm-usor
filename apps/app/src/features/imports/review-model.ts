@@ -26,14 +26,10 @@ import type { ImportDetail, ImportInference } from '@/api/generated/api';
 import { roNoun } from '@/features/employees/employee-format';
 import { allocationLabels } from '@/features/protective-equipment/equipment-schema';
 
+import type { LabelledSource, Source } from './review-types';
+
 export type Proposal = NonNullable<ImportDetail['proposal']>;
-export type Source = { file: string; quote: string };
-export type LabelledSource = Source & {
-  // What the passage proves, when it is one value of its item rather than the item itself.
-  label?: string;
-  // The post or room the passage stands under, which tells apart a table row repeated for each.
-  near?: string;
-};
+export type { LabelledSource, Source } from './review-types';
 export type Option = {
   value: string | number;
   sources: Source[];

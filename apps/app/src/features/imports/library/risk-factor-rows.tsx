@@ -7,8 +7,8 @@ import { componentLabels } from '@/features/risk-evaluations/risk-evaluation-sch
 import { RiskLevelTile } from '@/features/risk-evaluations/risk-level-tile';
 
 import { Includable, SwitchRow } from '../include-switch';
-import type { LabelledSource } from '../review-model';
 import { SourceButton } from '../review-parts';
+import type { LabelledSource } from '../review-types';
 import {
   asksToCheck,
   byComponent,

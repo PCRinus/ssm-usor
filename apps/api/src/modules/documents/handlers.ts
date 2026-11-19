@@ -23,6 +23,8 @@ import {
   listDocumentsBehind as listBehind,
   readRegenerationJob,
   startRegeneration,
+  startSetRegeneration as startSetJobs,
+  summarizeDocumentsBehind,
 } from './regeneration';
 import {
   attachSignedCopy,
@@ -44,6 +46,7 @@ import type {
   getDocumentArchiveRoute,
   getDocumentDownloadRoute,
   getDocumentReadinessRoute,
+  getDocumentsBehindSummaryRoute,
   getDocumentWordRoute,
   getRegenerationJobRoute,
   issueDocumentRoute,
@@ -55,6 +58,7 @@ import type {
   saveDocumentDraftFileRoute,
   startDocumentDraftRoute,
   startDocumentRegenerationRoute,
+  startSetRegenerationRoute,
   uploadClientDocumentRoute,
 } from './routes';
 import type { Actor } from './rows';
@@ -339,6 +343,30 @@ export const startDocumentRegeneration: RouteHandler<
     c.req.valid('json').typeKey
   );
   return c.json({ job }, 201);
+};
+
+export const getDocumentsBehindSummary: RouteHandler<
+  typeof getDocumentsBehindSummaryRoute,
+  ApiEnv
+> = async (c) => {
+  const summary = await summarizeDocumentsBehind(
+    createDataClient(c),
+    c.get('membership').organizationId
+  );
+  return c.json(summary, 200);
+};
+
+export const startSetRegeneration: RouteHandler<typeof startSetRegenerationRoute, ApiEnv> = async (
+  c
+) => {
+  const started = await startSetJobs(
+    createDataClient(c),
+    createAdminClient(c),
+    c.env.REGENERATION_QUEUE,
+    actorOf(c),
+    c.req.valid('json').set
+  );
+  return c.json(started, 201);
 };
 
 export const getRegenerationJob: RouteHandler<typeof getRegenerationJobRoute, ApiEnv> = async (

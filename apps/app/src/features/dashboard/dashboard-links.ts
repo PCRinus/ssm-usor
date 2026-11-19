@@ -16,7 +16,8 @@ export const dashboardLinks = {
       to: '/angajati',
       search: domain === 'ssm' ? { ssmTraining: [trainingState] } : { suTraining: [trainingState] },
     }),
-  documentsBehind: () => linkOptions({ to: '/legislatie/documente' }),
+  documentsBehind: (suOnly: boolean) =>
+    linkOptions({ to: suOnly ? '/legislatie/documente-su' : '/legislatie/documente-ssm' }),
 };
 
 export type DashboardTarget = ReturnType<(typeof dashboardLinks)[keyof typeof dashboardLinks]>;
