@@ -1,4 +1,5 @@
 import type {
+  ClientDocumentDetailsResponseDocumentDetails,
   ClientFireSafetyResponseFireSafety,
   ClientResponseClient,
   EmployeeListResponseItemsItem,
@@ -247,6 +248,26 @@ export function fireSafetyRecord(
     wasteContractor: null,
     wasteCollectors: null,
     hasThirdParties: false,
+    ...overrides,
+  };
+}
+
+export function documentDetailsRecord(
+  overrides: Partial<ClientDocumentDetailsResponseDocumentDetails> = {}
+): ClientDocumentDetailsResponseDocumentDetails {
+  return {
+    legalRepresentativeName: null,
+    legalRepresentativeRole: null,
+    legalRepresentativeEmployeeId: null,
+    legalRepresentativeEmployee: null,
+    periodicTrainingMinutes: null,
+    administrativeTrainingIntervalMonths: null,
+    administrativeTrainingNotApplicable: false,
+    workerTrainingIntervalMonths: null,
+    workerTrainingNotApplicable: false,
+    trainingFirstMonth: null,
+    trainingDayFrom: null,
+    trainingDayTo: null,
     ...overrides,
   };
 }

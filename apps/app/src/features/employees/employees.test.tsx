@@ -2,6 +2,14 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
+import type {
+  ClientDocumentListResponse,
+  ClientFileListResponse,
+  EmployeeParticipantState,
+  FireEquipmentListResponse,
+  FireInstallationListResponse,
+  SigningAgreementResponse,
+} from '@/api/generated/api';
 import { startWayBack } from '@/features/missing-data/way-back';
 import { resetReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
 import { formatRoDate } from '@/lib/dates';
@@ -172,6 +180,38 @@ function mockApi(
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'GET') {
       return routes.detail?.(init, url) ?? Response.json({ employee: createdEmployee });
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}/participant`) {
+      return Response.json({
+        participant: null,
+        invitation: null,
+      } satisfies EmployeeParticipantState);
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}/signing-agreement/state`) {
+      return Response.json({
+        agreement: null,
+        unavailable: null,
+      } satisfies SigningAgreementResponse);
+    }
+    if (`${url.pathname}${url.search}` === `/clients/${clientId}/documents`) {
+      return Response.json({
+        items: [],
+        lastGeneration: null,
+        notApplicable: [],
+        currentEmployeeCount: sampleClient.currentEmployeeCount,
+      } satisfies ClientDocumentListResponse);
+    }
+    if (
+      `${url.pathname}${url.search}` ===
+      `/clients/${clientId}/files?employeeId=${sampleEmployee.id}`
+    ) {
+      return Response.json({ items: [] } satisfies ClientFileListResponse);
+    }
+    if (url.pathname === `/clients/${clientId}/fire-equipment`) {
+      return Response.json({ items: [] } satisfies FireEquipmentListResponse);
+    }
+    if (url.pathname === `/clients/${clientId}/fire-installations`) {
+      return Response.json({ items: [] } satisfies FireInstallationListResponse);
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/training-records`) {
       return Response.json({ items: [] });

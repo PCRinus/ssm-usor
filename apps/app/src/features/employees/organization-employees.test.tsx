@@ -2,10 +2,19 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
+import type {
+  ClientDocumentDetailsResponse,
+  ClientOwnerNotesResponse,
+  ClientResponse,
+  FireEquipmentListResponse,
+  FireInstallationListResponse,
+  ImportListResponse,
+  WorkplaceListResponse,
+} from '@/api/generated/api';
 import { fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
-import { clientRecord, employeeListItem, pageOf } from '@/test/records';
+import { clientRecord, documentDetailsRecord, employeeListItem, pageOf } from '@/test/records';
 
 const petromId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const navalId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
@@ -65,6 +74,32 @@ const page = (items: unknown[], total = items.length, unfilteredTotal = total) =
 function mockApi(list: (url: URL) => Response = () => Response.json(page([popescu, taranu]))) {
   mockRoutes((_init, url) => {
     if (url.pathname === '/employees') return list(url);
+    switch (`${url.pathname}${url.search}`) {
+      case `/clients/${navalId}`:
+        return Response.json({
+          client: client(navalId, 'Șantierul Naval SA'),
+          canDelete: false,
+        } satisfies ClientResponse);
+      case `/clients/${navalId}/document-details`:
+        return Response.json({
+          documentDetails: documentDetailsRecord(),
+        } satisfies ClientDocumentDetailsResponse);
+      case `/clients/${navalId}/owner-notes`:
+        return Response.json({
+          notes: { body: '', updatedAt: null },
+        } satisfies ClientOwnerNotesResponse);
+      case `/clients/${navalId}/workplaces`:
+        return Response.json({
+          items: [],
+          unassignedEmployeeCount: 0,
+        } satisfies WorkplaceListResponse);
+      case `/clients/${navalId}/fire-equipment`:
+        return Response.json({ items: [] } satisfies FireEquipmentListResponse);
+      case `/clients/${navalId}/fire-installations`:
+        return Response.json({ items: [] } satisfies FireInstallationListResponse);
+      case `/imports?clientId=${navalId}&kind=client&status=confirmed`:
+        return Response.json({ items: [] } satisfies ImportListResponse);
+    }
     if (url.pathname === '/clients') {
       return Response.json(
         page([client(petromId, 'OMV PETROM SA'), client(navalId, 'Șantierul Naval SA')])

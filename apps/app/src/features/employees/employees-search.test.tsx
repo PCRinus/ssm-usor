@@ -2,6 +2,11 @@ import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
+import type {
+  FoundSheetsResponse,
+  ImportListResponse,
+  JobPositionListResponse,
+} from '@/api/generated/api';
 import { fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
@@ -43,6 +48,19 @@ function mockApi(list: (url: URL) => Response) {
     if (url.pathname === `/clients/${clientId}`) return Response.json({ client: sampleClient });
     if (url.pathname === employeesPath) return list(url);
     if (url.pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
+    if (url.pathname === `/clients/${clientId}/job-positions`) {
+      return Response.json({ items: [] } satisfies JobPositionListResponse);
+    }
+    if (url.pathname === `/clients/${clientId}/found-sheets`) {
+      return Response.json({ items: [], total: 0 } satisfies FoundSheetsResponse);
+    }
+    if (
+      url.pathname === '/imports' &&
+      url.searchParams.get('clientId') === clientId &&
+      url.searchParams.get('kind') === 'employees'
+    ) {
+      return Response.json({ items: [] } satisfies ImportListResponse);
+    }
   });
 }
 

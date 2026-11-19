@@ -1,7 +1,13 @@
-import { clientFireSafetySchema } from '@ssm-usor/contracts';
+import { clientDocumentDetailsSchema, clientFireSafetySchema } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { employeeListItem, employeeRecord, fireSafetyRecord, noPortalAccess } from './records';
+import {
+  documentDetailsRecord,
+  employeeListItem,
+  employeeRecord,
+  fireSafetyRecord,
+  noPortalAccess,
+} from './records';
 
 describe('the employee list row builder', () => {
   it('is the same person as the employee record, with only the fields a list row has', () => {
@@ -18,8 +24,11 @@ describe('the employee list row builder', () => {
   });
 });
 
-describe('the fire safety builder', () => {
-  it('is a client with nothing filled in yet, as the API sends it', () => {
+describe('the builders of a client with nothing filled in yet', () => {
+  it('build the data as the API sends it', () => {
     expect(clientFireSafetySchema.parse(fireSafetyRecord())).toEqual(fireSafetyRecord());
+    expect(clientDocumentDetailsSchema.parse(documentDetailsRecord())).toEqual(
+      documentDetailsRecord()
+    );
   });
 });
