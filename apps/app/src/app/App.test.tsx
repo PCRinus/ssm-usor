@@ -1,49 +1,28 @@
 import { helpTabName } from '@ssm-usor/help-topics/url';
-import { createMemoryHistory } from '@tanstack/react-router';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthClient } from '@/features/auth/auth-store';
-import { createQueryClient } from '@/lib/query-client';
+import { fetchMock, installFetchMock, mockApi, requestsTo, type Route } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { quietSummary } from '@/test/dashboard-fixture';
+import { mountApp } from '@/test/mount';
+import { userOnlyMe } from '@/test/records';
 
-import App from './App';
-import { type AppRuntime, createAppRuntime } from './app-runtime';
+installFetchMock();
 
-const fetchMock = vi.fn<typeof fetch>();
+const dashboard: Route = (_init, { pathname }) =>
+  pathname === '/dashboard/summary' ? Response.json(quietSummary) : undefined;
+
 beforeEach(() => {
-  fetchMock.mockReset();
-  fetchMock.mockImplementation(async (input) =>
-    new URL(String(input)).pathname === '/dashboard/summary'
-      ? Response.json(quietSummary)
-      : Response.json({ user: { id: 'user-one', email: 'verified@example.test' } })
-  );
-  vi.stubGlobal('fetch', fetchMock);
+  mockApi(dashboard);
 });
-const runtimes: AppRuntime[] = [];
-afterEach(() => {
-  runtimes.splice(0).forEach((runtime) => runtime.dispose());
-  vi.unstubAllGlobals();
-});
-
-function mount(client: AuthClient | null, path = '/dashboard') {
-  const runtime = createAppRuntime(
-    client,
-    createQueryClient(),
-    createMemoryHistory({ initialEntries: [path] }),
-    'http://localhost:8787'
-  );
-  runtimes.push(runtime);
-  render(<App runtime={runtime} />);
-  return runtime;
-}
 
 describe('dashboard authentication and routing', () => {
   it('validates empty fields and email format before contacting Supabase', async () => {
     const { client } = authFixture();
-    mount(client, '/autentificare');
+    mountApp(client, '/autentificare');
     const user = userEvent.setup();
     await screen.findByTestId('login-page');
     await user.click(screen.getByTestId('login-submit'));
@@ -60,7 +39,7 @@ describe('dashboard authentication and routing', () => {
 
   it('preserves passwords unchanged and permits retrying a server-rejected form', async () => {
     const { client } = authFixture();
-    mount(client, '/autentificare');
+    mountApp(client, '/autentificare');
     const user = userEvent.setup();
     await screen.findByTestId('login-page');
     await user.type(screen.getByTestId('login-email'), 'review@example.test');
@@ -87,7 +66,7 @@ describe('dashboard authentication and routing', () => {
 
   it('redirects a signed-out direct dashboard visit to login', async () => {
     const { client } = authFixture();
-    const runtime = mount(client);
+    const runtime = mountApp(client);
     await screen.findByTestId('login-page');
     expect(runtime.router.state.location.pathname).toBe('/autentificare');
     await waitFor(() => expect(document.title).toBe('Autentificare — SSM Ușor'));
@@ -103,7 +82,7 @@ describe('dashboard authentication and routing', () => {
         resolve = done;
       })
     );
-    const runtime = mount(client);
+    const runtime = mountApp(client);
     expect(screen.getByTestId('auth-loading')).toBeTruthy();
     expect(screen.queryByTestId('login-page')).toBeNull();
     await act(async () => resolve({ data: { session: makeSession() }, error: null }));
@@ -113,7 +92,7 @@ describe('dashboard authentication and routing', () => {
 
   it('shows invalid credentials without navigating or caching the password', async () => {
     const { client } = authFixture();
-    const runtime = mount(client, '/autentificare');
+    const runtime = mountApp(client, '/autentificare');
     const user = userEvent.setup();
     await screen.findByTestId('login-page');
     await user.type(screen.getByTestId('login-email'), 'review@example.test');
@@ -130,7 +109,7 @@ describe('dashboard authentication and routing', () => {
       data: { session: null },
       error: { message: 'captcha protection: request disallowed', code: 'captcha_failed' },
     });
-    mount(client, '/autentificare');
+    mountApp(client, '/autentificare');
     const user = userEvent.setup();
     await screen.findByTestId('login-page');
     await user.type(screen.getByTestId('login-email'), 'review@example.test');
@@ -142,9 +121,11 @@ describe('dashboard authentication and routing', () => {
   });
 
   it('logs in with the SDK, displays the account, and logs out with an empty query cache', async () => {
+    // A member's menu names the organization; only without one does it show the email.
+    mockApi(dashboard, { me: userOnlyMe });
     const { client } = authFixture();
     client.signInWithPassword.mockResolvedValue({ data: { session: makeSession() }, error: null });
-    const runtime = mount(client, '/autentificare');
+    const runtime = mountApp(client, '/autentificare');
     const user = userEvent.setup();
     await screen.findByTestId('login-page');
     await user.type(screen.getByTestId('login-email'), 'review@example.test');
@@ -169,7 +150,7 @@ describe('dashboard authentication and routing', () => {
   });
 
   it('keeps the shell and logo when navigating to clients and collapsing navigation', async () => {
-    const runtime = mount(authFixture(makeSession()).client);
+    const runtime = mountApp(authFixture(makeSession()).client);
     const user = userEvent.setup();
     await screen.findByTestId('dashboard-page');
     await waitFor(() => expect(document.title).toBe('Dashboard — SSM Ușor'));
@@ -189,7 +170,7 @@ describe('dashboard authentication and routing', () => {
   });
 
   it('shows the support address when the support chat cannot open', async () => {
-    mount(authFixture(makeSession()).client);
+    mountApp(authFixture(makeSession()).client);
     const user = userEvent.setup();
     await screen.findByTestId('dashboard-page');
     await user.click(screen.getByTestId('report-problem'));
@@ -213,7 +194,7 @@ describe('dashboard authentication and routing', () => {
         removeEventListener: vi.fn(),
       }))
     );
-    mount(authFixture(makeSession()).client, '/clienti');
+    mountApp(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await screen.findByTestId('clients-page');
     await user.click(screen.getByTestId('sidebar-toggle'));
@@ -233,7 +214,7 @@ describe('dashboard authentication and routing', () => {
         removeEventListener: vi.fn(),
       }))
     );
-    mount(authFixture(makeSession()).client, '/clienti');
+    mountApp(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await screen.findByTestId('clients-page');
     await user.click(screen.getByTestId('sidebar-toggle'));
@@ -258,7 +239,7 @@ describe('dashboard authentication and routing', () => {
   });
 
   it('remembers collapsing and expanding the navigation, by the trigger and by the shortcut', async () => {
-    mount(authFixture(makeSession()).client);
+    mountApp(authFixture(makeSession()).client);
     const user = userEvent.setup();
     await screen.findByTestId('dashboard-page');
     await user.click(screen.getByTestId('sidebar-toggle'));
@@ -272,7 +253,7 @@ describe('dashboard authentication and routing', () => {
 
   it('opens with the navigation collapsed when it was left collapsed', async () => {
     localStorage.setItem('ssm-usor:sidebar-open', 'false');
-    mount(authFixture(makeSession()).client);
+    mountApp(authFixture(makeSession()).client);
     const sidebar = await waitFor(() => {
       const element = document.querySelector('[data-slot="sidebar"]');
       expect(element).not.toBeNull();
@@ -289,7 +270,7 @@ describe('dashboard authentication and routing', () => {
       throw new DOMException('Blocked', 'SecurityError');
     });
     try {
-      mount(authFixture(makeSession()).client);
+      mountApp(authFixture(makeSession()).client);
       const user = userEvent.setup();
       await screen.findByTestId('dashboard-page');
       const sidebar = document.querySelector('[data-slot="sidebar"]');
@@ -302,7 +283,7 @@ describe('dashboard authentication and routing', () => {
   });
 
   it('protects a direct clients visit', async () => {
-    const runtime = mount(authFixture().client, '/clienti');
+    const runtime = mountApp(authFixture().client, '/clienti');
     await screen.findByTestId('login-page');
     expect(runtime.router.state.location.pathname).toBe('/autentificare');
     expect(screen.queryByRole('table')).toBeNull();
@@ -310,14 +291,14 @@ describe('dashboard authentication and routing', () => {
 
   it('redirects an existing session away from login', async () => {
     const { client } = authFixture(makeSession());
-    const runtime = mount(client, '/autentificare');
+    const runtime = mountApp(client, '/autentificare');
     await screen.findByTestId('dashboard-page');
     expect(runtime.router.state.location.pathname).toBe('/dashboard');
   });
 
   it('reacts to remote sign-out and removes protected content and cached data', async () => {
     const fixture = authFixture(makeSession());
-    const runtime = mount(fixture.client);
+    const runtime = mountApp(fixture.client);
     await screen.findByTestId('dashboard-page');
     runtime.queryClient.setQueryData(['private-data'], 'private');
     await act(async () => fixture.emit('SIGNED_OUT', null));
@@ -329,7 +310,7 @@ describe('dashboard authentication and routing', () => {
   it('keeps the session when sign-out fails and offers a retry', async () => {
     const { client } = authFixture(makeSession());
     client.signOut.mockResolvedValue({ error: { message: 'Network unavailable' } });
-    const runtime = mount(client);
+    const runtime = mountApp(client);
     await screen.findByTestId('dashboard-page');
     const user = userEvent.setup();
     await user.click(screen.getByTestId('account-menu'));
@@ -342,18 +323,18 @@ describe('dashboard authentication and routing', () => {
   it('shows a recoverable startup error when session restoration fails', async () => {
     const { client } = authFixture();
     client.getSession.mockRejectedValue(new Error('Network unavailable'));
-    mount(client);
+    mountApp(client);
     expect(await screen.findByTestId('auth-unavailable')).toBeTruthy();
   });
 
   it('shows an unavailable state when public Supabase configuration is absent', () => {
-    mount(null);
+    mountApp(null);
     expect(screen.getByTestId('auth-unavailable')).toBeTruthy();
     expect(screen.queryByTestId('login-password')).toBeNull();
   });
 
   it('renders an unknown route without exposing internal errors', async () => {
-    mount(authFixture().client, '/missing-page');
+    mountApp(authFixture().client, '/missing-page');
     await screen.findByTestId('not-found-page');
     await waitFor(() => expect(document.title).toBe('Pagina nu a fost găsită — SSM Ușor'));
     expect(screen.queryByTestId('nav-actualizari')).toBeNull();
@@ -361,7 +342,7 @@ describe('dashboard authentication and routing', () => {
   });
 
   it('shows an unknown address inside the shell to a signed-in member', async () => {
-    mount(authFixture(makeSession()).client, '/missing-page');
+    mountApp(authFixture(makeSession()).client, '/missing-page');
     const notFound = await screen.findByTestId('not-found-page');
     expect(screen.getByTestId('nav-actualizari')).toBeTruthy();
     expect(
@@ -371,12 +352,12 @@ describe('dashboard authentication and routing', () => {
 
   it('keeps the shell around a page whose data fails to load', async () => {
     const moduleId = '7d1f3d3c-0f7b-4e8e-9d0b-2a3a4b5c6d7e';
-    fetchMock.mockImplementation(async (input) =>
-      String(input).includes(moduleId)
+    mockApi((_init, url) =>
+      url.href.includes(moduleId)
         ? Response.json({ error: 'internal', message: 'boom' }, { status: 500 })
-        : Response.json({ user: { id: 'user-one', email: 'verified@example.test' } })
+        : undefined
     );
-    mount(authFixture(makeSession()).client, `/instructiuni/${moduleId}`);
+    mountApp(authFixture(makeSession()).client, `/instructiuni/${moduleId}`);
     const error = await screen.findByTestId('route-error-page');
     expect(
       within(error).getByRole('heading', { name: 'Pagina nu a putut fi încărcată' })
@@ -389,7 +370,7 @@ describe('dashboard authentication and routing', () => {
 describe('generated API integration', () => {
   it('loads the dashboard with the session token and uses the refreshed token for subsequent queries', async () => {
     const fixture = authFixture(makeSession());
-    const runtime = mount(fixture.client);
+    const runtime = mountApp(fixture.client);
     await screen.findByTestId('dashboard-todo');
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('Authorization')).toBe(
       `Bearer ${makeSession().access_token}`
@@ -414,7 +395,7 @@ describe('generated API integration', () => {
   });
 
   it('does not call the API before signing in', async () => {
-    mount(authFixture().client);
+    mountApp(authFixture().client);
     await screen.findByTestId('login-page');
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -427,14 +408,10 @@ describe('generated API integration', () => {
         { status: 401 }
       )
     );
-    mount(authFixture(makeSession()).client);
+    mountApp(authFixture(makeSession()).client);
     const error = await screen.findByTestId('dashboard-error');
     expect(error.textContent).toContain('Sesiunea nu mai este validă');
-    expect(
-      fetchMock.mock.calls.filter(
-        ([input]) => new URL(String(input)).pathname === '/dashboard/summary'
-      )
-    ).toHaveLength(1);
+    expect(requestsTo('/dashboard/summary')).toHaveLength(1);
     fetchMock.mockImplementation(recovered);
     await userEvent.setup().click(within(error).getByRole('button', { name: 'Încearcă din nou' }));
     await screen.findByTestId('dashboard-todo');
