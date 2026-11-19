@@ -20,28 +20,8 @@ const sendInvitationSms = vi.fn<SmsService['sendParticipantInvitation']>();
 const env = testEnv({
   SUPABASE_SECRET_KEY: testSecretKey,
   PORTAL_ORIGIN: 'https://portal.example.ro',
-  MAIL: {
-    sendWaitlistConfirmation: vi.fn(),
-    sendOrganizationInvitation: vi.fn(),
-    sendPasswordReset: vi.fn(),
-    sendPasswordChanged: vi.fn(),
-    sendSignupConfirmation: vi.fn(),
-    sendServiceContract: vi.fn(),
-    sendSignedCopyReceived: vi.fn(),
-    sendParticipantInvitation: sendInvitationEmail,
-    sendSignInCode: vi.fn(),
-    sendSigningCode: vi.fn(),
-    sendSignatureRequest: vi.fn(),
-    sendSmsUsageNotice: vi.fn(),
-    sendEmployeesOverStepNotice: vi.fn(),
-    sendExtrasNotice: vi.fn(),
-  },
-  SMS: {
-    sendParticipantInvitation: sendInvitationSms,
-    sendSignInCode: vi.fn(),
-    sendSigningCode: vi.fn(),
-    sendSignatureRequest: vi.fn(),
-  },
+  MAIL: { sendParticipantInvitation: sendInvitationEmail } as unknown as MailService,
+  SMS: { sendParticipantInvitation: sendInvitationSms } as unknown as SmsService,
 });
 
 const clientId = 'c1c1c1c1-0000-4000-8000-000000000001';

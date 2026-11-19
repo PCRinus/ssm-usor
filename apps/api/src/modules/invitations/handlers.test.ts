@@ -21,22 +21,7 @@ const sendOrganizationInvitation = vi.fn<MailService['sendOrganizationInvitation
 const env = testEnv({
   SUPABASE_SECRET_KEY: testSecretKey,
   APP_ORIGIN: 'https://app.example.ro',
-  MAIL: {
-    sendWaitlistConfirmation: vi.fn(),
-    sendOrganizationInvitation,
-    sendPasswordReset: vi.fn(),
-    sendPasswordChanged: vi.fn(),
-    sendSignupConfirmation: vi.fn(),
-    sendServiceContract: vi.fn(),
-    sendSignedCopyReceived: vi.fn(),
-    sendParticipantInvitation: vi.fn(),
-    sendSignInCode: vi.fn(),
-    sendSigningCode: vi.fn(),
-    sendSignatureRequest: vi.fn(),
-    sendSmsUsageNotice: vi.fn(),
-    sendEmployeesOverStepNotice: vi.fn(),
-    sendExtrasNotice: vi.fn(),
-  },
+  MAIL: { sendOrganizationInvitation } as unknown as MailService,
 });
 
 const invitationId = '7a0e4c7e-4a59-4f8e-8d1e-3f1f6f0b9a11';
