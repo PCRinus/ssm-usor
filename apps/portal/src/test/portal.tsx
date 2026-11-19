@@ -1,15 +1,25 @@
 import { currentPrivacyNoticeVersion } from '@ssm-usor/contracts';
 import type { Session } from '@supabase/supabase-js';
+import type { SkipToken, UseQueryResult } from '@tanstack/react-query';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
 import { vi } from 'vitest';
 
-import type {
-  PortalEmployeeDataResponse,
-  PortalMeResponseParticipationsItem,
-  PortalTestsResponse,
-  PortalTrainingRecordsResponse,
-  PortalTrainingRecordsResponseItemsItemSlotsItem,
+import {
+  type PortalEmployeeDataResponse,
+  type PortalMeResponseParticipationsItem,
+  type PortalTestsResponse,
+  type PortalTrainingRecordsResponse,
+  type PortalTrainingRecordsResponseItemsItemSlotsItem,
+  type PortalTrainingSheetsResponse,
+  useGetPortalEmployeeData,
+  useGetPortalMe,
+  useGetPortalSigningAgreementState,
+  useGetPortalTrainingSheets,
+  useListPortalClientSignatureRequests,
+  useListPortalSignatureRequests,
+  useListPortalSigningAgreements,
+  useListPortalTrainingRecords,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import App from '@/app/App';
@@ -111,6 +121,59 @@ export function queryFailure(status: number) {
     isSuccess: false,
     refetch: vi.fn(),
   } as never;
+}
+
+type QueryHook = (...args: never[]) => UseQueryResult<unknown, unknown>;
+
+type QueryOptions<Args extends unknown[]> = Args extends [infer Head, ...infer Rest]
+  ? 'query' extends keyof NonNullable<Head>
+    ? NonNullable<NonNullable<Head>['query' & keyof NonNullable<Head>]>
+    : QueryOptions<Rest>
+  : never;
+
+// Orval's hooks are generic in TData, so their return type reads as unknown; the query function in
+// their options is not, and carries what the endpoint answers.
+export type QueryData<H extends QueryHook> = Awaited<
+  ReturnType<Exclude<NonNullable<QueryOptions<Required<Parameters<H>>>['queryFn']>, SkipToken>>
+>;
+
+export function mockQuery<H extends QueryHook>(hook: H, data: QueryData<H>) {
+  vi.mocked(hook).mockReturnValue(queryResult(data));
+}
+
+export function mockPending(hook: QueryHook) {
+  vi.mocked(hook).mockReturnValue(queryPending());
+}
+
+export function mockFailure(hook: QueryHook, status: number) {
+  vi.mocked(hook).mockReturnValue(queryFailure(status));
+}
+
+type ReadySheet = PortalTrainingSheetsResponse['ssm'];
+
+export function readySheets(
+  overrides: { ssm?: Partial<ReadySheet>; su?: Partial<ReadySheet> } = {}
+): PortalTrainingSheetsResponse {
+  const sheet = (sheetOverrides: Partial<ReadySheet> = {}) => ({
+    ready: true,
+    missing: [],
+    stored: false,
+    sequences: [],
+    versions: {},
+    ...sheetOverrides,
+  });
+  return { ssm: sheet(overrides.ssm), su: sheet(overrides.su) };
+}
+
+export function stubEmployeePortal() {
+  mockQuery(useGetPortalMe, { participations: [participation()] });
+  mockQuery(useListPortalSignatureRequests, { items: [] });
+  mockQuery(useListPortalClientSignatureRequests, { items: [] });
+  mockQuery(useListPortalSigningAgreements, { items: [] });
+  mockQuery(useGetPortalSigningAgreementState, { agreement: null, unavailable: null });
+  mockQuery(useListPortalTrainingRecords, trainingRecords());
+  mockQuery(useGetPortalEmployeeData, employeeData());
+  mockQuery(useGetPortalTrainingSheets, readySheets());
 }
 
 export const trainingStatus = (
