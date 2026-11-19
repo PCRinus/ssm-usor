@@ -9,12 +9,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { hashToken } from '../../lib/tokens';
 import { apiRequest } from '../../test/request';
 import {
+  callsTo,
   fetchMock,
   routeUpstream,
   stubFetch,
   testEnv,
   testOrganizationId as organizationId,
   testSecretKey,
+  upstreamCalls,
 } from '../../test/upstream';
 
 const sendSignedCopyReceived = vi.fn<MailService['sendSignedCopyReceived']>();
@@ -87,10 +89,10 @@ function mockUpstream(
   });
 }
 
-const calls = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname.startsWith(pathname) && (init?.method ?? 'GET') === method
+const storedFiles = () =>
+  upstreamCalls().filter(
+    ({ method, url }) =>
+      method === 'POST' && url.pathname.startsWith('/storage/v1/object/documents')
   );
 
 const post = (path: string, body: unknown) =>
@@ -132,11 +134,9 @@ describe('the return link', () => {
       contactEmail: 'olga@safety.example',
       receivedAt: null,
     });
-    const [lookup] = calls('/rest/v1/service_contract_sends');
-    expect(new URL(String(lookup![0])).searchParams.get('token_hash')).toBe(
-      `eq.${await hashToken(token)}`
-    );
-    expect(String(lookup![0])).not.toContain(token);
+    const [lookup] = callsTo('/rest/v1/service_contract_sends', 'GET');
+    expect(lookup!.url.searchParams.get('token_hash')).toBe(`eq.${await hashToken(token)}`);
+    expect(String(lookup!.url)).not.toContain(token);
   });
 
   it('is unknown for a token no send has', async () => {
@@ -201,8 +201,8 @@ describe('the return link', () => {
     expect(apiErrorResponseSchema.parse(await download.json()).reason).toBe('return_link_closed');
     const uploaded = await upload();
     expect(uploaded.status).toBe(409);
-    expect(calls('/rest/v1/document_signed_copies', 'POST')).toHaveLength(0);
-    expect(calls('/storage/v1/object/documents', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/document_signed_copies', 'POST')).toHaveLength(0);
+    expect(storedFiles()).toHaveLength(0);
   });
 
   it('keeps what comes back as a received copy, stores the file, and tells the owner', async () => {
@@ -214,8 +214,8 @@ describe('the return link', () => {
       receivedAt: expect.any(String),
     });
 
-    const [recorded] = calls('/rest/v1/document_signed_copies', 'POST');
-    expect(JSON.parse(String(recorded![1]?.body))).toMatchObject({
+    const [recorded] = callsTo('/rest/v1/document_signed_copies', 'POST');
+    expect(recorded!.body).toMatchObject({
       revision_id: revisionId,
       organization_id: organizationId,
       document_id: documentId,
@@ -225,11 +225,11 @@ describe('the return link', () => {
       source: 'client',
       confirmed_at: null,
     });
-    const [counted] = calls('/rest/v1/service_contract_sends', 'PATCH');
-    expect(JSON.parse(String(counted![1]?.body))).toEqual({ return_uploads: 1 });
-    const [stored] = calls('/storage/v1/object/documents/', 'POST');
-    expect(String(stored![0])).toContain('/1.signed.pdf');
-    expect(new Uint8Array(await new Response(stored![1]?.body).arrayBuffer())).toEqual(pdf);
+    const [counted] = callsTo('/rest/v1/service_contract_sends', 'PATCH');
+    expect(counted!.body).toEqual({ return_uploads: 1 });
+    const [stored] = storedFiles();
+    expect(String(stored!.url)).toContain('/1.signed.pdf');
+    expect(new Uint8Array(await new Response(stored!.init?.body).arrayBuffer())).toEqual(pdf);
     expect(sendSignedCopyReceived).toHaveBeenCalledWith({
       to: 'olga@safety.example',
       clientName: 'S.C. VELOCITA URBANA S.R.L.',
@@ -252,15 +252,15 @@ describe('the return link', () => {
   it('takes a first copy back when its file cannot be stored, and keeps an earlier one', async () => {
     mockUpstream({ upload: () => Response.json({ message: 'down' }, { status: 500 }) });
     expect((await upload()).status).toBeGreaterThanOrEqual(500);
-    const [recorded] = calls('/rest/v1/document_signed_copies', 'POST');
-    const { uploaded_at: uploadedAt } = JSON.parse(String(recorded![1]?.body)) as {
+    const [recorded] = callsTo('/rest/v1/document_signed_copies', 'POST');
+    const { uploaded_at: uploadedAt } = recorded!.body as {
       uploaded_at: string;
     };
-    const [removed] = calls('/rest/v1/document_signed_copies', 'DELETE');
-    const removedWhere = new URL(String(removed![0])).searchParams;
+    const [removed] = callsTo('/rest/v1/document_signed_copies', 'DELETE');
+    const removedWhere = removed!.url.searchParams;
     expect(removedWhere.get('revision_id')).toBe(`eq.${revisionId}`);
     expect(removedWhere.get('uploaded_at')).toBe(`eq.${uploadedAt}`);
-    expect(calls('/rest/v1/service_contract_sends', 'PATCH')).toHaveLength(1);
+    expect(callsTo('/rest/v1/service_contract_sends', 'PATCH')).toHaveLength(1);
     expect(sendSignedCopyReceived).not.toHaveBeenCalled();
 
     fetchMock.mockClear();
@@ -277,7 +277,7 @@ describe('the return link', () => {
       upload: () => Response.json({ message: 'down' }, { status: 500 }),
     });
     expect((await upload()).status).toBeGreaterThanOrEqual(500);
-    expect(calls('/rest/v1/document_signed_copies', 'DELETE')).toHaveLength(0);
+    expect(callsTo('/rest/v1/document_signed_copies', 'DELETE')).toHaveLength(0);
   });
 
   it('refuses a form past the 15 MB file before reading it or the link, and takes 15 MB', async () => {
@@ -298,7 +298,7 @@ describe('the return link', () => {
     mockUpstream();
     const notPdf = await upload(new TextEncoder().encode('hello'));
     expect(notPdf.status).toBe(400);
-    expect(calls('/rest/v1/document_signed_copies', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/document_signed_copies', 'POST')).toHaveLength(0);
 
     mockUpstream({
       sends: (init) =>

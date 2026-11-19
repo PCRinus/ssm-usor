@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ApiEnv } from '../../lib/env';
 import { apiRequest } from '../../test/request';
 import {
+  callsTo,
   fetchMock,
   membershipRow,
   mockUpstream as mockSignedInUpstream,
@@ -21,6 +22,7 @@ import {
   testOrganizationId as organizationId,
   testUser as user,
   type UpstreamCall,
+  upstreamCalls,
 } from '../../test/upstream';
 import { bankQuestions } from './context.fixture';
 import { printedTest } from './knowledge-tests';
@@ -537,17 +539,15 @@ const isConditionalDocumentsRead = (url: URL) =>
   Boolean(url.searchParams.get('type_key')?.startsWith('in.'));
 
 const calls = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(([input, init]) => {
-    const url = new URL(String(input));
-    return (
-      url.pathname.startsWith(pathname) &&
-      (init?.method ?? 'GET') === method &&
-      !isConditionalDocumentsRead(url)
-    );
-  });
+  upstreamCalls().filter(
+    (call) =>
+      call.url.pathname.startsWith(pathname) &&
+      call.method === method &&
+      !isConditionalDocumentsRead(call.url)
+  );
 
 const sentBody = (pathname: string, index = 0, method = 'POST') =>
-  JSON.parse(String(calls(pathname, method)[index]![1]?.body)) as Record<string, unknown>;
+  calls(pathname, method)[index]!.body as Record<string, unknown>;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
   apiRequest(path, { method, body }, env);
@@ -573,25 +573,25 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       incompleteRiskEvaluations: [],
       incompleteFireSubstances: [],
     });
-    const positions = fetchMock.mock.calls
-      .map(([input]) => new URL(String(input)))
+    const positions = upstreamCalls()
+      .map(({ url }) => url)
       .find((url) => url.pathname === '/rest/v1/job_positions')!;
     expect(positions.searchParams.get('archived_at')).toBe('is.null');
     expect(positions.searchParams.get('order')).toBe('name.asc,id.asc');
     expect(positions.searchParams.get('employees.status')).toBe('eq.active');
     expect(positions.searchParams.get('employees.archived_at')).toBe('is.null');
-    const evaluations = fetchMock.mock.calls
-      .map(([input]) => new URL(String(input)))
+    const evaluations = upstreamCalls()
+      .map(({ url }) => url)
       .find((url) => url.pathname === '/rest/v1/risk_evaluations')!;
     expect(evaluations.searchParams.get('client_id')).toBe(`eq.${clientId}`);
-    const persons = fetchMock.mock.calls
-      .map(([input]) => new URL(String(input)))
+    const persons = upstreamCalls()
+      .map(({ url }) => url)
       .find((url) => url.pathname === '/rest/v1/client_responsible_persons')!;
     expect(persons.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(persons.searchParams.get('archived_at')).toBe('is.null');
     const read = (pathname: string) =>
-      fetchMock.mock.calls
-        .map(([input]) => new URL(String(input)))
+      upstreamCalls()
+        .map(({ url }) => url)
         .find((url) => url.pathname === pathname)!;
     expect(read('/rest/v1/organizations').searchParams.get('id')).toBe(`eq.${organizationId}`);
     const specialist = read('/rest/v1/organization_members').searchParams;
@@ -781,8 +781,8 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     expect(documentReadinessResponseSchema.parse(await response.json()).currentEmployeeCount).toBe(
       1500
     );
-    const counted = calls('/rest/v1/employees', 'HEAD').map(([input]) =>
-      new URL(String(input)).searchParams.get('workplace_id')
+    const counted = calls('/rest/v1/employees', 'HEAD').map(({ url }) =>
+      url.searchParams.get('workplace_id')
     );
     expect(counted).toEqual(expect.arrayContaining([null, `eq.${workplaceRow.id}`]));
     expect(calls('/rest/v1/employees', 'GET')).toHaveLength(0);
@@ -851,9 +851,9 @@ describe('GET /clients/{clientId}/documents', () => {
       'signing_regulation_annex',
     ]);
     // The documentation set only: the service contract has its own routes.
-    expect(
-      new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
-    ).toBe('eq.documentation_set');
+    expect(calls('/rest/v1/client_documents')[0]!.url.searchParams.get('document_group')).toBe(
+      'eq.documentation_set'
+    );
     expect(body.items[0]).toMatchObject({
       typeKey: 'decision_first_aid',
       decisionNumber: 3,
@@ -907,9 +907,9 @@ describe('GET /clients/{clientId}/documents', () => {
         newerVersion: { number: 2, createdAt: current.created_at },
       },
     ]);
-    expect(
-      new URL(String(calls('/rest/v1/instruction_module_versions')[0]![0])).searchParams.get('id')
-    ).toBe(`in.(${annexed.id})`);
+    expect(calls('/rest/v1/instruction_module_versions')[0]!.url.searchParams.get('id')).toBe(
+      `in.(${annexed.id})`
+    );
   });
 
   it('looks up no module versions when nothing is annexed', async () => {
@@ -931,9 +931,9 @@ describe('GET /clients/{clientId}/documents', () => {
       kind: 'correction',
       note: 'Clientul este numit „unitatea”, nu „societatea”.',
     });
-    expect(
-      new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('select')
-    ).toContain('document_template_versions(version,kind,note)');
+    expect(calls('/rest/v1/client_documents')[0]!.url.searchParams.get('select')).toContain(
+      'document_template_versions(version,kind,note)'
+    );
 
     mockUpstream({
       documents: () =>
@@ -1003,7 +1003,7 @@ describe('GET /clients/{clientId}/documents', () => {
 
     it("asks the bank of each of the set's tests for the organization", async () => {
       const asked = () =>
-        calls('/rest/v1/rpc/active_test_questions', 'POST').map(([, init]) =>
+        calls('/rest/v1/rpc/active_test_questions', 'POST').map(({ init }) =>
           JSON.parse(String(init?.body))
         );
       mockUpstream({ documents: testDraft(printed) });
@@ -1169,7 +1169,7 @@ describe('POST /clients/{clientId}/documents/generate', () => {
       });
       expect((await generate()).status).toBe(201);
       return calls('/rest/v1/client_documents', 'POST').map(
-        ([, init]) => (JSON.parse(String(init?.body)) as { type_key: string }).type_key
+        ({ init }) => (JSON.parse(String(init?.body)) as { type_key: string }).type_key
       );
     };
     expect(await generateWith(0)).toEqual(['control_report']);
@@ -1303,7 +1303,7 @@ describe('GET /documents/{documentId}/revisions/{revisionId}/download', () => {
     expect(documentDownloadResponseSchema.parse(await response.json()).fileName).toBe(
       'Copertă - Deciziile interne - rev. 1.pdf'
     );
-    expect(String(calls('/storage/v1/object/sign/documents/', 'POST')[0]![0])).toContain('1.pdf');
+    expect(String(calls('/storage/v1/object/sign/documents/', 'POST')[0]!.url)).toContain('1.pdf');
 
     mockUpstream({ revisions: revision(null) });
     expect((await request(url)).status).toBe(404);
@@ -1441,9 +1441,9 @@ describe('GET /clients/{clientId}/documents/archive', () => {
         annexes: [annexData(0), annexData(1)],
       }),
     });
-    expect(
-      new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
-    ).toBe('eq.documentation_set');
+    expect(calls('/rest/v1/client_documents')[0]!.url.searchParams.get('document_group')).toBe(
+      'eq.documentation_set'
+    );
   });
 
   it('holds the PDFs made at issuing, which already hold the annexes, and nothing else', async () => {
@@ -1469,9 +1469,9 @@ describe('GET /clients/{clientId}/documents/archive', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Disposition')).toContain('documentatia SU - Word.zip');
     expect(Object.keys(await filesOf(response))).toEqual(['01 Registre SU - rev. 1 - ciornă.docx']);
-    expect(
-      new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
-    ).toBe('eq.fire_safety_set');
+    expect(calls('/rest/v1/client_documents')[0]!.url.searchParams.get('document_group')).toBe(
+      'eq.fire_safety_set'
+    );
   });
 
   it('says when no document has a file in the format', async () => {
@@ -1581,8 +1581,8 @@ describe('POST /documents/{documentId}/regenerate', () => {
       edited_by: null,
     });
     const [upload] = calls('/storage/v1/object/documents/', 'POST');
-    expect(new URL(String(upload![0])).pathname).toContain(`${documentId}/1.docx`);
-    expect(new Headers(upload![1]?.headers).get('x-upsert')).toBe('true');
+    expect(upload!.url.pathname).toContain(`${documentId}/1.docx`);
+    expect(upload!.headers.get('x-upsert')).toBe('true');
   });
 
   it('starts revision 2 next to an issued revision, with a new date when given', async () => {
@@ -1984,13 +1984,13 @@ describe('the training themes', () => {
     expect((await regenerate()).status).toBe(200);
 
     const [ownInstructionsCall] = calls('/rest/v1/document_revisions');
-    const query = new URL(String(ownInstructionsCall![0])).searchParams;
+    const query = ownInstructionsCall!.url.searchParams;
     expect(query.get('client_documents.client_id')).toBe(`eq.${clientId}`);
     expect(query.get('client_documents.type_key')).toBe('eq.own_instructions');
     expect(query.get('order')).toBe('revision.desc');
-    expect(
-      new URL(String(calls('/rest/v1/instruction_module_versions')[0]![0])).searchParams.get('id')
-    ).toBe(`in.(${annexedVersion.id})`);
+    expect(calls('/rest/v1/instruction_module_versions')[0]!.url.searchParams.get('id')).toBe(
+      `in.(${annexedVersion.id})`
+    );
 
     const { themes } = sentBody('/rest/v1/document_revisions', 0, 'PATCH').data_snapshot as {
       themes: Record<string, unknown>;
@@ -2244,8 +2244,8 @@ describe('POST /documents/{documentId}/issue', () => {
 
     expect(new Uint8Array(convertDocx.mock.calls[0]![0])).toEqual(new Uint8Array([1, 2, 3]));
     const [stored] = calls('/storage/v1/object/documents/', 'POST');
-    expect(new URL(String(stored![0])).pathname).toContain(`${documentId}/1.pdf`);
-    expect(new Headers(stored![1]?.headers).get('content-type')).toContain('application/pdf');
+    expect(stored!.url.pathname).toContain(`${documentId}/1.pdf`);
+    expect(stored!.headers.get('content-type')).toContain('application/pdf');
     const sent = sentBody('/rest/v1/rpc/issue_document_revision');
     expect(sent.p_pdf_path).toBe(`${organizationId}/${clientId}/${documentId}/1.pdf`);
     expect(sent.p_pdf_sha256).toMatch(/^[0-9a-f]{64}$/);
@@ -2274,9 +2274,9 @@ describe('POST /documents/{documentId}/issue', () => {
       annexData(0),
       annexData(1),
     ]);
-    expect(
-      new URL(String(calls('/rest/v1/instruction_module_versions')[0]![0])).searchParams.get('id')
-    ).toBe('in.(v-ladders,v-offices)');
+    expect(calls('/rest/v1/instruction_module_versions')[0]!.url.searchParams.get('id')).toBe(
+      'in.(v-ladders,v-offices)'
+    );
   });
 
   it('refuses to issue a draft whose annexed version is gone, and asks for it again', async () => {
@@ -2449,10 +2449,10 @@ describe('POST /documents/{documentId}/draft', () => {
       edited_by: user.id,
     });
     const [read] = calls('/storage/v1/object/sign/documents/', 'POST');
-    expect(String(read![0])).toContain(issued.docx_path);
+    expect(String(read!.url)).toContain(issued.docx_path);
     const [written] = calls('/storage/v1/object/documents/', 'POST');
-    expect(String(written![0])).toContain('/2.docx');
-    expect(new Uint8Array(await new Response(written![1]?.body).arrayBuffer())).toEqual(file);
+    expect(String(written!.url)).toContain('/2.docx');
+    expect(new Uint8Array(await new Response(written!.init?.body).arrayBuffer())).toEqual(file);
     expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
   });
 
@@ -2583,8 +2583,8 @@ describe('the signed copy of an issued revision', () => {
     expect(response.status).toBe(200);
     clientDocumentResponseSchema.parse(await response.json());
 
-    const [input, init] = calls('/rest/v1/document_signed_copies', 'POST')[0]!;
-    expect(new URL(String(input)).searchParams.get('on_conflict')).toBe('revision_id');
+    const { url: input, init } = calls('/rest/v1/document_signed_copies', 'POST')[0]!;
+    expect(input.searchParams.get('on_conflict')).toBe('revision_id');
     const row = JSON.parse(String(init?.body));
     expect(row).toMatchObject({
       revision_id: revisionId,
@@ -2595,7 +2595,7 @@ describe('the signed copy of an issued revision', () => {
     });
     expect(row.sha256).toMatch(/^[0-9a-f]{64}$/);
     const [written] = calls('/storage/v1/object/documents/', 'POST');
-    expect(String(written![0])).toContain('/1.signed.pdf');
+    expect(String(written!.url)).toContain('/1.signed.pdf');
     // The row is written before the file: the policies let a file in only where a row says.
     const order = fetchMock.mock.calls.map(([call]) => new URL(String(call)).pathname);
     expect(order.indexOf('/rest/v1/document_signed_copies')).toBeLessThan(
@@ -2649,11 +2649,11 @@ describe('the signed copy of an issued revision', () => {
     });
     expect((await attach()).status).toBeGreaterThanOrEqual(500);
     const [recorded] = calls('/rest/v1/document_signed_copies', 'POST');
-    const { uploaded_at: uploadedAt } = JSON.parse(String(recorded![1]?.body)) as {
+    const { uploaded_at: uploadedAt } = recorded!.body as {
       uploaded_at: string;
     };
     const [removed] = calls('/rest/v1/document_signed_copies', 'DELETE');
-    const removedWhere = new URL(String(removed![0])).searchParams;
+    const removedWhere = removed!.url.searchParams;
     expect(removedWhere.get('revision_id')).toBe(`eq.${revisionId}`);
     // A copy that came through the return link meanwhile is newer than this try, and stays.
     expect(removedWhere.get('uploaded_at')).toBe(`eq.${uploadedAt}`);
@@ -2698,7 +2698,7 @@ describe('the signed copy of an issued revision', () => {
     });
     expect((await request(`/documents/${documentId}/signed-copy`, 'DELETE')).status).toBe(204);
     const [file] = calls('/storage/v1/object/documents', 'DELETE');
-    expect(JSON.parse(String(file![1]?.body))).toEqual({ prefixes: [signedPath] });
+    expect(file!.body).toEqual({ prefixes: [signedPath] });
     expect(calls('/rest/v1/document_signed_copies', 'DELETE')).toHaveLength(1);
 
     mockUpstream({ documents: issuedDocument });
@@ -2726,9 +2726,9 @@ describe('DELETE /documents/{documentId}/draft', () => {
     const response = await remove();
     expect(response.status).toBe(204);
     const [file] = calls('/storage/v1/object/documents', 'DELETE');
-    expect(JSON.parse(String(file![1]?.body))).toEqual({ prefixes: [revisionRow.docx_path] });
+    expect(file!.body).toEqual({ prefixes: [revisionRow.docx_path] });
     const [row] = calls('/rest/v1/document_revisions', 'DELETE');
-    expect(new URL(String(row![0])).searchParams.get('id')).toBe(`eq.${revisionId}`);
+    expect(row!.url.searchParams.get('id')).toBe(`eq.${revisionId}`);
   });
 
   it('refuses when there is no draft, so an issued revision is never touched', async () => {
@@ -2771,8 +2771,8 @@ describe('PUT /documents/{documentId}/draft/file', () => {
     expect(clientDocumentResponseSchema.parse(await response.json()).document.id).toBe(documentId);
 
     const [upload] = calls('/storage/v1/object/documents/', 'POST');
-    expect(new URL(String(upload![0])).pathname).toContain(`${documentId}/1.docx`);
-    expect(new Headers(upload![1]?.headers).get('x-upsert')).toBe('true');
+    expect(upload!.url.pathname).toContain(`${documentId}/1.docx`);
+    expect(upload!.headers.get('x-upsert')).toBe('true');
     const patch = sentBody('/rest/v1/document_revisions', 0, 'PATCH');
     expect(patch.edited_by).toBe(user.id);
     expect(Date.parse(String(patch.edited_at))).not.toBeNaN();
@@ -2966,7 +2966,7 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
     expect(calls('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
     expect(sentBody('/rest/v1/document_revisions', 0, 'PATCH').edited_by).toBe(user.id);
     const [file] = calls('/storage/v1/object/documents/', 'POST');
-    expect(new Headers(file![1]?.headers).get('x-upsert')).toBe('true');
+    expect(file!.headers.get('x-upsert')).toBe('true');
   });
 
   it('starts the next draft beside an issued revision, keeping its date', async () => {
@@ -3091,7 +3091,7 @@ describe('the fire-safety set', () => {
     body: unknown = { issueDate: '2026-10-01', firstDecisionNumber: 4 }
   ) => request(`/clients/${clientId}/documents/generate${set ? `?set=${set}` : ''}`, 'POST', body);
   const searchParam = (pathname: string, name: string, index = 0, method = 'GET') =>
-    new URL(String(calls(pathname, method)[index]![0])).searchParams.get(name);
+    calls(pathname, method)[index]!.url.searchParams.get(name);
 
   it('is ready on what its documents print, whatever the occupational safety set lacks', async () => {
     mockUpstream(occupationalGaps);
@@ -4125,7 +4125,7 @@ describe('the fire-safety set', () => {
     });
     const tenEmployees = currentEmployees(10);
     const conditionalReads = () =>
-      fetchMock.mock.calls.filter(([input]) => isConditionalDocumentsRead(new URL(String(input))));
+      upstreamCalls().filter(({ url }) => isConditionalDocumentsRead(url));
     const createdDocuments = () =>
       calls('/rest/v1/client_documents', 'POST').map((_, index) =>
         sentBody('/rest/v1/client_documents', index)
@@ -4204,15 +4204,11 @@ describe('the fire-safety set', () => {
         'Potrivit evidenței instruirilor, în anul 2025 s-a efectuat: 1 instructaj periodic, în luna martie, la care au participat 1.001 angajați.',
         'În același an, potrivit rezultatelor consemnate, testul anual a fost promovat de 1 angajat.',
       ]);
-      const pages = calls('/rest/v1/training_records').map(
-        ([input]) => new URL(String(input)).searchParams
-      );
+      const pages = calls('/rest/v1/training_records').map(({ url }) => url.searchParams);
       expect(pages).toHaveLength(2);
       expect(pages[0]!.getAll('trainings.held_on')).toEqual(['gte.2025-01-01', 'lte.2025-12-31']);
       expect(pages[0]!.get('trainings.domain')).toBe('eq.su');
-      const [results] = calls('/rest/v1/test_results').map(
-        ([input]) => new URL(String(input)).searchParams
-      );
+      const [results] = calls('/rest/v1/test_results').map(({ url }) => url.searchParams);
       expect(results!.getAll('taken_on')).toEqual(['gte.2025-01-01', 'lte.2025-12-31']);
       expect(results!.get('domain')).toBe('eq.su');
     });
@@ -4297,8 +4293,8 @@ describe('the fire-safety set', () => {
         ['fire_annual_report', 2026],
         ['fire_annual_report', 2025],
       ]);
-      const years = calls('/rest/v1/training_records').map(([input]) =>
-        new URL(String(input)).searchParams.getAll('trainings.held_on')
+      const years = calls('/rest/v1/training_records').map(({ url }) =>
+        url.searchParams.getAll('trainings.held_on')
       );
       expect(years).toEqual(
         expect.arrayContaining([
@@ -4555,17 +4551,14 @@ describe('the document a change answers with', () => {
 });
 
 describe("a documentation set's tab", () => {
-  const read = (pathname: string, method = 'GET') =>
-    fetchMock.mock.calls
-      .map(([input, init]) => ({ url: new URL(String(input)), init }))
-      .filter(({ url, init }) => url.pathname === pathname && (init?.method ?? 'GET') === method);
+  const read = (pathname: string, method = 'GET') => callsTo(pathname, method);
   const ownInstructionsReads = (typeKey: string) =>
     read('/rest/v1/document_revisions').filter(
       ({ url }) => url.searchParams.get('client_documents.type_key') === `eq.${typeKey}`
     ).length;
   const questionDomains = () =>
     read('/rest/v1/rpc/active_test_questions', 'POST').map(
-      ({ init }) => (JSON.parse(String(init?.body)) as { p_domain: string }).p_domain
+      ({ body }) => (body as { p_domain: string }).p_domain
     );
   const workplaceCounts = () =>
     [...read('/rest/v1/employees', 'HEAD'), ...read('/rest/v1/employees')].filter(({ url }) =>
