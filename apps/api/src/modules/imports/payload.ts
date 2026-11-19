@@ -1,5 +1,6 @@
 import {
   assemblyPointPath,
+  clientImportValuesDiffer,
   fireEquipmentCountPath,
   fireScheduleStartFills,
   type ImportBlocker,
@@ -10,8 +11,9 @@ import {
   officeActivityPath,
   postsAfterImport,
   proposedIncluded,
-  registeredNameAsWritten,
-  registeredNameOffered,
+  registeredNameOffer,
+  registeredNameTaken,
+  resolveClientImportField,
   smokingPlacePath,
   staffCategoriesWithPosts,
   type StaffCategory,
@@ -251,13 +253,6 @@ const empty = (value: unknown) =>
   (typeof value === 'string' && value.trim() === '') ||
   (Array.isArray(value) && value.length === 0);
 
-const differs = (current: unknown, proposed: unknown) =>
-  typeof current === 'number' || typeof proposed === 'number'
-    ? Number(current) !== Number(proposed)
-    : Array.isArray(current) || Array.isArray(proposed)
-      ? foldText([current].flat().join(' ')) !== foldText([proposed].flat().join(' '))
-      : foldText(String(current)) !== foldText(String(proposed));
-
 function columnValue(column: string, value: Value | null): ColumnValue | null {
   if (value === null) return null;
   if (booleanColumns.has(column)) {
@@ -287,54 +282,30 @@ interface Resolution {
 
 /** A single value as the member decided it: a choice between own options blocks until made. */
 export function resolveField(field: Field<Value>, change: FieldChange | undefined): Resolution {
-  const none = { value: null, option: null, choice: false, changed: false, unticked: false };
-  if (change?.value !== undefined) return { ...none, value: change.value, changed: true };
-  if (change?.option !== undefined) {
-    const option = field.options[change.option];
-    return option ? { ...none, value: option.value, option: change.option, changed: true } : none;
-  }
-  const own = field.options.flatMap((option, index) =>
-    option.otherCompanyName === null ? [index] : []
-  );
-  if (own.length > 1) return { ...none, choice: true };
-  if (own.length === 1) {
-    if (change?.included === false) return { ...none, unticked: true };
-    return { ...none, value: field.options[own[0]!]!.value, option: own[0]! };
-  }
-  if (field.options.length > 0 && change?.included === true) {
-    return { ...none, value: field.options[0]!.value, option: 0, changed: true };
-  }
-  return none;
+  const { value, option, status, decision } = resolveClientImportField(field, change);
+  return {
+    value,
+    option,
+    choice: status === 'choice',
+    changed: decision === 'written' || decision === 'taken',
+    unticked: decision === 'unticked',
+  };
 }
 
-const bareCui = (value: unknown) =>
-  String(value ?? '')
-    .replace(/^RO/i, '')
-    .trim();
-
-/**
- * ANAF's name for a new client whose documents name the CUI's firm otherwise, as the review
- * preselects it: the member takes the documents' name by choosing its option.
- */
 export function anafLegalName(
   proposal: Proposal,
   changes: ImportChanges,
   registered: RegisteredCompany | null | undefined
 ): string | null {
-  if (!registered) return null;
-  const own = proposal.client.legalName.options.filter(
-    (option) => option.otherCompanyName === null
-  );
-  const written = own.map((option) => String(option.value));
-  if (!registeredNameOffered(written, registered.legalName)) return null;
   const cui = resolveField(proposal.client.cui, changes.fields['client.cui']).value;
-  if (cui === null || bareCui(cui) !== registered.cui) return null;
-  const change = changes.fields['client.legalName'];
-  if (change?.option !== undefined || change?.included === false) return null;
-  const name = registeredNameAsWritten(registered.legalName, written[0]!);
-  const picked = change?.value;
-  if (picked !== undefined && picked !== name && picked !== registered.legalName) return null;
-  return name;
+  return registeredNameTaken(
+    registeredNameOffer(
+      proposal.client.legalName,
+      changes.fields['client.legalName'],
+      cui,
+      registered
+    )
+  );
 }
 
 // `client_fire_safety` takes a smoking place only beside designated places, and a pack whose
@@ -621,7 +592,12 @@ function clientFields(ctx: PayloadContext) {
       block(path, 'choice');
       return;
     }
-    if (intoExistingClient && !empty(current) && !replace && differs(current, value)) {
+    if (
+      intoExistingClient &&
+      !empty(current) &&
+      !replace &&
+      clientImportValuesDiffer(current, value)
+    ) {
       quality[section].kept++;
     }
     if (
@@ -778,7 +754,8 @@ function workplacesOf(ctx: PayloadContext) {
         for (const field of asked) {
           if (!(field in written)) quality.suggestedValues.kept++;
           else if (empty(written[field])) quality.suggestedValues.unticked++;
-          else if (differs(item[field], written[field])) quality.suggestedValues.changed++;
+          else if (clientImportValuesDiffer(item[field], written[field]))
+            quality.suggestedValues.changed++;
           else quality.suggestedValues.kept++;
         }
       }

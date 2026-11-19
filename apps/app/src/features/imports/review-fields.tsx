@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   countOf,
+  cuiWithoutVatPrefix,
   fireSmokingPolicies,
   fireSmokingPolicyLabels,
   normalizeCui,
@@ -989,7 +990,7 @@ function ValueRow({
     registered &&
     !mismatch &&
     state.value !== null &&
-    sameValue(registered.cui, String(state.value).replace(/^RO/i, ''));
+    sameValue(registered.cui, cuiWithoutVatPrefix(state.value));
   const edited = state.edited && !spelling?.keptWritten;
   const unticked = state.status === 'unticked';
   const ownValue = state.own.length > 0;
