@@ -41,6 +41,10 @@ export const legalActsSchema = z.object({
 
 export type LegalAct = z.infer<typeof legalActsSchema>['acts'][number];
 
+// Structural, so that the engine's act list and an `--acts` file both pass without this package
+// depending on the engine.
+export type CheckedAct = Pick<LegalAct, 'id' | 'name' | 'title' | 'portalId'>;
+
 type ActRow = Pick<
   LegislationTables['legal_acts']['Row'],
   | 'id'
@@ -65,10 +69,10 @@ export type ChangeSeen = {
 };
 
 export type ActOutcome =
-  | { act: LegalAct; result: 'skipped' }
-  | { act: LegalAct; result: 'failed'; error: Failure }
+  | { act: CheckedAct; result: 'skipped' }
+  | { act: CheckedAct; result: 'failed'; error: Failure }
   | {
-      act: LegalAct;
+      act: CheckedAct;
       result: 'checked';
       portal: PortalAct;
       // Null when nothing newer than both the last form seen and the verified one is on the portal.
@@ -128,7 +132,7 @@ export const assessForMs = 10 * 60 * 1000;
 
 export async function checkLegislation(
   db: LegislationClient,
-  acts: LegalAct[],
+  acts: CheckedAct[],
   options: CheckOptions = {}
 ) {
   const readAct =
@@ -152,7 +156,7 @@ export async function checkLegislation(
     options.onOutcome?.(outcome);
   };
   // Read after every act is checked and assessed, so links never hold up an assessment.
-  const anchorsDueFor: { act: LegalAct; outcome: CheckedOutcome }[] = [];
+  const anchorsDueFor: { act: CheckedAct; outcome: CheckedOutcome }[] = [];
   let first = true;
   for (const act of acts) {
     const row = rows.get(act.id);
@@ -282,7 +286,7 @@ const anchorsDue = (row: ActRow, portal: PortalAct) =>
 
 // The anchors only make links; an act whose text could not be read keeps the ones it has and is
 // read again by the next run.
-async function storeAnchors(db: LegislationClient, act: LegalAct, readAnchors: AnchorReader) {
+async function storeAnchors(db: LegislationClient, act: CheckedAct, readAnchors: AnchorReader) {
   try {
     const read = await readAnchors(act.portalId!);
     const updated = await db
@@ -302,7 +306,7 @@ async function storeAnchors(db: LegislationClient, act: LegalAct, readAnchors: A
 
 async function checkAct(
   db: LegislationClient,
-  act: LegalAct,
+  act: CheckedAct,
   row: ActRow,
   portal: PortalAct
 ): Promise<Extract<ActOutcome, { result: 'checked' }>> {

@@ -25,11 +25,9 @@ const { values } = parseArgs({
   },
 });
 const cwd = process.env.INIT_CWD ?? '.';
-const { acts } = legalActsSchema.parse(
-  values.acts
-    ? JSON.parse(readFileSync(path.resolve(cwd, values.acts), 'utf8'))
-    : { acts: legalActs() }
-);
+const acts = values.acts
+  ? legalActsSchema.parse(JSON.parse(readFileSync(path.resolve(cwd, values.acts), 'utf8'))).acts
+  : legalActs();
 const only = values.only ? new Set(values.only.split(',')) : null;
 const citations = citationIndex();
 const quoted = acts.filter(

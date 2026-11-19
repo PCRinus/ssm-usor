@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { legalActsSchema } from './check';
-import { createLegislationClient } from './database';
 import { type PortalAct, PortalError } from './portal';
 import { describeRun, runInProgress, runLegislationCheck } from './run';
 import { storedRunErrorsSchema } from './stored';
+import { fakeDatabase } from './testing/fake-database';
 
 const { acts } = legalActsSchema.parse(
   JSON.parse(readFileSync(new URL('../fixtures/legal-acts.json', import.meta.url), 'utf8'))
@@ -23,19 +23,14 @@ const portalAct = (portalId: number, newest: string) =>
   }) satisfies PortalAct;
 
 function database(options: { saveActs?: boolean; startRun?: boolean } = {}) {
-  const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
-    const url = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    if (url.pathname === '/rest/v1/legal_check_runs' && method === 'POST') {
-      return options.startRun === false
+  const { db, sent } = fakeDatabase({
+    'legal_check_runs POST': () =>
+      options.startRun === false
         ? Response.json({ message: 'permission denied' }, { status: 401 })
-        : Response.json({ id: 'r1' }, { status: 201 });
-    }
-    if (url.pathname === '/rest/v1/legal_check_runs' && method === 'PATCH') {
-      return new Response(null, { status: 204 });
-    }
-    if (url.pathname === '/rest/v1/legal_acts' && method === 'POST') {
-      return options.saveActs === false
+        : Response.json({ id: 'r1' }, { status: 201 }),
+    'legal_check_runs PATCH': () => new Response(null, { status: 204 }),
+    'legal_acts POST': () =>
+      options.saveActs === false
         ? Response.json({ message: 'relation "legal_acts" does not exist' }, { status: 404 })
         : Response.json([
             {
@@ -49,29 +44,12 @@ function database(options: { saveActs?: boolean; startRun?: boolean } = {}) {
               verified_consolidated_on: null,
             },
             { id: 'omai-163-2007', last_consolidated_on: null, verified_consolidated_on: null },
-          ]);
-    }
-    if (url.pathname === '/rest/v1/legal_acts' && method === 'PATCH') {
-      return new Response(null, { status: 204 });
-    }
-    if (url.pathname === '/rest/v1/legal_changes' && method === 'POST') {
-      return Response.json([{ id: 'c1' }], { status: 201 });
-    }
-    throw new Error(`Unexpected request: ${method} ${url}`);
+          ]),
+    'legal_acts PATCH': () => new Response(null, { status: 204 }),
+    'legal_changes POST': () => Response.json([{ id: 'c1' }], { status: 201 }),
   });
-  vi.stubGlobal('fetch', fetchMock);
-  const db = createLegislationClient('https://example.supabase.co', 'sb_secret_test');
-  const runEnd = () => {
-    const call = fetchMock.mock.calls.find(
-      ([input, init]) =>
-        new URL(String(input)).pathname === '/rest/v1/legal_check_runs' && init?.method === 'PATCH'
-    );
-    return call && { url: new URL(String(call[0])), body: JSON.parse(String(call[1]?.body)) };
-  };
-  return { db, runEnd };
+  return { db, runEnd: () => sent('legal_check_runs', 'PATCH')[0] };
 }
-
-afterEach(() => vi.unstubAllGlobals());
 
 describe('a run of the check', () => {
   it('ends succeeded with what it checked, found and skipped', async () => {
@@ -187,10 +165,8 @@ describe('a run of the check', () => {
 
 describe('looking for a run in progress', () => {
   function runs(rows: { id: string; started_at: string }[]) {
-    const fetchMock = vi.fn<typeof fetch>(async () => Response.json(rows));
-    vi.stubGlobal('fetch', fetchMock);
-    const db = createLegislationClient('https://example.supabase.co', 'sb_secret_test');
-    const query = () => new URL(String(fetchMock.mock.calls[0]![0])).searchParams;
+    const { db, sent } = fakeDatabase({ 'legal_check_runs GET': () => Response.json(rows) });
+    const query = () => sent('legal_check_runs', 'GET')[0]!.url.searchParams;
     return { db, query };
   }
 

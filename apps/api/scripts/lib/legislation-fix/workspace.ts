@@ -1,130 +1,70 @@
-import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import type { LineChange } from './messages';
-
-export interface IndexedQuote {
-  manifest: string;
-  file: string;
-  paragraph: number;
-  lastParagraph: number;
-  form: 'quote' | 'reference';
-  act: string;
-  locator: string | null;
-  text: string | null;
-}
-
-interface ManifestEntry {
-  file: string;
-  title: string;
-  change: {
-    resolves?: { act: string; consolidatedOn: string } | { act: string; consolidatedOn: string }[];
-  };
-}
+import type { Citation } from '@ssm-usor/document-engine';
+import {
+  type LegalQuoteResult,
+  type PatchInput,
+  PendingChangeError,
+  releasedManifestAt,
+  replaceLegalQuote,
+} from '@ssm-usor/document-engine/legal-quote';
+import { manifestEntries } from '@ssm-usor/document-engine/template-store';
 
 export interface Templates {
-  citations(): IndexedQuote[];
+  citations(): Citation[];
   read(file: string): Uint8Array;
   titleOf(file: string): string;
   /** True when a manifest entry already names the change, merged and waiting for a release. */
   resolves(act: string, consolidatedOn: string): boolean;
 }
 
-const manifestFolders = ['', 'fire/', 'other/'];
-
 export function templatesAt(folder: URL): Templates {
-  const entries = () =>
-    manifestFolders.flatMap((prefix) =>
-      (
-        JSON.parse(readFileSync(new URL(`${prefix}manifest.json`, folder), 'utf8')) as {
-          templates: ManifestEntry[];
-        }
-      ).templates.map((entry) => ({ ...entry, file: `${prefix}${entry.file}` }))
-    );
+  const entries = () => manifestEntries(folder);
   return {
     citations: () =>
       (
         JSON.parse(readFileSync(new URL('citations.json', folder), 'utf8')) as {
-          citations: IndexedQuote[];
+          citations: Citation[];
         }
       ).citations,
     read: (file) => new Uint8Array(readFileSync(new URL(file, folder))),
-    titleOf: (file) => entries().find((entry) => entry.file === file)?.title ?? file,
+    titleOf: (file) => entries().find((entry) => entry.path === file)?.title ?? file,
     resolves: (act, consolidatedOn) =>
       entries().some((entry) => {
-        const resolves = entry.change.resolves;
-        const list = resolves === undefined ? [] : Array.isArray(resolves) ? resolves : [resolves];
-        return list.some((each) => each.act === act && each.consolidatedOn === consolidatedOn);
+        if (!entry.change) throw new Error(`${entry.path} has no change in its manifest entry.`);
+        return (entry.change.resolves ?? []).some(
+          (each) => each.act === act && each.consolidatedOn === consolidatedOn
+        );
       }),
   };
 }
 
-export interface ResolvedChange {
-  act: string;
-  consolidatedOn: string;
-}
+export type QuoteTool = (input: PatchInput) => LegalQuoteResult;
 
-export interface PatchInput {
-  citation: Pick<IndexedQuote, 'file' | 'paragraph' | 'act' | 'locator' | 'text'>;
-  changes: { old: string | null; new: string | null; unit: string }[];
-  change?: { note: string; resolves: ResolvedChange | ResolvedChange[] };
-}
-
-export type ToolResult =
-  | {
-      status: 'applied';
-      written: string[];
-      summary: {
-        file: string;
-        act: string;
-        locator: string;
-        changes: LineChange[];
-        notes: string[];
-      };
-      copies: string[];
-      markdown: string;
+// The function behind the engine's `replace-quote` command, so that the scheduled fix and a
+// person at the terminal apply a change the same way; it reads the release tags to join a
+// change not yet released.
+export const quoteToolAt =
+  (templates: URL): QuoteTool =>
+  (input) => {
+    try {
+      return replaceLegalQuote(
+        templates,
+        input,
+        releasedManifestAt(undefined, fileURLToPath(templates))
+      );
+    } catch (error) {
+      // Clipped as the command's output was: the message reaches an issue and Discord.
+      const message = (error instanceof Error ? error.message : String(error)).slice(0, 1_000);
+      if (error instanceof PendingChangeError)
+        throw new PendingChangeError(message, { cause: error });
+      throw new Error(`replace-quote failed on ${input.citation.file}: ${message}`, {
+        cause: error,
+      });
     }
-  | {
-      status: 'needs-review';
-      problems: { alineat: string | null; reason: string }[];
-      markdown: string;
-    }
-  | { status: 'nothing-to-apply'; notes: string[]; markdown: string };
-
-export class PendingChangeError extends Error {}
-
-export type QuoteTool = (input: PatchInput) => ToolResult;
-
-const engine = new URL('../../../../../packages/document-engine/', import.meta.url);
-
-// The engine's own command, so that the scheduled fix and a person at the terminal apply a
-// change the same way; it reads the release tags to join a change not yet released.
-export const replaceQuoteTool: QuoteTool = (input) => {
-  const folder = mkdtempSync(join(tmpdir(), 'legislation-fix-'));
-  try {
-    const inputPath = join(folder, 'input.json');
-    const summaryPath = join(folder, 'summary.json');
-    writeFileSync(inputPath, JSON.stringify(input));
-    const run = spawnSync(
-      process.execPath,
-      ['--import', 'tsx', 'tools/replace-legal-quote.ts', inputPath, '--summary', summaryPath],
-      { cwd: fileURLToPath(engine), encoding: 'utf8', timeout: 300_000 }
-    );
-    if (run.status !== 0 && run.status !== 3 && run.status !== 4) {
-      const output = (run.stderr || run.stdout || String(run.error)).trim().slice(0, 1_000);
-      if (output.includes('the change joined to the pending one')) {
-        throw new PendingChangeError(output);
-      }
-      throw new Error(`replace-quote failed on ${input.citation.file}: ${output}`);
-    }
-    return JSON.parse(readFileSync(summaryPath, 'utf8')) as ToolResult;
-  } finally {
-    rmSync(folder, { recursive: true, force: true });
-  }
-};
+  };
 
 export interface Git {
   /** Throws when the templates hold changes of a person's that a restore would discard. */

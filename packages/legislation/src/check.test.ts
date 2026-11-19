@@ -1,11 +1,10 @@
 import { readFileSync } from 'node:fs';
 
-import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 
 import { checkLegislation, describeOutcome, isNewer, legalActsSchema, summarize } from './check';
-import type { LegislationDatabase } from './database';
 import { type PortalAct, PortalError } from './portal';
+import { fakeDatabase } from './testing/fake-database';
 
 const { acts } = legalActsSchema.parse(
   JSON.parse(readFileSync(new URL('../fixtures/legal-acts.json', import.meta.url), 'utf8'))
@@ -32,34 +31,13 @@ type Row = {
 };
 
 function database(rows: Row[], options: { changeExists?: boolean } = {}) {
-  const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
-    const url = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    if (url.pathname === '/rest/v1/legal_acts' && method === 'POST') return Response.json(rows);
-    if (url.pathname === '/rest/v1/legal_acts' && method === 'PATCH') {
-      return new Response(null, { status: 204 });
-    }
-    if (url.pathname === '/rest/v1/legal_changes' && method === 'GET') return Response.json([]);
-    if (url.pathname === '/rest/v1/legal_changes' && method === 'POST') {
-      return Response.json(options.changeExists ? [] : [{ id: 'c1' }], { status: 201 });
-    }
-    throw new Error(`Unexpected request: ${method} ${url}`);
+  return fakeDatabase({
+    'legal_acts POST': () => Response.json(rows),
+    'legal_acts PATCH': () => new Response(null, { status: 204 }),
+    'legal_changes GET': () => Response.json([]),
+    'legal_changes POST': () =>
+      Response.json(options.changeExists ? [] : [{ id: 'c1' }], { status: 201 }),
   });
-  const db = createClient<LegislationDatabase>('https://example.supabase.co', 'sb_secret_test', {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { fetch: fetchMock },
-  });
-  const sent = (table: string, method: string) =>
-    fetchMock.mock.calls
-      .filter(([input, init]) => {
-        const url = new URL(String(input));
-        return url.pathname === `/rest/v1/${table}` && init?.method === method;
-      })
-      .map(([input, init]) => ({
-        url: new URL(String(input)),
-        body: JSON.parse(String(init?.body)),
-      }));
-  return { db, sent };
 }
 
 const row = (
@@ -254,12 +232,8 @@ describe('checking the watched acts', () => {
   });
 
   it('stops before reading any page when the acts cannot be saved', async () => {
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(Response.json({ message: 'permission denied' }, { status: 401 }));
-    const db = createClient<LegislationDatabase>('https://example.supabase.co', 'sb_secret_test', {
-      global: { fetch: fetchMock },
-      auth: { persistSession: false },
+    const { db } = fakeDatabase({
+      'legal_acts POST': () => Response.json({ message: 'permission denied' }, { status: 401 }),
     });
     const readAct = vi.fn();
     await expect(checkLegislation(db, acts, { readAct, pauseMs: 0 })).rejects.toThrow(

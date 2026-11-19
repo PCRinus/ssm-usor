@@ -16,6 +16,7 @@ import {
   type TrainingSource,
 } from '@ssm-usor/contracts';
 
+import { fileNameWords } from '../../lib/content-disposition';
 import { countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
 import { printedDate } from '../documents/context';
 import { gapRules } from '../documents/gaps';
@@ -551,11 +552,6 @@ export function trainingSheetFileName(
   domain: TrainingDomain,
   employee: Pick<TrainingSheetFacts['employee'], 'lastName' | 'firstName'>
 ) {
-  const words = `${employee.lastName} ${employee.firstName}`
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .map((word) => word[0]!.toUpperCase() + word.slice(1).toLowerCase());
+  const words = fileNameWords(`${employee.lastName} ${employee.firstName}`);
   return `Fisa-${trainingDomainLabels[domain]}-${words.join('-')}.pdf`;
 }
