@@ -969,6 +969,14 @@ export async function openDocumentSection(page: Page, number: string) {
   await expect(entry).toHaveAttribute('aria-current', 'true');
 }
 
+// Which documents a set holds changes often and is pinned by the API's tests; the flows pin the
+// exact count once per set and size, in documents.spec.ts and fire-safety-documents.spec.ts.
+export async function expectSetGenerated(page: Page) {
+  await expect(page.getByText(/^Au fost generate \d+ (de )?documente\.$/)).toBeVisible({
+    timeout: 30_000,
+  });
+}
+
 // Past the login form, which password.spec.ts and registration.spec.ts test.
 export async function signIn(page: Page, email: string, path = '/dashboard') {
   const session = await sessionOf(email);

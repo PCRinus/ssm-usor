@@ -6,6 +6,7 @@ import {
   createAccount,
   createClientCompany,
   createOrganization,
+  expectSetGenerated,
   openDocumentSection,
   signIn,
 } from './support';
@@ -120,9 +121,7 @@ test('an occupational safety module is written from its guided template, saved i
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible({
-    timeout: 30_000,
-  });
+  await expectSetGenerated(page);
   await openDocumentSection(page, '3');
   await expect(page.getByTestId('document-annex-title')).toHaveText([
     'Anexa 1: I.P.S.S.M. Polizor unghiular',
