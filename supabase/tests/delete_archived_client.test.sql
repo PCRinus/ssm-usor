@@ -1,11 +1,12 @@
 begin;
-select plan(18);
+select plan(25);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), '{"provider":"email"}', '{}', now(), now()
 from (values
   ('aaaaaaaa-0000-4000-8000-000000000001', 'owner-a@example.com'),
-  ('dddddddd-0000-4000-8000-000000000001', 'ion@example.com')
+  ('dddddddd-0000-4000-8000-000000000001', 'ion@example.com'),
+  ('dddddddd-0000-4000-8000-000000000002', 'elena@example.com')
 ) as v (id, email);
 
 insert into public.organizations (id, name) values
@@ -62,6 +63,42 @@ insert into public.training_signatures (
   'ion@example.com', now(), now(), repeat('a', 64), repeat('b', 64), '01AB', '127.0.0.1', 'pgTAP',
   '5e5e5e5e-0000-4000-8000-000000000001'
 );
+
+insert into public.client_participants (id, organization_id, client_id, kind, employee_id, full_name, user_id) values
+  ('88888888-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'client_administrator', null, 'Elena Radu', 'dddddddd-0000-4000-8000-000000000002');
+
+insert into public.signing_sessions (id, account_id, place, participant_id, channel, address, code_hash, verified_at) values
+  ('5e5e5e5e-0000-4000-8000-000000000002', 'dddddddd-0000-4000-8000-000000000002', 'portal', '88888888-0000-4000-8000-000000000002', 'email', 'elena@example.com', 'hash', now());
+
+insert into public.employee_signing_agreements (employee_id, organization_id, client_id) values
+  ('e1e1e1e1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001');
+
+insert into public.signing_session_items (session_id, position, agreement_employee_id, agreement_party) values
+  ('5e5e5e5e-0000-4000-8000-000000000001', 1, 'e1e1e1e1-0000-4000-8000-000000000001', 'employee'),
+  ('5e5e5e5e-0000-4000-8000-000000000002', 0, 'e1e1e1e1-0000-4000-8000-000000000001', 'employer');
+
+create or replace function pg_temp.agreement_signature(party text, signer_name text, serial text, session text)
+returns void language sql as $$
+  insert into public.agreement_signatures (
+    organization_id, client_id, employee_id, party, signer_account_id, signer_name, channel, address,
+    code_sent_at, code_verified_at, digest_before, digest_after, certificate_serial, signing_session_id,
+    storage_path
+  )
+  select '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001',
+    party, s.account_id, signer_name, s.channel, s.address, now(), now(), repeat('a', 64), repeat('b', 64), serial, s.id,
+    '11111111-0000-4000-8000-000000000001/signing-agreements/c1c1c1c1-0000-4000-8000-000000000001/e1e1e1e1-0000-4000-8000-000000000001/v1-d.pdf'
+  from public.signing_sessions s where s.id = session::uuid;
+$$;
+
+select pg_temp.agreement_signature('employee', 'Popescu Ion', '02AB', '5e5e5e5e-0000-4000-8000-000000000001');
+select pg_temp.agreement_signature('employer', 'Radu Elena', '03AB', '5e5e5e5e-0000-4000-8000-000000000002');
+
+insert into public.signed_sheets (id, organization_id, client_id, employee_id, domain, storage_path, digest, version, row_capacity) values
+  ('5d5d5d5d-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm',
+   '11111111-0000-4000-8000-000000000001/signed-sheets/c1c1c1c1-0000-4000-8000-000000000001/e1e1e1e1-0000-4000-8000-000000000001/ssm-1/v2-c.pdf', repeat('c', 64), 2, 17);
+
+insert into public.signed_sheet_rows (signed_sheet_id, client_id, row_key, training_record_id) values
+  ('5d5d5d5d-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'p1', '7a7a7a7a-0000-4000-8000-000000000001');
 
 insert into public.test_attempts (id, organization_id, client_id, employee_id, participant_id, domain, test, questions, total, score, passed, finished_at) values
   ('a7a7a7a7-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', '88888888-0000-4000-8000-000000000001', 'ssm', 'hiring', '[{"text": "Ce?", "options": [{"text": "Da"}], "chosen": [0]}]', 1, 1, true, now());
@@ -149,6 +186,12 @@ insert into storage.objects (bucket_id, name) values
   ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000002/f0000000-0000-4000-8000-000000000002.pdf'),
   ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000002/f0000000-0000-4000-8000-000000000002.page-1.jpg');
 
+select is(
+  (select state from public.employee_signing_agreements where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001'),
+  'signed_electronically',
+  'the employee''s agreement is signed electronically by both parties'
+);
+
 update public.clients set archived_at = now()
 where id in ('c1c1c1c1-0000-4000-8000-000000000001', 'c3c3c3c3-0000-4000-8000-000000000003');
 
@@ -222,6 +265,10 @@ select is((select count(*) from public.client_files where client_id = 'c1c1c1c1-
 select is((select count(*) from public.imports where id = '10000000-0000-4000-8000-000000000001'), 0::bigint, 'its import is gone, with its files');
 select is((select count(*) from public.import_page_images where import_file_id = 'f0000000-0000-4000-8000-000000000002'), 0::bigint, 'its employee import is gone, with the pages it split a PDF into');
 select is((select count(*) from public.signing_sessions where id = '5e5e5e5e-0000-4000-8000-000000000001'), 0::bigint, 'its participants'' signing sessions are gone');
+select is((select count(*) from public.agreement_signatures where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its agreement signatures are gone');
+select is((select count(*) from public.employee_signing_agreements where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its agreements signed electronically are gone');
+select is((select count(*) from public.signed_sheets where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its signed sheets are gone');
+select is((select count(*) from public.signed_sheet_rows where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'with their rows');
 
 select is(
   (select count(*) from public.employees where client_id = 'c1c1c1c1-0000-4000-8000-000000000002')
@@ -245,6 +292,20 @@ select is(
 select ok(
   exists (select 1 from storage.objects where bucket_id = 'documents' and name like '%/c1c1c1c1-0000-4000-8000-000000000001/%'),
   'the objects stay for the API to remove through Storage'
+);
+
+-- The signer's identity outlives the client and goes with the account: the end-to-end flows
+-- delete their accounts last and rely on it.
+insert into public.signing_identities (account_id, subject_name, certificate_pem, certificate_serial, private_key_encrypted, not_before, not_after) values
+  ('dddddddd-0000-4000-8000-000000000001', 'Popescu Ion', 'PEM', '01AB', '\x00', now(), now() + interval '2 years');
+select lives_ok(
+  $$ delete from auth.users where id = 'dddddddd-0000-4000-8000-000000000001' $$,
+  'once the client is gone, its signer''s account is deleted'
+);
+select is(
+  (select count(*) from public.signing_identities where account_id = 'dddddddd-0000-4000-8000-000000000001'),
+  0::bigint,
+  'with its signing identity'
 );
 
 select * from finish();
