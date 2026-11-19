@@ -117,7 +117,10 @@ export const generateClientDocumentsRoute = createRoute({
     },
     400: { description: 'Invalid path or body', content: errorContent },
     404: clientNotFoundResponse,
-    409: { description: 'Data is missing, or the client is archived', content: errorContent },
+    409: {
+      description: 'Data is missing, or the client is archived (reason `client_archived`)',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });
@@ -261,7 +264,8 @@ export const regenerateDocumentRoute = createRoute({
     400: { description: 'Invalid path or body', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'Data is missing, the client is archived, or the type has no template',
+      description:
+        'Data is missing, the client is archived (reason `client_archived`), or the type has no template',
       content: errorContent,
     },
     ...membershipErrors,
@@ -323,7 +327,7 @@ export const startDocumentDraftRoute = createRoute({
     404: noSuchDocument,
     409: {
       description:
-        'The document already has a draft (`draft_exists`), has nothing issued, or its client is archived',
+        'The document already has a draft (`draft_exists`), has nothing issued, or its client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -441,7 +445,8 @@ export const attachDocumentSignedCopyRoute = createRoute({
     400: { description: 'Invalid path, or not a PDF', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'Nothing is issued (`not_issued`), or the client is archived',
+      description:
+        'Nothing is issued (`not_issued`), or the client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -466,7 +471,8 @@ export const confirmDocumentSignedCopyRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'There is no received copy (`no_received_copy`), or the client is archived',
+      description:
+        'There is no received copy (`no_received_copy`), or the client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -486,7 +492,7 @@ export const removeDocumentSignedCopyRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'There is no signed copy, or the client is archived',
+      description: 'There is no signed copy, or the client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -519,7 +525,8 @@ export const uploadClientDocumentRoute = createRoute({
     400: { description: 'Invalid path, or not a Word document', content: errorContent },
     404: clientNotFoundResponse,
     409: {
-      description: 'The client is archived, or the document has to be generated first',
+      description:
+        'The client is archived (reason `client_archived`), or the document has to be generated first',
       content: errorContent,
     },
     ...membershipErrors,

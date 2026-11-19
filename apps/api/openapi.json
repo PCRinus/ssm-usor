@@ -43169,7 +43169,7 @@
             }
           },
           "409": {
-            "description": "Data is missing, or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "Data is missing, or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43773,7 +43773,7 @@
             }
           },
           "409": {
-            "description": "Data is missing, the client is archived, or the type has no template; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "Data is missing, the client is archived (reason `client_archived`), or the type has no template; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43993,7 +43993,7 @@
             }
           },
           "409": {
-            "description": "The document already has a draft (`draft_exists`), has nothing issued, or its client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The document already has a draft (`draft_exists`), has nothing issued, or its client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44437,7 +44437,7 @@
             }
           },
           "409": {
-            "description": "Nothing is issued (`not_issued`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "Nothing is issued (`not_issued`), or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44532,7 +44532,7 @@
             }
           },
           "409": {
-            "description": "There is no signed copy, or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "There is no signed copy, or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44637,7 +44637,7 @@
             }
           },
           "409": {
-            "description": "There is no received copy (`no_received_copy`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "There is no received copy (`no_received_copy`), or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44823,7 +44823,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or the document has to be generated first; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), or the document has to be generated first; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
