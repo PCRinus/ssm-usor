@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { type ReactNode, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -12,7 +13,6 @@ import {
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
 import type { ContractFocus } from '@/features/missing-data/focus';

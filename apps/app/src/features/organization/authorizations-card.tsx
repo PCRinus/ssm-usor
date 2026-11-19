@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -17,7 +18,6 @@ import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { sheetPadding } from '@/components/page-spacing';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { type AuthorizationsFocus, useFocusRequest } from '@/features/missing-data/focus';

@@ -7,13 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useState } from 'react';
 
 import { useUpdateInstructionModule } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
-import { Notice } from '@/components/notice';
 import { commonFailure } from '@/lib/api-errors';
 
 import {

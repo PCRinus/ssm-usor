@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -8,7 +9,6 @@ import type { ImportDetail } from '@/api/generated/api';
 import { keepOpener } from '@/app/opener';
 import { TitleWithBack } from '@/components/back-link';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 
 import { ImportActionBar } from './import-action-bar';
 import { ImportOverviewBack } from './import-back';

@@ -3,11 +3,12 @@ import {
   type BillingChoice,
   type BillingInterval,
   type CancellationReason,
-  countOf,
   formatCount,
   type PaidPlan,
   planStep,
 } from '@ssm-usor/contracts';
+
+import { workerNoun } from '@/features/employees/employee-format';
 
 /** "39 €", "83,49 €", "2.468,40 €". */
 export function formatEuro(cents: number) {
@@ -16,8 +17,6 @@ export function formatEuro(cents: number) {
   const text = formatCount(whole) + (rest ? `,${String(rest).padStart(2, '0')}` : '');
   return `${cents < 0 ? '-' : ''}${text} €`;
 }
-
-export const employeesLabel = (count: number) => countOf(count, 'lucrător', 'lucrători');
 
 export const shortPlanNames: Record<PaidPlan, string> = {
   start: 'Start',
@@ -40,7 +39,7 @@ export interface PriceLine {
 }
 
 /** "până la 500 de lucrători". */
-export const stepLabel = (step: number) => `până la ${employeesLabel(step)}`;
+export const stepLabel = (step: number) => `până la ${workerNoun(step)}`;
 
 export const priceOf = (choice: BillingChoice) =>
   planStep(choice.plan, choice.step)?.prices[choice.interval].unitAmount ?? 0;

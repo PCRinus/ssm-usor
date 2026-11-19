@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
@@ -12,7 +13,6 @@ import {
 import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { FormActions, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import { commonFailure } from '@/lib/api-errors';

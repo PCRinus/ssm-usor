@@ -1,4 +1,3 @@
-import type { TrainingTrainer } from '@ssm-usor/contracts';
 import type { ReactNode } from 'react';
 
 import { Masked } from '@/components/replay';
@@ -7,24 +6,6 @@ import { formatDuration, notOnSheet } from './training-format';
 
 export function NotOnSheet({ children }: { children: ReactNode }) {
   return <span data-testid="not-on-sheet">{children}</span>;
-}
-
-export function TrainerName({ trainer }: { trainer: TrainingTrainer }) {
-  const jobTitle = trainer.jobTitle ? `, ${trainer.jobTitle}` : '';
-  if (trainer.name === null) {
-    return (
-      <>
-        <NotOnSheet>{notOnSheet.name}</NotOnSheet>
-        {jobTitle}
-      </>
-    );
-  }
-  return (
-    <>
-      <Masked>{trainer.name}</Masked>
-      {jobTitle}
-    </>
-  );
 }
 
 export function PersonWithTitle({ person }: { person: { name: string; jobTitle: string } }) {

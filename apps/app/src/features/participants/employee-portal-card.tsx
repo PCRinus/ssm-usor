@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Send } from 'lucide-react';
 import { useState } from 'react';
@@ -6,7 +7,6 @@ import { useState } from 'react';
 import { getGetEmployeeParticipantQueryKey, useGetEmployeeParticipant } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { Fact, FactList, SectionCard } from '@/components/section-card';
 import { AgreementWarning } from '@/features/signatures/agreement-warning';
 import { useSigningAgreement } from '@/features/signatures/use-signing-agreement';

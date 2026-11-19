@@ -5,6 +5,7 @@ import {
   formatEmployeeName,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { Link } from '@tanstack/react-router';
 import { Plus, Send, UsersRound } from 'lucide-react';
@@ -19,7 +20,6 @@ import { ListActions, ListCardHeader, ListCount } from '@/components/list-card-h
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import { PendingCountLabel } from '@/components/list-filters/pending-count-label';
-import { Notice } from '@/components/notice';
 import { SearchInput } from '@/components/search-input';
 import { workerNoun } from '@/features/employees/employee-format';
 import { WorkersCount, WorkersListError, WorkersNoMatch } from '@/features/employees/workers-list';

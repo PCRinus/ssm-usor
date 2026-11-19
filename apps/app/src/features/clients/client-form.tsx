@@ -1,6 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Link } from '@tanstack/react-router';
 import type { ComponentProps } from 'react';
 
@@ -10,7 +11,6 @@ import { BackLink, TitleWithBack } from '@/components/back-link';
 import { describedBy } from '@/components/described-by';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
-import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 
 import {

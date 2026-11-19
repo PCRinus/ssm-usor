@@ -1,5 +1,6 @@
 import { fileAddress } from '@ssm-usor/api-http/file-link';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useQuery } from '@tanstack/react-query';
 import { getRouteApi } from '@tanstack/react-router';
 import { type MouseEvent, type ReactNode, useEffect, useRef, useState } from 'react';
@@ -13,7 +14,6 @@ import {
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { PublicFrame } from '@/app/public-frame';
-import { Notice } from '@/components/notice';
 import { formatRoDate } from '@/lib/dates';
 
 const contractReturnRoute = getRouteApi('/contract');

@@ -46,6 +46,7 @@ import { listFilterSearch } from '@/components/list-filters/url';
 import { useListSearch } from '@/components/list-filters/use-list-search';
 import { Masked } from '@/components/replay';
 import { SearchInput } from '@/components/search-input';
+import { workerNoun } from '@/features/employees/employee-format';
 import { useEveryClient } from '@/features/employees/worker-filters';
 import { WorkersListError } from '@/features/employees/workers-list';
 
@@ -55,7 +56,6 @@ import {
   signAsPhrase,
   signatureColumns,
   signatureNoun,
-  workerNoun,
   workerTab,
 } from './signature-list-columns';
 import {

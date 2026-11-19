@@ -7,6 +7,7 @@ import {
   selfServeLimits,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link } from '@tanstack/react-router';
@@ -21,12 +22,12 @@ import {
 import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
+import { workerNoun } from '@/features/employees/employee-format';
 import { formatRoDate } from '@/lib/dates';
 
 import { billingErrorMessage } from './billing-errors';
-import { addDays, cardBrand, employeesLabel, formatEuro } from './billing-format';
+import { addDays, cardBrand, formatEuro } from './billing-format';
 import { BillingCard } from './billing-ui';
 import { CancelDialog } from './cancel-dialog';
 import { ChangeDialog } from './change-dialog';
@@ -387,7 +388,7 @@ function noticeFor(
           {over?.blocked
             ? 'De mai bine de o lună ai mai mulți lucrători decât treapta ta. Acum ai '
             : 'Ai '}
-          {employeesLabel(employees.used)} la clienți, cu{' '}
+          {workerNoun(employees.used)} la clienți, cu{' '}
           {formatCount(employees.used - employees.limit)} peste treapta ta, de{' '}
           {formatCount(employees.limit)}. Lucrezi mai departe cu tot ce ai
           {over?.blocked
@@ -397,7 +398,7 @@ function noticeFor(
               : '.'}
           {next
             ? ` ${nextStepSentence(choice, next)}`
-            : ` Peste ${employeesLabel(selfServeLimits.employees)}, scrie-ne pentru o ofertă, la ${contactEmail}.`}
+            : ` Peste ${workerNoun(selfServeLimits.employees)}, scrie-ne pentru o ofertă, la ${contactEmail}.`}
         </Notice>
       );
     }

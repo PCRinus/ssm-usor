@@ -1,6 +1,7 @@
 import { fireInstallationKindLabels } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link } from '@tanstack/react-router';
@@ -28,7 +29,6 @@ import { keepOpener } from '@/app/opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { type FireSafetyMeansFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { commonFailure } from '@/lib/api-errors';
 

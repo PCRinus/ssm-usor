@@ -1,3 +1,4 @@
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LoaderCircle } from 'lucide-react';
@@ -14,7 +15,6 @@ import {
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
-import { Notice } from '@/components/notice';
 
 import { importErrorMessage } from '../import-format';
 import { sourceQuery, viewerChunks } from '../source-query';

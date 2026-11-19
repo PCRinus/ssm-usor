@@ -49,14 +49,6 @@ export type Changes = {
   pages: Record<string, { personId: string | null }>;
 };
 
-export const emptyChanges = (): Changes => ({
-  people: {},
-  jobTitles: {},
-  workplaces: {},
-  rows: {},
-  pages: {},
-});
-
 export function changesOf(stored: EmployeeImportReviewChanges | undefined): Changes {
   return {
     people: stored?.people ?? {},

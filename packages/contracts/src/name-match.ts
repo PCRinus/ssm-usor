@@ -6,6 +6,7 @@ import {
   spellingKey,
   withoutInsideForms,
 } from './legal-forms';
+import { capitalized } from './romanian';
 
 export { namesCompany } from './legal-forms';
 
@@ -105,6 +106,6 @@ export function registeredNameAsWritten(registered: string, documents: string) {
     const asWritten = written.get(foldWord(word));
     if (asWritten) return asWritten;
     const formWord = lowered && allCapitals(word) ? formWordAsWritten(word) : undefined;
-    return formWord ? formWord.charAt(0).toUpperCase() + formWord.slice(1) : word;
+    return formWord ? capitalized(formWord) : word;
   });
 }

@@ -375,8 +375,8 @@ under a second together, in about 85 MB of memory.
 
 `apps/api/src/lib/signer.ts` picks it as `pdf.ts` picks the converter: `createSigner` returns
 the `SIGNER` binding (the same `Pdf` entrypoint) where `PDF_CONVERSION=service`, else the
-signer at `SIGNER_URL`, else nothing, and `requireSigner` answers `503` with the reason
-`signer_unavailable`. Any failure of a method answers the same.
+signer at `SIGNER_URL`, else nothing; a signing step that finds none answers `503` with the
+reason `signer_unavailable`. Any failure of a method answers the same.
 
 Locally, `pnpm dev:pdf` starts the signer beside Gotenberg, from the same Dockerfile, on port 3301. Set `SIGNER_URL=http://localhost:3301` in `apps/api/.dev.vars` and restart `pnpm dev`. Both
 containers publish their ports on 127.0.0.1 only: they take any document they are handed,

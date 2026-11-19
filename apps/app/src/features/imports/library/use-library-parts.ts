@@ -202,8 +202,6 @@ export function useLibraryReview(importId: string, part: LibraryPart) {
   };
 }
 
-export type LibraryReview = ReturnType<typeof useLibraryReview>;
-
 export function useRiskReview(importId: string, part: RisksPart) {
   const stores = useChangesStores();
   const key = partKey(importId, part);
@@ -225,5 +223,3 @@ export function useRiskReview(importId: string, part: RisksPart) {
     forget: () => stores.forget(key),
   };
 }
-
-export type RiskReview = ReturnType<typeof useRiskReview>;

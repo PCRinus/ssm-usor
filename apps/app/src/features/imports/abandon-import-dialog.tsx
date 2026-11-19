@@ -7,13 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { abandonImport, getGetImportQueryKey, getListImportsQueryKey } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
-import { Notice } from '@/components/notice';
 
 import { importErrorMessage } from './import-format';
 

@@ -143,7 +143,7 @@ The portal refuses requests from Cloudflare's and GitHub's networks while it ans
 - `packages/contracts` contains schemas, identifiers, API payloads, and generated or hand-maintained client types. It cannot import database or Node-only code.
 - `packages/design-tokens` is framework-neutral.
 - `packages/ui` contains React primitives only when both a React island and the dashboard actually reuse them. Astro-native marketing components stay in `apps/marketing`.
-- `packages/database` and `packages/document-engine` are server-only and must expose deliberate public entry points.
+- `packages/document-engine` is server-only, apart from the `token-diff` and `signing` subpaths the app and the admin app import, and must expose deliberate public entry points.
 - Applications communicate through API contracts, not by importing another application's internal modules.
 - Workspace dependencies use pnpm's `workspace:` protocol so a missing local package fails explicitly rather than silently resolving from a registry.
 

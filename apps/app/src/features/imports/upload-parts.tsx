@@ -1,10 +1,9 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { FileX, FolderUp, Image as ImageIcon, LoaderCircle, Upload } from 'lucide-react';
 import { type ReactNode, useRef } from 'react';
-
-import { Notice } from '@/components/notice';
 
 import { filesLabel, formatFileSize } from './import-format';
 import { pickedFromInput } from './picked-files';

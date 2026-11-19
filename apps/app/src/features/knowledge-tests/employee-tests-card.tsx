@@ -8,6 +8,7 @@ import {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { FilePen, Pencil } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
@@ -19,7 +20,6 @@ import {
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
 import { notOnSheet } from '@/features/trainings/training-format';

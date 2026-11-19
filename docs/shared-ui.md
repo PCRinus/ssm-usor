@@ -93,8 +93,8 @@ tinted alert colours its own description; the registry's muted grey washes out o
 ## Messages inside a page
 
 The dashboard, the portal and the admin app show every in-page message through `Notice`
-(`@ssm-usor/ui/components/notice`; the app re-exports it as `@/components/notice`), not through
-`Alert` directly and not through a bordered paragraph:
+(`@ssm-usor/ui/components/notice`), not through `Alert` directly and not through a bordered
+paragraph:
 
 ```tsx
 <Notice variant="warning" title="Client arhivat" action={<Button …>Reactivează…</Button>}>

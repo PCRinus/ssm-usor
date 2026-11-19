@@ -59,8 +59,6 @@ export type Changes = ImportChanges;
 export type FieldChange = Changes['fields'][string];
 export type ItemChange = Changes['items'][string];
 
-export const noChanges: Changes = { fields: {}, items: {} };
-
 export const sectionIds = [
   'identity',
   'workplaces',

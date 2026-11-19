@@ -1,9 +1,9 @@
+import { saveFile } from '@ssm-usor/ui/lib/save-file';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useState } from 'react';
 
 import { getDocumentDownload, printDocument } from '@/api/generated/api';
 import { apiErrorReason, type ApiRequestOptions } from '@/api/http';
-import { saveFile } from '@/lib/save-file';
 
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 

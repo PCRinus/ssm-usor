@@ -1,17 +1,18 @@
 import {
+  clientConflictReasons,
   importCredits,
   type ReadSafetySheetResponse,
   safetySheetErrorReasons,
   safetySheetLimits,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { FileText, LoaderCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { getGetMeQueryKey, getReadSafetySheetUrl } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError, apiUpload } from '@/api/http';
 import { useApi } from '@/api/use-api';
-import { Notice } from '@/components/notice';
 import { CreditsLine } from '@/features/imports/credits-notices';
 import { creditsDay, creditsLabel, creditsRefusal } from '@/features/imports/import-credits';
 import { useCreditsBalance } from '@/features/imports/use-credits-balance';
@@ -55,7 +56,7 @@ function failureMessage(cause: unknown) {
       ? `Nu mai ai credite AI${until}.`
       : `Nu ajung creditele AI: citirea fișei folosește ${creditsLabel(cost)}, iar ${left === 1 ? 'îți mai rămâne' : 'îți mai rămân'} ${left}${until}.`;
   }
-  if (reason === 'client_archived') return 'Clientul este arhivat.';
+  if (reason === clientConflictReasons.clientArchived) return 'Clientul este arhivat.';
   return `Nu am putut citi fișa acum. Încearcă din nou peste câteva minute.${credits}`;
 }
 

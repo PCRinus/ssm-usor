@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { type ErrorComponentProps, Link, useNavigate } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -8,7 +9,6 @@ import { useApi } from '@/api/use-api';
 import { NotFound, RouteError } from '@/app/route-states';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 import { RiskFactorsCard } from '@/features/risk-evaluations/risk-factors-card';
 import { RiskResultCard } from '@/features/risk-evaluations/risk-result-card';
 import { useFactorListView } from '@/features/risk-evaluations/use-factor-list-view';

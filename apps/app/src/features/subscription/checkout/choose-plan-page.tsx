@@ -1,16 +1,16 @@
 import type { BillingChoice, BillingOverview } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { lazy, type ReactNode, Suspense, useState } from 'react';
 
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
+import { workerNoun } from '@/features/employees/employee-format';
 
 import { billingErrorMessage, problemMessage } from '../billing-errors';
-import { employeesLabel } from '../billing-format';
 import { ChangeDialog } from '../change-dialog';
 import { contactEmail } from '../subscription-copy';
 import {
@@ -172,7 +172,7 @@ function ChoosePlanForm({
           {mode === 'change' ? 'Schimbă planul' : 'Alege planul'}
         </h1>
         <p className="text-[15px] leading-relaxed text-muted-foreground">
-          Ai {employeesLabel(employees)} la clienți și{' '}
+          Ai {workerNoun(employees)} la clienți și{' '}
           {members === 1 ? 'un utilizator' : `${members} utilizatori`}. Prețurile sunt fără TVA.
         </p>
       </div>

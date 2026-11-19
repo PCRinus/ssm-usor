@@ -1,5 +1,6 @@
 import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
@@ -19,7 +20,6 @@ import { replayMask } from '@/app/observability/replay-masking';
 import { keepOpener, openedHere } from '@/app/opener';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { BackLink, TitleWithBack } from '@/components/back-link';
-import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { CurrentClientFact } from '@/features/clients/client-fact';
 

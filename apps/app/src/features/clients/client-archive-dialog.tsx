@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueries } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
@@ -22,7 +23,6 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
-import { Notice } from '@/components/notice';
 import { setParams } from '@/features/documents/document-sets';
 import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 import {

@@ -7,9 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { type ReactNode, useState } from 'react';
-
-import { Notice } from '@/components/notice';
 
 // Closing while the action runs would lose the failure message the caller shows here.
 export function ConfirmDialog({

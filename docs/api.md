@@ -327,9 +327,10 @@ Each client of `GET /clients` also says what is left to do, from the view `clien
 read (no request and no query per row): `documentation` for the occupational safety set and
 `fireSafetyDocumentation` for the fire-safety set, each with `state` (`none` while no document
 of the set has a revision, `issued` when every document that applies has an issued revision,
-`in_progress` otherwise), `issuedCount`, `totalCount` and `lastGeneratedAt`. The total is
-`documentationProgress` in `modules/documents/context.ts`, counted over what the set's tab
-lists: the built-in documents that apply, plus any other document the set holds. In the
+`in_progress` otherwise), `issuedCount`, `totalCount` and `lastGeneratedAt`. The view counts the
+total over what the set's tab lists: the built-in documents that apply, plus any other document
+the set holds; `modules/clients/built-in-documents.test.ts` holds its lists of built-in documents
+to the contracts. In the
 occupational safety set, decision 1.5 applies from 10 current employees or once it has a
 revision, and training themes waiting for generated own instructions count as not done; in the
 fire-safety set, decisions 8 and 9 and the installation register apply the same way (ADR 020),
@@ -3018,7 +3019,7 @@ today's reading and compares each with what the member confirmed, after an estim
 | Route                                                   | Answer                                                                                                                                                                                                                                                                              |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /admin/legislation/changes`                        | `{ items }`, newest seen first, not paginated; `status` (`open` or `resolved`), `outcome` (an outcome or `unassessed`); `400` for an unknown filter                                                                                                                                 |
-| `GET /admin/legislation/changes/{id}`                   | The change with `amendedUnits`, `review`, `passages`, `resolvingVersion`, `candidateVersions`, `awaitingAssessment` and `olderOpenChanges`; `404` for a change that does not exist or an id that is not a UUID                                                                      |
+| `GET /admin/legislation/changes/{id}`                   | The change with `amendedUnits`, `review`, `passages`, `resolvingVersions`, `candidateVersions`, `awaitingAssessment` and `olderOpenChanges`; `404` for a change that does not exist or an id that is not a UUID                                                                     |
 | `POST /admin/legislation/changes/{id}/no-impact`        | The change read again, after `admin_resolve_legal_change_no_impact` with `{ note }`; `400` for a note not of 2 to 500 characters, `404`, `409 legal_change_not_open`, `422 change_not_assessed`, `422 older_change_open`                                                            |
 | `POST /admin/legislation/changes/{id}/template-version` | The change read again, after `admin_link_legal_change` with `{ templateVersionId }`; `400`, `404`, `409 legal_change_not_open`, `422 template_version_cannot_answer`, `422 change_not_assessed`, `422 older_change_open`                                                            |
 | `GET /admin/legislation/acts`                           | `{ items }`, the watched acts by name, each as the members' list has it plus `openChanges`                                                                                                                                                                                          |
@@ -3031,7 +3032,7 @@ actions), `amendingActs` (`name`, `adoptedOn`, `portalId`), `resolution`, `resol
 `resolvedByNote` and `passageCount`. The detail adds `amendedUnits` (`unit`, `subject`,
 `operation`, `date`, `amendingAct`), `review` (English, for the admin only), `passages` as the
 members' list has them plus `manifest`, `typeKey`, `paragraph` and `article`, in template order,
-`resolvingVersion`, the version whose `resolves_legal_change_id` names it, and, while it is open,
+`resolvingVersions`, the versions whose `resolves_legal_change_id` names it, and, while it is open,
 `candidateVersions`: the built-in versions of the types its passages name, registered after it was
 seen, not `layout`, with a note and answering no other change, newest first. A version is `{ id,
 typeKey, title, version, kind, note, createdAt }`. `awaitingAssessment` is true while the change

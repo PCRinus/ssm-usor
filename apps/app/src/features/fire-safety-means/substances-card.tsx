@@ -1,6 +1,7 @@
 import { type FireSubstancesState, missingSubstanceEssentials } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   Table,
@@ -26,7 +27,6 @@ import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { RowActionsMenu } from '@/components/row-actions-menu';
 import { SectionCard } from '@/components/section-card';
 import { warningBadge } from '@/features/documents/pack-styles';

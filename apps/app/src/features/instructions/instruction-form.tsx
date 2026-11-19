@@ -6,6 +6,8 @@ import {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
+import { saveFile } from '@ssm-usor/ui/lib/save-file';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useBlocker, useLocation, useNavigate } from '@tanstack/react-router';
 import { ClipboardPaste, Download, Eye, Pencil } from 'lucide-react';
@@ -25,10 +27,8 @@ import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 import { keptFieldNames } from '@/features/reload-prompts/kept-text';
 import { commonFailure } from '@/lib/api-errors';
-import { saveFile } from '@/lib/save-file';
 
 import { ClientNamedNotice } from './client-named-notice';
 import { InstructionBlocks } from './instruction-blocks';

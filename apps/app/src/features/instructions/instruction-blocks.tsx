@@ -24,6 +24,7 @@ import {
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { toast } from '@ssm-usor/ui/lib/toast';
@@ -51,7 +52,6 @@ import {
 } from 'react';
 
 import { replayShow } from '@/app/observability/replay-masking';
-import { Notice } from '@/components/notice';
 import { scrollAndPoint } from '@/features/missing-data/focus';
 
 import {

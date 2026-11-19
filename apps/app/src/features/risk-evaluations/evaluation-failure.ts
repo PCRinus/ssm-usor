@@ -1,4 +1,4 @@
-import type { RiskEvaluationErrorReason } from '@ssm-usor/contracts';
+import { clientConflictReasons, type RiskEvaluationErrorReason } from '@ssm-usor/contracts';
 
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { commonFailure } from '@/lib/api-errors';
@@ -18,7 +18,7 @@ export function evaluationFailure(cause: unknown, fallback: string) {
   if (reason === 'sensitive_groups_evaluated') {
     return 'Grupurile sensibile au deja o fișă de evaluare a riscurilor; reîncarcă pagina ca s-o vezi.';
   }
-  if (reason === 'client_archived') {
+  if (reason === clientConflictReasons.clientArchived) {
     return 'Clientul este arhivat; fișele lui de evaluare a riscurilor nu se mai schimbă.';
   }
   if (cause.status === 404) return 'Fișa sau factorul nu mai există la acest client.';

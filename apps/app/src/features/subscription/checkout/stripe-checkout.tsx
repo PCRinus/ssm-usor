@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import type { StripeElementsOptions } from '@stripe/stripe-js';
@@ -7,7 +8,6 @@ import { type ReactNode, useState } from 'react';
 import { createSubscription, getBilling } from '@/api/generated/api';
 import { apiErrorReason, type ApiRequestOptions } from '@/api/http';
 import { useApi } from '@/api/use-api';
-import { Notice } from '@/components/notice';
 
 import { billingErrorMessage } from '../billing-errors';
 import { choiceAmounts, shortPlanNames } from '../billing-format';

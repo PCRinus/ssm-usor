@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
@@ -11,7 +12,6 @@ import {
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { commonFailure } from '@/lib/api-errors';
 

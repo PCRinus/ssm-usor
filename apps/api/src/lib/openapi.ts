@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { apiErrorResponseSchema } from '@ssm-usor/contracts';
+import { apiErrorResponseSchema, capitalized } from '@ssm-usor/contracts';
 
 export const errorContent = {
   'application/json': { schema: apiErrorResponseSchema.meta({ id: 'ApiErrorResponse' }) },
@@ -75,7 +75,7 @@ function withIdentityConflict(operation: Operation): Operation {
       409: own
         ? { ...own, description: `${own.description}; or ${identityChanged}` }
         : {
-            description: identityChanged.charAt(0).toUpperCase() + identityChanged.slice(1),
+            description: capitalized(identityChanged),
             content: {
               'application/json': { schema: { $ref: '#/components/schemas/ApiErrorResponse' } },
             },

@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import {
   ChevronDown,
   ChevronUp,
@@ -22,7 +23,6 @@ import {
 import { type ReactNode, useState } from 'react';
 
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
 import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
 

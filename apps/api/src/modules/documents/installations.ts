@@ -1,4 +1,8 @@
-import { type FireInstallationKind, fireInstallationKindLabels } from '@ssm-usor/contracts';
+import {
+  capitalized,
+  type FireInstallationKind,
+  fireInstallationKindLabels,
+} from '@ssm-usor/contracts';
 
 const comparable = (text: string) =>
   text
@@ -7,8 +11,6 @@ const comparable = (text: string) =>
     .toLocaleLowerCase('ro')
     .replace(/\s+/g, ' ')
     .trim();
-
-const capitalized = (text: string) => text.charAt(0).toLocaleUpperCase('ro') + text.slice(1);
 
 /** "2 hidranți interiori Dn 50" names its kind; "Unul pe nivel" does not. */
 export function descriptionNamesKind(kind: FireInstallationKind, description: string) {

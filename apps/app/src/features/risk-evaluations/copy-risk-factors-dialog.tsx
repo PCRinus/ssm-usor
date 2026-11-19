@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useState } from 'react';
 
 import {
@@ -19,7 +20,6 @@ import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
 import { evaluationFailure } from './evaluation-failure';

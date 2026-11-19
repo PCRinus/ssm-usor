@@ -35,7 +35,7 @@ import {
   type SubscriptionRow,
 } from './store';
 import { idOf, lookupKeyOfLine, priceId, type StripeAccess, type StripeCatalogue } from './stripe';
-import { choiceOf, plainTrial, planItemOf, stateFromStripe } from './sync';
+import { plainTrial, planItemOf, stateFromStripe } from './sync';
 
 export type Billing = {
   db: AdminClient;
@@ -696,8 +696,4 @@ export async function resumeSubscription(billing: StripeBilling, row: Subscripti
     ...(subscription.cancel_at_period_end ? { cancel_at_period_end: false } : {}),
   });
   await sync(billing, row, updated, 'cancel_withdrawn');
-}
-
-export function choiceOfSubscription(subscription: Stripe.Subscription) {
-  return choiceOf(subscription)?.choice ?? null;
 }

@@ -4,6 +4,7 @@ import {
   maxAcceptableRiskLevel,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Link } from '@tanstack/react-router';
 import { ArrowRight, Plus, ShieldAlert } from 'lucide-react';
@@ -16,7 +17,6 @@ import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { Fact, FactList, SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
 import type { JobPosition } from '@/features/job-positions/job-position-schema';

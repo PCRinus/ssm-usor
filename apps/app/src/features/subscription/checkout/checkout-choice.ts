@@ -12,7 +12,9 @@ import {
   stepFor,
 } from '@ssm-usor/contracts';
 
-import { employeesLabel, formatEuro, perInterval, shortPlanNames } from '../billing-format';
+import { workerNoun } from '@/features/employees/employee-format';
+
+import { formatEuro, perInterval, shortPlanNames } from '../billing-format';
 import type { BillingOwner } from '../use-billing';
 
 /** The picker's stops, the pricing page's: every step of either plan. */
@@ -75,7 +77,7 @@ export type NextStep = NonNullable<ReturnType<typeof nextStepOf>>;
 /** "Treapta de 750 de lucrători costă 79 € + TVA pe lună." */
 export function nextStepSentence(choice: BillingChoice, next: NextStep) {
   const price = `${formatEuro(next.step.prices[choice.interval].unitAmount)} + TVA ${perInterval[choice.interval]}`;
-  const step = `treapta de ${employeesLabel(next.step.employees)}`;
+  const step = `treapta de ${workerNoun(next.step.employees)}`;
   return next.plan === choice.plan
     ? `${capitalized(step)} costă ${price}.`
     : `${shortPlanNames[next.plan]}, cu ${step}, costă ${price}.`;

@@ -1,8 +1,8 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 
 import { openedHere } from '@/app/opener';
-import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 import { clientContractFocus, focusSearch } from '@/features/missing-data/focus';

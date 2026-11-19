@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -18,7 +19,6 @@ import {
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { evaluationFailure } from '@/features/risk-evaluations/evaluation-failure';
 import {

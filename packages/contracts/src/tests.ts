@@ -39,8 +39,7 @@ export const testMinimumActiveQuestions = 10;
 export const testPassMarkPercent = 70;
 
 /** Seven of ten: a question counts only when the options chosen are exactly the correct ones. */
-export const testPassed = (score: number, total: number) =>
-  score * 100 >= total * testPassMarkPercent;
+export const testPassScore = (total: number) => Math.ceil((total * testPassMarkPercent) / 100);
 
 const testOnItsDomain = (
   value: { domain: TrainingDomain; test: KnowledgeTest },

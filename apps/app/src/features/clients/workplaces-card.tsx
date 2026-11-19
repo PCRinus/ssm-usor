@@ -1,4 +1,5 @@
 import { clientConflictReasons, noWorkplace, workplaceConflictReasons } from '@ssm-usor/contracts';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useNavigate } from '@tanstack/react-router';
@@ -21,7 +22,6 @@ import { openedHere } from '@/app/opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useFocusRequest, type WorkplacesFocus } from '@/features/missing-data/focus';
 import { commonFailure } from '@/lib/api-errors';

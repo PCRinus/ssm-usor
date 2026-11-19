@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import {
   Download,
   FilePen,
@@ -26,7 +27,6 @@ import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { FileLinkButton } from '@/components/file-link-button';
 import { FileMenuItem } from '@/components/file-menu-item';
-import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import type { Client } from '@/features/clients/client-form-schema';
 import { formatRoDate } from '@/lib/dates';

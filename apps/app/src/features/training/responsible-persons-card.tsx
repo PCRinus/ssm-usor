@@ -4,6 +4,7 @@ import {
   requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
 } from '@ssm-usor/contracts';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Fragment, type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
@@ -23,7 +24,6 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
 import { LoadFailed } from '@/components/load-failed';
 import { maskPeople } from '@/components/mask-people';
-import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { SheetAction } from '@/features/clients/details/sheet-action';
 import { useDocumentDetails } from '@/features/clients/document-details/use-document-details-form';

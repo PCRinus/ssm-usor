@@ -3,14 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 
-import { RiskConfirmBar } from './risk-confirm-bar';
 import { RiskSheetCard } from './risk-sheet-card';
 import {
-  confirmSentence,
   type LibraryName,
   type ProposedFactor,
   type RiskSheet,
-  riskSummary,
   type SheetChange,
   sheetState,
   withIncluded,
@@ -113,25 +110,21 @@ function Harness({
         onPickPosts={() => {}}
         onSource={() => {}}
       />
-      <RiskConfirmBar
-        summary={confirmSentence(riskSummary([state]))}
-        note="Poți confirma până pe 20 noiembrie."
-        error={null}
-      >
-        <button type="button">Confirmă evaluările</button>
-      </RiskConfirmBar>
+      <output data-testid="written">{state.written}</output>
+      <output data-testid="library-entry">{state.createsEntry ? state.libraryName : ''}</output>
       <output data-testid="changes">{JSON.stringify(change)}</output>
     </>
   );
 }
 
-const summary = () => screen.getByTestId('library-confirm-summary').textContent;
+const written = () => screen.getByTestId('written').textContent;
+const libraryEntry = () => screen.getByTestId('library-entry').textContent;
 const row = (description: string) =>
   screen
     .getAllByTestId('risk-import-factor')
     .find((each) => each.textContent?.includes(description))!;
 
-describe('a sheet card with the confirm bar', () => {
+describe('a sheet card', () => {
   it('goes to the library under its name, with nothing to choose', () => {
     render(<Harness />);
 
@@ -142,12 +135,11 @@ describe('a sheet card with the confirm bar', () => {
     expect(screen.queryByText('Nu adăuga')).toBeNull();
   });
 
-  it('counts one factor fewer in the bar once one is switched off, and collapses it in place', async () => {
+  it('counts one factor fewer once one is switched off, and collapses it in place', async () => {
     render(<Harness />);
     await userEvent.click(screen.getByTestId('risk-import-show-factors'));
-    expect(summary()).toContain(
-      'Când confirmi, adăugăm „Analist programator” în bibliotecă, cu 6 factori, și îi scriem pe fișa postului „Analist programator”.'
-    );
+    expect(libraryEntry()).toBe('Analist programator');
+    expect(written()).toBe('6');
     expect(screen.getByTestId('risk-import-factors-row').textContent).toContain(
       'Un factor oprit nu intră nici în bibliotecă, nici pe fișa postului.'
     );
@@ -161,7 +153,7 @@ describe('a sheet card with the confirm bar', () => {
       })
     );
 
-    expect(summary()).toContain('cu 5 factori');
+    expect(written()).toBe('5');
     const collapsed = row('Curenți de aer');
     expect(collapsed.textContent).toBe('Curenți de aer în birouNu e inclus');
     expect(within(collapsed).queryAllByRole('button')).toHaveLength(0);
@@ -185,7 +177,7 @@ describe('a sheet card with the confirm bar', () => {
       })
     );
 
-    expect(summary()).toContain('cu 6 factori');
+    expect(written()).toBe('6');
     expect(within(row('Curenți de aer')).getByTestId('risk-import-factor-edit')).toBeTruthy();
     expect(screen.getByTestId('changes').textContent).toBe('{"factors":{"a.3":{}}}');
   });
@@ -205,7 +197,7 @@ describe('a sheet card with the confirm bar', () => {
       'Fără factori, nu intră în bibliotecă și nu ajunge pe fișa postului.'
     );
     await userEvent.click(screen.getByRole('button', { name: 'Include-i pe toți' }));
-    expect(summary()).toContain('cu 6 factori');
+    expect(written()).toBe('6');
   });
 
   it.each(['one', 'all'] as const)(
@@ -239,7 +231,7 @@ describe('a sheet card with the confirm bar', () => {
       expect(screen.getAllByTestId('risk-import-factor')).toHaveLength(6);
       const showFactors = screen.getByTestId('risk-import-show-factors');
       expect(showFactors.getAttribute('aria-expanded')).toBe('true');
-      expect(summary()).toContain(restore === 'one' ? 'cu un factor' : 'cu 6 factori');
+      expect(written()).toBe(restore === 'one' ? '1' : '6');
       await user.click(showFactors);
       expect(screen.queryAllByTestId('risk-import-factor')).toHaveLength(0);
     }
@@ -264,7 +256,7 @@ describe('a sheet card with the confirm bar', () => {
     );
     expect(screen.getAllByTestId('risk-import-factor')).toHaveLength(7);
     await userEvent.click(screen.getByRole('button', { name: 'Include-i pe toți' }));
-    expect(summary()).toContain('cu 6 factori');
+    expect(written()).toBe('6');
     expect(
       within(row('Zgomot de la imprimantă')).getByRole('switch').getAttribute('aria-checked')
     ).toBe('false');
@@ -284,7 +276,7 @@ describe('a sheet card with the confirm bar', () => {
     await userEvent.clear(input);
     await userEvent.type(input, 'Activități de birou');
     await userEvent.click(screen.getByTestId('risk-import-sheet-name-save'));
-    expect(summary()).toContain('adăugăm „Activități de birou” în bibliotecă');
+    expect(libraryEntry()).toBe('Activități de birou');
     expect(screen.getByTestId('risk-import-library').textContent).toContain(
       'Numele l-ai ales tu; propunerea era „Analist programator”.'
     );
@@ -313,7 +305,7 @@ describe('a sheet card with the confirm bar', () => {
     expect(offered.map((each) => each.textContent)).toEqual(['Sediu', 'Analist programator']);
     await userEvent.click(offered[0]!);
     await userEvent.click(screen.getByTestId('risk-import-sheet-name-save'));
-    expect(summary()).toContain('adăugăm „Sediu” în bibliotecă');
+    expect(libraryEntry()).toBe('Sediu');
   });
 
   it('leads with the current concise name and keeps the complete source heading in a read-only disclosure', async () => {

@@ -9,13 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { BriefcaseBusiness, Camera, FileText, Plus, X } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';

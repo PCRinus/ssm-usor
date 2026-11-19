@@ -2,7 +2,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useFileLink } from '@ssm-usor/api-http/file-link';
 import {
   testErrorReasons,
-  testPassMarkPercent,
+  testPassScore,
   testSittingSize,
   type TrainingDomain,
 } from '@ssm-usor/contracts';
@@ -18,7 +18,7 @@ import { cardClass, SectionLabel } from '@/components/page';
 import { romanianDayOf, useFormatDate } from '@/lib/format';
 import { useApiRequest } from '@/lib/request';
 
-const passScore = Math.ceil((testSittingSize * testPassMarkPercent) / 100);
+const passScore = testPassScore(testSittingSize);
 
 export function StudyCard({
   participantId,

@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useRouter } from '@tanstack/react-router';
@@ -43,7 +44,6 @@ import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
-import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import {
   employeeImportOverStepMessage,

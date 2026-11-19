@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
@@ -43,7 +44,6 @@ import {
 import { apiErrorBody } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { maskPeople } from '@/components/mask-people';
-import { Notice } from '@/components/notice';
 import {
   clientImportOverStepMessage,
   refreshEmployeesOverStep,

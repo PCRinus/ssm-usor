@@ -97,10 +97,10 @@ export function toTestResult(
 }
 
 // Never `questions`: a summary lists no answers.
-export const attemptSummaryColumns =
+const attemptSummaryColumns =
   'id, participant_id, domain, test, started_at, finished_at, score, total, passed';
 
-export function toAttemptSummary(
+function toAttemptSummary(
   row: Pick<
     Tables['test_attempts']['Row'],
     'id' | 'domain' | 'test' | 'started_at' | 'finished_at' | 'score' | 'total' | 'passed'

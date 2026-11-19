@@ -1,7 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import type { ReactNode } from 'react';
 
-import { Notice } from '@/components/notice';
 import { commonFailure } from '@/lib/api-errors';
 
 export function LoadFailed({

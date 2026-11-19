@@ -6,12 +6,12 @@ import {
   NativeSelectOptGroup,
   NativeSelectOption,
 } from '@ssm-usor/ui/components/native-select';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import type { FieldError } from 'react-hook-form';
 
 import { replayMask } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { maskPeople } from '@/components/mask-people';
-import { Notice } from '@/components/notice';
 
 import { signerKindLabels } from './signature-format';
 

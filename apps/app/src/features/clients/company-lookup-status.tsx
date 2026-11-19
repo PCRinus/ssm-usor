@@ -1,7 +1,7 @@
 import type { HelpTopic } from '@ssm-usor/help-topics/topics';
+import { Notice } from '@ssm-usor/ui/components/notice';
 
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 
 import type { LookupState } from './use-company-lookup';
 

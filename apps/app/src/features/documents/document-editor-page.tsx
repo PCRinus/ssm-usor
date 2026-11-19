@@ -1,6 +1,7 @@
 import type { DocumentSet } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useBlocker } from '@tanstack/react-router';
 import { Download, Pencil, Printer, Save } from 'lucide-react';
@@ -17,7 +18,6 @@ import { ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { BackLink, TitleWithBack } from '@/components/back-link';
-import { Notice } from '@/components/notice';
 import { commonFailure } from '@/lib/api-errors';
 
 import type { DocumentEditorHandle } from './document-editor';

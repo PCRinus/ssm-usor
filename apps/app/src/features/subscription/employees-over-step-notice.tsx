@@ -1,7 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Link } from '@tanstack/react-router';
 
-import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { formatRoDate } from '@/lib/dates';
 

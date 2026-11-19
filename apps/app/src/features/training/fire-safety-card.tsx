@@ -1,10 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { clientConflictReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Plus, X } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
@@ -28,7 +30,6 @@ import { replayShow } from '@/app/observability/replay-masking';
 import { describedBy } from '@/components/described-by';
 import { Field } from '@/components/form-field';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -172,7 +173,7 @@ function useFireSafetySave<Values extends FieldValues>({
       form.setError('root.server' as never, {
         message:
           commonFailure(cause) ??
-          (status === 409 && apiErrorReason(cause) === 'client_archived'
+          (status === 409 && apiErrorReason(cause) === clientConflictReasons.clientArchived
             ? 'Clientul este arhivat; datele lui nu se mai schimbă.'
             : status === 404
               ? 'Clientul nu mai există în organizația ta.'

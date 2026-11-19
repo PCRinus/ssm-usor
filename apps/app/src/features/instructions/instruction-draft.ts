@@ -126,13 +126,6 @@ export function articleNumbers(blocks: readonly DraftBlock[]) {
   return numbers;
 }
 
-export function sectionStart(blocks: readonly DraftBlock[], index: number) {
-  for (let at = index; at >= 0; at -= 1) {
-    if (blocks[at]!.kind === 'heading') return at;
-  }
-  return -1;
-}
-
 export function withExample(blocks: readonly DraftBlock[], headingId: string): DraftBlock[] {
   const at = blocks.findIndex((block) => block.id === headingId);
   const heading = blocks[at];

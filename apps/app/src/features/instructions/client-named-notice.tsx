@@ -1,4 +1,4 @@
-import { Notice } from '@/components/notice';
+import { Notice } from '@ssm-usor/ui/components/notice';
 
 import { type ClientName, endSentence } from './instruction-draft';
 

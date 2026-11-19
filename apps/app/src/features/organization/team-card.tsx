@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { getRouteApi, Link } from '@tanstack/react-router';
 import { UserPlus } from 'lucide-react';
@@ -18,7 +19,6 @@ import { DataTable } from '@/components/data-table/data-table';
 import { HelpLink } from '@/components/help-link';
 import { ListCardHeader } from '@/components/list-card-header';
 import { LoadFailed } from '@/components/load-failed';
-import { Notice } from '@/components/notice';
 import {
   memberSeatsOf,
   membersLabel,

@@ -91,8 +91,8 @@ the field and clears as soon as one is typed. Starting one ends the active one i
 request. While it starts, Cancel, Escape and the close button do nothing, so the member app
 never opens after the dialog seems closed. A refusal is shown in the dialog: the reason's error
 under the field, an account that belongs to no organization or the admin's own in plain words,
-and a start already under way (`409`, `reason: 'impersonation_start_in_progress'`, in
-`src/features/impersonation/reasons.ts`) as one to wait for. Once started, the dialog closes and
+and a start already under way (`409`, `reason: 'impersonation_start_in_progress'`) as one to wait
+for. Once started, the dialog closes and
 the member app opens in a new tab. However the dialog closes, focus goes back to the **Act as**
 button it was opened from. A browser may block that tab (Safari often does, since it opens after
 the request); the strip's link is there for that.

@@ -2,12 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { defaultExposure } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useForm } from 'react-hook-form';
 
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
-import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import { useRevealErrors } from '@/components/use-reveal-errors';

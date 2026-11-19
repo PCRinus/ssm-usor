@@ -3,11 +3,10 @@ import {
   createApiHttp,
   type ErrorType as ApiErrorType,
 } from '@ssm-usor/api-http';
-import { clientContract } from '@ssm-usor/contracts';
+import { actingAsHeader, clientContract } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 
 import { captureEvent } from '@/app/observability/posthog';
-import { actingAsHeader } from '@/features/impersonation/acting-as';
 import {
   impersonationRefusedMessage,
   isIdentityChanged,

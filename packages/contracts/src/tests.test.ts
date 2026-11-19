@@ -7,7 +7,7 @@ import {
   paperTestResultRequestSchema,
   testAttemptAnswerRequestSchema,
   testBankQuerySchema,
-  testPassed,
+  testPassScore,
   testResultMaterial,
 } from './tests';
 
@@ -74,13 +74,13 @@ describe('paperTestResultRequestSchema', () => {
   });
 });
 
-describe('testPassed', () => {
+describe('testPassScore', () => {
   it.each([
-    [7, 10, true],
-    [6, 10, false],
-    [10, 10, true],
-  ])('%i of %i passes: %s', (score, total, passed) => {
-    expect(testPassed(score, total)).toBe(passed);
+    [10, 7],
+    [15, 11],
+    [20, 14],
+  ])('%i questions pass from %i right answers', (total, score) => {
+    expect(testPassScore(total)).toBe(score);
   });
 });
 

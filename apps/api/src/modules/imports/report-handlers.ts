@@ -9,7 +9,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { later } from '../../lib/later';
 import { reportAlert, reportAlertMinutes } from './import-alerts';
-import { notFound } from './import-queries';
+import { noSuchPart, notFound } from './import-queries';
 import type { reportImportLibraryPartRoute, reportImportRoute } from './routes';
 
 async function reportedImport(c: Context<ApiEnv>, importId: string) {
@@ -82,8 +82,7 @@ async function report(c: Context<ApiEnv>, importId: string, part: ImportLibraryP
       .eq('part', part)
       .maybeSingle();
     if (error) throw fromDatabaseError(error, 'find reported library part');
-    if (!data)
-      throw new ApiError('not_found', 'This import has no such part in your organization.');
+    if (!data) throw noSuchPart();
   }
   if (!(await record(c, importId, part))) return;
   later(

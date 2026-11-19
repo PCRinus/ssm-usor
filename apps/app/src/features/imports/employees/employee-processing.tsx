@@ -1,6 +1,7 @@
 import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -8,7 +9,6 @@ import { useMemo, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { BackLink, TitleWithBack } from '@/components/back-link';
-import { Notice } from '@/components/notice';
 import { CurrentClientFact } from '@/features/clients/client-fact';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';

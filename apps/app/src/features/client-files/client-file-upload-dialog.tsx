@@ -10,13 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, File as FileIcon, FileUp, Upload, X } from 'lucide-react';
 import { type FormEvent, useRef, useState } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
-import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 
 import {

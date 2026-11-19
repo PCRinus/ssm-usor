@@ -10,10 +10,10 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { ClipboardPaste, Eye } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { Notice } from '@/components/notice';
 import { ClientNamedNotice } from '@/features/instructions/client-named-notice';
 import { InstructionBlocks } from '@/features/instructions/instruction-blocks';
 import { blocksFromBody } from '@/features/instructions/instruction-draft';

@@ -12,7 +12,7 @@ import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 import { clientId, clientRecord, jobPositionRecord, pageOf } from '@/test/records';
 
-import { type EvaluationProfile, profileCountLabel, profileTotalsLabel } from './profile-schema';
+import { type EvaluationProfile, profileTotalsLabel } from './profile-schema';
 
 const sampleClient = clientRecord();
 
@@ -504,17 +504,6 @@ describe('the risk library', () => {
     expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
       'Reactivează…',
       'Șterge…',
-    ]);
-  });
-
-  it('counts profiles the Romanian way', () => {
-    expect([1, 2, 19, 20, 101, 120].map(profileCountLabel)).toEqual([
-      '1 evaluare',
-      '2 evaluări',
-      '19 evaluări',
-      '20 de evaluări',
-      '101 evaluări',
-      '120 de evaluări',
     ]);
   });
 

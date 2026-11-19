@@ -2,6 +2,7 @@ import { formatEmployeeName, maxPageSize, samePersonName } from '@ssm-usor/contr
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useEffect, useRef } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 
@@ -10,7 +11,6 @@ import { useApi } from '@/api/use-api';
 import { describedBy } from '@/components/described-by';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 import { FormActions } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import {

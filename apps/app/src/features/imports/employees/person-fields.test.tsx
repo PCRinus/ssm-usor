@@ -8,8 +8,8 @@ import { employeeProposal } from '@/test/employee-import-fixture';
 import { replayedInput, replayedText } from '@/test/replay';
 
 import {
+  changesOf,
   decisionsOf,
-  emptyChanges,
   isExisting,
   type Person,
   type Proposal,
@@ -22,7 +22,7 @@ const proposal = employeeProposal() as unknown as Proposal;
 const person = proposal.people.find((each) => each.id === 'pop')!;
 
 function Data({ who = person }: { who?: Person }) {
-  const [current, setCurrent] = useState(emptyChanges);
+  const [current, setCurrent] = useState(() => changesOf(undefined));
   const people = proposal.people.map((each) => (each.id === who.id ? who : each));
   const context = {
     proposal: { ...proposal, people },

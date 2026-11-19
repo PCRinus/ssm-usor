@@ -1,12 +1,12 @@
 import { formatCount, type ImportKind, welcomeCreditsFor } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Coins, Gift } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
-import { Notice } from '@/components/notice';
 
 import {
   type CreditsBalance,

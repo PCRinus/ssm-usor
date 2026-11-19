@@ -20,6 +20,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
@@ -34,7 +35,6 @@ import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
-import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Workplace } from '@/features/clients/workplace-schema';
 import { useSavedToast } from '@/features/missing-data/saved-toast';

@@ -4,8 +4,9 @@ import { Check, Minus, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { HelpLink } from '@/components/help-link';
+import { workerNoun } from '@/features/employees/employee-format';
 
-import { employeesLabel, formatEuro, shortPlanNames } from '../billing-format';
+import { formatEuro, shortPlanNames } from '../billing-format';
 import { BillingCard } from '../billing-ui';
 import { creditsCount } from '../credits-copy';
 import { codesLabel } from '../sms-copy';
@@ -111,8 +112,8 @@ export function PlanPicker({
           onMore={() => moveTo(at + 1)}
           hint={
             floor === null
-              ? `Ai ${employeesLabel(employees)}, peste ce acoperă planurile din aplicație.`
-              : `Ai ${employeesLabel(employees)} la clienții activi, așa că treapta nu poate fi sub ${formatCount(floor)}.`
+              ? `Ai ${workerNoun(employees)}, peste ce acoperă planurile din aplicație.`
+              : `Ai ${workerNoun(employees)} la clienții activi, așa că treapta nu poate fi sub ${formatCount(floor)}.`
           }
           help={<HelpLink topic="organizatie.trepte" label="Ajutor: Treptele de lucrători" />}
         />
@@ -164,7 +165,7 @@ export function PlanPicker({
                 </span>
                 <span className="grid gap-1.5 border-t pt-2.5">
                   {[
-                    `Până la ${employeesLabel(planAt.employees)}`,
+                    `Până la ${workerNoun(planAt.employees)}`,
                     ...planCopy[plan].lines,
                     `${codesLabel(planAt.monthlySms)} SMS și ${creditsCount(planAt.monthlyCredits)} pe lună`,
                     ...(welcomeAhead
@@ -185,7 +186,7 @@ export function PlanPicker({
           })}
         </div>
         <p className="text-[13px] leading-relaxed text-muted-foreground">
-          Peste {employeesLabel(employeeStops.at(-1)!)} sau peste {billingPlans.profesional.members}{' '}
+          Peste {workerNoun(employeeStops.at(-1)!)} sau peste {billingPlans.profesional.members}{' '}
           utilizatori? Scrie-ne pentru o ofertă, la{' '}
           <a
             href={`mailto:${contactEmail}?subject=${encodeURIComponent('Ofertă Enterprise SSM Ușor')}`}
