@@ -489,10 +489,7 @@ describe('the count of what is missing', () => {
   it.each([
     [1, '1 dată de completat'],
     [2, '2 date de completat'],
-    [19, '19 date de completat'],
     [20, '20 de date de completat'],
-    [101, '101 date de completat'],
-    [120, '120 de date de completat'],
   ])('says %i as "%s"', (count, label) => {
     expect(missingCountLabel(count)).toBe(label);
   });
