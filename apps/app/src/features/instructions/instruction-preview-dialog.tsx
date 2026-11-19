@@ -6,11 +6,11 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
-import { useRouteContext } from '@tanstack/react-router';
 import { Download } from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { previewInstruction } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 import { saveAs } from '@/features/documents/editor-frame';
 import { PagePlaceholder } from '@/features/documents/editor-placeholder';
@@ -38,7 +38,7 @@ export function InstructionPreviewDialog({
 const codes: Record<InstructionDomain, string> = { ssm: 'I.P.S.S.M.', su: 'I.P.S.U.' };
 
 function PreviewContent({ request }: { request: PreviewRequest }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request: apiRequest } = useApi();
   const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [failed, setFailed] = useState(false);
   const [shown, setShown] = useState(false);

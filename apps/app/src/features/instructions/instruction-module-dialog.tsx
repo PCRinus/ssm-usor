@@ -15,12 +15,12 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { useUpdateInstructionModule } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
@@ -59,8 +59,8 @@ export function InstructionModuleDialog({
 }
 
 function ModuleForm({ module, onClose }: { module: InstructionModule; onClose: () => void }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const update = useUpdateInstructionModule({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const update = useUpdateInstructionModule({ request });
   const form = useForm<ModuleFormValues>({
     resolver: zodResolver(moduleFormSchema),
     defaultValues: { title: module.title, group: module.group, domain: module.domain },

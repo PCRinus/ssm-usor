@@ -8,11 +8,11 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useUpdateInstructionModule } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 import { commonFailure } from '@/lib/api-errors';
 
@@ -66,8 +66,8 @@ export function InstructionArchiveDialog({
   change: InstructionArchiveChange | null;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const update = useUpdateInstructionModule({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const update = useUpdateInstructionModule({ request });
   const [error, setError] = useState<string | null>(null);
   const busy = update.isPending;
 

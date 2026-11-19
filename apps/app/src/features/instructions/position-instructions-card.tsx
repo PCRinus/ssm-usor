@@ -22,7 +22,7 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { BookOpenText, Copy, ListChecks, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -37,6 +37,7 @@ import {
   useListPositionInstructions,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { openedHere } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
@@ -116,27 +117,25 @@ export function PositionInstructionsCard({
   domain,
   clientId,
   position,
-  userId,
   readOnly,
 }: {
   id: string;
   domain: InstructionDomain;
   clientId: string;
   position: JobPosition;
-  userId: string;
   readOnly: boolean;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const words = domainCopy[domain];
   const testId = (suffix: string) => `${words.testId}-${suffix}`;
   const params = { domain };
   const instructions = useListPositionInstructions(clientId, position.id, params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListPositionInstructionsQueryKey(clientId, position.id, params), userId],
+      queryKey: key(getListPositionInstructionsQueryKey(clientId, position.id, params)),
     },
   });
-  const apply = useApplyPositionInstructions({ request: apiRequest });
+  const apply = useApplyPositionInstructions({ request });
   const [picking, setPicking] = useState(false);
   const [copying, setCopying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -321,7 +320,6 @@ export function PositionInstructionsCard({
         domain={domain}
         clientId={clientId}
         position={position}
-        userId={userId}
         applied={items}
         open={picking}
         onClose={() => setPicking(false)}
@@ -331,7 +329,6 @@ export function PositionInstructionsCard({
         domain={domain}
         clientId={clientId}
         position={position}
-        userId={userId}
         open={copying}
         onClose={() => setCopying(false)}
         onCopied={refresh}
@@ -344,7 +341,6 @@ function PickInstructionsDialog({
   domain,
   clientId,
   position,
-  userId,
   applied,
   open,
   onClose,
@@ -353,25 +349,24 @@ function PickInstructionsDialog({
   domain: InstructionDomain;
   clientId: string;
   position: JobPosition;
-  userId: string;
   applied: AppliedInstruction[];
   open: boolean;
   onClose: () => void;
   onApplied: () => Promise<unknown>;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const savedToast = useSavedToast();
   const words = domainCopy[domain];
   const testId = (suffix: string) => `${words.testId}-${suffix}`;
   const params = { domain };
   const modules = useListInstructionModuleChoices(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListInstructionModuleChoicesQueryKey(params), userId],
+      queryKey: key(getListInstructionModuleChoicesQueryKey(params)),
       enabled: open,
     },
   });
-  const apply = useApplyPositionInstructions({ request: apiRequest });
+  const apply = useApplyPositionInstructions({ request });
   const [chosen, setChosen] = useState<Set<string> | null>(null);
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -525,7 +520,6 @@ function CopyInstructionsDialog({
   domain,
   clientId,
   position,
-  userId,
   open,
   onClose,
   onCopied,
@@ -533,20 +527,19 @@ function CopyInstructionsDialog({
   domain: InstructionDomain;
   clientId: string;
   position: JobPosition;
-  userId: string;
   open: boolean;
   onClose: () => void;
   onCopied: () => Promise<unknown>;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const savedToast = useSavedToast();
   const words = domainCopy[domain];
   const testId = (suffix: string) => `${words.testId}-${suffix}`;
   const positions = useListJobPositions(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled: open },
+    request,
+    query: { queryKey: key(getListJobPositionsQueryKey(clientId)), enabled: open },
   });
-  const copy = useCopyPositionInstructions({ request: apiRequest });
+  const copy = useCopyPositionInstructions({ request });
   const [source, setSource] = useState('');
   const [error, setError] = useState<string | null>(null);
   const sources = (positions.data?.items ?? []).filter(
