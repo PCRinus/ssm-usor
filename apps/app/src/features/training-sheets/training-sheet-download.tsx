@@ -8,7 +8,6 @@ import {
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { ChevronDown, Eye, FileDown, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
@@ -18,6 +17,7 @@ import {
   getTrainingSheetLink,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { FileLinkButton } from '@/components/file-link-button';
 import { FileMenuItem } from '@/components/file-menu-item';
 import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';
@@ -49,7 +49,7 @@ export function TrainingSheetDownload({
   employeeId,
   domain,
 }: TrainingSheetDownloadProps) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const readiness = useTrainingSheets(clientId, employeeId);
   const [busy, setBusy] = useState<'download' | 'preview' | null>(null);
   const sheet = readiness.data?.[domain];
@@ -71,13 +71,17 @@ export function TrainingSheetDownload({
       sheet?.versions[sequence],
     ],
     load: (signal: AbortSignal) =>
-      getTrainingSheetLink(clientId, employeeId, { domain, sequence }, { ...apiRequest, signal }),
+      getTrainingSheetLink(clientId, employeeId, { domain, sequence }, { ...request, signal }),
   });
-  const stored = { ...linkOf(storedSequence ?? 0), enabled: storedSequence !== null, apiRequest };
+  const stored = {
+    ...linkOf(storedSequence ?? 0),
+    enabled: storedSequence !== null,
+    apiRequest: request,
+  };
   const storedDownload = useFileLink({ ...stored, disposition: 'attachment' });
   const storedPreview = useFileLink({ ...stored, disposition: 'inline' });
 
-  const loadSheet = () => getTrainingSheet(clientId, employeeId, { domain }, apiRequest);
+  const loadSheet = () => getTrainingSheet(clientId, employeeId, { domain }, request);
 
   async function run(kind: 'download' | 'preview', action: () => Promise<void>) {
     setBusy(kind);
@@ -155,7 +159,7 @@ export function TrainingSheetDownload({
               <FileMenuItem
                 key={sequence}
                 testId={`training-sheet-${domain}-original`}
-                apiRequest={apiRequest}
+                apiRequest={request}
                 disposition="attachment"
                 {...linkOf(sequence)}
               >

@@ -1,8 +1,7 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import { useGetTrainingSheets } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 export function useTrainingSheets(clientId: string, employeeId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  return useGetTrainingSheets(clientId, employeeId, { request: apiRequest });
+  const { request } = useApi();
+  return useGetTrainingSheets(clientId, employeeId, { request });
 }
