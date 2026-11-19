@@ -22,7 +22,7 @@ type MeterSource =
   | { table: 'sms_sends'; at: 'sent_at'; match: { overage: true } }
   | { table: 'credit_extra_blocks'; at: 'created_at'; match?: undefined };
 
-type Pending = { id: string; organization_id: string; at: string };
+type Pending = { id: string; organization_id: string } & Record<MeterSource['at'], string>;
 
 type Labels = { row: string; item: string; retried: string; retryFailed: string };
 
@@ -63,7 +63,7 @@ export function meterReporter(
   }
 
   async function unreported(db: AdminClient, filter: MeterSweep, now: Date) {
-    let query = db.from(table).select(`id, organization_id, at:${at}`);
+    let query = db.from(table).select(`id, organization_id, ${at}`);
     if (options.match) query = query.match(options.match);
     query = query
       .is('reported_at', null)
@@ -98,7 +98,7 @@ export function meterReporter(
         continue;
       }
       try {
-        if (await report(deps, { id: row.id, at: new Date(row.at), customerId })) reported += 1;
+        if (await report(deps, { id: row.id, at: new Date(row[at]), customerId })) reported += 1;
       } catch (error) {
         failed += 1;
         console.error(`${labels.item} ${row.id} not reported: ${describe(error)}`);

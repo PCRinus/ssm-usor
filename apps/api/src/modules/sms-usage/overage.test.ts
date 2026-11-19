@@ -101,7 +101,10 @@ describe('the daily retry', () => {
     fake.stripe['POST /v1/billing/meter_events'] = () => ({ object: 'billing.meter_event' });
 
     expect(await retryOverageReports(deps())).toEqual({ reported: 2, failed: 0 });
-    expect(meterEvents(fake).map((event) => event.identifier)).toEqual(['r3', 'r4']);
+    expect(meterEvents(fake).map((event) => [event.identifier, event.timestamp])).toEqual([
+      ['r3', String(Math.floor(sentAt.getTime() / 1000))],
+      ['r4', String(Math.floor(sentAt.getTime() / 1000))],
+    ]);
     const query = fake.calls.find(
       (call) => call.method === 'GET' && call.url.pathname === '/rest/v1/sms_sends'
     )!;
