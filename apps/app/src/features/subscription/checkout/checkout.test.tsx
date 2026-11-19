@@ -88,6 +88,7 @@ const mount = (search = '') =>
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.useRealTimers();
 });
 
 installFetchMock();
@@ -250,16 +251,19 @@ describe('choosing a plan', () => {
         },
       },
     });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
     const runtime = mount('?interval=month');
 
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     await user.click(submit);
 
-    await waitFor(
-      () => expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament'),
-      { timeout: 8000 }
+    for (let tick = 0; tick < 20 && readsAfterChoosing < 3; tick += 1) {
+      await vi.advanceTimersByTimeAsync(500);
+    }
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament')
     );
     expect((await screen.findByTestId('payment-card-number')).textContent).toBe('Visa •••• 4242');
     expect(readsAfterChoosing).toBeGreaterThan(2);
