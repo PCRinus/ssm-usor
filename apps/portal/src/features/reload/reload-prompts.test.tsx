@@ -80,6 +80,32 @@ describe('the new-version toast', () => {
     await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
     expect(screen.queryByText('A apărut o versiune nouă a portalului.')).toBeNull();
   });
+
+  it('is not postponed when the outdated dialog takes its place', async () => {
+    const postpone = vi.fn();
+    mountPrompts();
+    act(() => showNewVersionToast(postpone));
+    await screen.findByText('A apărut o versiune nouă a portalului.');
+
+    act(() => openOutdatedDialog('code_file'));
+
+    await waitFor(() =>
+      expect(screen.queryByText('A apărut o versiune nouă a portalului.')).toBeNull()
+    );
+    expect(dialog()).toBeTruthy();
+    expect(postpone).not.toHaveBeenCalled();
+  });
+
+  it('is postponed when closed by hand', async () => {
+    const postpone = vi.fn();
+    mountPrompts();
+    act(() => showNewVersionToast(postpone));
+    await screen.findByText('A apărut o versiune nouă a portalului.');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close toast' }));
+
+    await waitFor(() => expect(postpone).toHaveBeenCalledOnce());
+  });
 });
 
 describe('the reload dialog', () => {

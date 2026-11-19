@@ -27,7 +27,12 @@ describe('watching the deployed version', () => {
   it('checks when the tab becomes visible and every ten minutes while visible', async () => {
     const fetchCommit = vi.fn(async () => 'abc');
     const onNewer = vi.fn();
-    const stop = watchDeployedVersion({ running: 'abc', fetchCommit, onNewer });
+    const stop = watchDeployedVersion({
+      running: 'abc',
+      postponedKey: 'postponed',
+      fetchCommit,
+      onNewer,
+    });
 
     setVisibility('visible');
     await vi.advanceTimersByTimeAsync(0);
@@ -48,6 +53,7 @@ describe('watching the deployed version', () => {
     const onNewer = vi.fn();
     const stop = watchDeployedVersion({
       running: 'abc',
+      postponedKey: 'postponed',
       fetchCommit: async () => deployed,
       onNewer,
     });
@@ -68,7 +74,12 @@ describe('watching the deployed version', () => {
 
   it('never checks a local build', async () => {
     const fetchCommit = vi.fn(async () => 'def');
-    watchDeployedVersion({ running: 'local', fetchCommit, onNewer: vi.fn() });
+    watchDeployedVersion({
+      running: 'local',
+      postponedKey: 'postponed',
+      fetchCommit,
+      onNewer: vi.fn(),
+    });
     setVisibility('visible');
     await vi.advanceTimersByTimeAsync(versionCheckInterval * 2);
     expect(fetchCommit).not.toHaveBeenCalled();
@@ -101,20 +112,6 @@ describe('watching the deployed version', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(onNewer).toHaveBeenCalledWith('ghi', expect.any(Function));
     second();
-  });
-
-  it('postpones in the watch only, without a key', async () => {
-    const onNewer = vi.fn((_commit: string, postpone: () => void) => postpone());
-    const stop = watchDeployedVersion({
-      running: 'abc',
-      fetchCommit: async () => 'def',
-      onNewer,
-    });
-    setVisibility('visible');
-    await vi.advanceTimersByTimeAsync(0);
-    expect(onNewer).toHaveBeenCalledOnce();
-    expect(localStorage.length).toBe(0);
-    stop();
   });
 });
 

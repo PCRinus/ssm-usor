@@ -28,7 +28,7 @@ function writeItem(storage: () => Storage, key: string, value: string) {
 }
 
 // `postponedKey` keeps the build a closed toast announced in localStorage, so neither another tab
-// nor a reload announces it again (ADR 040); without it the toast is postponed in this tab only.
+// nor a reload announces it again (ADR 040).
 export function watchDeployedVersion({
   running,
   onNewer,
@@ -38,7 +38,7 @@ export function watchDeployedVersion({
 }: {
   running: string;
   onNewer: (commit: string, postpone: () => void) => void;
-  postponedKey?: string;
+  postponedKey: string;
   fetchCommit?: () => Promise<string | null>;
   intervalMs?: number;
 }) {
@@ -48,16 +48,12 @@ export function watchDeployedVersion({
   let timer: ReturnType<typeof setInterval> | undefined;
   let stopped = false;
 
-  const postponed = () => (postponedKey ? readItem(() => localStorage, postponedKey) : null);
-
   async function check() {
     const deployed = await fetchCommit();
     if (stopped || !deployed || deployed === running) return;
-    if (deployed === announced || deployed === postponed()) return;
+    if (deployed === announced || deployed === readItem(() => localStorage, postponedKey)) return;
     announced = deployed;
-    onNewer(deployed, () => {
-      if (postponedKey) writeItem(() => localStorage, postponedKey, deployed);
-    });
+    onNewer(deployed, () => writeItem(() => localStorage, postponedKey, deployed));
   }
 
   function schedule() {

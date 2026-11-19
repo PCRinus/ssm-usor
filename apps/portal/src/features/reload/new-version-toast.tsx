@@ -15,7 +15,10 @@ export function showNewVersionToast(postpone?: () => void) {
     duration: Infinity,
     description: <Trans>Reîncarcă pagina pentru a o folosi.</Trans>,
     action: { label: <Trans>Reîncarcă</Trans>, onClick: () => reloadPortal('toast') },
-    onDismiss: postpone,
+    // Sonner also calls it when the outdated dialog takes the toast away, which is no closing.
+    onDismiss: () => {
+      if (!isOutdatedDialogOpen()) postpone?.();
+    },
   });
 }
 
