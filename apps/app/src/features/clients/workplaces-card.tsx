@@ -1,5 +1,4 @@
 import { clientConflictReasons, noWorkplace, workplaceConflictReasons } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
@@ -20,6 +19,7 @@ import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { openedHere } from '@/app/opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useFocusRequest, type WorkplacesFocus } from '@/features/missing-data/focus';
@@ -214,20 +214,9 @@ export function WorkplacesCard({
             : 'Niciun punct de lucru încă.'}
         </p>
       ) : workplaces.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={workplaces.isFetching}
-              onClick={() => void workplaces.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
-        >
+        <LoadFailed busy={workplaces.isFetching} onRetry={() => void workplaces.refetch()}>
           Nu am putut încărca punctele de lucru.
-        </Notice>
+        </LoadFailed>
       ) : (
         <DataTable
           testId="workplaces-table"
