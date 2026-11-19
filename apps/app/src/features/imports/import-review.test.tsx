@@ -3286,6 +3286,14 @@ describe('suggested values', () => {
     ).toEqual(['Stingător, Pulbere · 2 bucăți']);
   });
 
+  it('asks nothing of a workplace left out, nor of the office without a point of work', async () => {
+    mockReview(suggestedDetail({ items: { 'workplace-2': { included: false } }, blockers: [] }));
+    mount('/workplaces');
+
+    await screen.findByTestId('review-list-workplaces');
+    expect(screen.queryByTestId('review-suggestions-card')).toBeNull();
+  });
+
   it('restores the suggestions when the member keeps them after leaving them all empty', async () => {
     mockReview(suggestedDetail());
     mount('/workplaces');
