@@ -7,6 +7,7 @@ describe('attendeeCountLabel', () => {
     [1, '1 participant'],
     [2, '2 participanți'],
     [20, '20 de participanți'],
+    [101, '101 participanți'],
   ])('counts %i attendees', (count, expected) => {
     expect(attendeeCountLabel(count)).toBe(expected);
   });

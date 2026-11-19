@@ -633,11 +633,12 @@ describe("a client's job positions", () => {
 
 describe('employeeCountLabel', () => {
   it('counts people the Romanian way', () => {
-    expect([0, 1, 2, 20].map(employeeCountLabel)).toEqual([
+    expect([0, 1, 2, 20, 101].map(employeeCountLabel)).toEqual([
       'Niciun lucrător',
       'Un lucrător',
       '2 lucrători',
       '20 de lucrători',
+      '101 lucrători',
     ]);
   });
 });

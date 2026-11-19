@@ -179,11 +179,12 @@ describe('the filters of the factor list', () => {
 
 describe('the measure count', () => {
   it('reads the count in Romanian', () => {
-    expect([0, 1, 2, 20].map(measureCountLabel)).toEqual([
+    expect([0, 1, 2, 20, 101].map(measureCountLabel)).toEqual([
       'Fără măsuri',
       'o măsură',
       '2 măsuri',
       '20 de măsuri',
+      '101 măsuri',
     ]);
   });
 });

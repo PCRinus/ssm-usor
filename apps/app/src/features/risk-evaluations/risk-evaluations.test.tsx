@@ -1437,11 +1437,12 @@ describe('the factor list', () => {
   });
 
   it('counts factors the Romanian way and words the state of an evaluation', () => {
-    expect([0, 1, 2, 20].map(factorCountLabel)).toEqual([
+    expect([0, 1, 2, 20, 101].map(factorCountLabel)).toEqual([
       'Niciun factor',
       'Un factor',
       '2 factori',
       '20 de factori',
+      '101 factori',
     ]);
     expect(evaluationStateLabel(null)).toBe('Neevaluat');
     expect(evaluationStateLabel({ factorCount: 0, globalRiskLevel: null })).toBe('Fără factori');

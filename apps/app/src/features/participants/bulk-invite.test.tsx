@@ -434,6 +434,7 @@ describe('bulk invitation wording', () => {
     [1, 'o invitație'],
     [4, '4 invitații'],
     [20, '20 de invitații'],
+    [101, '101 invitații'],
   ])('counts %i as %s', (count, label) => {
     expect(invitationCount(count)).toBe(label);
   });

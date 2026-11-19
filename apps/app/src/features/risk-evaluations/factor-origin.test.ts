@@ -85,11 +85,12 @@ describe('the origin summary of an evaluation', () => {
 
 describe('sheetCountLabel', () => {
   it('counts sheets the Romanian way', () => {
-    expect([0, 1, 2, 20].map(sheetCountLabel)).toEqual([
+    expect([0, 1, 2, 20, 101].map(sheetCountLabel)).toEqual([
       'Nicio fișă',
       'O fișă',
       '2 fișe',
       '20 de fișe',
+      '101 fișe',
     ]);
   });
 });

@@ -11,6 +11,7 @@ const options = Array.from({ length: 40 }, (_, index) => ({
 describe('AttendeeChecklist', () => {
   it.each([
     [1, '1 participant ales din 40'],
+    [19, '19 participanți aleși din 40'],
     [25, '25 de participanți aleși din 40'],
   ])('counts %i chosen attendees', (chosen, expected) => {
     render(
