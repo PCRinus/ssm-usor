@@ -10,7 +10,8 @@ import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv, RegenerationMessage } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore, type FileStore } from '../../lib/files';
-import { type Actor, regenerateDraft } from './documents';
+import { regenerateDraft } from './generate';
+import type { Actor } from './rows';
 
 // The consumer's `max_retries` in wrangler.jsonc plus one: the delivery the queue gives up after.
 export const lastDelivery = 4;

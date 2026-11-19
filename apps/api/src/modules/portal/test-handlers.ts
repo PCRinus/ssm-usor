@@ -19,7 +19,7 @@ import {
   participantEmployee,
   participationOf,
 } from '../../lib/participant';
-import { fileNameOf } from '../documents/documents';
+import { fileNameOf } from '../../lib/text';
 import { clientIpOf } from '../signing/session-signing';
 import {
   afterTestPass,

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 
-import { stableJson } from './context';
+import { stableJson } from '../../lib/json';
 import { facts } from './context.fixture';
 import { buildFireSafetyContext } from './fire-safety';
 

@@ -15,7 +15,7 @@ import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
 import { createSigner } from '../../lib/signer';
-import { builtInTemplates, merge } from '../documents/documents';
+import { mergeBuiltIn } from '../../lib/templates';
 import { particularsColumns, toParticulars } from '../employees/particulars';
 import { supabaseSheetStore } from '../signed-sheets/store';
 import { currentSheetPdf } from '../signed-sheets/stored';
@@ -175,20 +175,12 @@ export async function drawTrainingSheet(
   if (missing.length > 0) return { missing };
   const pdf = requirePdfConverter(c);
   const typeKey = trainingSheetTypeKeys[domain];
-  const [template] = await builtInTemplates(db, [typeKey]);
-  if (!template) {
-    console.error(`The template ${typeKey} is not registered: run pnpm templates:register.`);
-    throw new ApiError(
-      'service_unavailable',
-      'The training sheet template is not available yet.',
-      undefined,
-      'template_missing'
-    );
-  }
-  const { bytes } = merge(
-    await readTemplate(template.storagePath),
+  const { bytes } = await mergeBuiltIn(
+    db,
+    readTemplate,
+    typeKey,
     buildTrainingSheetData(facts),
-    typeKey
+    'training sheet'
   );
   return {
     pdf: await pdf.convertDocx(bytes),

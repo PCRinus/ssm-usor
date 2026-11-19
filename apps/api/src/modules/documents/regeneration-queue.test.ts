@@ -5,9 +5,9 @@ import { ApiError } from '../../lib/errors';
 
 // The regeneration itself is the single-document path, tested with the routes; here it only
 // says whether it succeeded.
-vi.mock('./documents', () => ({ regenerateDraft: vi.fn() }));
+vi.mock('./generate', () => ({ regenerateDraft: vi.fn() }));
 
-import { regenerateDraft } from './documents';
+import { regenerateDraft } from './generate';
 import { consumeRegenerationBatch, lastDelivery, type QueueMessage } from './regeneration-queue';
 
 const regenerate = vi.mocked(regenerateDraft);

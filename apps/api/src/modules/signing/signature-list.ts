@@ -14,6 +14,7 @@ import type { Database } from '../../database.types';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { collator } from '../../lib/romanian';
+import { toIso, toIsoOrNull } from '../../lib/timestamps';
 import type { listMySignaturesRoute } from './routes';
 
 const listColumns =
@@ -98,9 +99,6 @@ function ordered<Query extends OrderableQuery<Query>>(
     query.order(first!, { ascending: order === 'asc' })
   );
 }
-
-const toIso = (value: string) => new Date(value).toISOString();
-const toIsoOrNull = (value: string | null) => (value ? toIso(value) : null);
 
 function toListItem(row: ListViewRow): SignatureListItem {
   const workers = (row.workers as WorkerJson[])

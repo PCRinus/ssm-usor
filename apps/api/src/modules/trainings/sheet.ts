@@ -17,8 +17,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { fileNameWords } from '../../lib/content-disposition';
-import { countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
-import { printedDate } from '../documents/context';
+import { countOf, listed, printedDate, runOn, withoutFinalStop } from '../../lib/romanian';
 import { gapRules } from '../documents/gaps';
 
 /**

@@ -27,7 +27,14 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { collator, countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
+import {
+  collator,
+  countOf,
+  listed,
+  printedDate,
+  runOn,
+  withoutFinalStop,
+} from '../../lib/romanian';
 import { filled } from '../../lib/text';
 import { type AnnualReportContext, buildAnnualReport } from './annual-report';
 import {
@@ -37,7 +44,6 @@ import {
   documentApplies,
   type DocumentFacts,
   months,
-  printedDate,
 } from './context';
 import {
   extinguisherGroups,
@@ -50,7 +56,12 @@ import {
 } from './equipment';
 import { type ContextParts, gapRules } from './gaps';
 import { installationParts, installationText } from './installations';
-import { knowledgeTestData, type PrintedTest, printedTests } from './knowledge-tests';
+import {
+  knowledgeTestData,
+  type PrintedTest,
+  printedTests,
+  type TestQuestionFacts,
+} from './knowledge-tests';
 import {
   asPerson,
   distinctPeople,
@@ -460,8 +471,7 @@ export type FireSafetySetFacts = Pick<
   | 'jobPositions'
   | 'fireSafety'
   | 'fireOwnInstructions'
-  | 'testQuestions'
->;
+> & { testQuestions: Pick<TestQuestionFacts, 'fire_test_hiring' | 'fire_test_annual'> };
 
 const requiredWorkplaceFacts = [
   'activity',

@@ -49,8 +49,18 @@ const sheetSigner = {
   finishSignature: vi.fn<(...args: unknown[]) => Promise<ArrayBuffer>>(),
 };
 
+vi.mock('../../lib/pdf-signing', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/pdf-signing')>()),
+  pdfSigningServices: () => ({
+    files: sheetFiles,
+    pdf: sheetPdf,
+    signer: sheetSigner,
+    now: () => new Date(),
+  }),
+}));
+
 vi.mock('../signed-sheets/signed-sheets', () => ({
-  signedSheetContext: () => ({ files: sheetFiles, pdf: sheetPdf, signer: sheetSigner }),
+  signedSheetContext: () => ({ ctx: 'signed sheets' }),
   placeRecord: vi.fn(),
   applySignature: vi.fn(),
 }));
