@@ -3,17 +3,29 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { ClientListResponse } from '@/api/generated/api';
 import type { AuthClient } from '@/features/auth/auth-store';
 import { fetchMock, installFetchMock, mockApi, requestsTo, type Route } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { quietSummary } from '@/test/dashboard-fixture';
 import { mountApp } from '@/test/mount';
-import { userOnlyMe } from '@/test/records';
+import { clientListItem, userOnlyMe } from '@/test/records';
 
 installFetchMock();
 
-const dashboard: Route = (_init, { pathname }) =>
-  pathname === '/dashboard/summary' ? Response.json(quietSummary) : undefined;
+const dashboard: Route = (_init, { pathname, search }) => {
+  if (pathname === '/dashboard/summary') return Response.json(quietSummary);
+  if (`${pathname}${search}` === '/clients?page=1&pageSize=25&sort=legalName&order=asc') {
+    return Response.json({
+      items: [clientListItem()],
+      page: 1,
+      pageSize: 25,
+      total: 1,
+      unfilteredTotal: 1,
+    } satisfies ClientListResponse);
+  }
+  return undefined;
+};
 
 beforeEach(() => {
   mockApi(dashboard);

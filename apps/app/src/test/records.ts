@@ -1,6 +1,7 @@
 import type {
   ClientDocumentDetailsResponseDocumentDetails,
   ClientFireSafetyResponseFireSafety,
+  ClientListResponseItemsItem,
   ClientResponseClient,
   EmployeeListResponseItemsItem,
   EmployeeListResponseItemsItemPortal,
@@ -66,6 +67,22 @@ export function clientRecord(overrides: Partial<ClientResponseClient> = {}): Cli
     createdAt: stamp,
     updatedAt: stamp,
     archivedAt: null,
+    ...overrides,
+  };
+}
+
+export function clientListItem(
+  overrides: Partial<ClientListResponseItemsItem> = {}
+): ClientListResponseItemsItem {
+  return {
+    ...clientRecord(),
+    clientSince: stamp,
+    documentation: null,
+    fireSafetyDocumentation: null,
+    training: null,
+    canDelete: false,
+    serviceContractStateAt: null,
+    serviceContractReturnExpiresAt: null,
     ...overrides,
   };
 }

@@ -1,12 +1,14 @@
 import {
   clientDocumentDetailsSchema,
   clientFireSafetySchema,
+  clientListItemSchema,
   importSourceResponseSchema,
 } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { employeeDetail, sheetSource } from './employee-import-fixture';
 import {
+  clientListItem,
   documentDetailsRecord,
   employeeListItem,
   employeeRecord,
@@ -45,5 +47,11 @@ describe('the sheet source builder', () => {
       expect(importSourceResponseSchema.parse(source)).toEqual(source);
       expect(source.fileId).toBe(file.id);
     }
+  });
+});
+
+describe('the clients list row builder', () => {
+  it('is the client record with the columns of the list, as the API sends it', () => {
+    expect(clientListItemSchema.parse(clientListItem())).toEqual(clientListItem());
   });
 });
