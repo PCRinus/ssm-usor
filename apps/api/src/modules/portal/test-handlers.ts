@@ -51,7 +51,6 @@ import type {
 
 type AttemptRow = Database['public']['Tables']['test_attempts']['Row'];
 
-// A client administrator who is not one of the client's employees takes no test.
 function ofItsDomain(domain: TrainingDomain, test: KnowledgeTest) {
   if (!isKnowledgeTestOf(domain, test)) {
     throw new ApiError('validation_error', 'The annual test is a fire-safety test.');

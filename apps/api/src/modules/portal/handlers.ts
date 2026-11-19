@@ -17,6 +17,7 @@ import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import {
   createPortalReadClient,
+  employeeOfParticipation,
   participantEmployee,
   participationOf,
 } from '../../lib/participant';
@@ -225,7 +226,7 @@ export const getPortalEmployeeData: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   const participation = participationOf(c, participantId);
-  const { clientId, employeeId } = participantEmployee(c, participantId);
+  const { clientId, employeeId } = employeeOfParticipation(participation);
   const db = createPortalReadClient(c);
   const [employee, organization] = await Promise.all([
     db
