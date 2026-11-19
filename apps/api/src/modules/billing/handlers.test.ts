@@ -55,8 +55,18 @@ describe('GET /billing', () => {
     expect(body.usage).toMatchObject({
       employees: { used: 120, limit: 5000 },
       members: { used: 1, limit: 10 },
-      smsThisMonth: { included: 0, periodStart: null, state: 'none' },
-      creditsThisMonth: { included: 300, period: 'trial', state: 'ok' },
+      creditsThisMonth: { included: 300, extra: 0, extraLeft: 0, period: 'trial', state: 'ok' },
+    });
+    expect(body.usage.smsThisMonth).toEqual({
+      used: 0,
+      included: 0,
+      allowance: 0,
+      granted: 0,
+      overage: 0,
+      extrasOn: false,
+      periodStart: null,
+      periodEnd: null,
+      state: 'none',
     });
     expect(
       body.catalogue.plans.map((plan) => [
@@ -173,6 +183,7 @@ describe('GET /billing', () => {
         profesional: { minimumStep: 500, problems: [] },
       },
     });
+    expect(body.usage.smsThisMonth).toMatchObject({ used: 0, overage: 0, state: 'none' });
     expect(stripeCalls(fake)).toEqual([]);
   });
 
