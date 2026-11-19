@@ -111,6 +111,7 @@ templates:
   - 'packages/document-engine/templates/**'
   - 'apps/api/scripts/register-templates.ts'
   - 'apps/api/scripts/lib/register-templates.ts'
+  - 'packages/document-engine/src/template-store.ts'
   - 'supabase/migrations/**'
 # Anything the full validation has something to say about, workflow files included, since
 # running them is how they are tested. A pull request outside it, which in practice means
