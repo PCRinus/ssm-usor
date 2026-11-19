@@ -449,10 +449,13 @@ describe("an employee's training tabs", () => {
     });
     mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const notice = await screen.findByTestId('training-sheet-ssm-missing');
-    const tab = screen.getByTestId('employee-training-tab');
-    expect(notice.parentElement).toBe(tab);
-    expect(tab.children[1]).toBe(notice);
-    expect(notice.nextElementSibling).toBe(screen.getByTestId('training-status'));
+    const header = screen.getByRole('heading', { name: 'Instruire SSM' }).parentElement!;
+    expect(header.contains(notice)).toBe(false);
+    expect(screen.getByTestId('employee-training-tab').contains(notice)).toBe(true);
+    expect(
+      notice.compareDocumentPosition(screen.getByTestId('training-status')) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(screen.getByTestId('training-sheet-ssm')).toHaveProperty('disabled', true);
   });
 
