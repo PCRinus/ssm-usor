@@ -1,4 +1,5 @@
 import {
+  clientConflictReasons,
   importCredits,
   type ReadSafetySheetResponse,
   safetySheetErrorReasons,
@@ -55,7 +56,7 @@ function failureMessage(cause: unknown) {
       ? `Nu mai ai credite AI${until}.`
       : `Nu ajung creditele AI: citirea fișei folosește ${creditsLabel(cost)}, iar ${left === 1 ? 'îți mai rămâne' : 'îți mai rămân'} ${left}${until}.`;
   }
-  if (reason === 'client_archived') return 'Clientul este arhivat.';
+  if (reason === clientConflictReasons.clientArchived) return 'Clientul este arhivat.';
   return `Nu am putut citi fișa acum. Încearcă din nou peste câteva minute.${credits}`;
 }
 

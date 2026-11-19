@@ -41,6 +41,7 @@ import {
   existingRecords,
   findImport,
   modelUsageOf,
+  noSuchPart,
   queueEnded,
   storedChanges,
   storedProposal,
@@ -87,9 +88,6 @@ const partColumns =
   'part, status, attempt, failure_reason, version, proposal, changes, read_at, confirmed_at, input_tokens, cached_input_tokens, output_tokens, cost_usd';
 
 type FoundImport = Awaited<ReturnType<typeof findImport>>;
-
-const noSuchPart = () =>
-  new ApiError('not_found', 'This import has no such part in your organization.');
 
 const storedInstructions = (value: unknown): InstructionsProposal | null => {
   const parsed = instructionsProposalSchema.safeParse(value);

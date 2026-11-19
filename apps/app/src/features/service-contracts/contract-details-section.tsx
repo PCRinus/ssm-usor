@@ -1,4 +1,4 @@
-import { countOf } from '@ssm-usor/contracts';
+import { clientConflictReasons, countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
@@ -99,7 +99,7 @@ export function ContractDetailsSection({
       }
       onError(
         commonFailure(cause) ??
-          (body?.reason === 'client_archived'
+          (body?.reason === clientConflictReasons.clientArchived
             ? 'Firma este arhivată; contractul ei nu mai poate fi modificat.'
             : isOffersNotInPlanError(cause)
               ? offersNotInPlanMessage

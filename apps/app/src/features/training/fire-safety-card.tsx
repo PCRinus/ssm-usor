@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { clientConflictReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
@@ -172,7 +173,7 @@ function useFireSafetySave<Values extends FieldValues>({
       form.setError('root.server' as never, {
         message:
           commonFailure(cause) ??
-          (status === 409 && apiErrorReason(cause) === 'client_archived'
+          (status === 409 && apiErrorReason(cause) === clientConflictReasons.clientArchived
             ? 'Clientul este arhivat; datele lui nu se mai schimbă.'
             : status === 404
               ? 'Clientul nu mai există în organizația ta.'

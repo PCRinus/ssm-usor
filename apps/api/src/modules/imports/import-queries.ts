@@ -80,6 +80,9 @@ const detailColumns = `${summaryColumns}, version, proposal, changes, proposal_d
 export const notFound = () =>
   new ApiError('not_found', 'This import does not exist in your organization.');
 
+export const noSuchPart = () =>
+  new ApiError('not_found', 'This import has no such part in your organization.');
+
 export async function creatorNames(db: DataClient, rows: { created_by: string | null }[]) {
   const ids = [...new Set(rows.flatMap((row) => (row.created_by ? [row.created_by] : [])))];
   if (ids.length === 0) return new Map<string, string>();
