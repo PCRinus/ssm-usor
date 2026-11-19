@@ -61,7 +61,11 @@ export function NotesPanel({
       ) : notes.isPending ? (
         <Skeleton className="h-10 w-full max-w-[70ch]" />
       ) : notes.data === undefined ? (
-        <LoadFailed busy={notes.isFetching} onRetry={() => void notes.refetch()}>
+        <LoadFailed
+          error={notes.error}
+          busy={notes.isFetching}
+          onRetry={() => void notes.refetch()}
+        >
           Nu am putut încărca notițele.
         </LoadFailed>
       ) : body ? (

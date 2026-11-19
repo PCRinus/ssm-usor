@@ -92,7 +92,11 @@ export function ClientRiskEvaluationsCard({
       {evaluations.isPending ? (
         <Skeleton className="h-20 w-full" />
       ) : evaluations.isError ? (
-        <LoadFailed busy={evaluations.isFetching} onRetry={() => void evaluations.refetch()}>
+        <LoadFailed
+          error={evaluations.error}
+          busy={evaluations.isFetching}
+          onRetry={() => void evaluations.refetch()}
+        >
           Nu am putut încărca fișele de evaluare a riscurilor ale clientului.
         </LoadFailed>
       ) : (

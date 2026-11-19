@@ -118,6 +118,7 @@ export function EmployeeTestsCard({
     >
       {tests.isError ? (
         <LoadFailed
+          error={tests.error}
           testId="tests-error"
           busy={tests.isFetching}
           onRetry={() => void tests.refetch()}

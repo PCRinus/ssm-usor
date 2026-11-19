@@ -56,6 +56,7 @@ export function LegalChanges({ userId }: { userId: string }) {
   if (open.isError || applied.isError) {
     return (
       <LoadFailed
+        error={open.error ?? applied.error}
         busy={open.isFetching || applied.isFetching}
         onRetry={() => {
           if (open.isError) void open.refetch();

@@ -100,7 +100,11 @@ export function PositionRiskEvaluationCard({
       {query.isPending ? (
         <Skeleton className="h-16 w-full" />
       ) : query.isError ? (
-        <LoadFailed busy={query.isFetching} onRetry={() => void query.refetch()}>
+        <LoadFailed
+          error={query.error}
+          busy={query.isFetching}
+          onRetry={() => void query.refetch()}
+        >
           Nu am putut încărca fișa de evaluare a riscurilor pentru acest post.
         </LoadFailed>
       ) : !evaluation ? (

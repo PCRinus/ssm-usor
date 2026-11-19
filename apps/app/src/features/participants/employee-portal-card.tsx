@@ -77,7 +77,11 @@ export function EmployeePortalCard({
       {state.isPending ? (
         <Skeleton className="h-12 w-full" />
       ) : state.isError ? (
-        <LoadFailed busy={state.isFetching} onRetry={() => void state.refetch()}>
+        <LoadFailed
+          error={state.error}
+          busy={state.isFetching}
+          onRetry={() => void state.refetch()}
+        >
           Nu am putut încărca accesul la portal.
         </LoadFailed>
       ) : participant ? (

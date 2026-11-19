@@ -176,7 +176,11 @@ export function ClientSignatureRequests({
       </div>
       {requests.isError ? (
         <div className="px-6 pb-6">
-          <LoadFailed busy={requests.isFetching} onRetry={() => void requests.refetch()}>
+          <LoadFailed
+            error={requests.error}
+            busy={requests.isFetching}
+            onRetry={() => void requests.refetch()}
+          >
             Nu am putut încărca semnăturile în așteptare.
           </LoadFailed>
         </div>

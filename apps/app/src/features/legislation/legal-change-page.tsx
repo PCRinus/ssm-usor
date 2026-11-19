@@ -58,6 +58,7 @@ export function LegalChangePage({ changeId, userId }: { changeId: string; userId
         <LegalChangeBack />
       </div>
       <LoadFailed
+        error={query.error}
         testId="legal-change-load-error"
         busy={query.isFetching}
         onRetry={() => void query.refetch()}

@@ -67,7 +67,11 @@ export function ChoosePlanPage({ search }: { search: ChoosePlanSearch }) {
   if (billing.isError) {
     return (
       <WithBack>
-        <LoadFailed busy={billing.isFetching} onRetry={() => void billing.refetch()}>
+        <LoadFailed
+          error={billing.error}
+          busy={billing.isFetching}
+          onRetry={() => void billing.refetch()}
+        >
           Nu am putut încărca abonamentul.
         </LoadFailed>
       </WithBack>

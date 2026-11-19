@@ -55,7 +55,11 @@ export function OwnerNotesCard({
       {notes.isPending ? (
         <Skeleton className="h-32 w-full" />
       ) : notes.isError ? (
-        <LoadFailed busy={notes.isFetching} onRetry={() => void notes.refetch()}>
+        <LoadFailed
+          error={notes.error}
+          busy={notes.isFetching}
+          onRetry={() => void notes.refetch()}
+        >
           Nu am putut încărca notițele.
         </LoadFailed>
       ) : (

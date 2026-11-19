@@ -178,7 +178,11 @@ export function TeamCard({
           })
         }
         error={
-          <LoadFailed busy={members.isFetching || invitations.isFetching} onRetry={retry}>
+          <LoadFailed
+            error={members.error ?? invitations.error}
+            busy={members.isFetching || invitations.isFetching}
+            onRetry={retry}
+          >
             Nu am putut încărca echipa.
           </LoadFailed>
         }

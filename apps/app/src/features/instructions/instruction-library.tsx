@@ -254,6 +254,7 @@ export function InstructionLibrary({
         onPageChange={onPageChange}
         error={
           <LoadFailed
+            error={modules.error}
             testId="instruction-load-error"
             busy={modules.isFetching}
             onRetry={() => void modules.refetch()}

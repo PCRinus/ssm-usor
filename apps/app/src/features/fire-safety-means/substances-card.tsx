@@ -207,7 +207,11 @@ export function SubstancesCard({
       {substances.isPending ? (
         <Skeleton className="h-24 w-full" />
       ) : substances.isError ? (
-        <LoadFailed busy={substances.isFetching} onRetry={() => void substances.refetch()}>
+        <LoadFailed
+          error={substances.error}
+          busy={substances.isFetching}
+          onRetry={() => void substances.refetch()}
+        >
           Nu am putut încărca substanțele periculoase.
         </LoadFailed>
       ) : (

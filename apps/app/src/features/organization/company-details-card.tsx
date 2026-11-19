@@ -83,7 +83,11 @@ export function CompanyDetailsCard({
       {details.isPending ? (
         <Skeleton className="h-96 w-full" />
       ) : details.isError ? (
-        <LoadFailed busy={details.isFetching} onRetry={() => void details.refetch()}>
+        <LoadFailed
+          error={details.error}
+          busy={details.isFetching}
+          onRetry={() => void details.refetch()}
+        >
           Nu am putut încărca datele firmei.
         </LoadFailed>
       ) : (

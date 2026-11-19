@@ -198,6 +198,7 @@ export function CompanyPeoplePanel({
             <Skeleton className="h-10 w-48" />
           ) : details.isError ? (
             <LoadFailed
+              error={details.error}
               testId="legal-representative-unavailable"
               busy={details.isFetching}
               onRetry={() => void details.refetch()}

@@ -78,7 +78,11 @@ export function AuthorizationsCard({
       {saved.isPending ? (
         <Skeleton className="h-72 w-full" />
       ) : saved.isError ? (
-        <LoadFailed busy={saved.isFetching} onRetry={() => void saved.refetch()}>
+        <LoadFailed
+          error={saved.error}
+          busy={saved.isFetching}
+          onRetry={() => void saved.refetch()}
+        >
           Nu am putut încărca abilitările.
         </LoadFailed>
       ) : (

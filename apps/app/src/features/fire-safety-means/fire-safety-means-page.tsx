@@ -191,6 +191,13 @@ export function FireSafetyMeansPage({
       <Card data-testid="fire-means-page">
         <CardContent>
           <LoadFailed
+            error={
+              workplaces.error ??
+              equipment.error ??
+              installations.error ??
+              maintenanceItems.error ??
+              buildings.error
+            }
             onRetry={() => {
               void workplaces.refetch();
               void equipment.refetch();

@@ -214,7 +214,11 @@ export function WorkplacesCard({
             : 'Niciun punct de lucru încă.'}
         </p>
       ) : workplaces.isError ? (
-        <LoadFailed busy={workplaces.isFetching} onRetry={() => void workplaces.refetch()}>
+        <LoadFailed
+          error={workplaces.error}
+          busy={workplaces.isFetching}
+          onRetry={() => void workplaces.refetch()}
+        >
           Nu am putut încărca punctele de lucru.
         </LoadFailed>
       ) : (

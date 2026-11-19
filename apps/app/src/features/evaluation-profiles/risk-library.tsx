@@ -278,6 +278,7 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
           onPageChange={onPageChange}
           error={
             <LoadFailed
+              error={profiles.error}
               testId="risk-library-load-error"
               busy={profiles.isFetching}
               onRetry={() => void profiles.refetch()}

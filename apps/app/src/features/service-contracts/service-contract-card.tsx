@@ -64,7 +64,11 @@ export function ServiceContractCard({
       {contract.isPending ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : contract.isError ? (
-        <LoadFailed busy={contract.isFetching} onRetry={() => void contract.refetch()}>
+        <LoadFailed
+          error={contract.error}
+          busy={contract.isFetching}
+          onRetry={() => void contract.refetch()}
+        >
           Nu am putut încărca contractul.
         </LoadFailed>
       ) : (

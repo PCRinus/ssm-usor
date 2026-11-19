@@ -206,7 +206,11 @@ function GenerateDocumentsForm({
           {checking ? (
             <Skeleton className="h-28 w-full" />
           ) : readiness.isError ? (
-            <LoadFailed busy={readiness.isFetching} onRetry={() => void readiness.refetch()}>
+            <LoadFailed
+              error={readiness.error}
+              busy={readiness.isFetching}
+              onRetry={() => void readiness.refetch()}
+            >
               Nu am putut verifica datele clientului.
             </LoadFailed>
           ) : (

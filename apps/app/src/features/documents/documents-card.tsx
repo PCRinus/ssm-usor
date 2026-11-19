@@ -288,7 +288,11 @@ export function DocumentsCard<Set extends DocumentSet>({
           <PackHeader set={set} />
           <div className="px-4 pb-6 sm:px-6">
             {documents.isError ? (
-              <LoadFailed busy={documents.isFetching} onRetry={() => void documents.refetch()}>
+              <LoadFailed
+                error={documents.error}
+                busy={documents.isFetching}
+                onRetry={() => void documents.refetch()}
+              >
                 Nu am putut încărca documentele.
               </LoadFailed>
             ) : (

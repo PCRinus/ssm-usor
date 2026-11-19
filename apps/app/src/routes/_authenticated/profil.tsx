@@ -42,7 +42,7 @@ function ProfilePage() {
   }
   if (me.isError) {
     return (
-      <LoadFailed busy={me.isFetching} onRetry={() => void me.refetch()}>
+      <LoadFailed error={me.error} busy={me.isFetching} onRetry={() => void me.refetch()}>
         Nu am putut încărca profilul.
       </LoadFailed>
     );

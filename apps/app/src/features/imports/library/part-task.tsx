@@ -51,7 +51,12 @@ export function PartTaskLoader<P extends AnyPart>({
   return (
     <div className="grid gap-6">
       {query.isError ? (
-        <LoadFailed testId="library-task-error" size="sm" onRetry={() => void query.refetch()}>
+        <LoadFailed
+          error={query.error}
+          testId="library-task-error"
+          size="sm"
+          onRetry={() => void query.refetch()}
+        >
           {loadFailed}
         </LoadFailed>
       ) : !part ? (

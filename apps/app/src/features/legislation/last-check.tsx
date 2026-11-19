@@ -89,6 +89,7 @@ export function LastCheck({ userId }: { userId: string }) {
   if (latest.isError) {
     return (
       <LoadFailed
+        error={latest.error}
         testId="last-check-error"
         size="sm"
         busy={latest.isFetching}

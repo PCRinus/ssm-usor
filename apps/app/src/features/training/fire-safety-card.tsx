@@ -107,7 +107,11 @@ export function FireSafetySection({
     return (
       <Card data-testid="fire-safety-unavailable">
         <CardContent>
-          <LoadFailed busy={failed.isFetching} onRetry={() => void failed.refetch()}>
+          <LoadFailed
+            error={failed.error}
+            busy={failed.isFetching}
+            onRetry={() => void failed.refetch()}
+          >
             Nu am putut încărca instruirea SU.
           </LoadFailed>
         </CardContent>

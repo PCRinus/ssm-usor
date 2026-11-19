@@ -232,7 +232,11 @@ export function PositionInstructionsCard({
       {instructions.isPending ? (
         <Skeleton className="h-24 w-full" />
       ) : instructions.isError ? (
-        <LoadFailed busy={instructions.isFetching} onRetry={() => void instructions.refetch()}>
+        <LoadFailed
+          error={instructions.error}
+          busy={instructions.isFetching}
+          onRetry={() => void instructions.refetch()}
+        >
           Nu am putut încărca instrucțiunile postului.
         </LoadFailed>
       ) : items.length === 0 ? (

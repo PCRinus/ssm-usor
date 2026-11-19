@@ -135,7 +135,11 @@ export function WatchedActs({ userId }: { userId: string }) {
               onSortChange={onSortChange}
               onPageChange={onPageChange}
               error={
-                <LoadFailed busy={acts.isFetching} onRetry={() => void acts.refetch()}>
+                <LoadFailed
+                  error={acts.error}
+                  busy={acts.isFetching}
+                  onRetry={() => void acts.refetch()}
+                >
                   Nu am putut încărca actele urmărite.
                 </LoadFailed>
               }

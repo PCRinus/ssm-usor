@@ -137,7 +137,11 @@ export function DocumentsBehind({ set, userId }: { set: DocumentSet; userId: str
   if (behind.isError) {
     return (
       <div className="p-5">
-        <LoadFailed busy={behind.isFetching} onRetry={() => void behind.refetch()}>
+        <LoadFailed
+          error={behind.error}
+          busy={behind.isFetching}
+          onRetry={() => void behind.refetch()}
+        >
           Nu am putut încărca documentele de actualizat.
         </LoadFailed>
       </div>

@@ -77,6 +77,7 @@ export function RecordSignatures({
   if (query.isError) {
     return (
       <LoadFailed
+        error={query.error}
         testId="record-signatures-error"
         busy={query.isFetching}
         onRetry={() => void query.refetch()}

@@ -259,7 +259,11 @@ export function JobPositionsCard({
               })
             }
             error={
-              <LoadFailed busy={positions.isFetching} onRetry={() => void positions.refetch()}>
+              <LoadFailed
+                error={positions.error}
+                busy={positions.isFetching}
+                onRetry={() => void positions.refetch()}
+              >
                 Nu am putut încărca posturile de lucru.
               </LoadFailed>
             }

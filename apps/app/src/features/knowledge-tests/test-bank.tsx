@@ -45,6 +45,7 @@ export function TestBank({ domain, test }: { domain: TrainingDomain; test: Knowl
     return (
       <div className="p-4 sm:p-6">
         <LoadFailed
+          error={bank.error}
           testId="test-bank-load-error"
           busy={bank.isFetching}
           onRetry={() => void bank.refetch()}

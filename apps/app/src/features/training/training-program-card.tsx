@@ -107,7 +107,11 @@ export function TrainingProgramSection({
     return (
       <Card data-testid="document-details-unavailable">
         <CardContent>
-          <LoadFailed busy={failed.isFetching} onRetry={() => void failed.refetch()}>
+          <LoadFailed
+            error={failed.error}
+            busy={failed.isFetching}
+            onRetry={() => void failed.refetch()}
+          >
             Nu am putut încărca programul de instruire.
           </LoadFailed>
         </CardContent>

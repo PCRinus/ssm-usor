@@ -41,6 +41,7 @@ function PreviewContent({ request }: { request: PreviewRequest }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [failed, setFailed] = useState(false);
+  const [cause, setCause] = useState<unknown>();
   const [shown, setShown] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
@@ -51,8 +52,10 @@ function PreviewContent({ request }: { request: PreviewRequest }) {
         const read = new Uint8Array(await file.arrayBuffer());
         if (!cancelled) setBytes(read);
       })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setCause(error);
+        setFailed(true);
       });
     return () => {
       cancelled = true;
@@ -95,6 +98,7 @@ function PreviewContent({ request }: { request: PreviewRequest }) {
         {failed ? (
           <div className="p-6">
             <LoadFailed
+              error={cause}
               testId="instruction-preview-error"
               onRetry={() => {
                 setFailed(false);

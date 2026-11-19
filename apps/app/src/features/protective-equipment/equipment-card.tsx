@@ -193,7 +193,11 @@ export function EquipmentCard({
       {equipment.isPending ? (
         <Skeleton className="h-24 w-full" />
       ) : equipment.isError ? (
-        <LoadFailed busy={equipment.isFetching} onRetry={() => void equipment.refetch()}>
+        <LoadFailed
+          error={equipment.error}
+          busy={equipment.isFetching}
+          onRetry={() => void equipment.refetch()}
+        >
           Nu am putut încărca echipamentul postului.
         </LoadFailed>
       ) : decision === false ? (

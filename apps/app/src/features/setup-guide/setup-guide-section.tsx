@@ -15,13 +15,16 @@ const hiddenReasons: Record<GuideHiddenReason, string> = {
 };
 
 export function SetupGuideSection() {
-  const { guide, isPending, isError, retry, doneCount, reopen, hiddenBecause } = useSetupGuide();
+  const { guide, isPending, isError, error, retry, doneCount, reopen, hiddenBecause } =
+    useSetupGuide();
   const reasonId = useId();
 
   return (
     <SectionCard data-testid="settings-guides" title="Ghiduri">
       {isError ? (
-        <LoadFailed onRetry={retry}>Nu am putut încărca ghidul de configurare.</LoadFailed>
+        <LoadFailed error={error} onRetry={retry}>
+          Nu am putut încărca ghidul de configurare.
+        </LoadFailed>
       ) : isPending || !guide ? (
         <Skeleton className="h-16 w-full" />
       ) : (

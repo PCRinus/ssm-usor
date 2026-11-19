@@ -262,7 +262,11 @@ export function ResponsiblePersonsCard({
             : 'Nicio persoană responsabilă încă.'}
         </p>
       ) : persons.isError ? (
-        <LoadFailed busy={persons.isFetching} onRetry={() => void persons.refetch()}>
+        <LoadFailed
+          error={persons.error}
+          busy={persons.isFetching}
+          onRetry={() => void persons.refetch()}
+        >
           Nu am putut încărca persoanele responsabile.
         </LoadFailed>
       ) : (

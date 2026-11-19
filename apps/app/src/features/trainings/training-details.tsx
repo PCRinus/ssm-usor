@@ -57,6 +57,7 @@ export function TrainingDetails({
   if (detail.isError) {
     return (
       <LoadFailed
+        error={detail.error}
         testId="training-details-error"
         busy={detail.isFetching}
         onRetry={() => void detail.refetch()}

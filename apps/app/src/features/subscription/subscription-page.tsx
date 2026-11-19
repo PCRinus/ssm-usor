@@ -61,7 +61,11 @@ export function SubscriptionPage() {
   }
   if (billing.isError) {
     return (
-      <LoadFailed busy={billing.isFetching} onRetry={() => void billing.refetch()}>
+      <LoadFailed
+        error={billing.error}
+        busy={billing.isFetching}
+        onRetry={() => void billing.refetch()}
+      >
         Nu am putut încărca abonamentul.
       </LoadFailed>
     );

@@ -197,6 +197,7 @@ export function useExistingValues(detail: ImportDetail) {
       substanceNames: [],
       workplaces: [] as ExistingWorkplace[],
       positionsFailed: false,
+      positionsError: null,
       positionsRetrying: false,
       retryPositions: () => undefined,
     };
@@ -214,6 +215,7 @@ export function useExistingValues(detail: ImportDetail) {
       !substances.isPending &&
       !workplaces.isPending,
     positionsFailed: positions.isError,
+    positionsError: positions.error,
     positionsRetrying: positions.isFetching,
     retryPositions: () => void positions.refetch(),
     positions: (positions.data?.items ?? []).map((position) => ({

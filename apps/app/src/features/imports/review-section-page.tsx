@@ -122,6 +122,7 @@ export function ReviewSectionPage({
         )}
         {section === 'training' && existing.positionsFailed ? (
           <LoadFailed
+            error={existing.positionsError}
             testId="import-review-positions-error"
             size="sm"
             busy={existing.positionsRetrying}

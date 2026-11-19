@@ -364,7 +364,11 @@ export function ClientFilesCard({
                   })
                 }
                 error={
-                  <LoadFailed busy={files.isFetching} onRetry={() => void files.refetch()}>
+                  <LoadFailed
+                    error={files.error}
+                    busy={files.isFetching}
+                    onRetry={() => void files.refetch()}
+                  >
                     Nu am putut încărca fișierele.
                   </LoadFailed>
                 }

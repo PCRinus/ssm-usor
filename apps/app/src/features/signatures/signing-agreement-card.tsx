@@ -309,7 +309,11 @@ export function SigningAgreementCard({
       {query.isPending ? (
         <Skeleton className="h-8 w-full" />
       ) : query.isError ? (
-        <LoadFailed busy={query.isFetching} onRetry={() => void query.refetch()}>
+        <LoadFailed
+          error={query.error}
+          busy={query.isFetching}
+          onRetry={() => void query.refetch()}
+        >
           Nu am putut încărca starea actului adițional.
         </LoadFailed>
       ) : (

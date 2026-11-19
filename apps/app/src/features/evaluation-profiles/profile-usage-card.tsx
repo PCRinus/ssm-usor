@@ -81,6 +81,7 @@ export function ProfileUsageCard({
         <Skeleton className="h-16 w-full" />
       ) : usage.isError ? (
         <LoadFailed
+          error={usage.error}
           testId="risk-profile-usage-error"
           busy={usage.isFetching}
           onRetry={() => void usage.refetch()}

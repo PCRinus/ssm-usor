@@ -62,7 +62,7 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
   if (list.isError) {
     return (
       <div data-testid="client-portal-page" className="grid gap-4">
-        <LoadFailed busy={list.isFetching} onRetry={() => void list.refetch()}>
+        <LoadFailed error={list.error} busy={list.isFetching} onRetry={() => void list.refetch()}>
           Nu am putut încărca accesul la portal.
         </LoadFailed>
       </div>
