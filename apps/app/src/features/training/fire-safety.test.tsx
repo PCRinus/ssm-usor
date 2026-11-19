@@ -373,27 +373,24 @@ describe('the fire-safety training card', () => {
     };
   };
 
-  it('loads again everything that failed when the fire-safety card is retried', async () => {
-    const recover = failDetailsAndPositions();
-    mount();
+  it.each([
+    ['fire-safety', 'fire-safety-unavailable', 'fire-safety-card'],
+    ['training program', 'document-details-unavailable', 'training-program-card'],
+  ])(
+    'loads again everything that failed when the %s card is retried',
+    async (_, unavailable, card) => {
+      const recover = failDetailsAndPositions();
+      mount();
 
-    const failed = await screen.findByTestId('fire-safety-unavailable');
-    recover();
-    await userEvent.setup().click(within(failed).getByRole('button', { name: 'Încearcă din nou' }));
+      const failed = await screen.findByTestId(unavailable);
+      recover();
+      await userEvent
+        .setup()
+        .click(within(failed).getByRole('button', { name: 'Încearcă din nou' }));
 
-    expect(await screen.findByTestId('fire-safety-card')).toBeTruthy();
-  });
-
-  it('loads again everything that failed when the training program card is retried', async () => {
-    const recover = failDetailsAndPositions();
-    mount();
-
-    const failed = await screen.findByTestId('document-details-unavailable');
-    recover();
-    await userEvent.setup().click(within(failed).getByRole('button', { name: 'Încearcă din nou' }));
-
-    expect(await screen.findByTestId('training-program-card')).toBeTruthy();
-  });
+      expect(await screen.findByTestId(card)).toBeTruthy();
+    }
+  );
 
   it('saves the two cards back to back, each sending only its own fields, and keeps both', async () => {
     mockApi({ fireSafety: savedFireSafety, exists: true, positions: [cook, manager] });

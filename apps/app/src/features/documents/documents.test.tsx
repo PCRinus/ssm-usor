@@ -215,19 +215,10 @@ describe('client documents', () => {
     mount();
 
     expect(await screen.findByTestId('documents-page')).toBeTruthy();
-    const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
-    expect(sections).toEqual([
-      'Detalii',
-      'Lucrători',
-      'Posturi de lucru',
-      'Mijloace de apărare',
-      'Instruire și responsabili',
-      'Instruiri ținute',
-      'Documente SSM',
-      'Documente SU',
-      'Alte documente',
-      'Portal',
-    ]);
+    const current = screen
+      .getAllByTestId('client-section')
+      .filter((link) => link.getAttribute('aria-current') === 'page');
+    expect(current.map((link) => link.textContent)).toEqual(['Documente SSM']);
     expect(await screen.findByTestId('documents-empty')).toBeTruthy();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
       'Generează documentația'

@@ -844,6 +844,32 @@ describe('the Legislație page', () => {
     );
   });
 
+  it('says a plain draft of a document behind is replaced', async () => {
+    mockLegislationApi({
+      behind: [
+        {
+          ...firstAidBehind,
+          clients: [
+            {
+              ...firstAidBehind.clients[0]!,
+              clientName: 'GAMA SERV SRL',
+              version: 2,
+              status: 'draft',
+              issueDate: null,
+            },
+          ],
+        },
+      ],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('behind-clients-toggle'));
+    expect(screen.getByTestId('behind-client').textContent).toBe(
+      'GAMA SERV SRLVersiunea 2Ciornăse înlocuiește'
+    );
+  });
+
   it('says what moved in the instructions of a document behind them alone', async () => {
     const themesBehind = {
       typeKey: 'training_themes',
@@ -1033,38 +1059,30 @@ describe('the Legislație page', () => {
     expect(screen.queryByTestId('behind-regenerate-error')).toBeNull();
   });
 
-  it('follows the jobs that started when the request itself failed', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockLegislationApi({
-      behind: [firstAidBehind],
-      startAll: () => Response.json({ error: 'internal' }, { status: 500 }),
-      after: [[runningEntry({ typeKey: 'general_training_material' })]],
-    });
-    mount();
-    const user = userEvent.setup();
-
-    await user.click(await screen.findByTestId('behind-regenerate-all'));
-    await user.click(await screen.findByTestId('behind-confirm'));
-
-    expect(await screen.findByTestId('regeneration-progress')).toBeTruthy();
-    expect(screen.queryByTestId('behind-regenerate-error')).toBeNull();
-  });
-
-  it('follows the jobs an admin started as the member when the request itself failed', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockLegislationApi({
-      behind: [firstAidBehind],
-      me: {
-        ...specialist,
-        impersonation: {
-          targetMemberId: 'member-two',
-          targetOrganizationId: organizationId,
-          expiresAt: '2099-01-01T00:00:00Z',
-          targetName: 'Ana Ionescu',
+  it.each([
+    ['the member', {}, runningEntry({ typeKey: 'general_training_material' })],
+    [
+      'an admin as the member',
+      {
+        me: {
+          ...specialist,
+          impersonation: {
+            targetMemberId: 'member-two',
+            targetOrganizationId: organizationId,
+            expiresAt: '2099-01-01T00:00:00Z',
+            targetName: 'Ana Ionescu',
+          },
         },
       },
+      runningEntry({ requestedBy: 'member-two' }),
+    ],
+  ])('follows the jobs %s started when the request itself failed', async (_, who, running) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockLegislationApi({
+      behind: [firstAidBehind],
+      ...who,
       startAll: () => Response.json({ error: 'internal' }, { status: 500 }),
-      after: [[runningEntry({ requestedBy: 'member-two' })]],
+      after: [[running]],
     });
     mount();
     const user = userEvent.setup();

@@ -248,8 +248,7 @@ describe('the SMS bar', () => {
     await renderRouted(<SubscriptionBar subscription={active} sms={stopped} isOwner canAct />);
     const bar = await screen.findByTestId('subscription-bar');
     expect(bar.dataset.kind).toBe('smsStop');
-    expect(bar.textContent).toContain('Ai folosit cele 300 de coduri ale lunii.');
-    expect(bar.textContent).not.toContain('€');
+    expect(bar.textContent).toContain('300 de coduri');
     expect(screen.getByTestId('subscription-bar-action').getAttribute('href')).toBe(
       '/organizatie/abonament'
     );

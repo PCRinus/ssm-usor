@@ -88,6 +88,7 @@ const mount = (search = '') =>
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.useRealTimers();
 });
 
 installFetchMock();
@@ -231,8 +232,12 @@ describe('choosing a plan', () => {
     expect(screen.getByTestId('checkout-trial-ends')).toBeTruthy();
   });
 
-  it('waits for the paid subscription and its card before saying the plan is active', async () => {
+  it('asks every second and a half for the paid subscription and its card before saying the plan is active', async () => {
     const trial = overviewWith({ subscription: trialSubscription(12), owner: ownerPart() });
+    const paidWithoutCard = overviewWith({
+      subscription: activeSubscription({ plan: 'start', interval: 'month', step: 500 }),
+      owner: ownerPart(),
+    });
     const paid = paidStart();
     let chosen = false;
     let readsAfterChoosing = 0;
@@ -246,23 +251,35 @@ describe('choosing a plan', () => {
         'GET /billing': () => {
           if (!chosen) return Response.json(trial);
           readsAfterChoosing += 1;
-          return Response.json(readsAfterChoosing <= 2 ? trial : paid);
+          return Response.json(
+            readsAfterChoosing === 1 ? trial : readsAfterChoosing === 2 ? paidWithoutCard : paid
+          );
         },
       },
     });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
     const runtime = mount('?interval=month');
 
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     await user.click(submit);
+    await waitFor(() => expect(readsAfterChoosing).toBe(1));
+    const advance = async (ms: number) => {
+      for (let passed = 0; passed < ms; passed += 100) await vi.advanceTimersByTimeAsync(100);
+    };
 
-    await waitFor(
-      () => expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament'),
-      { timeout: 8000 }
+    await advance(1000);
+    expect(readsAfterChoosing).toBe(1);
+    await advance(1000);
+    expect(readsAfterChoosing).toBe(2);
+    expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament/alege');
+    await advance(1200);
+    expect(readsAfterChoosing).toBeGreaterThanOrEqual(3);
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament')
     );
     expect((await screen.findByTestId('payment-card-number')).textContent).toBe('Visa •••• 4242');
-    expect(readsAfterChoosing).toBeGreaterThan(2);
   });
 
   it('charges at once when reactivating, and keeps the page on a declined card', async () => {

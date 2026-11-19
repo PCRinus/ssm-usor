@@ -233,7 +233,8 @@ export function UsageCard({
         {meters.map((meter) => {
           const bar = meter.used !== null && meter.limit !== null;
           const over = bar && meter.used! > meter.limit!;
-          const ink = meter.tone ? toneInks[meter.tone] : over ? 'text-warning-foreground' : null;
+          const tone = meter.tone ?? (over ? 'over' : undefined);
+          const ink = tone ? toneInks[tone] : null;
           const value =
             meter.value ??
             (bar
@@ -242,7 +243,12 @@ export function UsageCard({
                 ? formatCount(meter.used)
                 : null);
           return (
-            <div key={meter.key} data-testid={`meter-${meter.key}`} className="grid gap-1.5">
+            <div
+              key={meter.key}
+              data-testid={`meter-${meter.key}`}
+              data-tone={tone}
+              className="grid gap-1.5"
+            >
               <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="font-medium">{meter.label}</span>
                 {value && (

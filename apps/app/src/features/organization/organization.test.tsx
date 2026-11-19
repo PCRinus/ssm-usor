@@ -329,17 +329,11 @@ describe('team table', () => {
     expect(screen.queryByTestId('team-upgrade')).toBeNull();
   });
 
-  it('offers no upgrade from a trial at ten users with Start chosen, where Profesional adds none', async () => {
-    mockApi({ seats: { members: 9, invitations: 1, limit: 10, canUpgrade: true } });
-    mount();
-
-    expect((await screen.findByTestId('team-seats')).dataset.full).toBe('true');
-    expect(screen.queryByTestId('team-upgrade')).toBeNull();
-    expect(screen.getByTestId('invite-open').dataset.variant).toBe('default');
-  });
-
-  it('offers no upgrade from a full Profesional, where no larger plan can be chosen', async () => {
-    mockApi({ seats: { members: 9, invitations: 1, limit: 10, canUpgrade: false } });
+  it.each([
+    ['a trial at ten users with Start chosen, where Profesional adds none', true],
+    ['a full Profesional, where no larger plan can be chosen', false],
+  ])('offers no upgrade from %s', async (_, canUpgrade) => {
+    mockApi({ seats: { members: 9, invitations: 1, limit: 10, canUpgrade } });
     mount();
 
     expect((await screen.findByTestId('team-seats')).dataset.full).toBe('true');

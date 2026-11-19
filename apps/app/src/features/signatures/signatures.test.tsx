@@ -17,8 +17,9 @@ import {
 } from '@/test/records';
 import { employeeTests } from '@/test/training-fixture';
 
-import { signingFailure, signingSessionFailure } from './signature-format';
+import { printedTrainingMessage, signingFailure, signingSessionFailure } from './signature-format';
 import { matchSigner } from './signer-match';
+import { trainingLocks } from './use-record-signatures';
 
 const otherClientId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
@@ -486,25 +487,30 @@ describe('signers on the training flow', () => {
     ).not.toHaveProperty('admitter');
   });
 
-  it("puts the API's name mismatch under the picker", async () => {
+  it.each([
+    { slot: 'verifier', status: 422, error: 'unprocessable' },
+    { slot: 'trainer', status: 400, error: 'validation_error' },
+  ])("puts the API's name mismatch under the picker, %o", async ({ slot, status, error }) => {
     mockApi({
       [`POST ${trainingsPath}`]: () =>
         Response.json(
           {
-            error: 'unprocessable',
+            error,
             message: 'The signer is not the person the slot names.',
             reason: 'signer_name_mismatch',
-            issues: [{ path: 'signers.verifier', message: "The account's name is not Dan Marin." }],
+            issues: [{ path: `signers.${slot}`, message: "The account's name is not Dan Marin." }],
           },
-          { status: 422 }
+          { status }
         ),
     });
     const { user, dialog } = await openWorkplaceTraining();
     await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
     await user.click(within(dialog).getByTestId('training-save'));
-    expect((await within(dialog).findByTestId('training-verifier-signer-error')).textContent).toBe(
+    expect((await within(dialog).findByTestId(`training-${slot}-signer-error`)).textContent).toBe(
       'Contul ales nu poartă numele tipărit în rubrică. Alege persoana cu acest nume sau folosește numele semnatarului.'
     );
+    expect(within(dialog).queryByText(/Dan Marin|slot names/)).toBeNull();
+    expect(within(dialog).queryByTestId('training-error')).toBeNull();
   });
 
   it('asks nobody for a training typed from a paper sheet', async () => {
@@ -570,22 +576,16 @@ describe("a record's signatures", () => {
     expect(await menuDisabled('training-record-edit')).toBe(true);
     expect(await menuDisabled('training-record-delete')).toBe(true);
     expect((await recordMenuItem('training-record-lock')).textContent).toBe(
-      'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.'
+      trainingLocks({ signed: true, hasSignatures: true, printed: false }).edit
     );
   });
 
   it.each([
-    [
-      { signed: true, hasSignatures: true },
-      'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.',
-    ],
-    [
-      { signed: false, hasSignatures: true },
-      'Instruirea are semnături, chiar anulate sau pe hârtie, care rămân în evidență, așa că nu se mai poate șterge.',
-    ],
+    { signed: true, hasSignatures: true },
+    { signed: false, hasSignatures: true },
   ])(
     "locks a record by its training's signing state from other attendees' records, %o",
-    async (signing, lock) => {
+    async (signing) => {
       mockApi({
         [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record(signing)] }),
         [`GET ${signaturesPath}`]: () => Response.json({ recordId, slots: [pendingTrainee] }),
@@ -594,7 +594,9 @@ describe("a record's signatures", () => {
       await openRecordRow();
       expect(await menuDisabled('training-record-edit')).toBe(signing.signed);
       expect(await menuDisabled('training-record-delete')).toBe(true);
-      expect((await recordMenuItem('training-record-lock')).textContent).toBe(lock);
+      expect((await recordMenuItem('training-record-lock')).textContent).toBe(
+        trainingLocks({ ...signing, printed: false }).delete
+      );
       expect(requests('GET', trainingsPath)).toHaveLength(0);
     }
   );
@@ -843,9 +845,7 @@ describe("a record's signatures", () => {
     await screen.findByTestId('training-record-item');
     expect(await menuDisabled('training-record-edit')).toBe(true);
     expect(await menuDisabled('training-record-delete')).toBe(true);
-    expect((await recordMenuItem('training-record-lock')).textContent).toBe(
-      'Instruirea este trecută pe o fișă individuală semnată electronic, care nu se mai schimbă, așa că nu se mai poate modifica sau șterge.'
-    );
+    expect((await recordMenuItem('training-record-lock')).textContent).toBe(printedTrainingMessage);
   });
 
   it('says a training from paper cannot change once a certified signed sheet prints it', async () => {
@@ -877,7 +877,7 @@ describe("a record's signatures", () => {
     const dialog = await screen.findByTestId('training-dialog');
     await user.click(await within(dialog).findByTestId('training-save'));
     expect((await within(dialog).findByTestId('training-error')).textContent).toBe(
-      'Instruirea este trecută pe o fișă individuală semnată electronic, care nu se mai schimbă, așa că nu se mai poate modifica sau șterge.'
+      printedTrainingMessage
     );
   });
 
@@ -2191,7 +2191,7 @@ describe('a saved training and its signers', () => {
     expect(await menuDisabled('training-record-delete')).toBe(true);
     expect(await menuDisabled('training-record-edit')).toBe(false);
     expect((await recordMenuItem('training-record-lock')).textContent).toBe(
-      'Instruirea are semnături, chiar anulate sau pe hârtie, care rămân în evidență, așa că nu se mai poate șterge.'
+      trainingLocks({ signed: false, hasSignatures: true, printed: false }).delete
     );
   });
 });

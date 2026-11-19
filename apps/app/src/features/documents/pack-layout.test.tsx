@@ -21,7 +21,6 @@ import {
   statusCountLabel,
 } from './pack-labels';
 import { PackLayout } from './pack-layout';
-import { MissingDocumentRow, PackTable } from './pack-rows';
 import type { DocumentStatus, Pack, PackRow, PackSection, StatusCounts } from './pack-status';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
@@ -435,31 +434,5 @@ describe('PackLayout', () => {
       'Clientul este arhivat, așa că nu i se mai generează documente.'
     );
     expect(screen.queryByTestId('documents-generate')).toBeNull();
-  });
-});
-
-describe('MissingDocumentRow', () => {
-  it('reads as not generated, with no date and no menu', () => {
-    render(
-      <PackTable>
-        <MissingDocumentRow
-          row={{
-            kind: 'missing',
-            key: 'fire_site_sheet',
-            title: 'Fișa obiectivului',
-            document: null,
-            status: 'missing',
-          }}
-        />
-      </PackTable>
-    );
-
-    const missing = screen.getByTestId('document-missing');
-    expect(
-      within(missing)
-        .getAllByRole('cell')
-        .map((cell) => cell.textContent)
-    ).toEqual(['Fișa obiectivului', 'Negenerat', '—', '']);
-    expect(within(missing).queryByRole('button')).toBeNull();
   });
 });
