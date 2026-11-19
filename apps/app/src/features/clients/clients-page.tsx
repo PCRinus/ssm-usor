@@ -46,10 +46,10 @@ import { useListSearch } from '@/components/list-filters/use-list-search';
 import { LoadFailed } from '@/components/load-failed';
 import { SearchInput } from '@/components/search-input';
 import { useMe } from '@/features/account/use-me';
-import { useAuth } from '@/features/auth/auth-context';
 import { ImportListCard } from '@/features/imports/import-list-card';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { StartWays } from '@/features/imports/start-ways';
+import { noOrganizationMessage } from '@/lib/api-errors';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
@@ -165,7 +165,6 @@ export function ClientsPage() {
   const { page = 1, sort = defaultSort.sort, order = defaultSort.order, status, q } = search;
   const archived = status === 'archived';
   const navigate = clientsRoute.useNavigate();
-  const { session } = useAuth();
   const { request, ready, key } = useApi();
   const me = useMe();
   const isOwner = me.data?.membership?.role === 'owner';
@@ -192,7 +191,7 @@ export function ClientsPage() {
     request,
     query: {
       queryKey: key(getListClientsQueryKey(params)),
-      enabled: Boolean(session && request.baseUrl && (roleSettled || !params.contract)),
+      enabled: ready && (roleSettled || !params.contract),
       placeholderData: keepPreviousData,
     },
   });
@@ -357,7 +356,7 @@ export function ClientsPage() {
               onRetry={request.baseUrl ? () => void clients.refetch() : undefined}
             >
               {clients.error instanceof ApiHttpError && clients.error.status === 403
-                ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
+                ? noOrganizationMessage
                 : 'Nu am putut încărca lista clienților. Încearcă din nou.'}
             </LoadFailed>
           }

@@ -10,10 +10,7 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { type FormEvent, useState } from 'react';
 
-import {
-  type EmployeeListResponse,
-  useUpdateEmployeeStatus,
-} from '@/api/generated/api';
+import { type EmployeeListResponse, useUpdateEmployeeStatus } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
@@ -28,7 +25,7 @@ import {
   employeesOverStepMessage,
   isEmployeesOverStepError,
 } from '@/features/subscription/employees-over-step';
-import { commonFailure } from '@/lib/api-errors';
+import { commonFailure, noOrganizationMessage } from '@/lib/api-errors';
 import { formatDate, todayIso } from '@/lib/dates';
 
 import { refreshWorkforce } from './employee-cache';
@@ -50,7 +47,7 @@ function serverMessage(cause: unknown) {
     if (cause.status === 404) return 'Lucrătorul nu mai există la acest client.';
     if (cause.status === 409) return conflictMessage(apiErrorBody(cause));
     if (cause.status === 403) {
-      return 'Contul tău nu face parte dintr-o organizație. Contactează adminul.';
+      return noOrganizationMessage;
     }
   }
   return 'Nu am putut salva modificarea. Verifică conexiunea și încearcă din nou.';

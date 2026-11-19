@@ -24,7 +24,12 @@ import {
   isEmployeesOverStepError,
   refreshEmployeesOverStep,
 } from '@/features/subscription/employees-over-step';
-import { commonFailure, type IssueTarget, setApiIssues } from '@/lib/api-errors';
+import {
+  commonFailure,
+  type IssueTarget,
+  noOrganizationMessage,
+  setApiIssues,
+} from '@/lib/api-errors';
 
 import { refreshWorkforce } from './employee-cache';
 import {
@@ -192,7 +197,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         }
         if (cause.status === 403) {
           form.setError('root.server', {
-            message: 'Contul tău nu face parte dintr-o organizație. Contactează adminul.',
+            message: noOrganizationMessage,
           });
           return;
         }

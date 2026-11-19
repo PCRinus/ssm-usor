@@ -23,7 +23,6 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
-import { useAuth } from '@/features/auth/auth-context';
 import { setParams } from '@/features/documents/document-sets';
 import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 import {
@@ -73,8 +72,7 @@ export function ClientArchiveDialog({
   change: ClientArchiveChange | null;
   onClose: () => void;
 }) {
-  const { request, queryClient, key } = useApi();
-  const { session } = useAuth();
+  const { request, queryClient, ready, key } = useApi();
   const router = useRouter();
   const archive = useArchiveClient({ request });
   const restore = useRestoreClient({ request });
@@ -88,7 +86,7 @@ export function ClientArchiveDialog({
         request,
         query: {
           queryKey: key(getListClientDocumentsQueryKey(archiving ?? '', setParams(set))),
-          enabled: Boolean(archiving && session && request.baseUrl),
+          enabled: Boolean(archiving) && ready,
         },
       })
     ),
