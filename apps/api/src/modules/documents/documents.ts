@@ -46,7 +46,7 @@ import {
   type StoredDocumentFacts,
 } from './facts';
 import { buildFireSafetyContext, fireSafetyDocumentData } from './fire-safety';
-import { rulesOf, setOfGroup } from './sets';
+import { rulesOf, setOfGroup, setRules, type ThemesRule } from './sets';
 import { annexDomainOf, annexedVersionIds, snapshotAnnexes } from './snapshot';
 
 type Tables = Database['public']['Tables'];
@@ -517,8 +517,8 @@ export async function generateClientDocuments(
           decisionNumber: fireDecisionNumber(template.typeKey, asked.firstDecisionNumber),
         });
     const dated = wanted.filter((template) => isDatedDocumentType(template.typeKey));
-    // The themes cite the IPSU revision this same run makes, so they come after it.
-    const themes = wanted.find((template) => template.typeKey === 'fire_training_themes');
+    const rule = setRules.fire_safety.themes;
+    const themes = wanted.find((template) => template.typeKey === rule.typeKey);
     createdIds.push(
       ...(await inBatches(
         wanted.filter((template) => !dated.includes(template) && template !== themes),
@@ -526,17 +526,11 @@ export async function generateClientDocuments(
       ))
     );
     if (themes) {
-      const reloaded = {
-        ...facts,
-        fireOwnInstructions: await loadOwnInstructions(db, clientId, 'fire_own_instructions'),
-      };
-      current = reloaded;
-      // Nothing to cite only when the IPSU is an uploaded file: the themes wait for it.
-      if (reloaded.fireOwnInstructions) {
-        createdIds.push(
-          await fireMerged(buildFireSafetyContext({ ...reloaded, ...asked, period: null }))(themes)
-        );
-      }
+      const merged = await mergeThemes(db, clientId, facts, rule, (reloaded) =>
+        fireMerged(buildFireSafetyContext({ ...reloaded, ...asked, period: null }))(themes)
+      );
+      current = merged.facts;
+      createdIds.push(...merged.created);
     }
     // A dated document reports on the set, so it is merged with what this run has just made.
     if (dated.length > 0) {
@@ -556,8 +550,8 @@ export async function generateClientDocuments(
       const decisionNumber = decisionNumberOf(built, typeKey);
       return { data: documentData(built, typeKey, decisionNumber), decisionNumber };
     };
-    // The themes cite the own instructions revision this same run makes, so they come last.
-    const themes = wanted.find((template) => template.typeKey === 'training_themes');
+    const rule = setRules.occupational_safety.themes;
+    const themes = wanted.find((template) => template.typeKey === rule.typeKey);
     const others = wanted.filter((template) => template !== themes);
     createdIds.push(
       ...(await inBatches(others, (template) =>
@@ -565,14 +559,14 @@ export async function generateClientDocuments(
       ))
     );
     if (themes) {
-      const reloaded = { ...facts, ownInstructions: await loadOwnInstructions(db, clientId) };
-      current = reloaded;
-      // Nothing to cite only when the own instructions are an uploaded file: the themes wait
-      // for them to be generated.
-      if (reloaded.ownInstructions) {
-        const themesContext = buildDocumentContext({ ...reloaded, ...asked, period: null });
-        createdIds.push(await create(themes, fromContext(themesContext, themes.typeKey)));
-      }
+      const merged = await mergeThemes(db, clientId, facts, rule, (reloaded) =>
+        create(
+          themes,
+          fromContext(buildDocumentContext({ ...reloaded, ...asked, period: null }), themes.typeKey)
+        )
+      );
+      current = merged.facts;
+      createdIds.push(...merged.created);
     }
   }
 
@@ -587,6 +581,22 @@ export async function generateClientDocuments(
     ).sort(inSetOrder(set)),
     skipped: [...complete],
   };
+}
+
+/**
+ * The themes cite the own instructions revision this same run makes, so they come after the rest,
+ * merged with that revision read again. Nothing to cite only when the own instructions are an
+ * uploaded file: the themes wait for them to be generated.
+ */
+async function mergeThemes<Stored extends StoredDocumentFacts>(
+  db: DataClient,
+  clientId: string,
+  facts: Stored,
+  rule: ThemesRule<Stored>,
+  create: (reloaded: Stored) => Promise<string>
+) {
+  const reloaded = rule.citing(facts, await loadOwnInstructions(db, clientId, rule.cites));
+  return { facts: reloaded, created: rule.cited(reloaded) ? [await create(reloaded)] : [] };
 }
 
 // A few at a time: a Worker holds six connections open at once.
