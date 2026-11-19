@@ -44,6 +44,7 @@ import {
   storedChanges,
   storedProposal,
 } from './handlers';
+import { modelUsageOf } from './import-queries';
 import { clientPeople, libraryPartExpiry, libraryReasons, riskReasons } from './library';
 import { toClientPayload } from './payload';
 import { describe } from './pipeline';
@@ -230,13 +231,6 @@ const defaultPosts = (
   ...new Set(instruction.posts.flatMap((key) => (positionPosts[key] ? [positionPosts[key]] : []))),
 ];
 
-const usageOf = (part: PartRow) => ({
-  costUsd: Number(part.cost_usd ?? 0),
-  inputTokens: Number(part.input_tokens ?? 0),
-  cachedInputTokens: Number(part.cached_input_tokens ?? 0),
-  outputTokens: Number(part.output_tokens ?? 0),
-});
-
 async function creditsByPart(c: Context<ApiEnv>, importId: string) {
   const entries = await creditsStore(createAdminClient(c)).importEntries([importId]);
   const credits = new Map<string, number>();
@@ -269,7 +263,7 @@ function present(
     confirmedAt: part.confirmed_at,
     expiresAt: row.status === 'confirmed' ? libraryPartExpiry(row.confirmed_at) : null,
     credits: Math.max(0, credits.get(part.part) ?? 0),
-    ...(adminToolsAllowed(c) ? { usage: usageOf(part) } : {}),
+    ...(adminToolsAllowed(c) ? { usage: modelUsageOf(part) } : {}),
   };
   if (!isInstructionsPart(part.part)) {
     const proposal = storedRisks(part.proposal);

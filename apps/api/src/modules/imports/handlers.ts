@@ -67,6 +67,7 @@ import {
   storedEmployeeProposal,
 } from './employees';
 import { alertBusyOrganization } from './import-alerts';
+import { modelUsageOf, type UsageColumns } from './import-queries';
 import { libraryPartExpiry } from './library';
 import {
   type ExistingRecords,
@@ -346,21 +347,6 @@ export async function existingRecords(db: DataClient, clientId: string): Promise
   };
 }
 
-type UsageColumns = {
-  input_tokens: unknown;
-  cached_input_tokens: unknown;
-  output_tokens: unknown;
-  cost_usd: unknown;
-};
-
-// Postgres numeric and bigint may arrive as strings.
-const modelUsage = (row: UsageColumns) => ({
-  costUsd: Number(row.cost_usd ?? 0),
-  inputTokens: Number(row.input_tokens ?? 0),
-  cachedInputTokens: Number(row.cached_input_tokens ?? 0),
-  outputTokens: Number(row.output_tokens ?? 0),
-});
-
 function usageOf(row: UsageColumns & { read_characters: number | null; usage_by_step: unknown }) {
   const steps =
     row.usage_by_step && typeof row.usage_by_step === 'object' && !Array.isArray(row.usage_by_step)
@@ -376,10 +362,10 @@ function usageOf(row: UsageColumns & { read_characters: number | null; usage_by_
     'risks',
   ] as const) {
     const usage = steps[step];
-    if (usage && typeof usage === 'object') bySteps[step] = modelUsage(usage);
+    if (usage && typeof usage === 'object') bySteps[step] = modelUsageOf(usage);
   }
   return {
-    ...modelUsage(row),
+    ...modelUsageOf(row),
     readCharacters: row.read_characters,
     bySteps,
   } satisfies ImportUsage;
