@@ -7,6 +7,7 @@ import { Controller, useWatch } from 'react-hook-form';
 
 import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
+import { describedBy } from '@/components/described-by';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
@@ -14,7 +15,6 @@ import { FormActions } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import {
   type ClientSummary,
-  describedBy,
   type DocumentDetails,
   useDocumentDetailsForm,
 } from '@/features/clients/document-details/use-document-details-form';

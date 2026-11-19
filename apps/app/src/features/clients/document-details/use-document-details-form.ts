@@ -111,6 +111,3 @@ export function useDocumentDetailsForm({
     locked: busy || client.archivedAt !== null,
   };
 }
-
-export const describedBy = (id: string, error: unknown, hint = false) =>
-  error ? `${id}-error` : hint ? `${id}-hint` : undefined;

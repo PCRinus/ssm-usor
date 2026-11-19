@@ -5,6 +5,7 @@ import type { ComponentProps } from 'react';
 import { Controller, type FieldError, type UseFormReturn, useFormState } from 'react-hook-form';
 
 import { replayShow } from '@/app/observability/replay-masking';
+import { describedBy } from '@/components/described-by';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 
@@ -16,9 +17,6 @@ import { CountyCombobox } from './county-combobox';
 import type { LookupState } from './use-company-lookup';
 
 type ClientForm = UseFormReturn<ClientFormValues>;
-
-const describedBy = (id: string, error: unknown, hint?: boolean) =>
-  error ? `${id}-error` : hint ? `${id}-hint` : undefined;
 
 function inputProps(
   name: keyof ClientFormValues,
