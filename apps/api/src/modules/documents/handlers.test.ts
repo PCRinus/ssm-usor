@@ -789,47 +789,6 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     expect(calls('/rest/v1/employees', 'GET')).toHaveLength(0);
   });
 
-  it('is ready when every post is in one category and the other has no interval', async () => {
-    mockUpstream({
-      clients: () =>
-        Response.json({
-          ...clientRow,
-          worker_training_interval_months: null,
-          worker_training_not_applicable: true,
-        }),
-      positions: () =>
-        Response.json([{ ...positionRow, staff_category: 'technical_administrative' }]),
-      employees: currentEmployees(1),
-    });
-    const response = await request(`/clients/${clientId}/documents/readiness`);
-    expect(documentReadinessResponseSchema.parse(await response.json())).toEqual({
-      ready: true,
-      missing: [],
-      currentEmployeeCount: 1,
-      hints: ['provider.riskEvaluator'],
-      workersRepresentativeClash: null,
-      undecidedJobPositions: [],
-      incompleteRiskEvaluations: [],
-      incompleteFireSubstances: [],
-    });
-  });
-
-  it('needs the interval of a category with posts, though it was marked as not applicable', async () => {
-    mockUpstream({
-      clients: () =>
-        Response.json({
-          ...clientRow,
-          worker_training_interval_months: null,
-          worker_training_not_applicable: true,
-        }),
-    });
-    const response = await request(`/clients/${clientId}/documents/readiness`);
-    expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
-      ready: false,
-      missing: ['client.trainingSchedule'],
-    });
-  });
-
   it('answers 404 for a client of another organization', async () => {
     mockUpstream({ clients: () => Response.json(null) });
     const response = await request(`/clients/${clientId}/documents/readiness`);
@@ -1198,46 +1157,70 @@ describe('POST /clients/{clientId}/documents/generate', () => {
     expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
   });
 
-  it('generates for a client with only administrative personnel', async () => {
-    let listed = 0;
-    mockUpstream({
-      clients: () =>
-        Response.json({
-          ...clientRow,
-          worker_training_interval_months: null,
-          worker_training_not_applicable: true,
-        }),
-      positions: () =>
-        Response.json([{ ...positionRow, staff_category: 'technical_administrative' }]),
-      employees: currentEmployees(1),
-      documents: (init) => {
-        if (init?.method === 'POST') return Response.json({ id: documentId });
-        listed += 1;
-        return Response.json(listed === 1 ? [] : [documentRow]);
+  it.each([
+    {
+      posts: 'only administrative posts',
+      positions: [{ ...positionRow, staff_category: 'technical_administrative' }],
+      readiness: {
+        ready: true,
+        missing: [],
+        currentEmployeeCount: 1,
+        hints: ['provider.riskEvaluator'],
+        workersRepresentativeClash: null,
+        undecidedJobPositions: [],
+        incompleteRiskEvaluations: [],
+        incompleteFireSubstances: [],
       },
-      templates: () => Response.json([templateRows[0]]),
-    });
-    const response = await generate();
-    expect(response.status).toBe(201);
-    expect(generateDocumentsResponseSchema.parse(await response.json()).created).toHaveLength(1);
-  });
-
-  it('refuses generation while a category with posts has no interval', async () => {
-    mockUpstream({
-      clients: () =>
-        Response.json({
-          ...clientRow,
-          worker_training_interval_months: null,
-          worker_training_not_applicable: true,
+      status: 201,
+    },
+    {
+      posts: 'execution posts',
+      positions: null,
+      readiness: { ready: false, missing: ['client.trainingSchedule'] },
+      status: 409,
+    },
+  ])(
+    'needs the interval of a category only where it has posts, though marked not applicable: $posts',
+    async ({ positions, readiness, status }) => {
+      let created = false;
+      mockUpstream({
+        clients: () =>
+          Response.json({
+            ...clientRow,
+            worker_training_interval_months: null,
+            worker_training_not_applicable: true,
+          }),
+        ...(positions && {
+          positions: () => Response.json(positions),
+          employees: currentEmployees(1),
         }),
-    });
-    const response = await generate();
-    expect(response.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
-      'missing_document_data'
-    );
-    expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
-  });
+        documents: (init) => {
+          if (init?.method === 'POST') {
+            created = true;
+            return Response.json({ id: documentId });
+          }
+          return Response.json(created ? [documentRow] : []);
+        },
+        templates: () => Response.json([templateRows[0]]),
+      });
+
+      const ready = await request(`/clients/${clientId}/documents/readiness`);
+      expect(documentReadinessResponseSchema.parse(await ready.json())).toMatchObject(readiness);
+
+      const response = await generate();
+      expect(response.status).toBe(status);
+      if (status === 201) {
+        expect(generateDocumentsResponseSchema.parse(await response.json()).created).toHaveLength(
+          1
+        );
+      } else {
+        expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+          'missing_document_data'
+        );
+        expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+      }
+    }
+  );
 
   it('refuses an archived client', async () => {
     mockUpstream({
