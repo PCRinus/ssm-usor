@@ -303,7 +303,6 @@ export async function recordSignedCopy(
     organizationId: string;
     bytes: Uint8Array;
     uploadedBy: string | null;
-    // An owner looked at what they attach; a copy from the return link waits for one.
     source: 'owner' | 'client';
     context: string;
   }
@@ -311,6 +310,7 @@ export async function recordSignedCopy(
   const { revision, bytes } = copy;
   const path = signedCopyPathOf(revision.docxPath);
   const uploadedAt = new Date().toISOString();
+  // An owner looked at what they attach; a copy from the return link waits for one.
   const confirmed = copy.source === 'owner';
   const recorded = await db.from('document_signed_copies').upsert(
     {

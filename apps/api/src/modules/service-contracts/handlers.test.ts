@@ -398,21 +398,25 @@ describe('PUT /clients/{clientId}/service-contract', () => {
     );
   });
 
-  it('saves over a first contract another save created in between', async () => {
-    let updates = 0;
-    mockUpstream({
-      contracts: (init) =>
-        init?.method === 'PATCH'
-          ? Response.json(updates++ === 0 ? [] : [{ id: 'x' }])
-          : init?.method === 'POST'
-            ? duplicate('service_contracts_client_key')
-            : Response.json([contractRow]),
-    });
-    const response = await request('PUT', validBody);
-    expect(response.status).toBe(200);
-    expect(calls('/rest/v1/service_contracts', 'PATCH')).toHaveLength(2);
-    expect(calls('/rest/v1/service_contracts', 'POST')).toHaveLength(1);
-  });
+  // The same number saved twice breaks both keys, and Postgres names either.
+  it.each(['service_contracts_client_key', 'service_contracts_number_key'])(
+    'saves over a first contract another save created in between (%s)',
+    async (key) => {
+      let updates = 0;
+      mockUpstream({
+        contracts: (init) =>
+          init?.method === 'PATCH'
+            ? Response.json(updates++ === 0 ? [] : [{ id: 'x' }])
+            : init?.method === 'POST'
+              ? duplicate(key)
+              : Response.json([contractRow]),
+      });
+      const response = await request('PUT', validBody);
+      expect(response.status).toBe(200);
+      expect(calls('/rest/v1/service_contracts', 'PATCH')).toHaveLength(2);
+      expect(calls('/rest/v1/service_contracts', 'POST')).toHaveLength(1);
+    }
+  );
 
   it('passes on the refusal for an archived client', async () => {
     mockUpstream({
