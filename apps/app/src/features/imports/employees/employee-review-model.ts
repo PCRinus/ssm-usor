@@ -841,8 +841,15 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
         decisions.push({
           key: `row-${row.id}`,
           anchor: 'trainings',
-          label: `Corectează data instruirii din ${rowDate(row, values)}, care e în viitor`,
-          tag: 'O instruire cu data în viitor',
+          ...(isoDate.test(values.heldOn ?? '')
+            ? {
+                label: `Corectează data instruirii din ${rowDate(row, values)}, care e în viitor`,
+                tag: 'O instruire cu data în viitor',
+              }
+            : {
+                label: `Corectează data instruirii ${phaseGenitives[row.phase]}, care nu e o dată validă`,
+                tag: 'O instruire cu data de corectat',
+              }),
           tone: 'destructive',
         });
       }
