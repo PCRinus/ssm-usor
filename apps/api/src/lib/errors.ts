@@ -1,4 +1,9 @@
-import type { ApiErrorCode, ApiErrorResponse, MissingDocumentData } from '@ssm-usor/contracts';
+import type {
+  ApiErrorCode,
+  ApiErrorReason,
+  ApiErrorResponse,
+  MissingDocumentData,
+} from '@ssm-usor/contracts';
 import { SigningAgreementDataError } from '@ssm-usor/document-engine';
 
 export const errorStatus = {
@@ -41,7 +46,7 @@ export class ApiError extends Error {
     // Field-level details for validation errors raised by handlers, not by body parsing.
     readonly issues?: ApiErrorResponse['issues'],
     // A stable identifier for an error the client words itself.
-    readonly reason?: string,
+    readonly reason?: ApiErrorReason,
     readonly missing?: MissingDocumentData[],
     readonly extra?: Pick<
       ApiErrorResponse,
@@ -55,6 +60,10 @@ export class ApiError extends Error {
   ) {
     super(message);
     this.name = 'ApiError';
+  }
+
+  static conflict(reason: ApiErrorReason, message: string) {
+    return new ApiError('conflict', message, undefined, reason);
   }
 }
 

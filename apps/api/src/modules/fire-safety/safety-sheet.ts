@@ -1,5 +1,6 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  type ApiErrorReason,
   type CreditsShort,
   extractionRefusalOf,
   importCredits,
@@ -34,7 +35,7 @@ import { safetySheetCharges } from '../credits/usage';
 import { blocksReporterOf } from '../extras/reporting';
 import type { readSafetySheetRoute } from './routes';
 
-const refused = (reason: string, message: string) =>
+const refused = (reason: ApiErrorReason, message: string) =>
   new ApiError('unprocessable', message, undefined, reason);
 
 const failed = (message: string) =>

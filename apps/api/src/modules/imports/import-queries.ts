@@ -77,9 +77,6 @@ export const leftForDays = 14;
 
 export const detailColumns = `${summaryColumns}, version, proposal, changes, proposal_dropped_at, read_characters, input_tokens, cached_input_tokens, output_tokens, cost_usd, usage_by_step`;
 
-export const conflict = (message: string, reason: string) =>
-  new ApiError('conflict', message, undefined, reason);
-
 export const notFound = () =>
   new ApiError('not_found', 'This import does not exist in your organization.');
 
@@ -153,7 +150,7 @@ export async function findImport(db: DataClient, importId: string) {
 }
 
 export const wrongKind = () =>
-  conflict('This import is of another kind.', importErrorReasons.wrongKind);
+  ApiError.conflict(importErrorReasons.wrongKind, 'This import is of another kind.');
 
 export async function listFilesOf(db: DataClient, importId: string) {
   const { data, error } = await db
@@ -306,21 +303,21 @@ export function decisionError(
     case 'P0002':
       return notFound();
     case 'IMP01':
-      return conflict('The import is not ready for review.', importErrorReasons.notReady);
+      return ApiError.conflict(importErrorReasons.notReady, 'The import is not ready for review.');
     case 'IMP02':
-      return conflict(
-        'Someone saved the import since you read it. Read it again.',
-        importErrorReasons.changed
+      return ApiError.conflict(
+        importErrorReasons.changed,
+        'Someone saved the import since you read it. Read it again.'
       );
     case 'IMP03':
-      return conflict(
-        'The documents are about another company than the client.',
-        importErrorReasons.otherCompany
+      return ApiError.conflict(
+        importErrorReasons.otherCompany,
+        'The documents are about another company than the client.'
       );
     case 'IMP04':
-      return conflict(
-        'The organization already has a client with this CUI.',
-        importErrorReasons.clientExists
+      return ApiError.conflict(
+        importErrorReasons.clientExists,
+        'The organization already has a client with this CUI.'
       );
     // Another member listed or removed the client's substances, or changed its workplaces or
     // employees, since the review was read.
@@ -332,9 +329,9 @@ export function decisionError(
       // A row the review named went since, or was never the client's; the payload's checks
       // catch both, so this is a race with another member, or a payload bug the log shows.
       console.error(`The import payload broke its contract (${context}).`);
-      return conflict(
-        'The client changed since the import was reviewed. Read it again.',
-        importErrorReasons.outdated
+      return ApiError.conflict(
+        importErrorReasons.outdated,
+        'The client changed since the import was reviewed. Read it again.'
       );
   }
   const refused = fromDatabaseError(error, context);

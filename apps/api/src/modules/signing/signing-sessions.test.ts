@@ -200,7 +200,7 @@ describe('createSigningSession', () => {
     await expect(start({}, seconds(1))).resolves.toBeDefined();
   });
 
-  it.each(['sms_allowance_reached', 'sms_trial'])(
+  it.each(['sms_allowance_reached', 'sms_trial'] as const)(
     'answers 409 with the reason when the SMS is refused (%s), and keeps no session',
     async (reason) => {
       send.mockRejectedValueOnce(new SigningCodeRefused(reason));

@@ -31,9 +31,6 @@ import type { setExtraRoute } from './routes';
 import { extrasStore } from './store';
 import { extrasView } from './view';
 
-const conflict = (reason: string, message: string) =>
-  new ApiError('conflict', message, undefined, reason);
-
 const meteredOf: Record<ExtraKind, (typeof meteredProducts)[number]> = {
   sms: smsOverage,
   credits: creditsExtra,
@@ -100,7 +97,7 @@ export async function ensureMeteredItem(
   }
   if (hasMetered(subscription, product.key)) return false;
   if (subscription.pending_update) {
-    throw conflict(
+    throw ApiError.conflict(
       'extras_pending_payment',
       'A change waits for its payment; Extra can be turned on once it is settled.'
     );
@@ -145,7 +142,7 @@ export const setExtra: RouteHandler<typeof setExtraRoute, ApiEnv> = async (c) =>
   // Lowering or turning off is how an owner stops a cost, so it works whatever the subscription.
   const raising = ceilingCents !== null && (was === null || ceilingCents > was);
   if (raising && extrasUnavailable(row)) {
-    throw conflict(
+    throw ApiError.conflict(
       'extras_unavailable',
       'Extras apply only to a paid subscription in good standing.'
     );

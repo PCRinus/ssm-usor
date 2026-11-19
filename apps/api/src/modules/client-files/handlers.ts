@@ -1,5 +1,6 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  type ApiErrorReason,
   type ClientFile,
   clientFileErrorReasons,
   type ClientFileType,
@@ -149,7 +150,7 @@ const leadOwnersOnly = () =>
     clientFileErrorReasons.leadOwnersOnly
   );
 
-const refused = (reason: string, message: string) =>
+const refused = (reason: ApiErrorReason, message: string) =>
   new ApiError('validation_error', message, undefined, reason);
 
 function checkedType(fileName: string, bytes: Uint8Array) {

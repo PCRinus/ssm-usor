@@ -45,9 +45,6 @@ export type Billing = {
 
 export type StripeBilling = Billing & { access: StripeAccess; catalogue: StripeCatalogue };
 
-const conflict = (reason: string, message: string) =>
-  new ApiError('conflict', message, undefined, reason);
-
 const seconds = (date: Date) => Math.floor(date.getTime() / 1000);
 const fromSeconds = (value: number) => new Date(value * 1000);
 
@@ -71,13 +68,16 @@ export function prorationDateOf(requested: string | undefined, now: Date) {
 export function assertBuyable(choice: BillingChoice, usage: Usage) {
   const [problem] = problemsWith(choice, usage);
   if (problem) {
-    throw conflict(problem.reason, 'This plan does not fit the organization as it is today.');
+    throw ApiError.conflict(
+      problem.reason,
+      'This plan does not fit the organization as it is today.'
+    );
   }
 }
 
 function assertNotEnterprise(row: SubscriptionRow | null) {
   if (row?.plan === 'enterprise') {
-    throw conflict('enterprise_plan', 'An Enterprise subscription is changed by email.');
+    throw ApiError.conflict('enterprise_plan', 'An Enterprise subscription is changed by email.');
   }
 }
 
@@ -197,7 +197,7 @@ export async function preview(
 
   const current = currentChoice(row);
   if (!current)
-    throw conflict('enterprise_plan', 'An Enterprise subscription is changed by email.');
+    throw ApiError.conflict('enterprise_plan', 'An Enterprise subscription is changed by email.');
 
   // A subscription created with a trial end is still charged only at that end (ADR 029); a new
   // checkout replaces one whose card never confirmed.
@@ -310,7 +310,7 @@ export async function scheduledChoice(billing: StripeBilling, subscription: Stri
 
 function companyOrRefuse(company: Company) {
   if (!company.name || !company.cui) {
-    throw conflict(
+    throw ApiError.conflict(
       'company_details_missing',
       "The invoices need the company's legal name and CUI, filled in under Date firmă."
     );
@@ -390,7 +390,10 @@ async function settleEarlierCheckouts(
   );
   if (live) {
     await sync(billing, row, live, 'subscription_adopted');
-    throw conflict('already_subscribed', 'An earlier checkout already made the subscription.');
+    throw ApiError.conflict(
+      'already_subscribed',
+      'An earlier checkout already made the subscription.'
+    );
   }
   for (const subscription of earlier.data) {
     if (subscription.status === 'incomplete' || subscription.status === 'trialing') {
@@ -463,7 +466,7 @@ export async function createSubscription(
 ) {
   const row = await withoutUnconfirmedTrialPlan(billing, current);
   if (hasLiveSubscription(row)) {
-    throw conflict('subscription_exists', 'The organization already has a subscription.');
+    throw ApiError.conflict('subscription_exists', 'The organization already has a subscription.');
   }
   assertNotEnterprise(row);
   assertBuyable(choice, usage);
@@ -560,25 +563,26 @@ export async function changeSubscription(
   requestedProrationDate?: string
 ) {
   if (!hasLiveSubscription(row)) {
-    throw conflict('no_subscription', 'The organization has no subscription to change.');
+    throw ApiError.conflict('no_subscription', 'The organization has no subscription to change.');
   }
   assertNotEnterprise(row);
   const current = currentChoice(row);
-  if (!current) throw conflict('no_subscription', 'The subscription has no plan to change.');
+  if (!current)
+    throw ApiError.conflict('no_subscription', 'The subscription has no plan to change.');
   assertBuyable(choice, usage);
 
   const { stripe } = billing.access;
   const subscription = await retrieveSubscription(billing, row.stripe_subscription_id);
   const scheduled = await scheduledChoice(billing, subscription);
   if (sameChoice(current, choice) && !scheduled) {
-    throw conflict('unchanged', 'Nothing would change.');
+    throw ApiError.conflict('unchanged', 'Nothing would change.');
   }
   if (scheduled && sameChoice(scheduled.choice, choice)) {
-    throw conflict('unchanged', 'This change is already set for the renewal.');
+    throw ApiError.conflict('unchanged', 'This change is already set for the renewal.');
   }
   const split: ChangeSplit = splitChange(current, choice);
   if (subscription.status !== 'trialing' && mustWait(split, subscription)) {
-    throw conflict(
+    throw ApiError.conflict(
       'split_change',
       'An annual addition charged now and a removal at the renewal go one after the other.'
     );
@@ -647,7 +651,7 @@ export async function cancelSubscription(
   request: { reason?: CancellationReason; note?: string }
 ) {
   if (!hasLiveSubscription(row)) {
-    throw conflict('no_subscription', 'The organization has no subscription to cancel.');
+    throw ApiError.conflict('no_subscription', 'The organization has no subscription to cancel.');
   }
   const { stripe } = billing.access;
   const subscription = await retrieveSubscription(billing, row.stripe_subscription_id);
@@ -686,11 +690,11 @@ export async function cancelSubscription(
 
 export async function resumeSubscription(billing: StripeBilling, row: SubscriptionRow | null) {
   if (!hasLiveSubscription(row)) {
-    throw conflict('no_subscription', 'The organization has no subscription to resume.');
+    throw ApiError.conflict('no_subscription', 'The organization has no subscription to resume.');
   }
   const subscription = await retrieveSubscription(billing, row.stripe_subscription_id);
   if (!subscription.cancel_at && !subscription.cancel_at_period_end) {
-    throw conflict('not_canceling', 'The subscription is not set to end.');
+    throw ApiError.conflict('not_canceling', 'The subscription is not set to end.');
   }
   const updated = await billing.access.stripe.subscriptions.update(subscription.id, {
     cancel_at: '',

@@ -87,9 +87,6 @@ const partColumns =
 
 type FoundImport = Awaited<ReturnType<typeof findImport>>;
 
-const conflict = (message: string, reason: string) =>
-  new ApiError('conflict', message, undefined, reason);
-
 const noSuchPart = () =>
   new ApiError('not_found', 'This import has no such part in your organization.');
 
@@ -340,36 +337,42 @@ function partError(error: DatabaseFailure, context: string, part?: ImportLibrary
     case 'P0002':
       return noSuchPart();
     case 'ILP01':
-      return conflict('The library part is not ready for review.', importErrorReasons.partNotReady);
+      return ApiError.conflict(
+        importErrorReasons.partNotReady,
+        'The library part is not ready for review.'
+      );
     case 'ILP02':
-      return conflict(
-        'Someone saved the library part since you read it. Read it again.',
-        importErrorReasons.changed
+      return ApiError.conflict(
+        importErrorReasons.changed,
+        'Someone saved the library part since you read it. Read it again.'
       );
     case 'ILP03':
-      return conflict('Confirm the client first.', importErrorReasons.clientUnconfirmed);
+      return ApiError.conflict(importErrorReasons.clientUnconfirmed, 'Confirm the client first.');
     case 'ILP04':
-      return conflict(
-        'The library part expired 14 days after the client was confirmed.',
-        importErrorReasons.partExpired
+      return ApiError.conflict(
+        importErrorReasons.partExpired,
+        'The library part expired 14 days after the client was confirmed.'
       );
     case 'ILP05':
       return part === 'risk_evaluations'
-        ? conflict(
-            error.message ?? 'An evaluation of the library has this name.',
-            importErrorReasons.nameTaken
+        ? ApiError.conflict(
+            importErrorReasons.nameTaken,
+            error.message ?? 'An evaluation of the library has this name.'
           )
-        : conflict(
-            error.message ?? 'A module of the library has this title.',
-            importErrorReasons.titleTaken
+        : ApiError.conflict(
+            importErrorReasons.titleTaken,
+            error.message ?? 'A module of the library has this title.'
           );
     case 'ILP06':
-      return conflict('Only a failed part is read again.', importErrorReasons.partNotFailed);
+      return ApiError.conflict(
+        importErrorReasons.partNotFailed,
+        'Only a failed part is read again.'
+      );
     case '22023':
       console.error(`The library part payload broke its contract (${context}).`);
-      return conflict(
-        'The client or the library changed since the part was reviewed. Read it again.',
-        importErrorReasons.outdated
+      return ApiError.conflict(
+        importErrorReasons.outdated,
+        'The client or the library changed since the part was reviewed. Read it again.'
       );
   }
   return fromDatabaseError(error, context);
@@ -541,9 +544,9 @@ async function libraryPayload(
     );
   }
   if (issues.length > 0) {
-    throw conflict(
-      'The client changed since the part was reviewed. Read it again.',
-      importErrorReasons.outdated
+    throw ApiError.conflict(
+      importErrorReasons.outdated,
+      'The client changed since the part was reviewed. Read it again.'
     );
   }
   return { payload, createdKeys };
@@ -691,9 +694,9 @@ async function confirmRisks(
     );
   }
   if (issues.length > 0) {
-    throw conflict(
-      'The client changed since the part was reviewed. Read it again.',
-      importErrorReasons.outdated
+    throw ApiError.conflict(
+      importErrorReasons.outdated,
+      'The client changed since the part was reviewed. Read it again.'
     );
   }
   await takenNames(db, organizationId, payload.entries);

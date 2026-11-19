@@ -8,24 +8,27 @@ interface PostgrestError {
   message?: string;
 }
 
-const conflict = (message: string, reason: InvitationErrorReason) =>
-  new ApiError('conflict', message, undefined, reason);
-
 export const invitationNotOpen = (status: string) =>
-  conflict(`The invitation is ${status}.`, `invitation_${status}` as InvitationErrorReason);
+  ApiError.conflict(
+    `invitation_${status}` as InvitationErrorReason,
+    `The invitation is ${status}.`
+  );
 
 export const accountExists = () =>
-  conflict('An account already exists for this address. Sign in to accept.', 'account_exists');
+  ApiError.conflict(
+    'account_exists',
+    'An account already exists for this address. Sign in to accept.'
+  );
 
 // The invitation functions raise their own SQLSTATEs; see the migration that defines them.
 export function fromInvitationError(error: PostgrestError, context: string): ApiError {
   switch (error.code) {
     case 'INV01':
-      return conflict('This address already belongs to a member.', 'already_member');
+      return ApiError.conflict('already_member', 'This address already belongs to a member.');
     case 'INV02':
-      return conflict(
-        'The organization has too many open invitations.',
-        'too_many_open_invitations'
+      return ApiError.conflict(
+        'too_many_open_invitations',
+        'The organization has too many open invitations.'
       );
     case 'INV03':
       return error.message === 'not_found'
@@ -39,9 +42,9 @@ export function fromInvitationError(error: PostgrestError, context: string): Api
         'email_mismatch' satisfies InvitationErrorReason
       );
     case 'INV05':
-      return conflict(
-        'This account already belongs to an organization.',
-        'already_in_organization'
+      return ApiError.conflict(
+        'already_in_organization',
+        'This account already belongs to an organization.'
       );
   }
   return fromDatabaseError(error, context);

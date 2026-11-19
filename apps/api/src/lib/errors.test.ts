@@ -33,3 +33,13 @@ describe('failureLabel', () => {
     expect(failureLabel('a string')).toBe('unknown');
   });
 });
+
+describe('ApiError.conflict', () => {
+  it('answers a 409 with the reason the client words', () => {
+    expect(ApiError.conflict('client_archived', 'The client is archived.')).toMatchObject({
+      code: 'conflict',
+      message: 'The client is archived.',
+      reason: 'client_archived',
+    });
+  });
+});

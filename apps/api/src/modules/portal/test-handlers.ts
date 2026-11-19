@@ -1,5 +1,6 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  type ApiErrorReason,
   isKnowledgeTestOf,
   type KnowledgeTest,
   type PortalDomainTests,
@@ -67,7 +68,7 @@ function fromTestFunction(error: { code?: string | null; message?: string }, con
       'not_found',
       'This participation or attempt is not yours.',
       undefined,
-      error.message || undefined
+      (error.message || undefined) as ApiErrorReason | undefined
     );
   }
   return fromDatabaseError(error, context);

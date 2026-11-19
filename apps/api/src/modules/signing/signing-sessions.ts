@@ -2,6 +2,7 @@ import {
   type MailService,
   type ParticipantChannel,
   signatureErrorReasons,
+  type SmsRefusalReason,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
@@ -66,12 +67,9 @@ export type SigningCodeMessage = {
 
 export type SigningCodeSender = (message: SigningCodeMessage) => Promise<unknown>;
 
-const refused = (reason: string, message: string) =>
-  new ApiError('conflict', message, undefined, reason);
-
 export class SigningCodeRefused extends Error {
   constructor(
-    readonly reason: string,
+    readonly reason: SmsRefusalReason,
     readonly resumesAt?: Date
   ) {
     super(`The signing code was refused: ${reason}`);
@@ -228,19 +226,25 @@ export async function verifySigningCode(
     );
   }
   if (session.verifiedAt) {
-    throw refused(signatureErrorReasons.codeAlreadyUsed, 'This code was used already.');
+    throw ApiError.conflict(signatureErrorReasons.codeAlreadyUsed, 'This code was used already.');
   }
   if (session.attempts >= SIGNING_CODE_ATTEMPTS) {
-    throw refused(
+    throw ApiError.conflict(
       signatureErrorReasons.codeAttemptsExceeded,
       'The code was typed wrong three times; ask for a new one.'
     );
   }
   if (session.expiresAt.getTime() <= now.getTime()) {
-    throw refused(signatureErrorReasons.codeExpired, 'The code has expired; ask for a new one.');
+    throw ApiError.conflict(
+      signatureErrorReasons.codeExpired,
+      'The code has expired; ask for a new one.'
+    );
   }
   if (!(await store.countAttempt(session.id, session.attempts))) {
-    throw refused(signatureErrorReasons.codeInvalid, 'The code was not checked; type it again.');
+    throw ApiError.conflict(
+      signatureErrorReasons.codeInvalid,
+      'The code was not checked; type it again.'
+    );
   }
   if (!sameText(await codeHash(session.id, input.code.trim()), session.codeHash)) {
     const left = SIGNING_CODE_ATTEMPTS - session.attempts - 1;
@@ -257,7 +261,7 @@ export async function verifySigningCode(
   }
   const verified = await store.markVerified(session.id, now);
   if (!verified) {
-    throw refused(signatureErrorReasons.codeAlreadyUsed, 'This code was used already.');
+    throw ApiError.conflict(signatureErrorReasons.codeAlreadyUsed, 'This code was used already.');
   }
   return verified;
 }

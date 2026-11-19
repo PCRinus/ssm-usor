@@ -9,9 +9,6 @@ interface PostgrestError {
   message?: string;
 }
 
-const conflict = (message: string, reason: ParticipantErrorReason) =>
-  new ApiError('conflict', message, undefined, reason);
-
 const notFound: Record<string, string> = {
   client_not_found: clientNotFound().message,
   employee_not_found: 'This employee does not exist under this client.',
@@ -38,38 +35,44 @@ export function fromParticipantError(error: PostgrestError, context: string): Ap
     case 'P0002':
       return new ApiError('not_found', notFound[message]);
     case 'PRT01':
-      return conflict(
-        'The employee is already a participant.',
-        participantErrorReasons.employeeHasParticipant
+      return ApiError.conflict(
+        participantErrorReasons.employeeHasParticipant,
+        'The employee is already a participant.'
       );
     case 'PRT02':
-      return conflict(
-        'The employee has an open invitation at another address.',
-        participantErrorReasons.employeeAlreadyInvited
+      return ApiError.conflict(
+        participantErrorReasons.employeeAlreadyInvited,
+        'The employee has an open invitation at another address.'
       );
     case 'PRT03':
       return message === 'address_has_participant'
-        ? conflict(
-            'This address belongs to a participant of the client.',
-            participantErrorReasons.addressHasParticipant
+        ? ApiError.conflict(
+            participantErrorReasons.addressHasParticipant,
+            'This address belongs to a participant of the client.'
           )
-        : conflict(
-            'This address has an open invitation for another person.',
-            participantErrorReasons.addressInvitedForAnotherPerson
+        : ApiError.conflict(
+            participantErrorReasons.addressInvitedForAnotherPerson,
+            'This address has an open invitation for another person.'
           );
     case 'PRT04': {
       const [text, reason] = unclear[message] ?? unclear.invalid_address!;
-      return conflict(text, reason);
+      return ApiError.conflict(reason, text);
     }
     case 'PRT05':
-      return conflict(
-        'A message was sent to this address in the last 10 minutes.',
-        participantErrorReasons.sentRecently
+      return ApiError.conflict(
+        participantErrorReasons.sentRecently,
+        'A message was sent to this address in the last 10 minutes.'
       );
     case 'PRT06':
       return message === 'accepted'
-        ? conflict('The invitation was accepted.', participantErrorReasons.invitationAccepted)
-        : conflict('The invitation was revoked.', participantErrorReasons.invitationRevoked);
+        ? ApiError.conflict(
+            participantErrorReasons.invitationAccepted,
+            'The invitation was accepted.'
+          )
+        : ApiError.conflict(
+            participantErrorReasons.invitationRevoked,
+            'The invitation was revoked.'
+          );
   }
   return fromDatabaseError(error, context);
 }
