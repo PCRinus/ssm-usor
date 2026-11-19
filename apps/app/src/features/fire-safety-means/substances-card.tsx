@@ -12,7 +12,6 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import { ExternalLink, Plus } from 'lucide-react';
 import { useState } from 'react';
 
@@ -23,6 +22,7 @@ import {
   useUpdateFireSubstancesState,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
@@ -77,23 +77,21 @@ const listArticlePage = 'https://legislatie.just.ro/Public/DetaliiDocument/80731
 
 export function SubstancesCard({
   clientId,
-  userId,
   readOnly,
   focus,
 }: {
   clientId: string;
-  userId: string;
   readOnly: boolean;
   focus: boolean;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const savedToast = useSavedToast();
   const substances = useListFireSubstances(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListFireSubstancesQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListFireSubstancesQueryKey(clientId)) },
   });
-  const decide = useUpdateFireSubstancesState({ request: apiRequest });
-  const remove = useDeleteFireSubstance({ request: apiRequest });
+  const decide = useUpdateFireSubstancesState({ request });
+  const remove = useDeleteFireSubstance({ request });
   const [editing, setEditing] = useState<SubstanceEditing>(null);
   const [deleting, setDeleting] = useState<FireSubstance | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -18,7 +18,6 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
-import { useRouteContext } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -28,6 +27,7 @@ import {
   useUpdateFireSubstance,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
@@ -107,10 +107,10 @@ function SubstanceForm({
   onReadingSheet: (reading: boolean) => void;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const savedToast = useSavedToast();
-  const create = useCreateFireSubstance({ request: apiRequest });
-  const update = useUpdateFireSubstance({ request: apiRequest });
+  const create = useCreateFireSubstance({ request });
+  const update = useUpdateFireSubstance({ request });
   const form = useForm<SubstanceFormValues>({
     resolver: zodResolver(substanceFormSchema),
     defaultValues: substance ? toSubstanceForm(substance) : newSubstanceForm(),

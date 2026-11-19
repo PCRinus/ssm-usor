@@ -10,7 +10,6 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
-import { useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
 import {
@@ -19,6 +18,7 @@ import {
   useCreateFireMaintenanceItem,
   useUpdateFireMaintenanceItem,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
@@ -84,10 +84,10 @@ function MaintenanceItemForm({
   item: FireMaintenanceItem | null;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const savedToast = useSavedToast();
-  const create = useCreateFireMaintenanceItem({ request: apiRequest });
-  const update = useUpdateFireMaintenanceItem({ request: apiRequest });
+  const create = useCreateFireMaintenanceItem({ request });
+  const update = useUpdateFireMaintenanceItem({ request });
   const form = useForm<MaintenanceItemFormValues>({
     resolver: zodResolver(maintenanceItemFormSchema),
     defaultValues: item ? toMaintenanceItemForm(item) : newMaintenanceItemForm(workplaceId),

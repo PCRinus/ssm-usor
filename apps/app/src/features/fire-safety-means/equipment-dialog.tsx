@@ -20,7 +20,6 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
-import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
@@ -29,6 +28,7 @@ import {
   useCreateFireEquipment,
   useUpdateFireEquipment,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
@@ -94,10 +94,10 @@ function EquipmentForm({
   unit: FireEquipment | null;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const savedToast = useSavedToast();
-  const create = useCreateFireEquipment({ request: apiRequest });
-  const update = useUpdateFireEquipment({ request: apiRequest });
+  const create = useCreateFireEquipment({ request });
+  const update = useUpdateFireEquipment({ request });
   const form = useForm<EquipmentFormValues>({
     resolver: zodResolver(equipmentFormSchema),
     defaultValues: unit ? toEquipmentForm(unit) : newEquipmentForm(workplaceId),
