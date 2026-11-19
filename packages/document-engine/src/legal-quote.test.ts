@@ -269,7 +269,12 @@ describe('a quote replaced in a templates folder', () => {
     });
     expect(result).toEqual({
       status: 'needs-review',
-      problems: [expect.objectContaining({ alineat: '1' })],
+      problems: [
+        expect.objectContaining({
+          alineat: '1',
+          reason: expect.stringContaining('does not hold the old words'),
+        }),
+      ],
       markdown: [
         '**source.docx**: O.U.G. 195/2002, Art. 36 alin. (1), (2) needs a person:',
         '',
@@ -290,7 +295,7 @@ describe('a quote replaced in a templates folder', () => {
     });
     expect(result).toEqual({
       status: 'nothing-to-apply',
-      notes: [expect.stringMatching(/^\(3\) /)],
+      notes: [expect.stringContaining('(3) not changed; the template does not quote it')],
       markdown: [
         '**source.docx**: O.U.G. 195/2002, Art. 36 alin. (1), (2): nothing to apply, the quote holds none of what changed:',
         '',
