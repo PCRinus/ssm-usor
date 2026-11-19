@@ -7,29 +7,18 @@ import {
   clientContract,
   clientContractFingerprints,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { clientContractFingerprint } from '../../../../scripts/client-contract-fingerprint.mjs';
-import { createApp } from '../app';
-import type { ApiEnv } from './env';
+import { apiRequest } from '../test/request';
+import { fetchMock, stubFetch, testEnv } from '../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'https://app.ssmusor.ro',
-};
+const env = testEnv({ CORS_ORIGINS: 'https://app.ssmusor.ro' });
 
-const fetchMock = vi.fn<typeof fetch>();
-
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => vi.unstubAllGlobals());
+stubFetch();
 
 const request = (path: string, headers: Record<string, string> = {}, init: RequestInit = {}) =>
-  createApp().request(path, { ...init, headers }, env);
+  apiRequest(path, { ...init, headers, token: null, client: null }, env);
 
 const hashOf = (client: string) =>
   clientContractFingerprint(

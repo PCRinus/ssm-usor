@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import { fetchMock, stubFetch, testEnv, testSecretKey, testUser } from '../test/upstream';
 import {
   adminClient,
   auditActorHeader,
@@ -10,15 +11,9 @@ import {
 } from './admin-db';
 import type { ApiEnv } from './env';
 
-const env = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
-} as ApiEnv['Bindings'];
+const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey });
 
-const userId = '0f7c8d96-479c-47b3-b49e-01f4555a0221';
-
-const fetchMock = vi.fn<typeof fetch>();
+const userId = testUser.id;
 
 function contextOf(
   user: { id: string } | undefined,
@@ -39,17 +34,13 @@ async function headersSentBy(client: ReturnType<typeof adminClient>) {
   return new Headers(init?.headers);
 }
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   fetchMock.mockImplementation(async (_input, init) => {
     init?.signal?.throwIfAborted();
     return new Response(null, { status: 204 });
   });
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
 });
 
 describe('the audit actor on secret-key requests', () => {
