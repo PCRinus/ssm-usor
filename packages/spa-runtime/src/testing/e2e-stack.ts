@@ -115,3 +115,35 @@ export async function removeTestOrganization(admin: StackClient, organizationId:
   await removeRows(admin, 'instruction_modules', organizationId);
   refused('organizations', await admin.from('organizations').delete().eq('id', organizationId));
 }
+
+// Every refusal is collected rather than thrown, so one leftover does not leave the rest of the
+// run behind with it.
+export async function removeTestRun(
+  admin: StackClient,
+  run: { organizations: string[]; users: string[]; isOfRun: (email: string | undefined) => boolean }
+): Promise<string[]> {
+  const failures: string[] = [];
+  for (const id of run.organizations) {
+    await removeTestOrganization(admin, id).catch((cause: Error) =>
+      failures.push(`organization ${id}, ${cause.message}`)
+    );
+  }
+  // Accounts created through the UI are found by the run's address suffix.
+  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) failures.push(`listing the accounts: ${error.message}`);
+  const mine = (data?.users ?? []).filter((user) => run.isOfRun(user.email));
+  for (const id of new Set([...run.users, ...mine.map((user) => user.id)])) {
+    const removed = await admin.auth.admin.deleteUser(id);
+    // A flow that deleted its account has done the work already.
+    if (removed.error && removed.error.status !== 404) {
+      failures.push(`account ${id}: ${removed.error.message}`);
+    }
+  }
+  return failures;
+}
+
+export function refuseLeftovers(failures: string[]) {
+  if (failures.length > 0) {
+    throw new Error(`The clean-up left rows in the local stack:\n${failures.join('\n')}`);
+  }
+}

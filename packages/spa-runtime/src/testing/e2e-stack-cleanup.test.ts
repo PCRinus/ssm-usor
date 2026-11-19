@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { removeTestOrganization, type stackClient } from './e2e-stack';
+import { removeTestOrganization, removeTestRun, type stackClient } from './e2e-stack';
 
-type Answer = { data?: unknown; error: { message: string } | null };
+type Answer = { data?: unknown; error: { message: string; status?: number } | null };
 
-function fakeStack(answer: (call: string) => Answer | undefined = () => undefined) {
+function fakeStack(
+  answer: (call: string) => Answer | undefined = () => undefined,
+  emails: Record<string, string> = {}
+) {
   const calls: string[] = [];
   const settle = (call: string, fallback: unknown) => {
     calls.push(call);
@@ -38,6 +41,15 @@ function fakeStack(answer: (call: string) => Answer | undefined = () => undefine
         list: (folder: string) => settle(`list ${bucket} ${folder}`, []),
         remove: (paths: string[]) => settle(`remove ${bucket} ${paths.join(' ')}`, []),
       }),
+    },
+    auth: {
+      admin: {
+        listUsers: () =>
+          settle('listUsers', {
+            users: Object.entries(emails).map(([id, email]) => ({ id, email })),
+          }),
+        deleteUser: (id: string) => settle(`deleteUser ${id}`, null),
+      },
     },
   };
   return { admin: admin as unknown as ReturnType<typeof stackClient>, calls };
@@ -83,5 +95,56 @@ describe('removeTestOrganization', () => {
       'deleting client c2: still referenced'
     );
     expect(calls.some((call) => call.startsWith('delete organizations'))).toBe(false);
+  });
+});
+
+describe('removeTestRun', () => {
+  const isOfRun = (email: string | undefined) => email?.endsWith('-r1@e2e.test') === true;
+  const accounts = (calls: string[]) => calls.filter((call) => call.startsWith('deleteUser'));
+
+  it('deletes the organizations, then the accounts it made and the ones with its suffix, once each', async () => {
+    const { admin, calls } = fakeStack(undefined, {
+      u1: 'ana-r1@e2e.test',
+      u3: 'ion-r1@e2e.test',
+      u4: 'dev@example.test',
+    });
+    const failures = await removeTestRun(admin, {
+      organizations: ['o1'],
+      users: ['u1', 'u2'],
+      isOfRun,
+    });
+    expect(failures).toEqual([]);
+    const listed = calls.indexOf('listUsers');
+    expect(calls.slice(0, listed).map(simple).at(-1)).toBe('delete organizations');
+    expect(calls.slice(listed)).toEqual([
+      'listUsers',
+      'deleteUser u1',
+      'deleteUser u2',
+      'deleteUser u3',
+    ]);
+  });
+
+  it('collects every refusal and still removes the rest, but not an account already gone', async () => {
+    const { admin, calls } = fakeStack((call) => {
+      if (call.startsWith('delete organizations') && call.includes('o1')) {
+        return { error: { message: 'still referenced' } };
+      }
+      if (call === 'listUsers') return { data: null, error: { message: 'offline' } };
+      if (call === 'deleteUser u1') return { error: { message: 'gone', status: 404 } };
+      if (call === 'deleteUser u2') return { error: { message: 'restricted', status: 500 } };
+      return undefined;
+    });
+    const failures = await removeTestRun(admin, {
+      organizations: ['o1', 'o2'],
+      users: ['u1', 'u2'],
+      isOfRun,
+    });
+    expect(failures).toEqual([
+      'organization o1, organizations: still referenced',
+      'listing the accounts: offline',
+      'account u2: restricted',
+    ]);
+    expect(calls.filter((call) => call.startsWith('delete organizations'))).toHaveLength(2);
+    expect(accounts(calls)).toEqual(['deleteUser u1', 'deleteUser u2']);
   });
 });
