@@ -10,7 +10,7 @@ import {
   proposalSchema,
   risksProposalSchema,
 } from '@ssm-usor/import';
-import { emptyReading } from '@ssm-usor/import/testing';
+import { emptyReading, page, row } from '@ssm-usor/import/testing';
 import { strFromU8, strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -1565,86 +1565,46 @@ describe('an employee import', () => {
     { path: 'Fise/Ionescu.pdf', mime: 'application/pdf', bytes: strToU8('%PDF ionescu') },
   ];
 
-  const noPerson = { lastName: null, firstName: null, cnp: null, employeeNumber: null };
-  const noFields = {
-    birthDate: null,
-    birthPlace: null,
-    homeAddress: null,
-    residenceAddress: null,
-    education: null,
-    qualification: null,
-    bloodGroup: null,
-    rhFactor: null,
-    jobTitle: null,
-    hiredAt: null,
-    leftOn: null,
-    workplace: null,
-    commuteRoute: null,
-    commuteMeans: [],
-    commuteMeansOther: null,
-    commuteMinutes: null,
-  };
-
-  const sheet = (overrides: Record<string, unknown>) => ({
-    pageKind: 'ssm_sheet_front',
-    person: noPerson,
-    fields: noFields,
-    admission: { admittedOn: null, admittedByName: null, admittedByJobTitle: null },
-    trainings: [],
-    handovers: [],
-    unreadable: [],
-    notes: [],
-    ...overrides,
-  });
-
-  const row = (overrides: Record<string, unknown>) => ({
-    domain: 'ssm',
-    phase: 'introductory_general',
-    annualTest: false,
-    heldOn: '2015-03-02',
-    durationMinutes: 480,
-    trainerName: 'Vasile Georgescu',
-    trainerJobTitle: 'Inspector SSM',
-    verifierName: 'Elena Marin',
-    verifierJobTitle: 'Administrator',
-    material: 'Legislația SSM',
-    supplementaryReason: null,
-    traineeSignature: 'present',
-    trainerSignature: 'present',
-    verifierSignature: 'present',
-    ...overrides,
-  });
-
   const sheetAnswers: Record<string, unknown> = {
-    'Fise/Popescu 1.jpg': sheet({
-      person: { ...noPerson, lastName: 'Popescu', firstName: 'Ion' },
-      fields: { ...noFields, jobTitle: 'Vânzător', hiredAt: '2015-03-02' },
-      trainings: [row({})],
+    'Fise/Popescu 1.jpg': page({
+      pageKind: 'ssm_sheet_front',
+      person: { lastName: 'Popescu', firstName: 'Ion' },
+      fields: { jobTitle: 'Vânzător', hiredAt: '2015-03-02' },
+      trainings: [
+        row({
+          phase: 'introductory_general',
+          heldOn: '2015-03-02',
+          durationMinutes: 480,
+          trainerName: 'Vasile Georgescu',
+          verifierName: 'Elena Marin',
+          verifierJobTitle: 'Administrator',
+          material: 'Legislația SSM',
+          verifierSignature: 'present',
+        }),
+      ],
     }),
-    'Fise/Popescu 2.jpg': sheet({
+    'Fise/Popescu 2.jpg': page({
       pageKind: 'ssm_periodic',
       trainings: [
         row({
-          phase: 'periodic',
           heldOn: '2023-05-10',
           durationMinutes: 60,
           trainerName: null,
           trainerJobTitle: null,
-          verifierName: null,
-          verifierJobTitle: null,
           material: 'IPSSM',
           verifierSignature: 'no_box',
         }),
       ],
       handovers: [{ date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' }],
     }),
-    'Fise/Ionescu.pdf (pagina 1)': sheet({
-      person: { ...noPerson, lastName: 'Ionescu', firstName: 'Maria' },
-      fields: { ...noFields, jobTitle: 'Vânzătoare', hiredAt: '2019-01-07' },
+    'Fise/Ionescu.pdf (pagina 1)': page({
+      pageKind: 'ssm_sheet_front',
+      person: { lastName: 'Ionescu', firstName: 'Maria' },
+      fields: { jobTitle: 'Vânzătoare', hiredAt: '2019-01-07' },
     }),
-    'Fise/Ionescu.pdf (pagina 2)': sheet({
+    'Fise/Ionescu.pdf (pagina 2)': page({
       pageKind: 'su_sheet_front',
-      person: { ...noPerson, lastName: 'Ionescu', firstName: 'Maria' },
+      person: { lastName: 'Ionescu', firstName: 'Maria' },
     }),
   };
 

@@ -1,4 +1,5 @@
 import { type SheetPage, type SheetPageInput, toEmployeeProposal } from '@ssm-usor/import';
+import { page, row } from '@ssm-usor/import/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ImportMessage } from '../../lib/env';
@@ -78,81 +79,42 @@ function fileRow(n: number, overrides: Record<string, unknown> = {}) {
   };
 }
 
-const noPerson: SheetPage['person'] = {
-  lastName: null,
-  firstName: null,
-  cnp: null,
-  employeeNumber: null,
-};
-const noFields: SheetPage['fields'] = {
-  birthDate: null,
-  birthPlace: null,
-  homeAddress: null,
-  residenceAddress: null,
-  education: null,
-  qualification: null,
-  bloodGroup: null,
-  rhFactor: null,
-  jobTitle: null,
-  hiredAt: null,
-  leftOn: null,
-  workplace: null,
-  commuteRoute: null,
-  commuteMeans: [],
-  commuteMeansOther: null,
-  commuteMinutes: null,
-};
-
-const page = (
-  n: number,
-  person: Partial<SheetPage['person']>,
-  fields: Partial<SheetPage['fields']>,
-  trainings: SheetPage['trainings'] = []
-): SheetPageInput => ({
+const sheetPage = (n: number, reading: SheetPage): SheetPageInput => ({
   id: `page-${n}`,
   fileId: fileId(n),
   page: null,
   label: `Fise/Poza ${n}.jpg`,
-  reading: {
-    pageKind: 'ssm_sheet_front',
-    person: { ...noPerson, ...person },
-    fields: { ...noFields, ...fields },
-    admission: { admittedOn: null, admittedByName: null, admittedByJobTitle: null },
-    trainings,
-    handovers: [],
-    unreadable: [],
-    notes: [],
-  },
+  reading,
 });
 
 const sheetPages = [
-  page(
+  sheetPage(
     1,
-    { lastName: 'Popescu', firstName: 'Ion', cnp },
-    { birthDate: '1990-01-01', jobTitle: 'Vânzător', hiredAt: '2015-03-02' },
-    [
-      {
-        domain: 'ssm',
-        phase: 'introductory_general',
-        annualTest: false,
-        heldOn: '2015-03-02',
-        durationMinutes: 480,
-        trainerName: 'Vasile Georgescu',
-        trainerJobTitle: 'Inspector SSM',
-        verifierName: 'Elena Marin',
-        verifierJobTitle: 'Administrator',
-        material: 'Legislația SSM',
-        supplementaryReason: null,
-        traineeSignature: 'present',
-        trainerSignature: 'present',
-        verifierSignature: 'present',
-      },
-    ]
+    page({
+      pageKind: 'ssm_sheet_front',
+      person: { lastName: 'Popescu', firstName: 'Ion', cnp },
+      fields: { birthDate: '1990-01-01', jobTitle: 'Vânzător', hiredAt: '2015-03-02' },
+      trainings: [
+        row({
+          phase: 'introductory_general',
+          heldOn: '2015-03-02',
+          durationMinutes: 480,
+          trainerName: 'Vasile Georgescu',
+          verifierName: 'Elena Marin',
+          verifierJobTitle: 'Administrator',
+          material: 'Legislația SSM',
+          verifierSignature: 'present',
+        }),
+      ],
+    })
   ),
-  page(
+  sheetPage(
     2,
-    { lastName: 'Ionescu', firstName: 'Maria' },
-    { jobTitle: 'Vânzătoare', hiredAt: '2019-01-07' }
+    page({
+      pageKind: 'ssm_sheet_front',
+      person: { lastName: 'Ionescu', firstName: 'Maria' },
+      fields: { jobTitle: 'Vânzătoare', hiredAt: '2019-01-07' },
+    })
   ),
 ];
 
