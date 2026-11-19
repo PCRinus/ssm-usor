@@ -1,11 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { bodyOf, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { importDetail, importFile, importId, summaryOf } from '@/test/import-fixture';
 import { mountApp } from '@/test/mount';
+
+import { pollMs } from './use-import';
 
 const splitId = '7a2f3e4d-5c6b-4d7e-8f90-a1b2c3d4e5f6';
 
@@ -117,6 +119,10 @@ function mockImport(detail: ReturnType<typeof importDetail>, read?: () => Respon
 }
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/import/${importId}`);
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 installFetchMock();
 
@@ -288,6 +294,7 @@ describe('the processing page', () => {
   });
 
   it('follows an import whose files are still uploading until its reading starts', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     let status = 'uploading';
     mockApi((init, url) => {
       if (url.pathname === `/imports/${importId}`) {
@@ -312,6 +319,9 @@ describe('the processing page', () => {
     );
     expect(screen.queryByTestId('import-upload-unfinished')).toBeNull();
     expect(screen.getByTestId('import-announcement').textContent).toBe('');
+    expect(requestsTo(`/imports/${importId}`, 'GET')).toHaveLength(1);
+
+    await vi.advanceTimersByTimeAsync(pollMs);
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Citim documentele' })
     ).toBeTruthy();

@@ -3,7 +3,7 @@ import { useApi } from '@/api/use-api';
 
 import { isRunning, isUploadUnderway } from './import-format';
 
-const pollMs = 3000;
+export const pollMs = 3000;
 
 export function useImport(importId: string) {
   const { request, ready, key } = useApi();
