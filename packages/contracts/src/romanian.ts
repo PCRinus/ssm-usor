@@ -28,3 +28,6 @@ export function printedDate(isoDate: string) {
 }
 
 export const capitalized = (text: string) => text.charAt(0).toLocaleUpperCase('ro') + text.slice(1);
+
+export const uncapitalized = (text: string) =>
+  text.charAt(0).toLocaleLowerCase('ro') + text.slice(1);
