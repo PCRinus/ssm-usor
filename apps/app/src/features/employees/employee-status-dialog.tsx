@@ -1,4 +1,4 @@
-import { formatEmployeeName } from '@ssm-usor/contracts';
+import { type ApiErrorResponse, formatEmployeeName } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -21,7 +21,7 @@ import {
   getListWorkplacesQueryKey,
   useUpdateEmployeeStatus,
 } from '@/api/generated/api';
-import { type ApiErrorBody, apiErrorBody, ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -59,7 +59,7 @@ function serverMessage(cause: unknown) {
   return 'Nu am putut salva modificarea. Verifică conexiunea și încearcă din nou.';
 }
 
-function conflictMessage(body: Partial<ApiErrorBody> | undefined) {
+function conflictMessage(body: Partial<ApiErrorResponse> | undefined) {
   if (body?.reason === 'client_archived') {
     return 'Clientul este arhivat; situația lucrătorilor nu se mai schimbă.';
   }

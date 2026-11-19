@@ -5,17 +5,14 @@ import {
   createApiHttp,
   type ErrorType as ApiErrorType,
 } from '@ssm-usor/api-http';
-import { type ApiErrorReason, clientContract } from '@ssm-usor/contracts';
+import { type ApiErrorReason, type ApiErrorResponse, clientContract } from '@ssm-usor/contracts';
 
-import type { ApiErrorResponse } from '@/api/generated/api';
 import { captureEvent } from '@/app/observability/posthog';
 import { openOutdatedDialog } from '@/features/reload/reload-store';
 
 export { ApiHttpError, type ApiRequestOptions, isClientOutdatedError } from '@ssm-usor/api-http';
 
-type ApiErrorBody = Omit<ApiErrorResponse, 'reason'> & { reason?: ApiErrorReason };
-
-export const apiErrorBody = (cause: unknown) => readApiErrorBody<ApiErrorBody>(cause);
+export const apiErrorBody = (cause: unknown) => readApiErrorBody<ApiErrorResponse>(cause);
 
 export const apiErrorReason = (cause: unknown) =>
   readApiErrorReason(cause) as ApiErrorReason | undefined;

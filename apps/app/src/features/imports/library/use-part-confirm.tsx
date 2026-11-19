@@ -1,4 +1,8 @@
-import { type ApiErrorReason, importErrorReasons } from '@ssm-usor/contracts';
+import {
+  type ApiErrorReason,
+  type ApiErrorResponse,
+  importErrorReasons,
+} from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
@@ -12,14 +16,14 @@ import {
   type ImportDetail,
   retryImportLibraryPart,
 } from '@/api/generated/api';
-import { type ApiErrorBody, apiErrorBody } from '@/api/http';
+import { apiErrorBody } from '@/api/http';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 
 import { importErrorMessage } from '../import-format';
 import { libraryDay } from './library-model';
 import { type AnyPart, ClientPrerequisiteNote } from './part-task';
 
-type ConfirmBody = Partial<ApiErrorBody> | undefined;
+type ConfirmBody = Partial<ApiErrorResponse> | undefined;
 
 export function usePartConfirm({
   detail,
