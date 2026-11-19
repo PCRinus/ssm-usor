@@ -11,7 +11,7 @@ import { Download } from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { previewInstruction } from '@/api/generated/api';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 import { saveAs } from '@/features/documents/editor-frame';
 import { PagePlaceholder } from '@/features/documents/editor-placeholder';
 
@@ -94,23 +94,15 @@ function PreviewContent({ request }: { request: PreviewRequest }) {
       >
         {failed ? (
           <div className="p-6">
-            <Notice
-              variant="destructive"
-              data-testid="instruction-preview-error"
-              action={
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setFailed(false);
-                    setAttempt((value) => value + 1);
-                  }}
-                >
-                  Încearcă din nou
-                </Button>
-              }
+            <LoadFailed
+              testId="instruction-preview-error"
+              onRetry={() => {
+                setFailed(false);
+                setAttempt((value) => value + 1);
+              }}
             >
               Nu am putut pregăti previzualizarea. Verifică conexiunea și încearcă din nou.
-            </Notice>
+            </LoadFailed>
           </div>
         ) : (
           <>
