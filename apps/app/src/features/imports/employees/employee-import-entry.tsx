@@ -256,9 +256,7 @@ function OpenImportLine({
     text = readyText(item);
     icon = <FileCheck2 />;
   } else if (failed) {
-    text = item.failureReason
-      ? `Un import din fișe s-a oprit: ${endSentence(item.failureReason)}`
-      : 'Un import din fișe s-a oprit din cauza unei erori.';
+    text = failedText(item.failureReason);
     icon = <CircleAlert />;
   } else if (item.status === 'uploading') {
     text = isUploadUnderway(item)
@@ -427,4 +425,13 @@ function ImportedNoticeCard({
       {bulkInviteDialog}
     </Card>
   );
+}
+
+// The pipeline's own reasons already begin with „Importul s-a oprit”.
+function failedText(reason: string | null) {
+  if (!reason) return 'Un import din fișe s-a oprit din cauza unei erori.';
+  const sentence = endSentence(reason);
+  return sentence.startsWith('Importul s-a oprit')
+    ? `Un import din fișe${sentence.slice('Importul'.length)}`
+    : `Un import din fișe s-a oprit: ${sentence}`;
 }

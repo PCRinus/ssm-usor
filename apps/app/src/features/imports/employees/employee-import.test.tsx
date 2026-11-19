@@ -333,6 +333,22 @@ describe("the client's Lucrători tab", () => {
     ]);
   });
 
+  it('does not repeat that the import stopped when its reason already says so', async () => {
+    const stalled = {
+      ...openImport,
+      status: 'failed',
+      people: null,
+      expiresAt: null,
+      failureReason: 'Importul s-a oprit înainte să se termine.',
+    };
+    mockEmployeeImport({ open: [stalled] });
+    mount(`/clienti/${clientId}/angajati`);
+    const line = await screen.findByTestId('employee-import-line');
+    expect(line.textContent).toBe(
+      'Un import din fișe s-a oprit înainte să se termine.Vezi importul'
+    );
+  });
+
   it('adds nothing above the list while no import from the sheets is open', async () => {
     mockEmployeeImport({ employees: [baker] });
     mount(`/clienti/${clientId}/angajati`);

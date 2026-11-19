@@ -93,7 +93,7 @@ Deasupra listei vezi câți lucrători are. Când cauți sau filtrezi, vezi câ�
 
 Adaugi un lucrător cu **Adaugă manual** (la un client fără lucrători, cardul **Adaugă manual**, în locul listei). Ce cere formularul găsești în [Adăugarea și modificarea unui lucrător](/clienti/angajati/adaugare-si-editare/). Lucrătorii unui client pe care îl preiei îi poți aduce și cu **Adaugă cu AI**, din fotografiile fișelor lor de instruire, pe care AI-ul le citește și îți propune lucrătorii: vezi [Importul lucrătorilor din fișe](/clienti/import/#importul-lucrătorilor-din-fișe).
 
-Cât timp un import din fișe al clientului nu e încheiat, deasupra listei vezi un rând despre el, de exemplu „Un import din fișe așteaptă verificarea: 9 persoane, până pe 2 dec.”, cu butonul care te duce la import: **Continuă importul** sau, cât se citește ori dacă s-a oprit, **Vezi importul**. La import renunți din pagina lui, cu **Renunță la import**. Rândul dispare după ce creezi lucrătorii sau renunți; după creare, în locul lui apare pasul următor, invitarea lucrătorilor în portal.
+Cât timp un import din fișe al clientului nu e încheiat, deasupra listei vezi un rând despre el, de exemplu „Un import din fișe așteaptă verificarea: 9 persoane, până pe 2 dec.”, cu butonul care te duce la import: **Continuă importul** sau, cât se citește ori dacă s-a oprit, **Vezi importul**. La import renunți din pagina lui, cu **Renunță la import** (cât se citește, **Oprește importul**). Rândul dispare după ce creezi lucrătorii sau renunți; după creare, în locul lui apare pasul următor, invitarea lucrătorilor în portal.
 
 ### Actuali și foști
 
