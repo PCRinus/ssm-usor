@@ -62,6 +62,7 @@ const uploading = {
   readyAt: null,
   failedAt: null,
   confirmedAt: null,
+  abandonedAt: null,
 };
 
 type Answer = () => Response | Promise<Response>;

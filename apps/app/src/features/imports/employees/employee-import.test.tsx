@@ -66,6 +66,7 @@ const openImport = {
   readyAt: '2026-10-29T10:20:00+00:00',
   failedAt: null,
   confirmedAt: null,
+  abandonedAt: null,
   expiresAt: '2026-11-13T10:00:00+00:00',
   people: { total: 40, toCheck: 16, checked: 23, setAside: 1 },
 };

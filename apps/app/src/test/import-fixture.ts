@@ -52,6 +52,7 @@ export function importDetail(overrides: Record<string, unknown> = {}) {
     readyAt: null,
     failedAt: null,
     confirmedAt: null,
+    abandonedAt: null,
     version: 0,
     files: [] as unknown[],
     progress: { files: 0, prepared: 0, scans: 0, scansRead: 0 },
@@ -85,6 +86,7 @@ export const summaryOf = (detail: ReturnType<typeof importDetail>) => {
     readyAt: rest.readyAt,
     failedAt: rest.failedAt,
     confirmedAt: rest.confirmedAt,
+    abandonedAt: rest.abandonedAt,
     libraryParts: rest.libraryParts,
   };
 };
