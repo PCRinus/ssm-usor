@@ -770,7 +770,7 @@ describe('POST /clients/{clientId}/employees', () => {
     expect(employee.bloodGroup).toBe('A(II)');
     const { init } = callsTo('/rest/v1/employees')[0]!;
     expect(init?.method).toBe('POST');
-    expect(JSON.parse(String(init?.body))).toMatchObject({
+    expect(JSON.parse(String(init?.body))).toEqual({
       organization_id: testOrganizationId,
       client_id: clientId,
       last_name: 'Popescu',
@@ -780,6 +780,7 @@ describe('POST /clients/{clientId}/employees', () => {
       email: 'ion.popescu@example.com',
       phone: '+40721000000',
       job_title: 'Sudor',
+      contract_number: null,
       hired_at: '2020-03-01',
       birth_date: '1990-01-01',
       birth_place: 'Cluj-Napoca',
@@ -787,6 +788,15 @@ describe('POST /clients/{clientId}/employees', () => {
       residence_address: 'Str. Florilor 9, Florești',
       blood_group: 'A(II)',
       rh_factor: '+',
+      notes: null,
+      workplace_id: null,
+      qualification: null,
+      education: null,
+      authorizations: null,
+      commute_route: null,
+      commute_means: [],
+      commute_means_other: null,
+      commute_minutes: null,
       created_by: user.id,
     });
     expect(new Headers(init?.headers).get('Prefer')).toContain('return=representation');
