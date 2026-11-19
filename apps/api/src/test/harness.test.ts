@@ -1,7 +1,7 @@
 import { clientContract, clientContractHeader } from '@ssm-usor/contracts';
+import { Hono } from 'hono';
 import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../app';
 import { apiRequest, type ApiRequestInit, testAccessToken } from './request';
 import {
   callsTo,
@@ -178,7 +178,7 @@ describe('membershipRow', () => {
 
 describe('apiRequest', () => {
   const echoed = async (init: ApiRequestInit = {}) => {
-    const app = createApp();
+    const app = new Hono();
     app.post('/echo', async (c) =>
       c.json({
         authorization: c.req.header('Authorization') ?? null,
