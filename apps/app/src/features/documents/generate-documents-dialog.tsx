@@ -32,6 +32,7 @@ import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useMe } from '@/features/account/use-me';
@@ -205,21 +206,9 @@ function GenerateDocumentsForm({
           {checking ? (
             <Skeleton className="h-28 w-full" />
           ) : readiness.isError ? (
-            <Notice
-              variant="destructive"
-              action={
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={readiness.isFetching}
-                  onClick={() => void readiness.refetch()}
-                >
-                  Încearcă din nou
-                </Button>
-              }
-            >
+            <LoadFailed busy={readiness.isFetching} onRetry={() => void readiness.refetch()}>
               Nu am putut verifica datele clientului.
-            </Notice>
+            </LoadFailed>
           ) : (
             <Notice variant="info" data-testid="generate-headcount">
               {occupationalSafety
