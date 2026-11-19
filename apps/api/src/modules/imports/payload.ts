@@ -536,7 +536,7 @@ export function toClientPayload(input: {
     if (replace) (inFireSafety ? fireReplace : clientReplace).push(column);
   };
   for (const entry of fieldsOf(proposal)) {
-    if (entry.path === 'fireSafety.smokingPlace' && placeDropped) continue;
+    if (entry.path === smokingPlacePath && placeDropped) continue;
     // A category applies when the client keeps posts in it, so a declared exclusion is not
     // written, nor waited for (ADR 039).
     if (notApplicablePaths.has(entry.path)) continue;

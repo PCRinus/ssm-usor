@@ -407,7 +407,6 @@ export function rowValues(changes: Changes, row: SheetRow): RowValues {
   };
 }
 
-/** The examiner a row's test names, as the member left it. */
 export const examinerValues = (changes: Changes, row: SheetRow) =>
   rowExaminer(row, changes.rows[row.id]?.values);
 

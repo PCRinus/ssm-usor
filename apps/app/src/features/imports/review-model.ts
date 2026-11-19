@@ -918,7 +918,7 @@ export type ItemState = {
   item: AnyItem;
   values: Record<string, unknown>;
   included: boolean;
-  // Ticked unless the member unticks it; as the API's `proposedIncluded` and payload decide.
+  // Ticked unless the member unticks it, as the confirm's payload decides.
   proposed: boolean;
   untickedReason: UntickedReason | null;
   edited: boolean;

@@ -162,6 +162,9 @@ describe('one training held by several people', () => {
     expect(heldTrainingKey({ ...held, material: ' ' })).toBe(
       heldTrainingKey({ ...held, material: null })
     );
+    expect(heldTrainingKey({ ...held, material: '-' })).not.toBe(
+      heldTrainingKey({ ...held, material: null })
+    );
     expect(
       heldTrainingKey({ ...held, verifierName: 'Dan Marin', verifierJobTitle: 'Inspector' })
     ).not.toBe(heldTrainingKey(held));
