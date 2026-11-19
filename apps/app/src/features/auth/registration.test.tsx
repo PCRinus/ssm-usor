@@ -2,8 +2,10 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { meRecord } from '@/test/records';
 
 const captured = vi.hoisted(() => vi.fn());
 vi.mock('@/app/observability/posthog', async (importOriginal) => ({
@@ -12,8 +14,6 @@ vi.mock('@/app/observability/posthog', async (importOriginal) => ({
 }));
 
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM SRL' };
-
-const fetchMock = vi.fn<typeof fetch>();
 
 const anafCompany = {
   cui: '1590082',
@@ -50,7 +50,7 @@ function mockApi({
   create = () => Response.json({ organization, role: 'owner' }, { status: 201 }),
   profile = null as Profile | null,
   member = false,
-  role = 'owner',
+  role = 'owner' as 'owner' | 'specialist',
   details = noDetails as Record<string, unknown>,
   lookup = () => Response.json({ company: anafCompany }),
   saveDetails = (body: Record<string, unknown>) => Response.json({ companyDetails: body }),
@@ -58,20 +58,20 @@ function mockApi({
 } = {}) {
   let saved = details;
   let account = profile;
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockRoutes((init, { pathname }) => {
     const method = init?.method ?? 'GET';
     if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        profile: account && {
-          professionalTitle: null,
-          ...account,
-          termsVersion: null,
-          termsAcceptedAt: null,
-        },
-        membership: member ? { organization, role } : null,
-      });
+      return Response.json(
+        meRecord({
+          profile: account && {
+            professionalTitle: null,
+            ...account,
+            termsVersion: null,
+            termsAcceptedAt: null,
+          },
+          membership: member ? { organization, role } : null,
+        })
+      );
     }
     if (pathname === '/me/invitations') return Response.json({ items: invitations });
     if (pathname === '/me/profile' && method === 'PATCH') {
@@ -93,41 +93,29 @@ function mockApi({
     if (pathname === '/organization/company-details') {
       return saved === details ? loadDetails() : Response.json({ companyDetails: saved });
     }
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
 
-const created = () =>
-  fetchMock.mock.calls
-    .filter(([input, init]) => String(input).endsWith('/organization') && init?.method === 'POST')
-    .map(([, init]) => JSON.parse(init?.body as string));
+const sent = (pathname: string, method: string) =>
+  requestsTo(pathname, method).map(([, init]) => JSON.parse(init?.body as string));
 
-const savedDetails = () =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        String(input).endsWith('/organization/company-details') && init?.method === 'PUT'
-    )
-    .map(([, init]) => JSON.parse(init?.body as string));
+const created = () => sent('/organization', 'POST');
 
-const profileUpdates = () =>
-  fetchMock.mock.calls
-    .filter(([input, init]) => String(input).endsWith('/me/profile') && init?.method === 'PATCH')
-    .map(([, init]) => JSON.parse(init?.body as string));
+const savedDetails = () => sent('/organization/company-details', 'PUT');
+
+const profileUpdates = () => sent('/me/profile', 'PATCH');
 
 const authError = (code: string) => ({ message: code, code });
 
-beforeEach(() => {
-  captured.mockReset();
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-  mockApi();
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-  vi.unstubAllEnvs();
+installFetchMock();
+
+beforeEach(() => {
+  captured.mockReset();
+  mockApi();
 });
 
 describe('register', () => {

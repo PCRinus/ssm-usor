@@ -3,8 +3,10 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { meRecord } from '@/test/records';
 
 const captured = vi.hoisted(() => vi.fn());
 vi.mock('@/app/observability/posthog', async (importOriginal) => ({
@@ -14,26 +16,25 @@ vi.mock('@/app/observability/posthog', async (importOriginal) => ({
 
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM SRL' };
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi({ member = true, profile = true } = {}) {
-  fetchMock.mockImplementation(async (input) => {
-    const { pathname } = new URL(String(input));
-    if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        profile: profile && {
-          fullName: 'Ana Popescu',
-          professionalTitle: null,
-          termsVersion: null,
-          termsAcceptedAt: null,
-        },
+  mockRoutes(
+    (_init, { pathname }) => {
+      if (pathname === '/me/invitations') return Response.json({ items: [] });
+    },
+    {
+      me: meRecord({
+        profile: profile
+          ? {
+              fullName: 'Ana Popescu',
+              professionalTitle: null,
+              termsVersion: null,
+              termsAcceptedAt: null,
+            }
+          : null,
         membership: member ? { organization, role: 'owner' } : null,
-      });
+      }),
     }
-    if (pathname === '/me/invitations') return Response.json({ items: [] });
-    return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
-  });
+  );
 }
 
 function googleSession({ newAccount = false } = {}): Session {
@@ -51,18 +52,16 @@ function googleSession({ newAccount = false } = {}): Session {
   };
 }
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+installFetchMock();
+
 beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
   mockApi();
   sessionStorage.clear();
   captured.mockReset();
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-  vi.unstubAllEnvs();
 });
 
 describe('Google button', () => {

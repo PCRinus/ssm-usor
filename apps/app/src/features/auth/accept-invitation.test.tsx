@@ -1,9 +1,11 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import { bodiesOf, fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { meRecord } from '@/test/records';
 
 const invitation = {
   organizationName: 'Protect SSM',
@@ -20,8 +22,6 @@ const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protec
 const conflict = (reason: string) =>
   Response.json({ error: 'conflict', message: 'Conflict', reason }, { status: 409 });
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi({
   lookup = () => Response.json(invitation),
   accept = () =>
@@ -35,8 +35,7 @@ function mockApi({
   profile?: { fullName: string } | null;
 } = {}) {
   let member = false;
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockRoutes((_init, { pathname }) => {
     if (pathname === '/invitations/lookup') return lookup();
     if (pathname === '/invitations/accept') {
       const response = accept();
@@ -49,33 +48,28 @@ function mockApi({
       return response;
     }
     if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-ion', email: invitation.email },
-        profile: profile && { ...profile, termsVersion: null, termsAcceptedAt: null },
-        membership: member ? { organization, role: 'specialist' } : null,
-      });
+      return Response.json(
+        meRecord({
+          user: { id: 'user-ion', email: invitation.email },
+          profile: profile && {
+            ...profile,
+            professionalTitle: null,
+            termsVersion: null,
+            termsAcceptedAt: null,
+          },
+          membership: member ? { organization, role: 'specialist' } : null,
+        })
+      );
     }
     if (pathname === '/organization/members') return Response.json({ items: [] });
-    throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${pathname}`);
   });
 }
 
-const bodies = (pathname: string) =>
-  fetchMock.mock.calls
-    .filter(([input]) => new URL(String(input)).pathname === pathname)
-    .map(([, init]) => JSON.parse(init?.body as string));
+const bodies = (pathname: string) => bodiesOf(pathname, 'POST');
 
 const path = '/invitatie?token=tok-123';
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('accept invitation: a person without an account', () => {
   it('describes the invitation without accepting anything', async () => {
