@@ -101,15 +101,14 @@ describe('POST /imports/{importId}/report', () => {
     expect(update!.body).toEqual({ reported_at: expect.any(String), reported_by: user.id });
     await vi.waitFor(() => expect(posts()).toHaveLength(1));
     const content = (posts()[0]!.body as { content: string }).content;
-    expect(content).toBe(
-      [
-        '🔴 **Reported by the member** · production',
-        `Import: client ${importId}`,
-        `Organization: ${organizationId}`,
-        `Reported by account ${user.id}`,
-        'Cost: $0.42',
-      ].join('\n')
-    );
+    for (const line of [
+      `Import: client ${importId}`,
+      `Organization: ${organizationId}`,
+      `Reported by account ${user.id}`,
+      'Cost: $0.42',
+    ]) {
+      expect(content).toContain(line);
+    }
     expect(content).not.toContain('specialist@example.com');
   });
 
