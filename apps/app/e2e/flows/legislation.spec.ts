@@ -80,7 +80,7 @@ test('a document behind its template is regenerated for every client from the Le
   await type.getByTestId('behind-regenerate').click();
   await page.getByTestId('behind-confirm').click();
 
-  await expect(page.getByTestId('regeneration-result-counts')).toContainText('1 din 1');
+  await expect(page.getByTestId('regeneration-result-counts')).toHaveText(/: 1 din 1 document$/);
   await expect(page.getByTestId('regeneration-drafts')).toContainText(clientName);
   await expect(page.getByTestId('documents-behind-empty')).toBeVisible();
 

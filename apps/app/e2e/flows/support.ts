@@ -973,7 +973,7 @@ export async function openDocumentSection(page: Page, number: string) {
 // Which documents a set holds changes often and is pinned by the API's tests; the flows pin the
 // exact count once per set and size, in documents.spec.ts and fire-safety-documents.spec.ts.
 export async function expectSetGenerated(page: Page) {
-  await expect(page.getByText(/^Au fost generate \d+ (de )?documente\.$/)).toBeVisible({
+  await expect(page.getByText(/^Au fost generate [1-9]\d* (de )?documente\.$/)).toBeVisible({
     timeout: 30_000,
   });
 }
