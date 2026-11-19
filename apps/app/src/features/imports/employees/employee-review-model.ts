@@ -6,7 +6,9 @@ import {
   foldText,
   heldTrainingKey,
   hiringTestRowIds,
+  inMinutesRange,
   isValidCnp,
+  minutesRange,
   personIncludedByDefault,
   resolveEmployeeImportField,
   reviewedRowValue,
@@ -489,9 +491,6 @@ function fieldAnchor(
 
 const isoDate = /^\d{4}-\d{2}-\d{2}$/;
 
-const inMinutesRange = (value: unknown) =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 600;
-
 function invalidField(
   context: Pick<ReviewContext, 'changes'>,
   person: Person,
@@ -507,7 +506,10 @@ function invalidField(
     tone: 'destructive',
   });
   if (employeeImportValueAllowed(name, value)) return null;
-  if (name === 'commuteMinutes') return decision(`Corectează ${lower}: între 1 și 600 de minute`);
+  if (name === 'commuteMinutes')
+    return decision(
+      `Corectează ${lower}: între ${minutesRange.min} și ${minutesRange.max} de minute`
+    );
   const limits = employeeImportTextLimits(name);
   if (!limits || typeof value !== 'string') return decision(`Corectează ${lower}`);
   return decision(
@@ -830,7 +832,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
         decisions.push({
           key: `row-${row.id}`,
           anchor: 'trainings',
-          label: `Corectează durata instruirii din ${rowDate(row, values)}: între 1 și 600 de minute`,
+          label: `Corectează durata instruirii din ${rowDate(row, values)}: între ${minutesRange.min} și ${minutesRange.max} de minute`,
           tag: 'O instruire cu durata de corectat',
           tone: 'destructive',
         });

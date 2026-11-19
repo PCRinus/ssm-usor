@@ -4,7 +4,9 @@ import {
   commuteMeans,
   commuteMeansOtherMaxLength,
   decodeCnp,
+  inMinutesRange,
   isValidCnpInput,
+  minutesRange,
   normalizeCnp,
   type RhFactor,
   rhFactors,
@@ -114,8 +116,8 @@ export const employeeFormSchema = z
       .trim()
       .regex(/^([0-9]{1,3})?$/, 'Introdu durata în minute, un număr întreg.')
       .refine(
-        (value) => value === '' || (Number(value) >= 1 && Number(value) <= 600),
-        'Durata trebuie să fie între 1 și 600 de minute.'
+        (value) => value === '' || inMinutesRange(Number(value)),
+        `Durata trebuie să fie între ${minutesRange.min} și ${minutesRange.max} de minute.`
       ),
   })
   .superRefine((values, ctx) => {

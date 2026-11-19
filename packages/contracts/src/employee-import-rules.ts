@@ -5,7 +5,7 @@ import { foldText } from './fold-text';
 import { sameHomeAddress } from './home-address';
 import type { EmployeeImportFieldName } from './imports';
 import { foldName } from './name-match';
-import type { TrainingDomain, TrainingPhase } from './trainings';
+import { inMinutesRange, type TrainingDomain, type TrainingPhase } from './trainings';
 
 // The confirm and the review in the app both run these, so the review shows what confirming takes
 // (ADR 032).
@@ -22,7 +22,7 @@ export function employeeImportValueAllowed(name: EmployeeImportFieldName, value:
   if (name === 'bloodGroup') return (bloodGroups as readonly FieldValue[]).includes(value);
   if (name === 'rhFactor') return (rhFactors as readonly FieldValue[]).includes(value);
   if (name === 'commuteMinutes') {
-    return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 600;
+    return inMinutesRange(value);
   }
   if (name === 'birthDate' || name === 'hiredAt' || name === 'leftOn') {
     return typeof value === 'string' && isoDate.test(value);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { trainingRequestSchema } from './trainings';
+import { inMinutesRange, trainingRequestSchema } from './trainings';
 
 const request = {
   domain: 'ssm',
@@ -25,6 +25,19 @@ describe('trainingRequestSchema', () => {
       'material',
       'trainer.name',
       'trainer.jobTitle',
+    ]);
+  });
+});
+
+describe('inMinutesRange', () => {
+  it('takes whole minutes from 1 to 600 only', () => {
+    expect([1, 45, 600].map(inMinutesRange)).toEqual([true, true, true]);
+    expect([0, 601, 30.5, '30', null].map(inMinutesRange)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
     ]);
   });
 });

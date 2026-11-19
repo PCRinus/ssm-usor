@@ -1,4 +1,4 @@
-import { bloodGroups, formatEmployeeName, rhFactors } from '@ssm-usor/contracts';
+import { bloodGroups, formatEmployeeName, minutesRange, rhFactors } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
@@ -613,8 +613,8 @@ export function EmployeeForm({
                 data-testid="employee-commute-minutes"
                 type="number"
                 inputMode="numeric"
-                min={1}
-                max={600}
+                min={minutesRange.min}
+                max={minutesRange.max}
                 step={1}
                 className="h-11"
                 {...register('commuteMinutes')}
