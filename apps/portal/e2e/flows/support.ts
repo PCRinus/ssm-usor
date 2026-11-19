@@ -1,17 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
+import {
+  captchaToken,
+  e2ePassword as password,
+  mailbox,
+  runAddresses,
+  stackClient,
+} from '@ssm-usor/spa-runtime/testing/e2e-stack';
 
-const admin = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const admin = stackClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!);
 
-const password = 'Parola-e2e-1';
-// Turnstile's dummy token, the only one the local stack's test secret accepts
-// (supabase/config.toml).
-const captchaToken = 'XXXX.DUMMY.TOKEN.XXXX';
-
-// Never collides with another run, or with the app's flows sharing the local stack.
-const run = `${Date.now().toString(36)}p${process.env.TEST_WORKER_INDEX ?? ''}`;
-export const addressOf = (name: string) => `${name}-${run}@e2e.test`;
+const { addressOf: addressOfRun, isOfRun } = runAddresses('p', process.env.TEST_WORKER_INDEX);
+export const addressOf = addressOfRun;
 
 // Spec files share this module in a worker, so one run makes several providers.
 const created = { providers: 0, users: [] as string[], organizations: [] as string[] };
@@ -72,10 +70,9 @@ export async function createProvider(
     .single();
   if (client.error) throw client.error;
 
-  const session = createClient(
+  const session = stackClient(
     process.env.E2E_SUPABASE_URL!,
-    process.env.E2E_SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
+    process.env.E2E_SUPABASE_PUBLISHABLE_KEY!
   );
   const signedIn = await session.auth.signInWithPassword({
     email,
@@ -156,26 +153,19 @@ export async function addWorkplace(
   return workplace.data.id as string;
 }
 
+async function lastCode(to: string, kind: string) {
+  const messages = await mailbox(process.env.E2E_API_URL!, to, kind);
+  return messages.at(-1)?.url.match(/code=(\d+)/)?.[1];
+}
+
 export async function lastSigningCode(to: string) {
-  const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
-  url.searchParams.set('to', to);
-  const messages = (await (await fetch(url)).json()) as { kind: string; url: string }[];
-  const code = messages
-    .filter((message) => message.kind === 'signing-code')
-    .at(-1)
-    ?.url.match(/code=(\d+)/)?.[1];
+  const code = await lastCode(to, 'signing-code');
   if (!code) throw new Error(`No signing code was sent to ${to}.`);
   return code;
 }
 
 export async function lastSignInCode(to: string) {
-  const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
-  url.searchParams.set('to', to);
-  const messages = (await (await fetch(url)).json()) as { kind: string; url: string }[];
-  const code = messages
-    .filter((message) => message.kind === 'sign-in-code')
-    .at(-1)
-    ?.url.match(/code=(\d+)/)?.[1];
+  const code = await lastCode(to, 'sign-in-code');
   if (!code) throw new Error(`No sign-in code was sent to ${to}.`);
   return code;
 }
@@ -200,7 +190,7 @@ export async function answerKey(organizationId: string, domain: 'ssm' | 'su', te
 
 export async function cleanUp() {
   const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const mine = data.users.filter((user) => user.email?.endsWith(`-${run}@e2e.test`));
+  const mine = data.users.filter((user) => isOfRun(user.email));
   for (const id of created.organizations) {
     // A finished test attempt is frozen even for the secret key and restricts its employee,
     // client and organization (ADR 024), so such an organization stays in the local stack.
