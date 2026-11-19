@@ -173,7 +173,7 @@ O instruire de pe fișa pe hârtie nu are semnături electronice de anulat. La p
 
 ## Testarea
 
-Cardul **Testare** arată starea testării, ce urmează, rezultatele și încercările din portal. Stările sunt explicate în [Starea testării](/clienti/angajati/).
+Cardul **Testare** arată starea testării, ce urmează, rezultatele și încercările din portal. Stările sunt explicate în [Starea testării](/clienti/angajati/). Întrebările testelor, aceleași pentru toți clienții, le alegi și le scrii pe pagina [Teste](/teste/).
 
 ### Când îl așteaptă un test
 
