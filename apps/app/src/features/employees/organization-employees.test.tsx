@@ -192,7 +192,18 @@ describe("the organization's employees", () => {
     );
     expect(screen.getByTestId('nav-employees').getAttribute('aria-current')).toBe('true');
 
-    await user.click(screen.getByTestId('employee-header-client'));
+    await user.click(screen.getByTestId('employee-edit'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`${workerPath}/editare`)
+    );
+    expect(screen.getByTestId('nav-employees').getAttribute('aria-current')).toBe('true');
+    runtime.router.history.back();
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`${workerPath}/instruire/ssm`)
+    );
+    expect(screen.getByTestId('nav-employees').getAttribute('aria-current')).toBe('true');
+
+    await user.click(await screen.findByTestId('employee-header-client'));
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe(`/clienti/${petromId}/angajati`)
     );

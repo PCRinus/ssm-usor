@@ -281,14 +281,12 @@ function AppNavigation({
   subscription: SubscriptionSummary | null;
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
-  const section = useLocation({ select: (location) => location.state.section });
+  const openedFrom = useLocation({ select: (location) => location.state.section });
   const { isMobile, setOpenMobile } = useSidebar();
   const closeOnMobile = () => {
     if (isMobile) setOpenMobile(false);
   };
-  // The section is carried on through links that leave the record, so it stands in only inside a
-  // client, whose path alone would say Clienți.
-  const highlighted = section && pathname.startsWith('/clienti/') ? section : pathname;
+  const highlighted = openedFrom ?? pathname;
   const within = (to: string) => highlighted === to || highlighted.startsWith(`${to}/`);
   const helpHome = helpHref();
   const behindCounts = useBehindSummary().data?.counts;

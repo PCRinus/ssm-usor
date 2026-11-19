@@ -9,13 +9,13 @@ const keepSection = (current: ParsedHistoryState): HistoryState =>
 // was left, scroll and its own opener included, however many tabs the record went through.
 export const openedHere = (current: ParsedHistoryState): HistoryState => ({
   opener: current.__TSR_index,
-  ...keepSection(current),
 });
 
 // A worker lives under its client, so the organization's workers list, which opens workers of
 // every client, names itself for the sidebar to keep it highlighted while the worker is open.
+// Only links that stay in the record pass it on; a page the record opens is the client's again.
 export const openedFromSection =
-  (section: string) =>
+  (section: NonNullable<HistoryState['section']>) =>
   (current: ParsedHistoryState): HistoryState => ({
     opener: current.__TSR_index,
     section,
