@@ -2,6 +2,11 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type {
+  ClientDocumentListResponse,
+  FileLinkResponse,
+  WorkplaceListResponse,
+} from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
 import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
@@ -282,6 +287,24 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         return Response.json({ participant: null, invitation: null });
       case `GET ${agreementPath}/state`:
         return Response.json({ agreement: null, unavailable: null });
+      case `GET ${agreementPath}/link`:
+        return Response.json({
+          url: 'http://127.0.0.1:54321/storage/v1/object/sign/documents/agreement',
+          fileName: 'Act-aditional-semnare-electronica-Popescu-Ion.pdf',
+          expiresInSeconds: 600,
+        } satisfies FileLinkResponse);
+      case `GET /clients/${clientId}/documents`:
+        return Response.json({
+          items: [],
+          lastGeneration: null,
+          notApplicable: [],
+          currentEmployeeCount: 1,
+        } satisfies ClientDocumentListResponse);
+      case `GET /clients/${clientId}/workplaces`:
+        return Response.json({
+          items: [],
+          unassignedEmployeeCount: 1,
+        } satisfies WorkplaceListResponse);
       case `GET /clients/${clientId}/job-positions`:
         return Response.json({ items: [position] });
       case `GET /clients/${clientId}/signer-candidates`:
@@ -2103,6 +2126,7 @@ describe('a saved training and its signers', () => {
     mockApi({
       [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
       [`GET ${trainingsPath}/${trainingId}`]: detail(signers),
+      [`PUT ${trainingsPath}/${trainingId}`]: detail(signers),
     });
     const user = userEvent.setup();
     mount(`${employeePage}/instruire/ssm`);
