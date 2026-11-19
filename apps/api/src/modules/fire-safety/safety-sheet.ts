@@ -1,6 +1,5 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
-  clientConflictReasons,
   type CreditsShort,
   extractionRefusalOf,
   importCredits,
@@ -25,10 +24,11 @@ import {
 } from '@ssm-usor/import';
 
 import { createLastingAdminClient } from '../../lib/admin-db';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createExtractor } from '../../lib/extractor';
+import { requireWritableClient } from '../clients/lookup';
 import { creditsStore } from '../credits/store';
 import { safetySheetCharges } from '../credits/usage';
 import { blocksReporterOf } from '../extras/reporting';
@@ -63,22 +63,6 @@ function sheetModel(env: ApiEnv['Bindings']) {
 
 const isPdf = (bytes: Uint8Array) =>
   bytes.length > 4 && String.fromCharCode(...bytes.subarray(0, 5)) === '%PDF-';
-
-async function writableClient(db: DataClient, clientId: string) {
-  const { data, error } = await db
-    .from('clients')
-    .select('id, archived_at, stage')
-    .eq('id', clientId)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
-  if (data.archived_at) {
-    throw new ApiError('conflict', undefined, undefined, clientConflictReasons.clientArchived);
-  }
-  if (data.stage === 'lead') {
-    throw new ApiError('conflict', undefined, undefined, clientConflictReasons.clientIsLead);
-  }
-}
 
 export const tooLarge = () =>
   refused(safetySheetErrorReasons.tooLarge, 'The file is larger than a safety data sheet may be.');
@@ -142,7 +126,7 @@ export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> 
   // The body is the file itself, not JSON, so it is read here rather than validated above.
   const bytes = new Uint8Array(await c.req.arrayBuffer());
   if (!isPdf(bytes)) throw refused(safetySheetErrorReasons.notPdf, 'The file is not a PDF.');
-  await writableClient(createDataClient(c), clientId);
+  await requireWritableClient(createDataClient(c), clientId, { lead: 'refused' });
 
   const organizationId = c.get('membership').organizationId;
   // The refund must land even when the member closes the dialog while the model reads.

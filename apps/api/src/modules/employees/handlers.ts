@@ -15,7 +15,6 @@ import {
   noWorkplace,
   orderedCommuteMeans,
   type OrganizationEmployeeSortKey,
-  pageRange,
   type ParticipantChannel,
   type PortalAccessState,
   type PortalLanguage,
@@ -28,16 +27,13 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import {
-  archivedClientError,
-  createDataClient,
-  type DataClient,
-  fromDatabaseError,
-} from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { listPage, orderedBy } from '../../lib/list-page';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
-import { refuseWorkplaceOfAnotherClient } from '../document-data/handlers';
+import { requireClient, requireWritableClient } from '../clients/lookup';
+import { refuseWorkplaceOfAnotherClient } from '../document-data/workplaces';
 import {
   testStatusColumns,
   testStatusFields,
@@ -61,6 +57,7 @@ import type {
   updateEmployeeRoute,
   updateEmployeeStatusRoute,
 } from './routes';
+import { toTrainMatch } from './training-match';
 
 type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
@@ -142,19 +139,6 @@ export function toEmployee(
     contractNumber: row.contract_number,
     ...toParticulars(row),
   };
-}
-
-// Row-level security hides other organizations' clients, so a missing row is a 404
-// whether the client belongs to someone else or does not exist at all.
-async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db
-    .from('clients')
-    .select('id, archived_at, stage')
-    .eq('id', clientId)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
-  return data;
 }
 
 // A position of another client, or an archived one, is a wrong choice on the form.
@@ -387,9 +371,6 @@ const listFilterKeys = [
   'portal',
 ] as const satisfies readonly (keyof ListFilters)[];
 
-export const toTrainMatch =
-  'ssm_training_state.in.(untrained,overdue),su_training_state.in.(untrained,overdue)';
-
 const attentionMatches: Record<EmployeeAttentionFilter, string> = {
   signaturesPending: 'signatures_pending_count.gt.0',
   noPhone: 'phone.is.null',
@@ -482,40 +463,22 @@ async function listFromView(
       matchingFilters(current(db.from('employee_list').select(columns, options)), filters),
       q
     );
-  let listQuery = filtered(withPortal ? `${listViewColumns}, ${portalColumns}` : listViewColumns, {
-    count: 'exact',
-  });
-  for (const { column, nullsLast } of sortColumns[sort]) {
-    listQuery = listQuery.order(column, {
-      ascending: order === 'asc',
-      ...(nullsLast ? { nullsFirst: false } : {}),
-    });
-  }
-  const { from, to } = pageRange(page, pageSize);
-  const [{ data, error, count }, all] = await Promise.all([
-    listQuery.order('id').range(from, to).returns<ListViewRow[]>(),
-    narrowed
-      ? current(db.from('employee_list').select('id', { count: 'exact', head: true }))
-      : null,
-  ]);
-  if (all?.error) throw fromDatabaseError(all.error, 'count employees');
-  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
-  if (error?.code === 'PGRST103') {
-    // The page lies past the end (rows left since the caller last looked): empty, real total.
-    const recount = await filtered('id', { count: 'exact', head: true });
-    if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
-    const total = recount.count ?? 0;
-    return { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) };
-  }
-  if (error) throw fromDatabaseError(error, 'list employees');
-  const total = count ?? 0;
-  return {
-    items: await listedEmployees(db, data),
+  const columns = withPortal ? `${listViewColumns}, ${portalColumns}` : listViewColumns;
+  const { rows, total, unfilteredTotal } = await listPage({
     page,
     pageSize,
-    total,
-    unfilteredTotal: unfilteredTotal(total),
-  };
+    rows: (from, to) =>
+      orderedBy(filtered(columns, { count: 'exact' }), sortColumns[sort], order)
+        .order('id')
+        .range(from, to)
+        .returns<ListViewRow[]>(),
+    recount: () => filtered('id', { count: 'exact', head: true }),
+    unfiltered: narrowed
+      ? () => current(db.from('employee_list').select('id', { count: 'exact', head: true }))
+      : undefined,
+    what: 'employees',
+  });
+  return { items: await listedEmployees(db, rows), page, pageSize, total, unfilteredTotal };
 }
 
 type ScopableQuery<Query> = {
@@ -528,7 +491,7 @@ export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = as
   const { clientId } = c.req.valid('param');
   const { status, q, page, pageSize, sort, order, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
-  const client = await findClient(db, clientId);
+  const client = await requireClient(db, clientId);
   const readsStates =
     Boolean(filters.ssmTraining || filters.suTraining || filters.test) ||
     Boolean(filters.attention?.some((need) => need === 'toTrain' || need === 'trainingDue')) ||
@@ -570,7 +533,7 @@ export const listEmployeeInvitees: RouteHandler<typeof listEmployeeInviteesRoute
   const { clientId } = c.req.valid('param');
   const { q, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error, count } = await matchingEveryTerm(
     matchingFilters(
       db
@@ -614,8 +577,7 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
   const body = c.req.valid('json');
   const membership = c.get('membership');
   const db = createDataClient(c);
-  const client = await findClient(db, clientId);
-  if (client.archived_at) throw archivedClientError();
+  await requireWritableClient(db, clientId);
   if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const workplaceId =

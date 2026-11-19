@@ -17,7 +17,7 @@ import {
 import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, failureLabel } from '../../lib/errors';
 import { romanianDay } from '../documents/context';
 import {
   issueTestSheetRequests,
@@ -403,7 +403,7 @@ async function afterExaminerChange(c: Parameters<typeof testSheetDeps>[0], resul
     await issueTestSheetRequests(deps, refilled, c.get('user').id);
   } catch (failure) {
     console.error(
-      `Test sheet of ${resultId} not brought up to date with its examiner: ${failure instanceof ApiError ? (failure.reason ?? failure.code) : failure instanceof Error ? failure.name : 'unknown'}`
+      `Test sheet of ${resultId} not brought up to date with its examiner: ${failureLabel(failure)}`
     );
   }
 }

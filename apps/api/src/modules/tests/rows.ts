@@ -11,7 +11,7 @@ import type { Context } from 'hono';
 import type { Database, Json } from '../../database.types';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, failureLabel } from '../../lib/errors';
 import { signedSheetContext, syncResultRows } from '../signed-sheets/signed-sheets';
 import { summaryOf, testSheetSummaries } from '../test-sheets/test-sheets';
 
@@ -203,7 +203,7 @@ export async function afterResult(c: Context<ApiEnv>, resultIds: string[]) {
     await syncResultRows(signedSheetContext(c), resultIds);
   } catch (error) {
     console.error(
-      `Signed sheet rows of test results not brought up to date: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
+      `Signed sheet rows of test results not brought up to date: ${failureLabel(error)}`
     );
   }
 }

@@ -4,9 +4,9 @@ import { useState } from 'react';
 
 import { RiskLevelTile } from '@/features/risk-evaluations/risk-level-tile';
 
-import type { LabelledSource } from '../review-model';
+import { DecisionRow, RowActions } from '../decision-row';
 import { SourceButton } from '../review-parts';
-import { DecisionRow, RowActions } from './decision-row';
+import type { LabelledSource } from '../review-types';
 import {
   factorSource,
   type FactorState,

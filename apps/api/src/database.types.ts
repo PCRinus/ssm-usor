@@ -1561,6 +1561,13 @@ export type Database = {
             referencedRelation: 'document_template_versions';
             referencedColumns: ['id'];
           },
+          {
+            foreignKeyName: 'document_revisions_template_version_id_fkey';
+            columns: ['template_version_id'];
+            isOneToOne: false;
+            referencedRelation: 'documents_behind';
+            referencedColumns: ['newest_version_id'];
+          },
         ];
       };
       document_signed_copies: {
@@ -5921,6 +5928,13 @@ export type Database = {
             referencedRelation: 'document_template_versions';
             referencedColumns: ['id'];
           },
+          {
+            foreignKeyName: 'template_version_legal_changes_template_version_id_fkey';
+            columns: ['template_version_id'];
+            isOneToOne: false;
+            referencedRelation: 'documents_behind';
+            referencedColumns: ['newest_version_id'];
+          },
         ];
       };
       test_attempt_keys: {
@@ -7412,7 +7426,10 @@ export type Database = {
           newest_kind: string | null;
           newest_note: string | null;
           newest_version: number | null;
+          newest_version_id: string | null;
           organization_id: string | null;
+          revision_issue_date: string | null;
+          revision_status: Database['public']['Enums']['document_revision_status'] | null;
           revision_version: number | null;
           template_title: string | null;
           type_key: string | null;

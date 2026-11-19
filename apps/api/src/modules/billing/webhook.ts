@@ -5,8 +5,9 @@ import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { later } from '../../lib/later';
 import { handleChargeRefunded, handleInvoicePaid } from './invoices';
-import { type BillingAlerts, billingAlerts, laterOf } from './operator-alerts';
+import { type BillingAlerts, billingAlerts } from './operator-alerts';
 import { findSubscriptionByCustomer, recordChange } from './store';
 import {
   idOf,
@@ -201,7 +202,7 @@ export async function stripeWebhook(c: Context<ApiEnv>) {
 
   try {
     const catalogue = await stripeCatalogue(access);
-    const alerts = billingAlerts(c.env, db, laterOf(c));
+    const alerts = billingAlerts(c.env, db, (work) => later(c, work));
     const delivery = { eventId: event.id, redelivered: claimed === 'retry' };
     await handleEvent({ env: c.env, db, access, catalogue, event, alerts, delivery });
   } catch (error) {

@@ -63,6 +63,9 @@ export interface DataTableExpansion<TData> {
   label: (row: TData) => string;
   render: (row: TData) => ReactNode;
   testId?: string;
+  // The rows open from a control the columns draw, which names `detailsId` in aria-controls;
+  // the table then adds no chevron column of its own.
+  inline?: { detailsId: (row: TData) => string };
 }
 
 /**
@@ -126,7 +129,8 @@ export function DataTable<TData extends RowData>({
     enableMultiSort: false,
     enableSortingRemoval: false,
   });
-  const columnCount = table.getAllLeafColumns().length + (expansion ? 1 : 0) + (selection ? 1 : 0);
+  const chevrons = Boolean(expansion && !expansion.inline);
+  const columnCount = table.getAllLeafColumns().length + (chevrons ? 1 : 0) + (selection ? 1 : 0);
   const leafColumns = table.getAllLeafColumns();
   const pageRows = table.getRowModel().rows.map((row) => row.original);
   const pageStates = selection ? pageRows.map((row) => selection.state(row)) : [];
@@ -162,7 +166,7 @@ export function DataTable<TData extends RowData>({
                   />
                 </TableHead>
               )}
-              {expansion && (
+              {chevrons && (
                 <TableHead className="w-11">
                   <span className="sr-only">Detalii</span>
                 </TableHead>
@@ -234,7 +238,7 @@ export function DataTable<TData extends RowData>({
             Array.from({ length: skeletonRows }, (_, index) => (
               <TableRow key={index} className="hover:bg-transparent">
                 {selection && <TableCell className={cn(cellPadding, selectCell)} />}
-                {expansion && <TableCell className={cellPadding} />}
+                {chevrons && <TableCell className={cellPadding} />}
                 {leafColumns.map((column) => (
                   <TableCell
                     key={column.id}
@@ -270,7 +274,8 @@ export function DataTable<TData extends RowData>({
               const expandable = expansion?.canExpand?.(row.original) ?? Boolean(expansion);
               const open = (expandable && expansion?.isOpen(row.original)) ?? false;
               const selected = selection?.state(row.original) ?? false;
-              const details = `${detailsId}-${row.id}`;
+              const details =
+                expansion?.inline?.detailsId(row.original) ?? `${detailsId}-${row.id}`;
               const click = rowClickProps(
                 onRowClick && (canClickRow?.(row.original) ?? true)
                   ? () => onRowClick(row.original)
@@ -300,8 +305,8 @@ export function DataTable<TData extends RowData>({
                         />
                       </TableCell>
                     )}
-                    {expansion && !expandable && <TableCell className={cellPadding} />}
-                    {expansion && expandable && (
+                    {chevrons && !expandable && <TableCell className={cellPadding} />}
+                    {expansion && chevrons && expandable && (
                       <TableCell className={cn(cellPadding, 'w-11 pr-0')}>
                         <Button
                           variant="ghost"

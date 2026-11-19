@@ -639,14 +639,24 @@ export const documentsBehindClientSchema = z.object({
   behindTemplate: z.boolean(),
   // Empty for a document behind its template alone; at least one entry otherwise.
   instructionChanges: z.array(instructionChangeSchema),
+  status: z.enum(['draft', 'issued']),
+  // The date printed on the newest revision, from its generation; not when it was issued.
+  issueDate: z.iso.date().nullable(),
 });
 
 export type DocumentsBehindClient = z.infer<typeof documentsBehindClientSchema>;
 
+export const behindLegalChangeSchema = z.object({ id: z.uuid(), actName: z.string() });
+
+export type BehindLegalChange = z.infer<typeof behindLegalChangeSchema>;
+
 export const documentsBehindTypeSchema = z.object({
   typeKey: z.string(),
   title: z.string(),
+  set: documentSetSchema,
   newestVersion: templateVersionSchema,
+  // The legal changes the newest version answers; empty for a correction or a layout version.
+  legalChanges: z.array(behindLegalChangeSchema),
   // Null unless a regeneration of this type is under way.
   runningJobId: z.uuid().nullable(),
   clients: z.array(documentsBehindClientSchema),
@@ -663,6 +673,42 @@ export type DocumentsBehindResponse = z.infer<typeof documentsBehindResponseSche
 export const startRegenerationRequestSchema = z.object({ typeKey: builtInDocumentTypeKeySchema });
 
 export type StartRegenerationRequest = z.infer<typeof startRegenerationRequestSchema>;
+
+export const startSetRegenerationRequestSchema = z.object({ set: documentSetSchema });
+
+export type StartSetRegenerationRequest = z.infer<typeof startSetRegenerationRequestSchema>;
+
+export const runningRegenerationSchema = z.object({
+  id: z.uuid(),
+  typeKey: z.string(),
+  set: documentSetSchema,
+  // The member who started it; null once their account is gone.
+  requestedBy: z.uuid().nullable(),
+  // Clients, as `GET /documents/regeneration-jobs/{jobId}` counts them.
+  total: z.int().min(0),
+  done: z.int().min(0),
+  skipped: z.int().min(0),
+  failed: z.int().min(0),
+});
+
+export type RunningRegeneration = z.infer<typeof runningRegenerationSchema>;
+
+export const documentsBehindSummarySchema = z.object({
+  // Documents behind, one per client and document type, as `GET /documents/behind` lists them.
+  counts: z.object({ occupational_safety: z.int().min(0), fire_safety: z.int().min(0) }),
+  running: z.array(runningRegenerationSchema),
+});
+
+export type DocumentsBehindSummary = z.infer<typeof documentsBehindSummarySchema>;
+
+export const setRegenerationResponseSchema = z.object({
+  // Every job of the set under way after the request, those it started and those already running.
+  jobs: z.array(runningRegenerationSchema),
+  // The types with clients to regenerate that did not start because the queue failed.
+  notStarted: z.array(z.string()),
+});
+
+export type SetRegenerationResponse = z.infer<typeof setRegenerationResponseSchema>;
 
 export const regenerationItemStatuses = ['queued', 'done', 'skipped', 'failed'] as const;
 

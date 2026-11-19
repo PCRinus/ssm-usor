@@ -58,7 +58,7 @@ export function WatchedActs({ userId }: { userId: string }) {
 
   return (
     <section aria-label="Acte urmărite" className="grid gap-4">
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div>
         {acts.isSuccess && total === 0 ? (
           <ListEmpty>
             <EmptyState

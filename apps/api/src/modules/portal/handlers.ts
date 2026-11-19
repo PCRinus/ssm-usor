@@ -28,7 +28,7 @@ import {
   missingSheetDataResponse,
   storedSheetLink,
   trainingSheetReadiness,
-} from '../trainings/sheet-handlers';
+} from '../trainings/employee-sheets';
 import { toEmployeeTraining, trainingStatusColumns } from '../trainings/status';
 import { toAdmission } from '../trainings/training-rows';
 import type {

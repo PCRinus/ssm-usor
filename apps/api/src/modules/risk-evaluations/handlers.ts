@@ -1,12 +1,8 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
   clientLevelEvaluationFields,
-  evaluationGlobalRiskLevel,
-  type RiskEvaluation,
-  type RiskEvaluationKind,
   type RiskEvaluationSummary,
   type RiskFactorRequest,
-  type RiskFactorSourceProfile,
   type RiskFactorSuggestionField,
 } from '@ssm-usor/contracts';
 
@@ -20,17 +16,19 @@ import {
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { pickSuggestions } from '../../lib/suggestions';
-import { findJobPosition } from '../job-positions/handlers';
+import { clientNotFound, requireClient } from '../clients/lookup';
+import { findJobPosition } from '../job-positions/positions';
 import {
-  bySortOrder,
+  byEvaluationOrder,
+  evaluationColumns,
+  type EvaluationRow,
   factorTotals,
-  preventionMeasureFieldColumns,
-  type PreventionMeasureFields,
+  findEvaluation,
+  loadEvaluation,
+  noSuchEvaluation,
   riskFactorArgs,
-  riskFactorFieldColumns,
-  type RiskFactorFields,
-  toRiskFactor,
-} from './factors';
+  toEvaluation,
+} from './evaluation';
 import type {
   copyRiskFactorsRoute,
   createRiskEvaluationRoute,
@@ -49,29 +47,6 @@ import type {
 
 type Tables = Database['public']['Tables'];
 
-type SourceProfileFactor = { evaluation_profiles: RiskFactorSourceProfile } | null;
-
-type EvaluationRow = Pick<
-  Tables['risk_evaluations']['Row'],
-  | 'id'
-  | 'client_id'
-  | 'kind'
-  | 'name'
-  | 'means_of_production'
-  | 'work_task'
-  | 'exposed_persons'
-  | 'work_environment'
-  | 'exposure'
-  | 'created_at'
-  | 'updated_at'
-> & {
-  job_positions: { id: string; name: string } | null;
-  risk_factors: (RiskFactorFields & {
-    prevention_measures: PreventionMeasureFields[];
-    source_profile_factor: SourceProfileFactor;
-  })[];
-};
-
 type SummaryRow = Pick<
   Tables['risk_evaluations']['Row'],
   'id' | 'client_id' | 'kind' | 'name' | 'created_at' | 'updated_at'
@@ -80,38 +55,8 @@ type SummaryRow = Pick<
   risk_factors: Pick<Tables['risk_factors']['Row'], 'gravity_class' | 'probability_class'>[];
 };
 
-const evaluationColumns = `id, client_id, kind, name, means_of_production, work_environment, exposure, work_task, exposed_persons, created_at, updated_at, job_positions(id, name), risk_factors(${riskFactorFieldColumns}, prevention_measures(${preventionMeasureFieldColumns}), source_profile_factor:evaluation_profile_factors(evaluation_profiles(id, name)))`;
-
 const summaryColumns =
   'id, client_id, kind, name, created_at, updated_at, job_positions(id, name, archived_at), risk_factors(gravity_class, probability_class)';
-
-function toEvaluation(row: EvaluationRow): RiskEvaluation {
-  const factors = [...row.risk_factors]
-    .sort(bySortOrder)
-    .map((factor) =>
-      toRiskFactor(
-        factor,
-        factor.prevention_measures,
-        factor.source_profile_factor?.evaluation_profiles ?? null
-      )
-    );
-  return {
-    id: row.id,
-    clientId: row.client_id,
-    kind: row.kind,
-    jobPosition: row.job_positions,
-    name: row.name,
-    meansOfProduction: row.means_of_production,
-    workTask: row.work_task,
-    exposedPersons: row.exposed_persons,
-    workEnvironment: row.work_environment,
-    exposure: row.exposure,
-    factors,
-    globalRiskLevel: evaluationGlobalRiskLevel(factors),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
 
 function toSummary(row: SummaryRow): RiskEvaluationSummary {
   return {
@@ -125,27 +70,6 @@ function toSummary(row: SummaryRow): RiskEvaluationSummary {
     updatedAt: row.updated_at,
   };
 }
-
-const kindOrder: Record<RiskEvaluationKind, number> = {
-  job_position: 0,
-  sensitive_groups: 1,
-  other: 2,
-};
-
-type Listed = Pick<RiskEvaluationSummary, 'id' | 'kind' | 'jobPosition' | 'name'>;
-
-const listedLabel = (evaluation: Listed) => evaluation.jobPosition?.name ?? evaluation.name ?? '';
-
-export const byEvaluationOrder = (a: Listed, b: Listed) =>
-  kindOrder[a.kind] - kindOrder[b.kind] ||
-  listedLabel(a).localeCompare(listedLabel(b), 'ro') ||
-  a.id.localeCompare(b.id);
-
-const noSuchClient = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
-
-const noSuchEvaluation = () =>
-  new ApiError('not_found', 'This risk evaluation does not exist under this client.');
 
 const noSuchFactor = () =>
   new ApiError('not_found', 'This risk factor does not exist on this evaluation.');
@@ -166,39 +90,15 @@ const alreadyEvaluated = () =>
     'risk_evaluation_exists'
   );
 
-async function findClient(db: DataClient, clientId: string) {
+async function findClientWithGroupsState(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('clients')
     .select('id, sensitive_groups_state')
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw noSuchClient();
+  if (!data) throw clientNotFound();
   return data;
-}
-
-export async function findEvaluation(db: DataClient, clientId: string, evaluationId: string) {
-  const { data, error } = await db
-    .from('risk_evaluations')
-    .select('id, kind')
-    .eq('id', evaluationId)
-    .eq('client_id', clientId)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find risk evaluation');
-  if (!data) throw noSuchEvaluation();
-  return data;
-}
-
-export async function loadEvaluation(db: DataClient, evaluationId: string) {
-  const { data, error } = await db
-    .from('risk_evaluations')
-    .select(evaluationColumns)
-    .eq('id', evaluationId)
-    .returns<EvaluationRow[]>()
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'read risk evaluation');
-  if (!data) throw noSuchEvaluation();
-  return toEvaluation(data);
 }
 
 export const listRiskEvaluations: RouteHandler<typeof listRiskEvaluationsRoute, ApiEnv> = async (
@@ -206,7 +106,7 @@ export const listRiskEvaluations: RouteHandler<typeof listRiskEvaluationsRoute, 
 ) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  const client = await findClient(db, clientId);
+  const client = await findClientWithGroupsState(db, clientId);
   const { data, error } = await db
     .from('risk_evaluations')
     .select(summaryColumns)
@@ -227,7 +127,7 @@ export const updateSensitiveGroupsState: RouteHandler<
   const { clientId } = c.req.valid('param');
   const { state } = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('clients')
     .update({ sensitive_groups_state: state })
@@ -254,7 +154,7 @@ export const createRiskEvaluation: RouteHandler<typeof createRiskEvaluationRoute
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   if (body.kind === 'job_position') {
     await findJobPosition(db, clientId, body.jobPositionId).catch((error: unknown) => {
       if (error instanceof ApiError && error.code === 'not_found') {

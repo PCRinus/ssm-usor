@@ -44,24 +44,31 @@ test('a document behind its template is regenerated for every client from the Le
   await expect(row.getByTestId('document-behind')).toHaveText('Șablon actualizat');
 
   await page.getByTestId('nav-legislatie').click();
-  await expect(page).toHaveURL(/\/legislatie\/documente$/);
-  await expect(
-    page.getByTestId('legislation-section').filter({ hasText: 'Documente de actualizat' })
-  ).toHaveAttribute('aria-current', 'page');
+  await expect(page).toHaveURL(/\/legislatie\/documente-ssm$/);
   const navigationTabs = page.getByTestId('nav-legislatie-group').getByTestId('nav-sub-entry');
   await expect(navigationTabs).toHaveText([
-    'Documente de actualizat',
+    'SSM de actualizat',
+    'SU de actualizat1 documente de actualizat',
     'Modificări',
     'Acte urmărite',
   ]);
   await expect(navigationTabs.first()).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByTestId('documents-behind-empty')).toContainText(
+    'Documentele SSM sunt la zi'
+  );
+  const suTab = page
+    .getByTestId('legislation-section')
+    .filter({ hasText: 'Documente SU de actualizat' });
+  await expect(suTab).toHaveText('Documente SU de actualizat1 documente de actualizat');
+  await suTab.click();
+  await expect(page).toHaveURL(/\/legislatie\/documente-su$/);
   const type = page.getByTestId('behind-type').filter({ hasText: title });
-  await expect(type.getByTestId('behind-type-set')).toHaveText('SU');
-  await expect(type.getByTestId('behind-client')).toHaveText([
-    `${clientName}pe versiunea ${version}`,
+  await type.getByTestId('behind-clients-toggle').click();
+  await expect(page.getByTestId('behind-client')).toHaveText([
+    `${clientName}Versiunea ${version}Ciornăse înlocuiește`,
   ]);
 
-  await type.getByRole('link', { name: clientName }).click();
+  await page.getByTestId('behind-client').getByRole('link', { name: clientName }).click();
   await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-su\\?section=registers`));
   const pointed = page.locator('#document-fire_extinguisher_register');
   await expect(pointed).toHaveAttribute('data-pointed', '');
@@ -73,15 +80,18 @@ test('a document behind its template is regenerated for every client from the Le
   await expect(page.getByTestId('nav-legislatie-group')).toHaveCount(0);
 
   await page.getByTestId('nav-legislatie').click();
-  await expect(page).toHaveURL(/\/legislatie\/documente$/);
+  await expect(page).toHaveURL(/\/legislatie\/documente-ssm$/);
+  await suTab.click();
   await type.getByTestId('behind-regenerate').click();
   await page.getByTestId('behind-confirm').click();
 
-  await expect(type.getByTestId('regeneration-result-counts')).toContainText(
-    'Din 1 client: 1 regenerat, 0 sărite, 0 eșuate.'
+  await expect(page.getByTestId('regeneration-result-counts')).toHaveText(
+    'Regenerarea s-a încheiat: 1 din 1 document'
   );
-  await expect(page.getByTestId('behind-client')).toHaveCount(0);
-  await expect(type).toContainText('Niciun client nu mai are acest document în urmă.');
+  await expect(page.getByTestId('regeneration-drafts')).toContainText(clientName);
+  await expect(page.getByTestId('documents-behind-empty')).toContainText(
+    'Documentele SU sunt la zi'
+  );
 
   await page.goto(`/clienti/${clientId}/documente-su`);
   await openDocumentSection(page, '6');
@@ -109,18 +119,21 @@ test('a client whose decision prints missing data fails the regeneration with ro
   await updateClient(clientId, { training_day_to: null });
   await putBehindItsTemplate(clientId, 'decision_training');
   await page.goto('/legislatie/documente');
+  await expect(page).toHaveURL(/\/legislatie\/documente-ssm$/);
   const type = page
     .getByTestId('behind-type')
     .filter({ hasText: 'Decizia privind responsabilii cu instruirea' });
   await type.getByTestId('behind-regenerate').click();
   await page.getByTestId('behind-confirm').click();
 
-  await expect(type.getByTestId('regeneration-result-counts')).toContainText(
-    'Din 1 client: 0 regenerate, 0 sărite, 1 eșuat.'
+  await expect(page.getByTestId('regeneration-result-counts')).toHaveText(
+    'Regenerarea s-a încheiat: 0 din 1 document'
   );
-  const lacking = type.getByTestId('regeneration-lacking');
+  const lacking = page.getByTestId('regeneration-lacking');
   await expect(lacking.getByTestId('regeneration-lacking-client')).toHaveText(clientName);
-  await expect(lacking).toContainText('Nu am putut regenera documentul. Completează mai întâi:');
+  await expect(lacking).toContainText(
+    'Decizia privind responsabilii cu instruirea nu s-a regenerat'
+  );
   const rows = lacking.getByTestId('regeneration-missing-row');
   await expect(rows).toHaveText([/^Programul instruirii periodice/]);
 

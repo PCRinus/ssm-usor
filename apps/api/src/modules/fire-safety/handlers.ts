@@ -23,7 +23,8 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { sentColumns } from '../../lib/partial-update';
-import { refuseWorkplaceOfAnotherClient, workplaceNotOfClient } from '../document-data/handlers';
+import { requireClient } from '../clients/lookup';
+import { refuseWorkplaceOfAnotherClient, workplaceNotOfClient } from '../document-data/workplaces';
 import type {
   createFireEquipmentRoute,
   createFireInstallationRoute,
@@ -50,15 +51,6 @@ import type {
 } from './routes';
 
 type Tables = Database['public']['Tables'];
-
-const noSuchClient = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
-
-async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db.from('clients').select('id').eq('id', clientId).maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw noSuchClient();
-}
 
 function fireSafetyError(error: { code: string }, context: string) {
   if (error.code === '23503') return workplaceNotOfClient();
@@ -192,7 +184,7 @@ export const getClientFireSafety: RouteHandler<typeof getClientFireSafetyRoute, 
 ) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('client_fire_safety')
     .select(fireSafetyColumns)
@@ -210,7 +202,7 @@ export const updateClientFireSafety: RouteHandler<
   const { clientId } = c.req.valid('param');
   const fields = fireSafetyFields(c.req.valid('json'));
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const saved = await saveByKey({
     update: () =>
       db
@@ -305,7 +297,7 @@ const byText = (first: string | null, second: string | null) =>
 export const listFireEquipment: RouteHandler<typeof listFireEquipmentRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const workplaces = await activeWorkplaceOrder(db, clientId);
   const { data, error } = await db
     .from('fire_equipment')
@@ -333,7 +325,7 @@ export const createFireEquipment: RouteHandler<typeof createFireEquipmentRoute, 
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_equipment')
@@ -355,7 +347,7 @@ export const updateFireEquipment: RouteHandler<typeof updateFireEquipmentRoute, 
   const { clientId, equipmentId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_equipment')
@@ -432,7 +424,7 @@ export const listFireInstallations: RouteHandler<
 > = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const workplaces = await activeWorkplaceOrder(db, clientId);
   const { data, error } = await db
     .from('fire_installations')
@@ -459,7 +451,7 @@ export const createFireInstallation: RouteHandler<
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_installations')
@@ -482,7 +474,7 @@ export const updateFireInstallation: RouteHandler<
   const { clientId, installationId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_installations')
@@ -555,7 +547,7 @@ export const listFireMaintenanceItems: RouteHandler<
 > = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const workplaces = await activeWorkplaceOrder(db, clientId);
   const { data, error } = await db
     .from('fire_maintenance_items')
@@ -582,7 +574,7 @@ export const createFireMaintenanceItem: RouteHandler<
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const last = await db
     .from('fire_maintenance_items')
@@ -615,7 +607,7 @@ export const updateFireMaintenanceItem: RouteHandler<
   const { clientId, itemId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_maintenance_items')
@@ -702,7 +694,7 @@ const buildingFields = (body: FireBuildingRequest) => ({
 export const listFireBuildings: RouteHandler<typeof listFireBuildingsRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data: workplaces, error: workplacesError } = await db
     .from('client_workplaces')
     .select('id')
@@ -733,7 +725,7 @@ export const updateFireBuilding: RouteHandler<typeof updateFireBuildingRoute, Ap
   const { clientId, workplaceId } = c.req.valid('param');
   const fields = buildingFields(c.req.valid('json'));
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const workplace = await db
     .from('client_workplaces')
     .select('kind, office_has_activity')
@@ -783,7 +775,7 @@ export const deleteFireBuilding: RouteHandler<typeof deleteFireBuildingRoute, Ap
 ) => {
   const { clientId, workplaceId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { error } = await db
     .from('fire_buildings')
     .delete()
@@ -865,7 +857,7 @@ export const listFireSubstances: RouteHandler<typeof listFireSubstancesRoute, Ap
 ) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const [state, entries] = await Promise.all([
     substancesStateOf(db, clientId),
     db
@@ -888,7 +880,7 @@ export const updateFireSubstancesState: RouteHandler<
   const { clientId } = c.req.valid('param');
   const { state } = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const saved = await saveByKey({
     update: () =>
       db
@@ -927,7 +919,7 @@ export const createFireSubstance: RouteHandler<typeof createFireSubstanceRoute, 
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const last = await db
     .from('fire_substances')
     .select('sort_order')
@@ -964,7 +956,7 @@ export const updateFireSubstance: RouteHandler<typeof updateFireSubstanceRoute, 
 ) => {
   const { clientId, substanceId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('fire_substances')
     .update(substanceFields(c.req.valid('json')))

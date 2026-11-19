@@ -1,7 +1,15 @@
+import { z } from '@hono/zod-openapi';
 import { apiErrorResponseSchema } from '@ssm-usor/contracts';
 
 export const errorContent = {
   'application/json': { schema: apiErrorResponseSchema.meta({ id: 'ApiErrorResponse' }) },
+};
+
+export const clientParams = z.object({ clientId: z.uuid() });
+
+export const clientNotFoundResponse = {
+  description: 'The client does not exist in the organization',
+  content: errorContent,
 };
 
 export const publicErrors = {

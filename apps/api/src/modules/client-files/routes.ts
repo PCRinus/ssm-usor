@@ -14,9 +14,14 @@ import { bodyLimit } from 'hono/body-limit';
 import { requireAuth } from '../../lib/auth';
 import { ApiError } from '../../lib/errors';
 import { requireMembership, requireOwner } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors, ownerErrors } from '../../lib/openapi';
-
-const clientParams = z.object({ clientId: z.uuid() });
+import {
+  bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
+  errorContent,
+  membershipErrors,
+  ownerErrors,
+} from '../../lib/openapi';
 
 const fileWithinLimit = bodyLimit({
   maxSize: maxClientFileBytes,
@@ -31,10 +36,6 @@ const fileWithinLimit = bodyLimit({
 });
 const fileParams = z.object({ clientId: z.uuid(), fileId: z.uuid() });
 
-const noSuchClient = {
-  description: 'The client does not exist in the organization',
-  content: errorContent,
-};
 const noSuchFile = {
   description: 'The file does not exist under this client, or the caller cannot see it',
   content: errorContent,
@@ -71,7 +72,7 @@ export const listClientFilesRoute = createRoute({
       },
     },
     400: { description: 'Invalid path or query', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -104,7 +105,7 @@ export const uploadClientFileRoute = createRoute({
         'Invalid path or query, the file is empty, too large or of a refused type, or the employee is not one of the client',
       content: errorContent,
     },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: archivedClient,
     ...membershipErrors,
     403: {
