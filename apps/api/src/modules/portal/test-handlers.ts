@@ -52,9 +52,6 @@ import type {
 type AttemptRow = Database['public']['Tables']['test_attempts']['Row'];
 
 // A client administrator who is not one of the client's employees takes no test.
-const testedEmployee = (c: Context<ApiEnv>, participantId: string) =>
-  participantEmployee(participationOf(c, participantId));
-
 function ofItsDomain(domain: TrainingDomain, test: KnowledgeTest) {
   if (!isKnowledgeTestOf(domain, test)) {
     throw new ApiError('validation_error', 'The annual test is a fire-safety test.');
@@ -98,7 +95,7 @@ function ownAttempt(attempt: AttemptRow, participantId: string) {
 
 export const getPortalTests: RouteHandler<typeof getPortalTestsRoute, ApiEnv> = async (c) => {
   const { participantId } = c.req.valid('param');
-  const { clientId, employeeId } = testedEmployee(c, participantId);
+  const { clientId, employeeId } = participantEmployee(c, participantId);
   const db = createPortalReadClient(c);
   const [employee, testsOf, inProgress] = await Promise.all([
     db
@@ -139,7 +136,7 @@ export const getPortalTestStudyCard: RouteHandler<
 > = async (c) => {
   const { participantId, domain, test } = c.req.valid('param');
   ofItsDomain(domain, test);
-  testedEmployee(c, participantId);
+  participantEmployee(c, participantId);
   const db = createDataClient(c);
   const [card, material] = await Promise.all([
     db.rpc('test_study_card', { p_participant_id: participantId, p_domain: domain, p_test: test }),
@@ -163,7 +160,7 @@ export const startPortalTestAttempt: RouteHandler<
 > = async (c) => {
   const { participantId, domain, test } = c.req.valid('param');
   ofItsDomain(domain, test);
-  testedEmployee(c, participantId);
+  participantEmployee(c, participantId);
   const db = createDataClient(c);
   const material = await issuedMaterial(db, participantId, domain);
   const { data, error } = await db.rpc('start_test_attempt', {
@@ -183,7 +180,7 @@ export const answerPortalTestAttempt: RouteHandler<
 > = async (c) => {
   const { participantId, attemptId, questionIndex } = c.req.valid('param');
   const { chosen } = c.req.valid('json');
-  testedEmployee(c, participantId);
+  participantEmployee(c, participantId);
   const { data, error } = await createDataClient(c).rpc('answer_test_attempt', {
     p_attempt_id: attemptId,
     p_question_index: Number(questionIndex),
@@ -219,7 +216,7 @@ export const finishPortalTestAttempt: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { participantId, attemptId } = c.req.valid('param');
-  testedEmployee(c, participantId);
+  participantEmployee(c, participantId);
   const reader = createPortalReadClient(c);
   // Checked before the finish, which answers for the account and cannot be taken back.
   const drawn = await reader

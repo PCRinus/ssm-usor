@@ -9,7 +9,7 @@ import {
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import { romanianDay } from '../../lib/romanian';
 import { clientNotFound } from '../clients/lookup';
-import { bySortOrder } from '../risk-evaluations/evaluation';
+import { bySortOrder, preventionMeasureFieldColumns } from '../risk-evaluations/evaluation';
 import type { DocumentFacts, SsmSetFacts } from './context';
 import type { FireSafetySetFacts, FireYearRecords } from './fire-safety';
 import { loadTestQuestions } from './knowledge-tests';
@@ -579,7 +579,7 @@ export async function loadRiskEvaluations(
   const { data, error } = await db
     .from('risk_evaluations')
     .select(
-      'id, kind, job_position_id, name, means_of_production, work_environment, exposure, work_task, exposed_persons, risk_factors(id, component, factor_group, description, gravity_class, probability_class, actions, deadline, responsible_person, observations, sort_order, prevention_measures(id, kind, description, sort_order))'
+      `id, kind, job_position_id, name, means_of_production, work_environment, exposure, work_task, exposed_persons, risk_factors(id, component, factor_group, description, gravity_class, probability_class, actions, deadline, responsible_person, observations, sort_order, prevention_measures(${preventionMeasureFieldColumns}))`
     )
     .eq('client_id', clientId);
   if (error) throw fromDatabaseError(error, 'document facts: risk evaluations');

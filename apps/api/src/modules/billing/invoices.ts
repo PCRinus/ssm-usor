@@ -3,7 +3,7 @@ import type Stripe from 'stripe';
 
 import type { AdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, errorMessage } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { creditsStore } from '../credits/store';
 import { grantWelcomeGift } from '../credits/usage';
@@ -298,7 +298,7 @@ async function compareTotals(
   try {
     oblioTotal = await oblioFor(deps).documentTotalCents(row.kind, series, number);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     console.error(
       `Oblio ${row.kind} ${series} ${number} for Stripe invoice ${row.stripe_invoice_id}: its total could not be checked against the ${row.amount_cents} cents charged: ${message}`
     );

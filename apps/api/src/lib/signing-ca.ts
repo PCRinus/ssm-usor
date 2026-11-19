@@ -1,7 +1,7 @@
 import { signatureErrorReasons } from '@ssm-usor/contracts';
 
 import type { ApiEnv } from './env';
-import { ApiError } from './errors';
+import { ApiError, errorMessage } from './errors';
 import { x509 } from './x509';
 
 // The app is its own certificate authority (ADR 023): a signature's weight is its evidence, not
@@ -115,7 +115,7 @@ export async function loadSigningCa(
     return { key, certificate, certificatePem: certificate.toString('pem'), keyEncryptionKey };
   } catch (error) {
     console.error(
-      `The signing authority could not be loaded: ${error instanceof Error ? error.message : 'unknown error'}`
+      `The signing authority could not be loaded: ${errorMessage(error, 'unknown error')}`
     );
     throw unavailable();
   }

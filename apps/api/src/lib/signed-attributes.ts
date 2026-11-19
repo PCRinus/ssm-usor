@@ -1,4 +1,4 @@
-import { ApiError } from './errors';
+import { ApiError, errorMessage } from './errors';
 import { hex, sha256 } from './hash';
 import { x509 } from './x509';
 
@@ -128,9 +128,7 @@ export async function checkToSign(
       throw new Error('signingCertificateV2 differs');
     }
   } catch (error) {
-    console.error(
-      `The signer's bytes to sign were refused: ${error instanceof Error ? error.message : 'unknown'}`
-    );
+    console.error(`The signer's bytes to sign were refused: ${errorMessage(error, 'unknown')}`);
     throw new ApiError(
       'service_unavailable',
       'The signing service answered something the API will not sign. Nothing was signed.',

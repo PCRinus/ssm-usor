@@ -71,7 +71,8 @@ export function participationOf(c: Context<ApiEnv>, participantId: string): Part
   return participation;
 }
 
-export function participantEmployee(participation: Participation) {
+export function participantEmployee(c: Context<ApiEnv>, participantId: string) {
+  const participation = participationOf(c, participantId);
   if (!participation.employeeId) {
     throw new ApiError('not_found', 'This participant is not an employee of the client.');
   }

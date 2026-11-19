@@ -4,6 +4,7 @@ import type { AdminClient } from '../../lib/admin-db';
 import { type AlertMessage, alertSender } from '../../lib/alerts';
 import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
+import { errorMessage } from '../../lib/errors';
 
 export type StripeObjectRef = { id: string; accountId: string; livemode: boolean };
 export type StripeInvoiceRef = StripeObjectRef & { number: string | null };
@@ -254,9 +255,7 @@ export function billingAlerts(
       if (!sender.enabled) return;
       later(
         post(db, sender, alert).catch((error: unknown) => {
-          console.error(
-            `A billing alert (${alert.kind}) was not posted: ${error instanceof Error ? error.message : String(error)}`
-          );
+          console.error(`A billing alert (${alert.kind}) was not posted: ${errorMessage(error)}`);
         })
       );
     },

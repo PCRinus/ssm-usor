@@ -215,7 +215,7 @@ export const listPortalTrainingRecords: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { participantId } = c.req.valid('param');
-  const employee = participantEmployee(participationOf(c, participantId));
+  const employee = participantEmployee(c, participantId);
   return c.json(await trainingRecords(createPortalReadClient(c), employee), 200);
 };
 
@@ -225,7 +225,7 @@ export const getPortalEmployeeData: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   const participation = participationOf(c, participantId);
-  const { clientId, employeeId } = participantEmployee(participation);
+  const { clientId, employeeId } = participantEmployee(c, participantId);
   const db = createPortalReadClient(c);
   const [employee, organization] = await Promise.all([
     db
@@ -266,7 +266,7 @@ export const getPortalTrainingSheets: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { participantId } = c.req.valid('param');
-  return c.json(await sheets(c, participantEmployee(participationOf(c, participantId))), 200);
+  return c.json(await sheets(c, participantEmployee(c, participantId)), 200);
 };
 
 export const getPortalTrainingSheet: RouteHandler<
@@ -275,12 +275,7 @@ export const getPortalTrainingSheet: RouteHandler<
 > = async (c) => {
   const { participantId, domain } = c.req.valid('param');
   const { sequence } = c.req.valid('query');
-  const drawn = await sheet(
-    c,
-    participantEmployee(participationOf(c, participantId)),
-    domain,
-    sequence
-  );
+  const drawn = await sheet(c, participantEmployee(c, participantId), domain, sequence);
   if ('missing' in drawn) return c.json(missingSheetDataResponse(drawn.missing), 409);
   return c.body(new Uint8Array(drawn.pdf), 200, {
     'Content-Type': 'application/pdf',
@@ -365,7 +360,7 @@ export const getPortalTrainingSheetLink: RouteHandler<
 > = async (c) => {
   const { participantId, domain } = c.req.valid('param');
   const { sequence } = c.req.valid('query');
-  const employee = participantEmployee(participationOf(c, participantId));
+  const employee = participantEmployee(c, participantId);
   return c.json(
     await storedSheetLink(c, createPortalReadClient(c), { ...employee, domain, sequence }),
     200

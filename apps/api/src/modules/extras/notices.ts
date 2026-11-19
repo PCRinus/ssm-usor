@@ -2,7 +2,7 @@ import type { ExtraKind } from '@ssm-usor/contracts';
 
 import type { AdminClient } from '../../lib/admin-db';
 import { type EntitlementRow, loadEntitlementRow } from '../billing/entitlements';
-import { type NoticeDeps, sendNoticeOnce, usageNoticeStore } from '../billing/usage-notices';
+import { type NoticeDeps, sendNoticeOnce } from '../billing/usage-notices';
 import { creditPolicy } from '../credits/policy';
 import { creditsStore } from '../credits/store';
 import { smsPolicy } from '../sms-usage/policy';
@@ -70,7 +70,7 @@ export type ExtrasNotices = ReturnType<typeof createExtrasNotices>;
 
 export function extrasNoticeDeps(
   db: AdminClient,
-  rest: Pick<ExtrasNoticeDeps, 'recipient' | 'mail' | 'subscriptionUrl'>
+  rest: Pick<ExtrasNoticeDeps, 'store' | 'recipient' | 'mail' | 'subscriptionUrl'>
 ): ExtrasNoticeDeps {
   const sms = smsUsageStore(db);
   const credits = creditsStore(db);
@@ -97,7 +97,6 @@ export function extrasNoticeDeps(
         used: balance.extra,
       };
     },
-    store: usageNoticeStore(db),
     ...rest,
   };
 }

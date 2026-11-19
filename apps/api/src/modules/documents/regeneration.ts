@@ -19,7 +19,7 @@ import { z } from 'zod';
 import type { AdminClient } from '../../lib/admin-db';
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import type { RegenerationQueue } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, errorMessage } from '../../lib/errors';
 import type { Actor } from './rows';
 
 const typeOrder = new Map<string, number>(
@@ -245,7 +245,7 @@ async function openJob(
     // A job whose clients never reach the queue would hold the type for an hour. Messages
     // already sent find no item and are dropped.
     console.error(
-      `Regeneration job ${jobId} could not be queued: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Regeneration job ${jobId} could not be queued: ${errorMessage(error, 'unknown error')}`
     );
     const removed = await admin.from('regeneration_jobs').delete().eq('id', jobId);
     if (removed.error) console.error(`Regeneration job ${jobId} stays open: ${removed.error.code}`);

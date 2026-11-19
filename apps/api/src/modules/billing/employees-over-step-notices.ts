@@ -4,15 +4,9 @@ import type { Context } from 'hono';
 import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import { type ApiEnv, subscriptionUrl } from '../../lib/env';
+import { errorMessage } from '../../lib/errors';
 import { later } from '../../lib/later';
-import {
-  type NoticeDeps,
-  noticeRecipient,
-  sendNoticeOnce,
-  usageNoticeStore,
-} from './usage-notices';
-
-const describe = (error: unknown) => (error instanceof Error ? error.message : String(error));
+import { type NoticeDeps, noticeDepsFor, sendNoticeOnce } from './usage-notices';
 
 export type EmployeesOverStepNoticeDeps = NoticeDeps & {
   db: AdminClient;
@@ -37,7 +31,9 @@ export async function sendEmployeesOverStepNotices(
         kind,
         whenNoRecipient: 'forget',
         onFailure: (failure) => {
-          console.error(`Notice ${kind} for ${due.organization_id} not sent: ${describe(failure)}`);
+          console.error(
+            `Notice ${kind} for ${due.organization_id} not sent: ${errorMessage(failure)}`
+          );
         },
       },
       (mail, recipient) =>
@@ -58,13 +54,7 @@ export async function sendEmployeesOverStepNotices(
 
 function depsOf(env: ApiEnv['Bindings']): EmployeesOverStepNoticeDeps {
   const db = adminClient(env);
-  return {
-    db,
-    store: usageNoticeStore(db),
-    recipient: (organizationId) => noticeRecipient(db, organizationId),
-    mail: env.MAIL,
-    subscriptionUrl: subscriptionUrl(env),
-  };
+  return { db, ...noticeDepsFor(env, db), subscriptionUrl: subscriptionUrl(env) };
 }
 
 // After a change that may have passed the step, so the owner hears of it the same day; the daily
@@ -75,7 +65,7 @@ export function noticeEmployeesOverStepLater(c: Context<ApiEnv>) {
   const run = Promise.resolve()
     .then(() => sendEmployeesOverStepNotices(depsOf(c.env), organizationId))
     .catch((failure) => {
-      console.error(`Employees over step notice for ${organizationId}: ${describe(failure)}`);
+      console.error(`Employees over step notice for ${organizationId}: ${errorMessage(failure)}`);
     });
   later(c, run);
 }
@@ -89,6 +79,6 @@ export async function scheduledEmployeesOverStep(env: ApiEnv['Bindings']) {
     const sent = await sendEmployeesOverStepNotices(deps);
     if (sent.length > 0) console.log(`Employees over step notices sent: ${sent.length}.`);
   } catch (failure) {
-    console.error(`Employees over step run failed: ${describe(failure)}`);
+    console.error(`Employees over step run failed: ${errorMessage(failure)}`);
   }
 }

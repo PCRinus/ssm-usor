@@ -7,11 +7,11 @@ import {
 import type { Context } from 'hono';
 
 import { adminClient } from '../../lib/admin-db';
-import { type ApiEnv, subscriptionUrl } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import type { ApiEnv } from '../../lib/env';
+import { ApiError, errorMessage } from '../../lib/errors';
 import { later } from '../../lib/later';
 import type { EntitlementRow } from '../billing/entitlements';
-import { noticeRecipient, usageNoticeStore } from '../billing/usage-notices';
+import { noticeDepsFor } from '../billing/usage-notices';
 import { createExtrasNotices, extrasNoticeDeps } from '../extras/notices';
 import { extrasUnavailable } from '../extras/policy';
 import { createUsageNotices } from './notices';
@@ -129,20 +129,14 @@ export type SmsSender = ReturnType<typeof createSmsSender>;
 export function smsSenderFor(env: ApiEnv['Bindings'], later: (work: Promise<unknown>) => void) {
   const db = adminClient(env);
   const store = smsUsageStore(db);
-  const noticeDeps = {
-    recipient: (organizationId: string) => noticeRecipient(db, organizationId),
-    mail: env.MAIL,
-    subscriptionUrl: () => subscriptionUrl(env),
-  };
+  const noticeDeps = noticeDepsFor(env, db);
   const notices = createUsageNotices({
-    store: { ...store, ...usageNoticeStore(db) },
     ...noticeDeps,
+    store: { ...store, ...noticeDeps.store },
   });
   const extrasNotices = createExtrasNotices(extrasNoticeDeps(db, noticeDeps));
   const failed = (organizationId: string) => (error: unknown) => {
-    console.error(
-      `Usage notice for ${organizationId} failed: ${error instanceof Error ? error.message : 'unknown'}`
-    );
+    console.error(`Usage notice for ${organizationId} failed: ${errorMessage(error, 'unknown')}`);
   };
   return createSmsSender({
     sms: env.SMS,

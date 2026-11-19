@@ -27,7 +27,7 @@ import {
 import { createLastingAdminClient } from '../../lib/admin-db';
 import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, errorMessage } from '../../lib/errors';
 import { createExtractor } from '../../lib/extractor';
 import { isPdf } from '../../lib/pdf';
 import { requireWritableClient } from '../clients/lookup';
@@ -178,7 +178,7 @@ export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> 
       () => true,
       (refund: unknown) => {
         console.error(
-          `Credits of safety sheet reading ${key} were not given back: ${refund instanceof Error ? refund.message : String(refund)}`
+          `Credits of safety sheet reading ${key} were not given back: ${errorMessage(refund)}`
         );
         return false;
       }
