@@ -1,10 +1,9 @@
-import type {
-  SupplementaryTrainingReason,
-  TrainingDomain,
-  TrainingPhase,
+import {
+  heldTrainingKey,
+  type SupplementaryTrainingReason,
+  type TrainingDomain,
+  type TrainingPhase,
 } from '@ssm-usor/contracts';
-
-import { foldName, foldText } from './match';
 
 export interface HeldRow {
   rowId: string;
@@ -38,32 +37,10 @@ export interface HeldTraining {
   rows: { rowId: string; personId: string }[];
 }
 
-const folded = (value: string | null, fold: (value: string) => string) =>
-  value === null ? null : fold(value);
-
-// A training held has one duration and one material, while the periodic material differs per
-// post, so rows that differ in any of them stay separate trainings held on the same day
-// (Mircea, 2026-10-31). The reason, the trainer's function and the verifier are columns of the
-// training too: rows that differ in them stay apart rather than lend one person's sheet to
-// another's record (ADR 042). A value two rows both lack is the same on both.
-const heldKey = (row: HeldRow) =>
-  JSON.stringify([
-    row.domain,
-    row.phase,
-    row.heldOn,
-    folded(row.trainerName, foldName),
-    folded(row.trainerJobTitle, foldText),
-    folded(row.verifierName, foldName),
-    folded(row.verifierJobTitle, foldText),
-    row.durationMinutes,
-    folded(row.material, foldText),
-    row.supplementaryReason,
-  ]);
-
 export function groupHeldTrainings(rows: readonly HeldRow[]): HeldTraining[] {
   const held = new Map<string, HeldTraining>();
   for (const row of rows) {
-    const key = heldKey(row);
+    const key = heldTrainingKey(row);
     const known = held.get(key);
     if (!known) {
       held.set(key, {

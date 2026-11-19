@@ -28,8 +28,6 @@ export {
 export {
   type EmployeeImportClient,
   type EmployeeImportInput,
-  hiringTestRowIds,
-  includedByDefault,
   type SheetPageInput,
   toEmployeeProposal,
 } from './employee-import';
@@ -52,7 +50,6 @@ export {
   type EmployeeMapping,
   type EmployeePayloadRow,
   matchOf,
-  rowExaminer,
   sheetFilesOf,
   type TestResultPayloadRow,
   toEmployeePayload,

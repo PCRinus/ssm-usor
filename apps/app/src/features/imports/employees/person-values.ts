@@ -1,9 +1,13 @@
-import { commuteMeansLabels, isValidCnp, parseCommuteMeansKey } from '@ssm-usor/contracts';
+import {
+  commuteMeansLabels,
+  employeeImportValuesDiffer,
+  isValidCnp,
+  parseCommuteMeansKey,
+} from '@ssm-usor/contracts';
 
 import { replayMask, replayShape, replayShow } from '@/app/observability/replay-masking';
 
 import {
-  differs as differ,
   type FieldName,
   type FieldValue,
   type Person,
@@ -58,7 +62,11 @@ export function compareWithApp(context: ReviewContext, person: Person) {
     if (field.app === null || field.app === undefined) added.push({ name, field });
     // Confirming replaces the app's value with one the member wrote unless equal, and with the
     // sheet's only when they differ past case, spacing and diacritics.
-    else if (written !== undefined ? written !== field.app : differ(name, field.app, sheet))
+    else if (
+      written !== undefined
+        ? written !== field.app
+        : employeeImportValuesDiffer(name, field.app, sheet)
+    )
       differs.push({ name, field });
     else same.push({ name, field });
   }

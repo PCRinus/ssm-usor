@@ -1,16 +1,19 @@
 import {
-  bloodGroups,
   type CommuteMean,
   decodeCnp,
   type EmployeeImportChanges,
   type EmployeeImportFieldName,
   employeeImportFieldNames,
+  employeeImportValueAllowed,
+  hiringTestRowIds,
   type ImportBlocker,
   isValidCnp,
   type KnowledgeTest,
   parseCommuteMeansKey,
-  rhFactors,
-  sameHomeAddress,
+  personIncludedByDefault,
+  resolveEmployeeImportField,
+  reviewedRowValue,
+  rowExaminer,
   type SupplementaryTrainingReason,
   supplementaryTrainingReasons,
   testResultMaterial,
@@ -18,7 +21,6 @@ import {
   type TrainingPhase,
 } from '@ssm-usor/contracts';
 
-import { hiringTestRowIds, includedByDefault } from './employee-import';
 import type { ExistingEmployee } from './employee-match';
 import type {
   EmployeeImportProposal,
@@ -26,7 +28,6 @@ import type {
   ProposedSheetPage,
   ProposedSheetPerson,
   ProposedSheetRow,
-  ThemeFillableField,
 } from './employee-proposal';
 import { groupHeldTrainings, type HeldRow } from './held-trainings';
 import { foldText } from './match';
@@ -167,53 +168,7 @@ const columns: Record<
   commuteMinutes: 'commute_minutes',
 };
 
-// The lengths the employee form and the database take.
-const textLimits: Partial<Record<EmployeeImportFieldName, [number, number]>> = {
-  lastName: [1, 100],
-  firstName: [1, 100],
-  employeeNumber: [1, 40],
-  birthPlace: [1, 160],
-  homeAddress: [1, 240],
-  residenceAddress: [1, 240],
-  education: [1, 160],
-  qualification: [1, 160],
-  jobTitle: [2, 160],
-  commuteRoute: [1, 1000],
-};
-
 const isoDate = /^\d{4}-\d{2}-\d{2}$/;
-
-function allowed(name: EmployeeImportFieldName, value: Value): boolean {
-  if (name === 'cnp') return typeof value === 'string' && isValidCnp(value);
-  if (name === 'bloodGroup') return (bloodGroups as readonly Value[]).includes(value);
-  if (name === 'rhFactor') return (rhFactors as readonly Value[]).includes(value);
-  if (name === 'commuteMinutes') {
-    return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 600;
-  }
-  if (name === 'birthDate' || name === 'hiredAt' || name === 'leftOn') {
-    return typeof value === 'string' && isoDate.test(value);
-  }
-  if (name === 'commuteMeans') {
-    return typeof value === 'string' && parseCommuteMeansKey(value) !== null;
-  }
-  const limits = textLimits[name];
-  if (!limits || typeof value !== 'string') return typeof value === 'string';
-  return value.trim().length >= limits[0] && value.trim().length <= limits[1];
-}
-
-const differs = (name: EmployeeImportFieldName, a: Value, b: Value) =>
-  typeof a === 'number' || typeof b === 'number'
-    ? Number(a) !== Number(b)
-    : name === 'homeAddress' || name === 'residenceAddress'
-      ? !sameHomeAddress(a, b)
-      : foldText(a) !== foldText(b);
-
-interface Resolved {
-  value: Value | null;
-  // A sheet's value set over a different one the app has.
-  replace: boolean;
-  changed: boolean;
-}
 
 type PersonChange = EmployeeImportChanges['people'][string];
 type RowChange = EmployeeImportChanges['rows'][string];
@@ -224,54 +179,11 @@ function resolveField(
   change: NonNullable<PersonChange['fields']>[EmployeeImportFieldName],
   pages: ReadonlySet<string>,
   block: (code: ImportBlocker['code']) => void
-): Resolved {
-  if (change?.value !== undefined) {
-    return {
-      value: change.value,
-      replace: field.app !== undefined && change.value !== field.app,
-      changed: true,
-    };
-  }
-  const own = field.options.filter((option) => option.pageIds.some((id) => pages.has(id)));
-  const app = field.app ?? null;
-  let value: Value | null = null;
-  if (change?.option !== undefined) {
-    value = field.options[change.option]?.value ?? null;
-    if (value === null) block('invalid');
-  } else if (own.length === 1) {
-    value = own[0]!.value;
-  } else if (own.length > 1) {
-    // Kept by default, the app's value settles a choice between the pages.
-    if (app === null) block('choice');
-    value = app;
-  }
-  if (value === null) return { value: app, replace: false, changed: change?.option !== undefined };
-  if (app === null) return { value, replace: false, changed: change?.option !== undefined };
-  const replace = differs(name, app, value) && change?.replace === true;
-  return {
-    value: replace ? value : app,
-    replace,
-    changed: replace || change?.option !== undefined,
-  };
-}
-
-const sameValue = (a: unknown, b: unknown) =>
-  (typeof a === 'string' ? a.trim() : (a ?? null)) ===
-  (typeof b === 'string' ? b.trim() : (b ?? null));
-
-// A value an older proposal took from the client's themes is no reading of the sheet, so it counts
-// as empty unless the member typed one (ADR 042). The row dialogs saved every field on any edit, so
-// a stored change equal to the themed value is that save, not a value the member typed.
-function reviewedValue(
-  values: RowChange['values'],
-  name: string,
-  proposed: unknown,
-  themed: boolean
-): unknown {
-  if (values && name in values && !(themed && sameValue(values[name], proposed))) {
-    return values[name];
-  }
-  return themed ? null : proposed;
+) {
+  const resolved = resolveEmployeeImportField(name, field, change, pages);
+  if (resolved.missingOption) block('invalid');
+  if (resolved.choice) block('choice');
+  return { ...resolved, changed: resolved.edited || resolved.replace };
 }
 
 const rowValue = <K extends keyof ProposedSheetRow>(
@@ -279,37 +191,12 @@ const rowValue = <K extends keyof ProposedSheetRow>(
   change: RowChange | undefined,
   name: K
 ) =>
-  reviewedValue(
+  reviewedRowValue(
     change?.values,
     name,
     row[name],
     (row.fromThemes as readonly string[]).includes(name)
   ) as ProposedSheetRow[K];
-
-/**
- * The examiner a row's test names, as the member left it: the verifier's box, else the trainer's,
- * never a trainer an older proposal took from the client's themes.
- */
-export function rowExaminer(row: ProposedSheetRow, change: RowChange | undefined) {
-  const byVerifier = row.signatures.verifier !== 'no_box' && row.verifierName !== null;
-  const stored = change?.values ?? {};
-  // An examiner is a name and a function together: once the member typed one, the other saved
-  // with it is theirs too, else a function equal to the themed one could never be kept.
-  const typed = (['examinerName', 'examinerJobTitle'] as const).some(
-    (name) => name in stored && !sameValue(stored[name], row.test?.[name] ?? null)
-  );
-  const examiner = (name: 'examinerName' | 'examinerJobTitle', trainer: ThemeFillableField) =>
-    reviewedValue(
-      change?.values,
-      name,
-      row.test?.[name] ?? null,
-      !(typed && name in stored) && !byVerifier && row.fromThemes.includes(trainer)
-    ) as string | null;
-  return {
-    examinerName: examiner('examinerName', 'trainerName'),
-    examinerJobTitle: examiner('examinerJobTitle', 'trainerJobTitle'),
-  };
-}
 
 const admissionValue = (
   row: ProposedSheetRow,
@@ -437,7 +324,7 @@ export function toEmployeePayload(input: {
     const included =
       state === 'checked' &&
       (change?.included ??
-        includedByDefault(
+        personIncludedByDefault(
           typeof leftOn === 'string' ? leftOn : null,
           matchOf(person, change) !== null
         ));
@@ -492,7 +379,7 @@ export function toEmployeePayload(input: {
       }
       changed ||= resolved.changed;
       values[name] = value;
-      if (value !== null && !allowed(name, value)) block(fieldPath, 'invalid');
+      if (value !== null && !employeeImportValueAllowed(name, value)) block(fieldPath, 'invalid');
     }
     const cnp = values.cnp;
     if (typeof cnp === 'string' && isValidCnp(cnp) && typeof values.birthDate === 'string') {
@@ -645,7 +532,7 @@ export function toEmployeePayload(input: {
       if (!included) {
         if (proposedTest) quality.tests.unticked++;
       } else {
-        const { examinerName, examinerJobTitle } = rowExaminer(sheetRow, change);
+        const { examinerName, examinerJobTitle } = rowExaminer(sheetRow, change?.values);
         // A sheet dates its test only by the row it signs, so the row's date as the member left
         // it is the test's.
         const takenOn = filled(heldOn) ? String(heldOn) : null;

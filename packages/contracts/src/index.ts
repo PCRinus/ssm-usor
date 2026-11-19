@@ -28,6 +28,7 @@ export * from './cui';
 export * from './dashboard';
 export * from './document-data';
 export * from './documents';
+export * from './employee-import-rules';
 export * from './employees';
 export * from './evaluation-profiles';
 export * from './extractor';
