@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { GatewayError, ModelAnswerError } from './gateway';
-import { noUsage } from './models';
+import { noUsage, risksModel } from './models';
 import {
   placeRetyped,
   type RetypeAsk,
@@ -59,10 +59,10 @@ describe('numberRows', () => {
 describe('risksRequest', () => {
   const input = { files: [assessment, plan], posts: ['Brutar', 'Vânzător'] };
 
-  it('asks GPT-6.1 Terra with the numbered files before the task, and the posts after it', () => {
+  it('asks the risks model with the numbered files before the task, and the posts after it', () => {
     const request = risksRequest(input);
 
-    expect(request.model).toBe('gpt-6.1-terra');
+    expect(request.model).toBe(risksModel);
     expect(request.messages.map((message) => message.role)).toEqual([
       'system',
       'user',
