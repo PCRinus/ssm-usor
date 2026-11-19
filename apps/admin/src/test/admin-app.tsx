@@ -1,4 +1,5 @@
 import { createQueryClient } from '@ssm-usor/spa-runtime/query-client';
+import { withoutRetryWait } from '@ssm-usor/spa-runtime/testing/query-client';
 import type { Session } from '@supabase/supabase-js';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
@@ -59,7 +60,7 @@ const runtimes: AdminRuntime[] = [];
 export function mountAdmin(path: string, client: AuthClient = authClient) {
   const runtime = createAdminRuntime(
     client,
-    createQueryClient(),
+    withoutRetryWait(createQueryClient()),
     createMemoryHistory({ initialEntries: [path] }),
     'http://localhost:5176'
   );

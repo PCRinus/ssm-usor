@@ -1,4 +1,4 @@
-import { countOf } from '@ssm-usor/contracts';
+import { countOf, uncapitalized } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -53,8 +53,7 @@ export type FileAnchor = {
   onClick: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
-const unreadReason = (reason: string) =>
-  reason.charAt(0).toLowerCase() + reason.slice(1).replace(/\.$/, '');
+const unreadReason = (reason: string) => uncapitalized(reason).replace(/\.$/, '');
 
 // Each nesting level lines a row's name up under the name of the row it sits in.
 const depthIndent = (depth: number) =>

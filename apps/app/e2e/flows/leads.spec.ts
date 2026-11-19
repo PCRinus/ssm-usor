@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import {
   accessTokenOf,
+  addBankAccount,
   addressOf,
   addSpecialist,
   cleanUp,
@@ -15,6 +16,7 @@ import {
   signIn,
   signOut,
   subscribeToStart,
+  updateClient,
 } from './support';
 
 test.afterAll(cleanUp);
@@ -113,21 +115,14 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
 
 // Against the real starter template registered in the local stack
 // (`pnpm templates:register:local`), merged by the API and stored in Storage.
-test('an owner generates the contract of a lead, writes the price, issues it, and keeps it after promotion', async ({
+test('an owner generates the contract of a lead, writes the price, and issues it', async ({
   page,
-  browser,
 }) => {
-  // The whole contract lifecycle takes 45–60 s beside three other workers on CI, so the default
-  // 60 s ran out at whichever step was last.
-  test.slow();
   const owner = await createAccount('contract-owner', 'Olga Owner');
-  const specialist = await createAccount('contract-specialist', 'Sorin Specialist');
   const organizationId = await createOrganization('Contract E2E', owner.id);
-  await addSpecialist(organizationId, specialist.id);
   await completeProviderDetails(organizationId);
   await nameFireSafetyTechnician(organizationId);
   const leadId = await createLead(organizationId, 'S.C. VIITOR CONTRACT E2E S.R.L.', '14399840');
-  const contact = addressOf('contract-contact');
 
   await signIn(page, owner.email, `/oferte/${leadId}`);
 
@@ -202,6 +197,57 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await expect(page.getByTestId('contract-issued')).toHaveText('Emis · rev. 1');
 
   await page.goto('/oferte');
+  await expect(page.getByTestId('leads-contract')).toHaveText('Emis');
+});
+
+test('an owner sends the issued contract of a lead, takes the signed copy back, and keeps it after promotion', async ({
+  page,
+  browser,
+}) => {
+  const owner = await createAccount('contract-send-owner', 'Olga Owner');
+  const specialist = await createAccount('contract-send-specialist', 'Sorin Specialist');
+  const organizationId = await createOrganization('Contract trimis E2E', owner.id);
+  await addSpecialist(organizationId, specialist.id);
+  await completeProviderDetails(organizationId);
+  await addBankAccount(organizationId);
+  await nameFireSafetyTechnician(organizationId);
+  const leadId = await createLead(organizationId, 'S.C. VIITOR CONTRACT E2E S.R.L.', '14399840');
+  await updateClient(leadId, {
+    trade_register_number: 'J12/1234/2021',
+    county_code: 'CJ',
+    locality: 'Florești',
+    address_line: 'Str. Eroilor 12',
+  });
+  const contact = addressOf('contract-send-contact');
+
+  const headers = {
+    Authorization: `Bearer ${await accessTokenOf(owner.email)}`,
+    'Content-Type': 'application/json',
+  };
+  const api = (path: string, method: string, body?: unknown) =>
+    fetch(`${process.env.E2E_API_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  const today = new Date().toISOString().slice(0, 10);
+  const saved = await api(`/clients/${leadId}/service-contract`, 'PUT', {
+    contractNumber: 51,
+    contractDate: today,
+    startDate: today,
+    durationMonths: 12,
+    clientRepresentativeName: 'Andrei POP',
+    clientRepresentativeRole: 'Administrator',
+  });
+  expect(saved.status).toBe(200);
+  const generated = await api(`/clients/${leadId}/service-contract/generate`, 'POST');
+  expect(generated.status).toBe(200);
+  const { document } = (await generated.json()) as { document: { id: string } };
+  // Nobody writes the prices in here; the test above does, in the editor.
+  const issued = await api(`/documents/${document.id}/issue`, 'POST', { acceptUnfilled: true });
+  expect(issued.status).toBe(200);
+
+  await signIn(page, owner.email, '/oferte');
   await expect(page.getByTestId('leads-contract')).toHaveText('Emis');
 
   // Sending needs the PDF, which is made where a converter is configured (CI, or a local

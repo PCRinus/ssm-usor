@@ -1,4 +1,4 @@
-import { countOf, trainingDomainLabels } from '@ssm-usor/contracts';
+import { countOf, trainingDomainLabels, uncapitalized } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { ArrowRight, Check, ChevronRight } from 'lucide-react';
@@ -36,9 +36,7 @@ export function WrittenCaption({ field, value }: { field: FieldName; value: stri
 }
 
 const lowerLabel = (label: string) =>
-  label.charAt(1) === label.charAt(1).toUpperCase()
-    ? label
-    : label.charAt(0).toLowerCase() + label.slice(1);
+  label.charAt(1) === label.charAt(1).toUpperCase() ? label : uncapitalized(label);
 
 function DecisionsLeft({ count }: { count: number }) {
   return count > 0 ? (
