@@ -1083,6 +1083,20 @@ describe('client dangerous substances', () => {
     expect((await screen.findByTestId('fire-substances-error')).textContent).toContain('șterge-le');
   });
 
+  it('says the choice was not saved when the answer carries no body', async () => {
+    mockFireMeansApi({
+      substancesState: 'undecided',
+      saveState: () => new Response(null, { status: 502 }),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await card()).getByText('Nu se utilizează substanțe periculoase'));
+    expect((await screen.findByTestId('fire-substances-error')).textContent).toContain(
+      'Nu am putut salva alegerea'
+    );
+  });
+
   it('opens the dialog for ?focus=fire-substances when the list is chosen but empty', async () => {
     mockFireMeansApi({ substancesState: 'listed', substances: [] });
     const runtime = mount('?focus=fire-substances');

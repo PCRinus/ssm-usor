@@ -11,25 +11,25 @@ import { MoreHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import {
-  type ApiErrorResponse,
   type InvitationResponse,
   useResendInvitation,
   useRevokeInvitation,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
-import { impersonationRefusal, wordingRefusalHere } from '@/features/impersonation/refusal';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { wordingRefusalHere } from '@/features/impersonation/refusal';
+import { commonFailure } from '@/lib/api-errors';
 
 import { refreshTeam } from './refresh-team';
 
 function actionMessage(cause: unknown, email: string) {
-  const refused = impersonationRefusal(cause);
-  if (refused) return refused;
+  const common = commonFailure(cause);
+  if (common) return common;
   if (cause instanceof ApiHttpError) {
-    const body = cause.body as Partial<ApiErrorResponse> | undefined;
-    if (body?.reason === 'sent_recently') {
+    const reason = apiErrorReason(cause);
+    if (reason === 'sent_recently') {
       return `Am trimis deja o invitație la ${email} în ultimele 10 minute. Încearcă mai târziu.`;
     }
-    if (body?.reason === 'member_limit_reached') {
+    if (reason === 'member_limit_reached') {
       return `Toți utilizatorii planului sunt ocupați, iar invitația pentru ${email} a expirat și nu mai ține un loc. Revocă o invitație în așteptare sau schimbă planul din Abonament.`;
     }
     if (cause.status === 404) return `Invitația pentru ${email} nu mai este în așteptare.`;

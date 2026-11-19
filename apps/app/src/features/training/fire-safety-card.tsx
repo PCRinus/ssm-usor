@@ -18,13 +18,12 @@ import {
 } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getGetClientFireSafetyQueryKey,
   type UpdateClientFireSafetyRequest,
   useGetClientFireSafety,
   useUpdateClientFireSafety,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -36,6 +35,7 @@ import type { JobPosition } from '@/features/job-positions/job-position-schema';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { type FireTrainingFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { commonFailure } from '@/lib/api-errors';
 
 import {
   completeFireSchedule,
@@ -177,17 +177,14 @@ function useFireSafetySave<Values extends FieldValues>({
       onDone();
     } catch (cause) {
       const status = cause instanceof ApiHttpError ? cause.status : null;
-      const reason =
-        cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>).reason : null;
       form.setError('root.server' as never, {
         message:
-          status === 409 && reason === 'client_archived'
+          commonFailure(cause) ??
+          (status === 409 && apiErrorReason(cause) === 'client_archived'
             ? 'Clientul este arhivat; datele lui nu se mai schimbă.'
             : status === 404
               ? 'Clientul nu mai există în organizația ta.'
-              : status === 401
-                ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                : failureMessage,
+              : failureMessage),
       });
     }
   });

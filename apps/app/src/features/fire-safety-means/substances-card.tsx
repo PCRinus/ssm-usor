@@ -24,13 +24,12 @@ import { ExternalLink, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   getListFireSubstancesQueryKey,
   useDeleteFireSubstance,
   useListFireSubstances,
   useUpdateFireSubstancesState,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
@@ -39,6 +38,7 @@ import { warningBadge } from '@/features/documents/pack-styles';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { commonFailure } from '@/lib/api-errors';
 
 import { SubstanceDialog, type SubstanceEditing } from './substance-dialog';
 import {
@@ -53,9 +53,10 @@ import {
 } from './substances-schema';
 
 const failureMessage = (cause: unknown, fallback: string) => {
+  const common = commonFailure(cause);
+  if (common) return common;
   const status = cause instanceof ApiHttpError ? cause.status : null;
-  const reason =
-    cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>).reason : undefined;
+  const reason = apiErrorReason(cause);
   if (status === 409 && reason === 'substances_listed') {
     return 'Clientul are substanțe în listă; șterge-le înainte să declari că nu utilizează niciuna.';
   }

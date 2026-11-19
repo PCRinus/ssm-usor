@@ -50,7 +50,6 @@ import {
 import { Fragment, useRef, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   getDocumentAnnex,
   getDocumentArchive,
   getDocumentDownload,
@@ -65,7 +64,7 @@ import {
   useStartDocumentDraft,
   useUploadClientDocument,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { openedHere } from '@/app/opener';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { FileMenuItem } from '@/components/file-menu-item';
@@ -73,6 +72,7 @@ import { Notice } from '@/components/notice';
 import { behindSummaryQueryKey } from '@/features/legislation/use-behind-summary';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
+import { commonFailure } from '@/lib/api-errors';
 import { formatRoDate } from '@/lib/dates';
 import { saveFile } from '@/lib/save-file';
 
@@ -326,7 +326,7 @@ export function DocumentsCard<Set extends DocumentSet>({
       const archive = await getDocumentArchive(clientId, { set, format }, apiRequest);
       saveFile(archive, archive instanceof File ? archive.name : `Documentatie ${copy.name}.zip`);
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       setError(
         body?.reason === 'nothing_to_archive'
           ? format === 'pdf'
@@ -400,22 +400,23 @@ export function DocumentsCard<Set extends DocumentSet>({
         toast.success(`Ciorna pentru „${document.title}” a fost ștearsă.`);
       }
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       if (body?.reason === 'unfilled_text') {
         // Not a failure: the same dialog asks its second question.
         setConfirming({ action: 'issueUnfilled', document });
         return;
       }
       setError(
-        body?.reason === 'pdf_unavailable'
-          ? `Nu am putut face PDF-ul pentru „${document.title}”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.`
-          : body?.reason === 'missing_document_data' && body.missing?.length
-            ? { document, missing: body.missing }
-            : body?.reason === 'missing_document_data'
-              ? 'Lipsesc date de care documentul are nevoie. Completează-le în paginile clientului, apoi generează documentul din nou.'
-              : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
-                ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
-                : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.'
+        commonFailure(cause) ??
+          (body?.reason === 'pdf_unavailable'
+            ? `Nu am putut face PDF-ul pentru „${document.title}”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.`
+            : body?.reason === 'missing_document_data' && body.missing?.length
+              ? { document, missing: body.missing }
+              : body?.reason === 'missing_document_data'
+                ? 'Lipsesc date de care documentul are nevoie. Completează-le în paginile clientului, apoi generează documentul din nou.'
+                : cause instanceof ApiHttpError && (cause.status === 404 || cause.status === 409)
+                  ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
+                  : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.')
       );
     }
     setConfirming(null);

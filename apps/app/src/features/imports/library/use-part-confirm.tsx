@@ -13,7 +13,7 @@ import {
   type ImportDetail,
   retryImportLibraryPart,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody } from '@/api/http';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 
 import { importErrorMessage } from '../import-format';
@@ -86,8 +86,7 @@ export function usePartConfirm({
         await navigate({ to: '/clienti/import/$importId', params: { importId: detail.id } });
       }
     } catch (cause) {
-      const body: ConfirmBody =
-        cause instanceof ApiHttpError ? (cause.body as ConfirmBody) : undefined;
+      const body = apiErrorBody(cause);
       const reason = body?.reason;
       setConfirmError(
         onRefused?.(reason, body) ??

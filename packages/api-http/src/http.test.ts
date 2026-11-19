@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiHttpError, createApiHttp, isClientOutdatedError } from './http';
+import {
+  apiErrorBody,
+  apiErrorReason,
+  ApiHttpError,
+  createApiHttp,
+  isClientOutdatedError,
+} from './http';
 
 const onFailure = vi.fn();
 const { apiFetch, apiUpload } = createApiHttp({ onFailure });
@@ -361,5 +367,40 @@ describe('uploading a file', () => {
     await expect(apiUpload('/clients/c/files', new Blob(['x']), { baseUrl })).rejects.toThrow(
       'redirected'
     );
+  });
+});
+
+describe('reading an error body', () => {
+  it('reads the fields of a JSON object body', () => {
+    const error = new ApiHttpError(409, { error: 'conflict', reason: 'client_archived' });
+    expect(apiErrorBody<{ error: string; reason: string }>(error)).toEqual({
+      error: 'conflict',
+      reason: 'client_archived',
+    });
+    expect(apiErrorReason(error)).toBe('client_archived');
+  });
+
+  it.each([
+    ['an empty body', undefined],
+    ['a null body', null],
+    ['a text body', 'Bad gateway'],
+    ['a number body', 502],
+    ['an array body', ['read_only']],
+  ])('finds nothing in %s', (_, body) => {
+    const error = new ApiHttpError(502, body);
+    expect(apiErrorBody(error)).toBeUndefined();
+    expect(apiErrorReason(error)).toBeUndefined();
+  });
+
+  it('finds nothing in a failure that is not an API answer', () => {
+    const failure = Object.assign(new TypeError('Failed to fetch'), { body: { reason: 'x' } });
+    expect(apiErrorBody(failure)).toBeUndefined();
+    expect(apiErrorReason(failure)).toBeUndefined();
+    expect(apiErrorReason(undefined)).toBeUndefined();
+  });
+
+  it('reads no reason that is not a string', () => {
+    expect(apiErrorReason(new ApiHttpError(400, { reason: 42 }))).toBeUndefined();
+    expect(apiErrorReason(new ApiHttpError(400, { error: 'invalid_request' }))).toBeUndefined();
   });
 });

@@ -1,8 +1,7 @@
 import { participantErrorReasons, type SmsRefusalReason } from '@ssm-usor/contracts';
 
-import type { ApiErrorResponse } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
-import { impersonationRefusal } from '@/features/impersonation/refusal';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { commonFailure } from '@/lib/api-errors';
 
 import { formatTime } from './participant-format';
 
@@ -71,12 +70,12 @@ const failure = (message: string, aboutAddress = false, saved = false): Particip
 });
 
 export function participantFailure(cause: unknown, resendableAt?: string): ParticipantFailure {
-  const refused = impersonationRefusal(cause);
-  if (refused) return failure(refused);
+  const common = commonFailure(cause);
+  if (common) return failure(common);
   if (!(cause instanceof ApiHttpError)) {
     return failure('Acțiunea nu a reușit. Verifică conexiunea și încearcă din nou.');
   }
-  const reason = (cause.body as Partial<ApiErrorResponse> | undefined)?.reason ?? '';
+  const reason = apiErrorReason(cause) ?? '';
   if (reason === participantErrorReasons.sentRecently) {
     return failure(
       resendableAt
@@ -97,9 +96,6 @@ export function participantFailure(cause: unknown, resendableAt?: string): Parti
   }
   if (cause.status === 404) {
     return failure('Persoana sau invitația nu mai există la acest client.');
-  }
-  if (cause.status === 401) {
-    return failure('Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.');
   }
   if (cause.status === 400) {
     return failure('Adresa nu este validă. Verifică emailul sau numărul de telefon.', true);

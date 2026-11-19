@@ -11,7 +11,6 @@ import { useRef, useState } from 'react';
 import {
   abandonImport,
   addFoundSheets,
-  type ApiErrorResponse,
   createImport,
   getGetImportQueryKey,
   getGetMeQueryKey,
@@ -20,10 +19,10 @@ import {
   registerImportFiles,
   startImport,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, apiErrorReason } from '@/api/http';
 import { roCount } from '@/features/employees/employee-format';
 
-import { importErrorMessage, importErrorReason } from './import-format';
+import { importErrorMessage } from './import-format';
 import { sha256Of, uploadImportObject } from './import-storage';
 import { shrinkSelected } from './shrink-photo';
 import { type SelectedFile, shrinksBeforeUpload } from './upload-selection';
@@ -50,11 +49,6 @@ export const busySteps = new Set<UploadPhase['step']>([
 export const heldSteps = new Set<UploadPhase['step']>(['stalled', 'unstarted', 'empty']);
 
 export const choosingSteps = new Set<UploadPhase['step']>(['choosing', 'failed', 'short']);
-
-const creditsShortOf = (cause: unknown) =>
-  cause instanceof ApiHttpError
-    ? (cause.body as Partial<ApiErrorResponse> | undefined)?.credits
-    : undefined;
 
 const registerBatch = 50;
 const maxConcurrent = 3;
@@ -129,9 +123,9 @@ export function useImportUpload(
       await startImport(id, apiRequest);
     } catch (cause) {
       if (abandoned.current) return;
-      const reason = importErrorReason(cause);
+      const reason = apiErrorReason(cause);
       // An earlier start reached the server and only its answer was lost.
-      const short = creditsShortOf(cause);
+      const short = apiErrorBody(cause)?.credits;
       if (reason === importErrorReasons.notUploading) await opened(id);
       else if (reason === importErrorReasons.empty) setPhase({ step: 'empty' });
       // The balance changed after the dialog opened. Its files cannot be read until credits
@@ -273,7 +267,7 @@ export function useImportUpload(
       importId.current = null;
       if (id) await abandonImport(id, apiRequest).catch(() => undefined);
       if (abandoned.current) return;
-      if (importErrorReason(cause) === importErrorReasons.noFoundSheets && clientId) {
+      if (apiErrorReason(cause) === importErrorReasons.noFoundSheets && clientId) {
         await queryClient.invalidateQueries({ queryKey: getListFoundSheetsQueryKey(clientId) });
       }
       setPhase({

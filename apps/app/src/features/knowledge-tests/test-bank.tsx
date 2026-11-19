@@ -6,12 +6,8 @@ import { useRouteContext } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import {
-  type ApiErrorResponse,
-  useHideTestQuestion,
-  useRestoreTestQuestion,
-} from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { useHideTestQuestion, useRestoreTestQuestion } from '@/api/generated/api';
+import { apiErrorReason } from '@/api/http';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 
@@ -29,9 +25,7 @@ import {
 } from './test-format';
 import { useTestBank } from './use-test-bank';
 
-const belowMinimum = (cause: unknown) =>
-  cause instanceof ApiHttpError &&
-  (cause.body as Partial<ApiErrorResponse> | null)?.reason === testErrorReasons.belowMinimum;
+const belowMinimum = (cause: unknown) => apiErrorReason(cause) === testErrorReasons.belowMinimum;
 
 export function TestBank({ domain, test }: { domain: TrainingDomain; test: KnowledgeTest }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });

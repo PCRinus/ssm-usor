@@ -1,6 +1,14 @@
-import { ApiHttpError, type ApiRequestOptions, createApiHttp } from '@ssm-usor/api-http';
+import {
+  apiErrorBody as readApiErrorBody,
+  ApiHttpError,
+  type ApiRequestOptions,
+  createApiHttp,
+} from '@ssm-usor/api-http';
+import type { ApiErrorResponse } from '@ssm-usor/contracts';
 
-export { ApiHttpError, type ApiRequestOptions } from '@ssm-usor/api-http';
+export { apiErrorReason, ApiHttpError, type ApiRequestOptions } from '@ssm-usor/api-http';
+
+export const apiErrorBody = (cause: unknown) => readApiErrorBody<ApiErrorResponse>(cause);
 
 const http = createApiHttp({ credentials: 'same-origin' });
 
@@ -13,4 +21,4 @@ export function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Prom
 export const isRefusedByApi = (error: Error) =>
   error instanceof ApiHttpError &&
   error.status === 403 &&
-  (error.body as { error?: unknown } | undefined)?.error === 'forbidden';
+  apiErrorBody(error)?.error === 'forbidden';

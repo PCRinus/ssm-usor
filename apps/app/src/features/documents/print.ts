@@ -1,8 +1,8 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useState } from 'react';
 
-import { type ApiErrorResponse, getDocumentDownload, printDocument } from '@/api/generated/api';
-import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
+import { getDocumentDownload, printDocument } from '@/api/generated/api';
+import { apiErrorReason, type ApiRequestOptions } from '@/api/http';
 import { saveFile } from '@/lib/save-file';
 
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -74,8 +74,7 @@ export function usePrint() {
       printPdf(file);
       return null;
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-      return body?.reason === 'pdf_unavailable'
+      return apiErrorReason(cause) === 'pdf_unavailable'
         ? `Nu am putut pregăti „${title}” pentru tipărire: serviciul care face PDF-ul nu răspunde acum. Încearcă din nou peste câteva momente sau descarcă documentul.`
         : `Nu am putut pregăti „${title}” pentru tipărire. Verifică conexiunea și încearcă din nou.`;
     } finally {

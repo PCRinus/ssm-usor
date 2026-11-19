@@ -3,8 +3,9 @@ import type { QueryClient } from '@tanstack/react-query';
 import { createContext, use, useSyncExternalStore } from 'react';
 
 import type { ApiRequestOptions } from '@/api/http';
+import { apiErrorReason } from '@/api/http';
 
-import { importErrorMessage, importErrorReason } from './import-format';
+import { importErrorMessage } from './import-format';
 
 export type Saved = { version: number };
 
@@ -117,7 +118,7 @@ export class VersionedChangesStore<C, R extends Saved = Saved> {
   }
 
   private refused(cause: unknown) {
-    const reason = importErrorReason(cause);
+    const reason = apiErrorReason(cause);
     const closed = reason ? this.options.closedBy?.[reason] : undefined;
     if (reason === importErrorReasons.changed) this.set({ conflict: true });
     else if (closed) this.set({ closed });

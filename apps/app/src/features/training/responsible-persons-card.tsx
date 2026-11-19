@@ -11,7 +11,6 @@ import { useRouteContext } from '@tanstack/react-router';
 import { Fragment, type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   getListResponsiblePersonsQueryKey,
   getListWorkplacesQueryKey,
   useArchiveResponsiblePerson,
@@ -19,7 +18,7 @@ import {
   useListWorkplaces,
   useUpdateResponsiblePerson,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
@@ -28,6 +27,7 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { SheetAction } from '@/features/clients/details/sheet-action';
 import { type ResponsiblePersonFocus, useFocusRequest } from '@/features/missing-data/focus';
+import { commonFailure } from '@/lib/api-errors';
 
 import { responsiblePersonColumns } from './responsible-person-columns';
 import {
@@ -37,12 +37,6 @@ import {
 } from './responsible-person-dialog';
 import { missingRoles, type ResponsiblePerson } from './responsible-person-schema';
 import { useDocumentDetails } from './use-document-details-form';
-
-function reasonOf(cause: unknown) {
-  return cause instanceof ApiHttpError
-    ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
-    : undefined;
-}
 
 const focusRoles: Record<ResponsiblePersonFocus, ResponsiblePersonRole> = {
   'workplace-manager': 'workplace_manager',
@@ -152,9 +146,10 @@ export function ResponsiblePersonsCard({
         toast.success(maskPeople`Funcția lui ${person.fullName} a fost actualizată.`);
       } catch (cause) {
         setError(
-          reasonOf(cause) === clientConflictReasons.clientArchived
-            ? responsiblePersonsOfArchivedClientMessage
-            : 'Nu am putut actualiza funcția. Verifică conexiunea și încearcă din nou.'
+          commonFailure(cause) ??
+            (apiErrorReason(cause) === clientConflictReasons.clientArchived
+              ? responsiblePersonsOfArchivedClientMessage
+              : 'Nu am putut actualiza funcția. Verifică conexiunea și încearcă din nou.')
         );
       }
       await queryClient.invalidateQueries({
@@ -191,11 +186,12 @@ export function ResponsiblePersonsCard({
       toast.success(maskPeople`${person.fullName} a fost scos din listă.`);
     } catch (cause) {
       setError(
-        reasonOf(cause) === clientConflictReasons.clientArchived
-          ? responsiblePersonsOfArchivedClientMessage
-          : cause instanceof ApiHttpError && cause.status === 404
-            ? maskPeople`${person.fullName} nu mai este în lista acestui client.`
-            : 'Nu am putut scoate persoana din listă. Verifică conexiunea și încearcă din nou.'
+        commonFailure(cause) ??
+          (apiErrorReason(cause) === clientConflictReasons.clientArchived
+            ? responsiblePersonsOfArchivedClientMessage
+            : cause instanceof ApiHttpError && cause.status === 404
+              ? maskPeople`${person.fullName} nu mai este în lista acestui client.`
+              : 'Nu am putut scoate persoana din listă. Verifică conexiunea și încearcă din nou.')
       );
     }
     setArchiving(null);

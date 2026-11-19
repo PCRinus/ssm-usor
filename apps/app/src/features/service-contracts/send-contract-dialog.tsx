@@ -15,16 +15,13 @@ import { useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import {
-  type ApiErrorResponse,
-  type ServiceContractResponse,
-  useSendServiceContract,
-} from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { type ServiceContractResponse, useSendServiceContract } from '@/api/generated/api';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { impersonationRefusal, wordingRefusalHere } from '@/features/impersonation/refusal';
+import { wordingRefusalHere } from '@/features/impersonation/refusal';
+import { commonFailure } from '@/lib/api-errors';
 
 const schema = z.object({
   to: z
@@ -74,13 +71,13 @@ export function SendContractDialog({
       toast.success(`Contractul a fost trimis la ${to}.`);
       close();
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const reason = apiErrorReason(cause);
       form.setError('root.server', {
         message:
-          impersonationRefusal(cause) ??
-          (body?.reason === 'contract_pdf_missing'
+          commonFailure(cause) ??
+          (reason === 'contract_pdf_missing'
             ? 'Contractul emis nu are PDF, așa că nu poate fi trimis de aici. Descarcă-l și trimite-l din emailul tău.'
-            : body?.reason === 'contract_not_issued'
+            : reason === 'contract_not_issued'
               ? 'Contractul nu mai este emis. Reîncarcă pagina.'
               : cause instanceof ApiHttpError && cause.status === 503
                 ? 'Emailul nu a putut fi trimis acum. Încearcă din nou peste câteva momente.'

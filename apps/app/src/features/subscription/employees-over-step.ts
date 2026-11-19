@@ -1,8 +1,8 @@
-import { type ApiErrorResponse, employeesOverStepReason } from '@ssm-usor/contracts';
+import { employeesOverStepReason } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
 
 import { getGetMeQueryKey } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason } from '@/api/http';
 import { useMe } from '@/features/account/use-me';
 
 export function useEmployeesOverStep() {
@@ -15,10 +15,7 @@ export function useEmployeesBlocked() {
 }
 
 export function isEmployeesOverStepError(error: unknown) {
-  return (
-    error instanceof ApiHttpError &&
-    (error.body as Partial<ApiErrorResponse> | null)?.reason === employeesOverStepReason
-  );
+  return apiErrorReason(error) === employeesOverStepReason;
 }
 
 export const employeesOverStepMessage =

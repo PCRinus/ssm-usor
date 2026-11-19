@@ -5,13 +5,13 @@ import {
 } from '@ssm-usor/contracts';
 
 import type {
-  ApiErrorResponse,
   DocumentsBehindResponseItemsItem,
   DocumentsBehindResponseItemsItemClientsItem,
   RegenerationJobResponseJob,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { instructionChangeText } from '@/features/documents/behind-labels';
+import { commonFailure } from '@/lib/api-errors';
 
 import { countOf } from './legislation-labels';
 
@@ -168,11 +168,14 @@ export function confirmTypesCopy(types: readonly BehindType[]): ConfirmCopy {
 }
 
 export function regenerationFailure(cause: unknown) {
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+  const body = apiErrorBody(cause);
   const answered = cause instanceof ApiHttpError && (cause.status === 409 || cause.status === 503);
-  return answered && body?.message
-    ? body.message
-    : 'Regenerarea nu a putut porni. Verifică conexiunea și încearcă din nou.';
+  return (
+    commonFailure(cause) ??
+    (answered && body?.message
+      ? body.message
+      : 'Regenerarea nu a putut porni. Verifică conexiunea și încearcă din nou.')
+  );
 }
 
 type Counted = Pick<RegenerationJob, 'total' | 'done' | 'skipped' | 'failed'>;
