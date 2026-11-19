@@ -35,6 +35,7 @@ import { type AdminClient, createAdminClient } from '../../lib/admin-db';
 import { createDataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { parsed } from '../../lib/validation';
 
 type ActRow = Database['public']['Tables']['legal_acts']['Row'];
 type ChangeRow = Database['public']['Tables']['legal_changes']['Row'];
@@ -123,21 +124,6 @@ const passageOrder = (
   a.template_file.localeCompare(b.template_file) ||
   a.paragraph - b.paragraph ||
   a.unit_label.localeCompare(b.unit_label);
-
-function parsed<Schema extends z.ZodType>(schema: Schema, value: unknown): z.infer<Schema> {
-  const result = schema.safeParse(value);
-  if (!result.success) {
-    throw new ApiError(
-      'validation_error',
-      undefined,
-      result.error.issues.map((issue) => ({
-        path: issue.path.map(String).join('.'),
-        message: issue.message,
-      }))
-    );
-  }
-  return result.data;
-}
 
 const changeIdSchema = z.uuid();
 

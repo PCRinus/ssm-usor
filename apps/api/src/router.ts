@@ -3,6 +3,7 @@ import type { ApiErrorResponse } from '@ssm-usor/contracts';
 
 import type { ApiEnv } from './lib/env';
 import { defaultMessages } from './lib/errors';
+import { toIssues } from './lib/validation';
 
 // Every module router shares the environment and the validation error shape,
 // so the app can mount modules with app.route() and merge their OpenAPI definitions.
@@ -14,10 +15,7 @@ export function createRouter() {
         {
           error: 'validation_error',
           message: defaultMessages.validation_error,
-          issues: result.error.issues.map((issue) => ({
-            path: issue.path.map(String).join('.'),
-            message: issue.message,
-          })),
+          issues: toIssues(result.error),
         } satisfies ApiErrorResponse,
         400
       );
