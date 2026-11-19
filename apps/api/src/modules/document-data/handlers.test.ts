@@ -146,7 +146,7 @@ afterEach(() => {
 
 describe('/organization/company-details', () => {
   it('reads them for any member', async () => {
-    mockUpstream({ membership: () => Response.json([membershipRow()]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     const response = await request('/organization/company-details');
     expect(response.status).toBe(200);
     expect(organizationCompanyDetailsResponseSchema.parse(await response.json())).toEqual({
@@ -194,7 +194,7 @@ describe('/organization/company-details', () => {
   });
 
   it('refuses a specialist', async () => {
-    mockUpstream({ membership: () => Response.json([membershipRow()]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     const response = await request('/organization/company-details', 'PUT', { legalName: 'Firma' });
     expect(response.status).toBe(403);
     expect(calls('/rest/v1/organizations')).toHaveLength(0);
@@ -228,7 +228,7 @@ describe('/organization/authorizations', () => {
 
   it('reads them for any member', async () => {
     mockUpstream({
-      membership: () => Response.json([membershipRow()]),
+      membership: () => Response.json([membershipRow({ role: 'specialist' })]),
       organizations: () => Response.json(authorizationsRow),
     });
     const response = await request('/organization/authorizations');
@@ -327,7 +327,7 @@ describe('/organization/authorizations', () => {
   });
 
   it('refuses a specialist who writes', async () => {
-    mockUpstream({ membership: () => Response.json([membershipRow()]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await request('/organization/authorizations', 'PUT', {})).status).toBe(403);
     expect(calls('/rest/v1/organizations')).toHaveLength(0);
   });

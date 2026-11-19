@@ -307,7 +307,7 @@ describe('GET /clients/{clientId}/service-contract', () => {
   it('answers 404 for a client that is not there, and 403 for a specialist', async () => {
     mockUpstream({ clients: () => Response.json([]) });
     expect((await request()).status).toBe(404);
-    mockUpstream({ membership: () => Response.json([membershipRow()]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await request()).status).toBe(403);
   });
 });
@@ -405,7 +405,7 @@ describe('PUT /clients/{clientId}/service-contract', () => {
     expect((await request('PUT', validBody)).status).toBe(404);
     expect(calls('/rest/v1/service_contracts', 'PATCH')).toHaveLength(0);
 
-    mockUpstream({ membership: () => Response.json([membershipRow()]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await request('PUT', validBody)).status).toBe(403);
   });
 });
@@ -496,7 +496,7 @@ describe('POST /clients/{clientId}/service-contract/generate', () => {
     expect(untemplated.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await untemplated.json()).reason).toBe('template_missing');
 
-    mockUpstream({ membership: () => Response.json([membershipRow()]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await generate()).status).toBe(403);
   });
 
@@ -644,7 +644,7 @@ describe('POST /clients/{clientId}/service-contract/send', () => {
     });
     expect((await send()).status).toBe(409);
 
-    mockUpstream({ membership: () => Response.json([membershipRow()]) });
+    mockUpstream({ membership: () => Response.json([membershipRow({ role: 'specialist' })]) });
     expect((await send()).status).toBe(403);
     expect(sendServiceContract).not.toHaveBeenCalled();
   });
