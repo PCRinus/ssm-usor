@@ -24,7 +24,7 @@ import type { Context } from 'hono';
 
 import { printedAddress } from '../../lib/address';
 import { createAdminClient } from '../../lib/admin-db';
-import { contentDisposition } from '../../lib/content-disposition';
+import { contentDisposition, fileNameWords } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
@@ -717,12 +717,7 @@ const agreementOf = async (db: DataClient, clientId: string, employeeId: string)
   toAgreement(await agreementSources(db, clientId, employeeId));
 
 const agreementFileName = (employee: { lastName: string; firstName: string }) => {
-  const words = `${employee.lastName} ${employee.firstName}`
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .map((word) => word[0]!.toUpperCase() + word.slice(1).toLowerCase());
+  const words = fileNameWords(`${employee.lastName} ${employee.firstName}`);
   return `Act-aditional-semnare-electronica-${words.join('-')}.pdf`;
 };
 
