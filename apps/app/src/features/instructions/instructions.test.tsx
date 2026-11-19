@@ -979,18 +979,19 @@ describe('the module form', () => {
     expect(requestsTo(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(0);
   });
 
-  it("marks an article that names one of the organization's clients, and still saves", async () => {
-    mockInstructionsApi();
+  it("marks the articles that name one of the organization's clients, names it once, and still saves", async () => {
+    mockInstructionsApi({ moduleBody: ladderBody });
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.type(articleBoxes()[0]!, ' Scara aparține S.C. Veloce Cafe S.R.L.');
+    await user.type(articleBoxes()[1]!, ' La Veloce Cafe se urcă doar cu ajutor.');
     expect((await screen.findByTestId('instruction-client-named')).textContent).toBe(
       'Textul numește clientul VELOCE CAFE SRL. Instrucțiunea se aplică și altor clienți.'
     );
-    expect(screen.getByTestId('instruction-client-mark').textContent).toBe(
-      'Numește clientul VELOCE CAFE SRL.'
-    );
+    expect(
+      screen.getAllByTestId('instruction-client-mark').map((mark) => mark.textContent)
+    ).toEqual(['Numește clientul VELOCE CAFE SRL.', 'Numește clientul VELOCE CAFE SRL.']);
     await user.click(screen.getByTestId('editor-save'));
     await waitFor(() =>
       expect(requestsTo(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(1)
@@ -1028,6 +1029,49 @@ describe('the module form', () => {
     await user.click(within(dialog).getByTestId('paste-replace'));
     expect(outline()).toEqual(['§ Folosirea scării', 'Art. 1', 'Art. 2', 'Art. 3']);
     expect(articleBoxes()[2]!.value).toBe('Înălțime – Asigurare');
+  });
+
+  it('adds pasted articles after the text already there, leaving out an empty article', async () => {
+    mockInstructionsApi({ moduleBody: ladderBody });
+    mount(`/instructiuni/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.clear(articleBoxes()[1]!);
+    await user.click(screen.getByTestId('instruction-paste'));
+    const dialog = await screen.findByTestId('paste-dialog');
+    expect(within(dialog).getByTestId('paste-replace').textContent).toBe('Înlocuiește textul');
+    await user.click(within(dialog).getByTestId('paste-text'));
+    await user.paste('Art. 1. Scara se depozitează la adăpost.');
+    await user.click(await within(dialog).findByTestId('paste-append'));
+    expect(outline()).toEqual([
+      '§ Verificări înainte de pornire',
+      'Art. 1',
+      '§ Acțiuni interzise',
+      'Art. 2',
+    ]);
+    expect(articleBoxes().map((box) => box.value)).toEqual([
+      'Lucrătorul verifică scara:\na) tălpile;\nb) treptele.',
+      'Scara se depozitează la adăpost.',
+    ]);
+  });
+
+  it('offers to add pasted text after a section heading the person wrote', async () => {
+    mockInstructionsApi();
+    mount('/instructiuni/ssm');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    await user.click(screen.getByTestId('instruction-write'));
+    const start = await screen.findByTestId('instruction-start-dialog');
+    await user.type(within(start).getByTestId('instruction-start-title'), 'Reguli de birou');
+    await user.selectOptions(within(start).getByTestId('instruction-start-group'), 'work_activity');
+    await user.click(within(start).getByTestId('instruction-start-submit'));
+    await screen.findByTestId('instruction-form');
+    await user.click(screen.getByTestId('instruction-add-section'));
+    await user.keyboard('Reguli proprii');
+    await user.click(screen.getByTestId('instruction-paste'));
+    const dialog = await screen.findByTestId('paste-dialog');
+    expect(within(dialog).getByTestId('paste-append')).toBeTruthy();
+    expect(within(dialog).getByTestId('paste-replace').textContent).toBe('Înlocuiește textul');
   });
 
   it('offers to split several paragraphs pasted into one article', async () => {
@@ -1197,7 +1241,9 @@ describe('writing a new module', () => {
       'Ai deja textul într-un document?'
     );
     await user.click(screen.getByTestId('instruction-paste-panel-open'));
-    expect(await screen.findByTestId('paste-dialog')).toBeTruthy();
+    const paste = await screen.findByTestId('paste-dialog');
+    expect(within(paste).queryByTestId('paste-append')).toBeNull();
+    expect(within(paste).getByTestId('paste-replace').textContent).toBe('Adaugă articolele');
     await user.keyboard('{Escape}');
 
     await user.click(within(scope).getByTestId('instruction-section-write-first'));
