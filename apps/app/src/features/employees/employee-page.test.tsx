@@ -111,8 +111,8 @@ describe("the Date tab of a worker's page", () => {
   it('lays the data out in five panels, without the portal and the agreement', async () => {
     mockPage();
     open();
-    await screen.findByTestId('employee-page');
-    const headings = screen
+    const tab = await screen.findByTestId('employee-page');
+    const headings = within(tab)
       .getAllByRole('heading', { level: 2 })
       .map((heading) => heading.textContent);
     expect(headings).toEqual([
@@ -122,8 +122,8 @@ describe("the Date tab of a worker's page", () => {
       'Pentru fișele de instruire',
       'Observații',
     ]);
-    expect(screen.queryByTestId('employee-portal-card')).toBeNull();
-    expect(screen.queryByText(/Act adițional/)).toBeNull();
+    expect(within(tab).queryByTestId('employee-portal-card')).toBeNull();
+    expect(within(tab).queryByTestId('signing-agreement-card')).toBeNull();
     expect(
       [...screen.getByTestId('employee-employment').querySelectorAll('dt')].map(
         (term) => term.textContent
@@ -158,6 +158,18 @@ describe("the Date tab of a worker's page", () => {
     await userEvent.setup().click(screen.getByRole('link', { name: 'Modifică identitatea' }));
     const lastName = await screen.findByTestId('employee-last-name');
     await waitFor(() => expect(document.activeElement).toBe(lastName));
+  });
+
+  it.each([
+    ['employment', 'employee-job-position'],
+    ['contact', 'employee-email'],
+    ['sheet-data', 'employee-qualification'],
+    ['notes', 'employee-notes'],
+  ])('focuses the first field of the panel asked for with %s', async (focus, field) => {
+    mockPage();
+    mountApp(authFixture(makeSession()).client, `${page}/editare?focus=${focus}`);
+    const target = await screen.findByTestId(field);
+    await waitFor(() => expect(document.activeElement).toBe(target));
   });
 
   it('links the post to its page and changes it from the same row', async () => {
