@@ -42,6 +42,7 @@ sources:
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - packages/contracts/src/participants.ts
   - apps/app/src/features/participants/employee-portal-card.tsx
+  - apps/app/src/features/employees/employee-layout.tsx
   - apps/app/src/features/participants/invite-employee-dialog.tsx
   - apps/app/src/features/participants/bulk-invite-dialog.tsx
   - apps/app/src/features/participants/bulk-invite-format.ts
@@ -63,7 +64,7 @@ sources:
   - apps/app/src/features/signatures/signature-format.ts
 ---
 
-Pe tabul **Date** al unui lucrător, două carduri țin de semnarea electronică: **Acces la portal**, prin care lucrătorul își vede evidența și semnează, și **Actul adițional privind semnarea electronică**, acordul lui de a semna astfel fișele de instruire.
+Pe tabul **Portal** al unui lucrător, două carduri țin de semnarea electronică: **Acces la portal**, prin care lucrătorul își vede evidența și semnează, și **Actul adițional privind semnarea electronică**, acordul lui de a semna astfel fișele de instruire.
 
 ## Accesul la portal
 
@@ -184,7 +185,7 @@ Actul adițional la contractul individual de muncă e acordul lucrătorului de a
 
 Lucrătorul semnează actul în portal, unde îl găsește de la prima autentificare, înaintea oricărei instruiri. Apoi administratorul clientului îl contrasemnează în portal pentru angajator, pentru că la modificarea contractului părțile folosesc același tip de semnătură: dacă lucrătorul semnează electronic, semnează electronic și angajatorul (Codul muncii, art. 16 alin. (1⁷)).
 
-Fără actul adițional semnat, lucrătorul poate semna în continuare instruirile. Lipsa apare ca avertisment, **Act adițional nesemnat**, pe pagina lui și în portal, dar nu blochează nimic.
+Fără actul adițional semnat, lucrătorul poate semna în continuare instruirile. Lipsa apare ca avertisment, **Act adițional nesemnat**, pe pagina lui și în portal, dar nu blochează nimic. Pe pagina lucrătorului, avertismentul stă și în capul paginii, iar tabul **Portal** are un triunghi galben; după semnătura lucrătorului, până contrasemnează administratorul, scrie **Act adițional: așteaptă angajatorul**. Capul paginii nu-l arată la un lucrător fără acces și fără invitație în portal, după revenirea la semnarea olografă, la un fost lucrător și la un client arhivat.
 
 ### Stările actului adițional
 

@@ -240,10 +240,16 @@ function SectionNavAnchor({
   icon: Icon,
   count,
   countUnit,
+  marker,
   className,
   children,
   ...props
-}: ComponentProps<'a'> & { icon: LucideIcon; count?: number; countUnit?: string }) {
+}: ComponentProps<'a'> & {
+  icon: LucideIcon;
+  count?: number;
+  countUnit?: string;
+  marker?: ReactNode;
+}) {
   const variant = useContext(SectionNavVariantContext);
   const open = props['aria-current'] === 'page';
   const folder = variant === 'folder';
@@ -267,6 +273,7 @@ function SectionNavAnchor({
       ) : (
         children
       )}
+      {marker}
       {count !== undefined && count > 0 && (
         <span data-testid="section-nav-count" className={countPill}>
           {count}

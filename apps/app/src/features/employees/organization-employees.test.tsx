@@ -195,14 +195,9 @@ describe("the organization's employees", () => {
     );
     expect(screen.getByTestId('nav-employees').getAttribute('aria-current')).toBe('true');
 
-    await user.click(screen.getByTestId('employee-edit'));
+    await user.click(screen.getAllByTestId('employee-section')[4]!);
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`${workerPath}/editare`)
-    );
-    expect(screen.getByTestId('nav-employees').getAttribute('aria-current')).toBe('true');
-    runtime.router.history.back();
-    await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`${workerPath}/instruire/ssm`)
+      expect(runtime.router.state.location.pathname).toBe(`${workerPath}/portal`)
     );
     expect(screen.getByTestId('nav-employees').getAttribute('aria-current')).toBe('true');
 

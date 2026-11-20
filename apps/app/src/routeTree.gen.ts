@@ -111,6 +111,7 @@ import { Route as AuthenticatedClientiImportImportIdEvaluariDeRiscRouteImport } 
 import { Route as AuthenticatedClientiImportImportIdFisiereRouteImport } from './routes/_authenticated/clienti/import/$importId/fisiere';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId/index';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId/documente';
+import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId/portal';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId_.editare';
 import { Route as AuthenticatedClientiClientIdAngajatiImportImportIdRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/import/$importId';
 import { Route as AuthenticatedClientiClientIdPosturiJobPositionIdIndexRouteImport } from './routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/index';
@@ -703,6 +704,12 @@ const AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute =
     path: '/documente',
     getParentRoute: () => AuthenticatedClientiClientIdAngajatiEmployeeIdRoute,
   } as any);
+const AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRoute =
+  AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRouteImport.update({
+    id: '/portal',
+    path: '/portal',
+    getParentRoute: () => AuthenticatedClientiClientIdAngajatiEmployeeIdRoute,
+  } as any);
 const AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute =
   AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRouteImport.update({
     id: '/$employeeId_/editare',
@@ -878,6 +885,7 @@ export interface FileRoutesByFullPath {
   '/clienti/$clientId/posturi/': typeof AuthenticatedClientiClientIdPosturiIndexRoute;
   '/clienti/import/$importId/': typeof AuthenticatedClientiImportImportIdIndexRoute;
   '/clienti/$clientId/angajati/$employeeId/documente': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute;
+  '/clienti/$clientId/angajati/$employeeId/portal': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRoute;
   '/clienti/$clientId/angajati/$employeeId/editare': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute;
   '/clienti/$clientId/angajati/import/$importId': typeof AuthenticatedClientiClientIdAngajatiImportImportIdRouteWithChildren;
   '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare': typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute;
@@ -968,6 +976,7 @@ export interface FileRoutesByTo {
   '/clienti/$clientId/posturi': typeof AuthenticatedClientiClientIdPosturiIndexRoute;
   '/clienti/import/$importId': typeof AuthenticatedClientiImportImportIdIndexRoute;
   '/clienti/$clientId/angajati/$employeeId/documente': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute;
+  '/clienti/$clientId/angajati/$employeeId/portal': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRoute;
   '/clienti/$clientId/angajati/$employeeId/editare': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute;
   '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare': typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute;
   '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId': typeof AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute;
@@ -1083,6 +1092,7 @@ export interface FileRoutesById {
   '/_authenticated/clienti/$clientId/posturi/': typeof AuthenticatedClientiClientIdPosturiIndexRoute;
   '/_authenticated/clienti/import/$importId/': typeof AuthenticatedClientiImportImportIdIndexRoute;
   '/_authenticated/clienti/$clientId/angajati/$employeeId/documente': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute;
+  '/_authenticated/clienti/$clientId/angajati/$employeeId/portal': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRoute;
   '/_authenticated/clienti/$clientId/angajati/$employeeId_/editare': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute;
   '/_authenticated/clienti/$clientId/angajati/import/$importId': typeof AuthenticatedClientiClientIdAngajatiImportImportIdRouteWithChildren;
   '/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare': typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute;
@@ -1197,6 +1207,7 @@ export interface FileRouteTypes {
     | '/clienti/$clientId/posturi/'
     | '/clienti/import/$importId/'
     | '/clienti/$clientId/angajati/$employeeId/documente'
+    | '/clienti/$clientId/angajati/$employeeId/portal'
     | '/clienti/$clientId/angajati/$employeeId/editare'
     | '/clienti/$clientId/angajati/import/$importId'
     | '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
@@ -1287,6 +1298,7 @@ export interface FileRouteTypes {
     | '/clienti/$clientId/posturi'
     | '/clienti/import/$importId'
     | '/clienti/$clientId/angajati/$employeeId/documente'
+    | '/clienti/$clientId/angajati/$employeeId/portal'
     | '/clienti/$clientId/angajati/$employeeId/editare'
     | '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
     | '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId'
@@ -1401,6 +1413,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clienti/$clientId/posturi/'
     | '/_authenticated/clienti/import/$importId/'
     | '/_authenticated/clienti/$clientId/angajati/$employeeId/documente'
+    | '/_authenticated/clienti/$clientId/angajati/$employeeId/portal'
     | '/_authenticated/clienti/$clientId/angajati/$employeeId_/editare'
     | '/_authenticated/clienti/$clientId/angajati/import/$importId'
     | '/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
@@ -2146,6 +2159,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRouteImport;
       parentRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdRoute;
     };
+    '/_authenticated/clienti/$clientId/angajati/$employeeId/portal': {
+      id: '/_authenticated/clienti/$clientId/angajati/$employeeId/portal';
+      path: '/portal';
+      fullPath: '/clienti/$clientId/angajati/$employeeId/portal';
+      preLoaderRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRouteImport;
+      parentRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdRoute;
+    };
     '/_authenticated/clienti/$clientId/angajati/$employeeId_/editare': {
       id: '/_authenticated/clienti/$clientId/angajati/$employeeId_/editare';
       path: '/$employeeId/editare';
@@ -2259,6 +2279,7 @@ const AuthenticatedClientiClientIdAlteDocumenteRouteWithChildren =
 
 interface AuthenticatedClientiClientIdAngajatiEmployeeIdRouteChildren {
   AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute;
+  AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRoute;
   AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute;
   AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSsmRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSsmRoute;
   AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSuRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSuRoute;
@@ -2269,6 +2290,8 @@ const AuthenticatedClientiClientIdAngajatiEmployeeIdRouteChildren: Authenticated
   {
     AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute:
       AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute,
+    AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRoute:
+      AuthenticatedClientiClientIdAngajatiEmployeeIdPortalRoute,
     AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute:
       AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute,
     AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSsmRoute:

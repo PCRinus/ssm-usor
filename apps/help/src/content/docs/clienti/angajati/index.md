@@ -87,7 +87,7 @@ Lista unui client e în tabul **Lucrători** al clientului. Fiecare rând arată
 - **De semnat**: câte semnături electronice îi mai cer lucrătorului instruirile și testele lui, de exemplu „2 în așteptare”;
 - **Angajat din**: data angajării.
 
-Poți ordona lista după nume, post, instruirea SSM, instruirea SU sau data angajării. Ordonată după instruire, lista arată întâi lucrătorii cu instruirea depășită, apoi pe cei neinstruiți, pe cei cu instruirea scadentă și la sfârșit pe cei la zi; în fiecare grupă, după termen. Din meniul de la capătul rândului ajungi la **Modifică** și **Marchează plecarea…**. Un clic pe rând deschide pagina lucrătorului. Pe un ecran îngust, tabelul se derulează în lateral.
+Poți ordona lista după nume, post, instruirea SSM, instruirea SU sau data angajării. Ordonată după instruire, lista arată întâi lucrătorii cu instruirea depășită, apoi pe cei neinstruiți, pe cei cu instruirea scadentă și la sfârșit pe cei la zi; în fiecare grupă, după termen. Din meniul de la capătul rândului ajungi la **Modifică** și **Trece la foști lucrători…** (la **Foști**, **Anulează trecerea la foști…**). Un clic pe rând deschide pagina lucrătorului. Pe un ecran îngust, tabelul se derulează în lateral.
 
 Deasupra listei vezi câți lucrători are. Când cauți sau filtrezi, vezi câți se potrivesc din total, de exemplu „5 din 25 de lucrători”.
 
@@ -180,17 +180,18 @@ Aplicația numără lucrătorii actuali ai clientului; foștii lucrători nu int
 - de la 10 lucrători, setul SSM cere decizia privind reprezentanții lucrătorilor: unul între 10 și 49 de lucrători, doi între 50 și 100, iar peste 100 numărul din art. 60 alin. (3) (HG 1425/2006, art. 53 alin. (2));
 - de la 10 lucrători, setul SU cuprinde și documentele pe care OMAI 163/2007 le cere doar operatorilor cu cel puțin numărul de salariați al unei întreprinderi mici (art. 20 alin. (1)), adică cel puțin 10 salariați; legea se uită la numărul mediu anual de salariați, iar aplicația numără lucrătorii actuali.
 
-Un document generat când clientul avea 10 lucrători rămâne în set și dacă numărul scade sub 10. Ține deci lista la zi: un lucrător care a plecat și nu e marcat ca atare schimbă ce documente îi cere aplicația clientului.
+Un document generat când clientul avea 10 lucrători rămâne în set și dacă numărul scade sub 10. Ține deci lista la zi: un lucrător care a plecat și nu e trecut la foști schimbă ce documente îi cere aplicația clientului.
 
 ## Pagina unui lucrător
 
-În capul paginii vezi postul, clientul și dacă e **Lucrător actual** sau **Fost lucrător**, cu **Modifică** și **Marchează plecarea…** (sau **Reactivează…**). Dedesubt sunt patru taburi:
+În capul paginii vezi postul și clientul, fiecare cu legătură spre pagina lui, și dacă e **Lucrător actual** sau **Fost lucrător**. Alături e **Trece la foști lucrători…** (la un fost lucrător, **Anulează trecerea la foști…**; vezi [Plecarea unui lucrător](/clienti/angajati/plecare/)). Cât timp actul adițional al unui lucrător care intră în portal nu e semnat, tot aici apare **Act adițional nesemnat**, care te duce la tabul **Portal**, iar tabul are un triunghi galben. Dedesubt sunt cinci taburi:
 
-- **Date**: identificarea, angajarea, contactul, datele pentru fișa de instruire, accesul la portal și actul adițional privind semnarea electronică;
+- **Date**: angajarea, identitatea, contactul și adresele, datele pentru fișele de instruire și observațiile, fiecare în panoul ei, cu **Modifică** lângă titlu. Vezi [Modificarea datelor](/clienti/angajati/adaugare-si-editare/#modificarea-datelor);
 - **Instruire SSM** și **Instruire SU**: starea și termenul, testarea, instruirile înregistrate și fișa individuală. Vezi [Instruirea și testele unui lucrător](/clienti/angajati/instruire-si-teste/);
-- **Documente**: fișierele încărcate despre lucrător, cu fișele aduse dintr-un import. Vezi [Documentele lucrătorului](#documentele-lucrătorului).
+- **Documente**: fișierele încărcate despre lucrător, cu fișele aduse dintr-un import. Vezi [Documentele lucrătorului](#documentele-lucrătorului);
+- **Portal**: accesul la portal și actul adițional privind semnarea electronică.
 
-CNP-ul apare ascuns, cu ultimele patru cifre. **Arată** îl afișează întreg până pleci de pe pagină. **Vechime** se calculează din data angajării până azi, iar la un fost lucrător până la data plecării.
+CNP-ul apare ascuns, cu ultimele patru cifre. Ochiul de după el îl afișează întreg până îl ascunzi din nou sau pleci de pe pagină. Vechimea, sub data angajării, se calculează până azi, iar la un fost lucrător până la data încetării.
 
 Accesul la portal și actul adițional sunt explicate în [Portalul și actul adițional](/clienti/angajati/portal-si-act-aditional/).
 
@@ -200,4 +201,4 @@ Pe tabul **Documente** încarci fotografiile sau scanurile fișelor de instruire
 
 ## Lucrătorii unui client arhivat
 
-La un client arhivat, lucrătorii și toată evidența lor rămân de citit, dar nimic nu se mai schimbă: nu poți adăuga sau modifica lucrători, marca plecări, înregistra instruiri sau trimite invitații în portal. Butoanele acestor acțiuni nu mai apar.
+La un client arhivat, lucrătorii și toată evidența lor rămân de citit, dar nimic nu se mai schimbă: nu poți adăuga sau modifica lucrători, trece lucrători la foști, înregistra instruiri sau trimite invitații în portal. Butoanele acestor acțiuni nu mai apar, iar pagina fiecărui lucrător începe cu mențiunea **Client arhivat**.

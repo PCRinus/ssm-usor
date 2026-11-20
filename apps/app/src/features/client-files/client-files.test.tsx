@@ -97,6 +97,12 @@ function mockFilesApi({
       const method = init?.method ?? 'GET';
       if (pathname === `/clients/${clientId}`) return Response.json({ client: company });
       if (pathname === employeePath) return Response.json({ employee });
+      if (pathname === `${employeePath}/participant`) {
+        return Response.json({ participant: null, invitation: null });
+      }
+      if (pathname === `${employeePath}/signing-agreement/state`) {
+        return Response.json({ agreement: null, unavailable: null });
+      }
       if (pathname === filesPath) return Response.json({ items });
       if (pathname.endsWith('/owners-only')) return ownersOnly(init, url);
       if (pathname.startsWith(`${filesPath}/`)) {

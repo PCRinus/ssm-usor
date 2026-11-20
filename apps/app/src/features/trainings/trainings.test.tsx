@@ -296,7 +296,7 @@ const requests = (method: string, pathname: string) =>
 installFetchMock();
 
 describe("an employee's training tabs", () => {
-  it('splits the page into Date, Instruire SSM, Instruire SU and Documente, in the tabs and not in the sidebar', async () => {
+  it('splits the page into Date, Instruire SSM, Instruire SU, Documente and Portal, in the tabs and not in the sidebar', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, employeePage);
     const user = userEvent.setup();
@@ -309,6 +309,7 @@ describe("an employee's training tabs", () => {
       'Instruire SSM',
       'Instruire SU',
       'Documente',
+      'Portal',
     ]);
     expect(tabs[0]!.getAttribute('aria-current')).toBe('page');
     expect(screen.queryByTestId('nav-employee-group')).toBeNull();
