@@ -72,6 +72,6 @@ Un fișier pe care importul nu l-a putut citi are dedesubt, cu galben, „Neciti
 
 ## Documentele lucrătorului
 
-Pe pagina unui lucrător, tabul **Documente** ține fotografiile sau scanurile fișelor de instruire completate pe hârtie, actul adițional semnat de mână și orice alt fișier despre lucrător. Fișierele lui apar doar aici, nu și în **Alte documente** ale clientului.
+Pe pagina unui lucrător, tabul **Documente** ține fotografiile sau scanurile fișelor de instruire completate pe hârtie, actul adițional semnat de mână și orice alt fișier despre lucrător. Fișierele lui apar doar aici, nu și în **Alte documente** ale clientului. Scanul actului adițional semnat pe hârtie și cererea scrisă de revenire la semnarea de mână, încărcate din dialogurile tabului **Portal**, ajung tot aici.
 
 Lista, căutarea și filtrele sunt aceleași ca la client. Un lucrător adus dintr-un import din fișe are aici un rând „Fișe importate pe …”, deschis de la început, cu fotografiile fișelor lui și, dintr-un PDF scanat cu fișele mai multor persoane, doar paginile lui.
