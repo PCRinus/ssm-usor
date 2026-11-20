@@ -358,6 +358,11 @@ describe("an employee's training tabs", () => {
     expect(within(actions).getByTestId('training-sheet-ssm')).toBeTruthy();
     expect(actions.firstElementChild).toBe(screen.getByTestId('training-record'));
     expect(
+      Array.from(screen.getByTestId('employee-training-tab').querySelectorAll('button, a'))
+        .filter((element) => element.getAttribute('data-variant') === 'default')
+        .map((element) => element.getAttribute('data-testid'))
+    ).toEqual(['training-record']);
+    expect(
       within(screen.getByTestId('employee-training-tab'))
         .getAllByRole('heading', { level: 2 })
         .map((heading) => heading.textContent)

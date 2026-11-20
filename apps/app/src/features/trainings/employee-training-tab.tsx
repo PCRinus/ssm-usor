@@ -349,7 +349,7 @@ export function EmployeeTrainingTab({
         aria-labelledby={recordsHeadingId}
         className="overflow-hidden rounded-xl border bg-card pt-5"
       >
-        <div className="flex min-h-8 items-center px-5 pb-3 text-xl leading-7">
+        <div className="flex min-h-8 items-center px-6 pb-3 text-xl leading-7">
           <h2 id={recordsHeadingId} className="inline font-semibold tracking-[-0.01em]">
             Instruiri
           </h2>
@@ -370,7 +370,7 @@ export function EmployeeTrainingTab({
           <>
             {records.isSuccess && (
               <>
-                <ListCardHeader className="pt-0">
+                <ListCardHeader className="px-6 pt-0">
                   <ListFilters
                     facets={ownTrainingFacets}
                     values={listFilters.values}
