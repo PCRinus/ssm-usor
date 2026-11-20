@@ -790,7 +790,7 @@ describe('risk_assessment', () => {
     expect(text).not.toMatch(/\d+ – \d+\s*(I|II|III|IV|V|VI)\b/);
   });
 
-  // An empty bordered cell under a group's name read as missing data.
+  // A group's name covers its rows in one cell, never above empty bordered ones.
   it("merges a component's and a group's cells down the rows of the evaluation sheet", () => {
     const data = setSamples.find((sample) => sample.label === 'long')!.data;
     const body = new PizZip(renderDocument(read('9_risk_assessment.docx'), data))
@@ -840,7 +840,7 @@ describe('protective_equipment_list', () => {
   const template = read('6_protective_equipment_list.docx');
   const data = setSamples.find((sample) => sample.label === 'long')!.data;
 
-  // A table per post repeated its header more often than it had rows.
+  // One header for every post, each post named on a row of the table.
   it('lists every equipped post in one table, its name on a shaded row over its equipment', () => {
     const body = new PizZip(renderDocument(template, data)).file('word/document.xml')!.asText();
     const part = body.slice(body.indexOf('Necesarul de E.I.P. pe posturi de lucru'));

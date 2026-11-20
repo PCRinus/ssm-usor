@@ -302,25 +302,24 @@ function withVerticalAlignment(cell: string, value: 'center' | 'top') {
 }
 
 /**
- * A row of single lines reads centred; a row with more lines anywhere reads from the top. A
- * cell the merge joined to the rows under it (`mergedDown`) reads from the top, so its label
- * stands beside the group's first row.
+ * A row of single lines reads centred; a row with more lines anywhere, or with a cell merged
+ * down over the next row, reads from the top, so a group's name stands beside its first row.
  */
 function alignedRow(
   row: string,
   grid: number[],
   alignments: Map<number, 'center' | 'left'>,
-  groupColumns: ReadonlySet<number> = new Set()
+  mergedOn: ReadonlySet<number>
 ) {
   const placed = columnsOf(row);
-  const single = placed.every(
-    ({ column, cell }) => continuesMerge(cell) || cellLines(cell, column, grid) <= 1
-  );
+  const single =
+    mergedOn.size === 0 &&
+    placed.every(({ column, cell }) => continuesMerge(cell) || cellLines(cell, column, grid) <= 1);
   let index = 0;
   return row.replace(cellPattern, (cell) => {
     const { column } = placed[index]!;
     index += 1;
-    let laid = withVerticalAlignment(cell, single && !groupColumns.has(column) ? 'center' : 'top');
+    let laid = withVerticalAlignment(cell, single ? 'center' : 'top');
     const alignment = alignments.get(column);
     if (alignment && spanOf(cell) === 1 && !continuesMerge(cell)) {
       laid = laid.replace(paragraphPattern, (paragraph) =>
@@ -360,12 +359,11 @@ const mergePattern = /<w:vMerge(?: w:val="(\w+)")?\/>/;
 /**
  * A template cell that restarts a merge down a loop's row (9's component and factor group) is
  * joined to the cell above wherever the data left it empty: the data names a group on its
- * first row only. `groups` lists, per row, the columns of a cell that now spans rows under it.
+ * first row only.
  */
 function mergedDown(rows: string[], header: number) {
-  const merging = new Map<number, number>();
-  const groups = new Map<number, Set<number>>();
-  const joined = rows.map((row, index) => {
+  const merging = new Set<number>();
+  return rows.map((row, index) => {
     if (index < header) return row;
     const placed = columnsOf(row);
     let at = 0;
@@ -377,16 +375,26 @@ function mergedDown(rows: string[], header: number) {
         merging.delete(column);
         return cell;
       }
-      const opened = merging.get(column);
-      if (merge[1] === 'restart' && opened !== undefined && !textOf(cell).trim()) {
-        groups.set(opened, (groups.get(opened) ?? new Set()).add(column));
-        return cell.replace(merge[0], '<w:vMerge/>');
-      }
-      if (merge[1] === 'restart') merging.set(column, index);
+      if (merge[1] !== 'restart') return cell;
+      if (merging.has(column) && !textOf(cell).trim()) return cell.replace(merge[0], '<w:vMerge/>');
+      merging.add(column);
       return cell;
     });
   });
-  return { rows: joined, groups };
+}
+
+/** The columns where a cell of `row` starts a merge that `next` continues. */
+function mergedOnto(row: string, next: string | undefined) {
+  const continued = new Set(
+    columnsOf(next ?? '')
+      .filter(({ cell }) => continuesMerge(cell))
+      .map(({ column }) => column)
+  );
+  return new Set(
+    columnsOf(row)
+      .filter(({ column, cell }) => continued.has(column) && !continuesMerge(cell))
+      .map(({ column }) => column)
+  );
 }
 
 function laidOut(table: string) {
@@ -394,13 +402,13 @@ function laidOut(table: string) {
   let header = 0;
   while (header < rows.length && isHeader(rows[header]!)) header += 1;
   const grid = [...table.matchAll(/<w:gridCol w:w="(\d+)"/g)].map((match) => Number(match[1]));
-  const { rows: grouped, groups } = mergedDown(rows, header);
+  const grouped = mergedDown(rows, header);
   const withMarks = grouped.map((row, index) =>
     index < header ? row : row.replace(cellPattern, (cell) => withEmptyMark(cell))
   );
   const alignments = columnAlignments(withMarks, header);
   const marked = withMarks.map((row, index) =>
-    index < header ? row : alignedRow(row, grid, alignments, groups.get(index))
+    index < header ? row : alignedRow(row, grid, alignments, mergedOnto(row, withMarks[index + 1]))
   );
   const { cantSplit, keeps } = keepTogether(marked, header, grid);
   let index = 0;

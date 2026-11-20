@@ -152,7 +152,28 @@ describe('keeping the house tables together once merged', () => {
       'continue',
       'continue',
     ]);
-    expect(rows[1]).toMatch(/<w:vAlign w:val="top"\/>[\s\S]*<w:vAlign w:val="center"\/>/);
+    const vertical = (each: string) =>
+      [...each.matchAll(/<w:vAlign w:val="(\w+)"\/>/g)].map((match) => match[1]);
+    expect(vertical(rows[1]!)).toEqual(['top', 'top']);
+    expect(vertical(rows[2]!)).toEqual(['center', 'center']);
+  });
+
+  it('lays a merged group out the same when the merge pass runs again', async () => {
+    const { keepTablesTogether } = await import('./table-keep');
+    const marked = (text: string) =>
+      `<w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/><w:vMerge w:val="restart"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">${text}</w:t></w:r></w:p></w:tc>`;
+    const row = `<w:tr>${marked('{{#rows}}{{group}}')}${cell('{{name}}{{/rows}}')}</w:tr>`;
+    const once = new PizZip(
+      renderDocument(docx(table(house, header + row)), {
+        rows: [
+          { group: 'Mecanic', name: 'F1' },
+          { group: '', name: 'F2' },
+        ],
+      })
+    )
+      .file('word/document.xml')!
+      .asText();
+    expect(keepTablesTogether(once)).toBe(once);
   });
 
   it('leaves an empty cell of a table without the mark as it is', () => {

@@ -657,7 +657,8 @@ def house_table(table, kind):
             row = with_cells(row, lambda column, cell: with_widths(cell, column, grid))
         styled.append(row)
     alignments = column_alignments(styled, header)
-    styled = styled[:header] + [aligned_row(row, grid, alignments) for row in styled[header:]]
+    styled = styled[:header] + [aligned_row(row, grid, alignments, merged_onto(row, styled[index + 1] if index + 1 < len(styled) else ''))
+                                for index, row in enumerate(styled) if index >= header]
     cant_split, keeps = keep_together(styled, header, grid)
     styled = [apply_keep(row, cant, keep) for row, cant, keep in zip(styled, cant_split, keeps)]
     table = edit_properties(table, 'tblPr', house_table_properties(side_padding))
@@ -711,9 +712,16 @@ def column_alignments(rows, header):
     return alignments
 
 
-def aligned_row(row, grid, alignments):
-    """A row of single lines reads centred; a row with more lines anywhere reads from the top."""
-    single = all(continues_merge(cell) or cell_lines(cell, column, grid) <= 1 for column, cell in columns_of(row))
+def merged_onto(row, following):
+    """The columns where a cell of `row` starts a merge that `following` continues."""
+    continued = {column for column, cell in columns_of(following) if continues_merge(cell)}
+    return {column for column, cell in columns_of(row) if column in continued and not continues_merge(cell)}
+
+
+def aligned_row(row, grid, alignments, merged_on=frozenset()):
+    """A row of single lines reads centred; a row with more lines anywhere, or with a cell merged
+    down over the next row, reads from the top, so a group's name stands beside its first row."""
+    single = not merged_on and all(continues_merge(cell) or cell_lines(cell, column, grid) <= 1 for column, cell in columns_of(row))
 
     def change(column, cell):
         cell = edit_cell(cell, lambda inner: put(
