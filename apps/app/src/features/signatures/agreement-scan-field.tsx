@@ -3,7 +3,7 @@ import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { File as FileIcon, Upload, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Masked } from '@/components/replay';
 import {
@@ -43,14 +43,26 @@ export function AgreementScanField({
 }) {
   const files = useEmployeeFiles(clientId, employeeId);
   const input = useRef<HTMLInputElement>(null);
+  const chooseButton = useRef<HTMLButtonElement>(null);
+  const removeButton = useRef<HTMLButtonElement>(null);
+  // Only a pick or a removal moves the focus; the switch to the uploaded file leaves it be.
+  const moveFocus = useRef(false);
   const [refusal, setRefusal] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!moveFocus.current) return;
+    moveFocus.current = false;
+    (value.file ? removeButton : chooseButton).current?.focus();
+  }, [value.file]);
 
   function choose(chosen: File[]) {
     const [file] = chosen;
     if (!file) return;
     const refused = scanRefusal(file);
     setRefusal(refused);
-    if (!refused) onChange({ file, existingId: '' });
+    if (refused) return;
+    moveFocus.current = true;
+    onChange({ file, existingId: '' });
   }
 
   const drop = useFileDrop(choose);
@@ -82,10 +94,14 @@ export function AgreementScanField({
             variant="ghost"
             size="icon-sm"
             className="max-sm:size-11"
+            ref={removeButton}
             aria-label="Scoate fișierul"
             data-testid={`${id}-remove`}
             disabled={disabled}
-            onClick={() => onChange(noScan)}
+            onClick={() => {
+              moveFocus.current = true;
+              onChange(noScan);
+            }}
           >
             <X aria-hidden="true" />
           </Button>
@@ -106,6 +122,7 @@ export function AgreementScanField({
                 Trage fișierul aici sau
               </span>
               <Button
+                ref={chooseButton}
                 type="button"
                 variant="secondary"
                 size="sm"
