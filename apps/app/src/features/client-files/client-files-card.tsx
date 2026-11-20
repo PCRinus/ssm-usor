@@ -254,16 +254,28 @@ export function ClientFilesCard({
           >
             <EmptyState
               icon={FileUp}
-              title="Niciun fișier încă"
+              title={
+                employee ? (
+                  <>
+                    Niciun fișier încă <HelpLink topic={help} label={helpLabel} />
+                  </>
+                ) : (
+                  'Niciun fișier încă'
+                )
+              }
               actions={
-                <>
-                  {canUpload && uploadButton('Alege fișiere')}
-                  <HelpLink
-                    topic={help}
-                    label={helpLabel}
-                    className="my-0 size-9 self-center justify-self-center"
-                  />
-                </>
+                employee ? (
+                  canUpload && uploadButton('Încarcă fișiere')
+                ) : (
+                  <>
+                    {canUpload && uploadButton('Alege fișiere')}
+                    <HelpLink
+                      topic={help}
+                      label={helpLabel}
+                      className="my-0 size-9 self-center justify-self-center"
+                    />
+                  </>
+                )
               }
             >
               {canUpload

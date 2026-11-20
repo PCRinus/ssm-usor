@@ -708,7 +708,12 @@ describe('the files of an employee', () => {
     const user = userEvent.setup();
 
     const card = await screen.findByTestId('employee-files-card');
-    expect(await within(card).findByTestId('client-files-empty')).toBeTruthy();
+    const empty = await within(card).findByTestId('client-files-empty');
+    const heading = within(empty).getByRole('heading', { name: /Niciun fișier încă/ });
+    expect(
+      within(heading).getByRole('link', { name: 'Ajutor: Documentele lucrătorului' })
+    ).toBeTruthy();
+    expect(within(empty).getByTestId('client-files-upload').textContent).toBe('Încarcă fișiere');
     const dialog = await openUploadDialog(user);
     expect(within(dialog).getByTestId('client-files-upload-employee').textContent).toBe(
       'Pentru lucrătorul Popescu Ion.'
@@ -1233,7 +1238,7 @@ describe('finding a file of an employee', () => {
     const card = await screen.findByTestId('employee-files-card');
     const empty = await within(card).findByTestId('client-files-empty');
     expect(empty.textContent).toContain('Nu a fost încărcat niciun fișier.');
-    expect(within(empty).queryByRole('button', { name: 'Alege fișiere' })).toBeNull();
+    expect(within(empty).queryByTestId('client-files-upload')).toBeNull();
     expect(
       within(empty).getByRole('link', { name: 'Ajutor: Documentele lucrătorului' })
     ).toBeTruthy();
