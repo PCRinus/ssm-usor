@@ -39,7 +39,8 @@ STYLES = {
 }
 # The occupational safety annexes are set as the common part of 3.2: left-aligned, the text after
 # "Art. N." at the common part's article tab, a list label one tier in per level (6.35 mm, the
-# third at 25.4 mm) with 8 mm to its text, so "(24)" or "xvi." still leaves a gap.
+# third at 25.4 mm) with 8 mm to its text, so "(24)" or "xvi." still leaves a gap; a bullet of
+# any glyph prints as the common part's en dash, at the same tiers and hang.
 LABEL_TEXT = 800
 ARTICLE_TAB = 1905
 HOUSE_STYLES = {
@@ -49,6 +50,9 @@ HOUSE_STYLES = {
     'AnnexItem1': {'above': 2, 'left': HANG + LABEL_TEXT, 'hang': LABEL_TEXT},
     'AnnexItem2': {'above': 2, 'left': 2 * HANG + LABEL_TEXT, 'hang': LABEL_TEXT},
     'AnnexItem3': {'above': 2, 'left': 4 * HANG + LABEL_TEXT, 'hang': LABEL_TEXT},
+    'AnnexDash1': {'above': 2, 'left': 2 * HANG},
+    'AnnexDash2': {'above': 2, 'left': 3 * HANG},
+    'AnnexDash3': {'above': 2, 'left': 5 * HANG},
     'AnnexActs': {'above': 12},
 }
 
@@ -162,8 +166,9 @@ def build(desktop, definition, target, word_2013):
     tags = 'AnnexParagraph'
     styled(text, cursor, '{{#paragraphs}}', tags)
     article = 'Art. {{number}}.\t{{text}}' if word_2013 else 'Art. {{number}}. {{text}}'
-    label = '{{#strong}}{{marker}}{{/strong}}' if word_2013 else ''
-    item = f'{label}{{{{^strong}}}}{{{{marker}}}}{{{{/strong}}}}\t{{{{text}}}}' if word_2013 else '{{marker}}\t{{text}}'
+    label = '{{marker}}' if word_2013 else ''
+    item = '{{marker}}\t{{text}}'
+    dashes = [(f'dash{tier}', f'AnnexDash{tier}', '–\t{{text}}', '') for tier in (1, 2, 3)] if word_2013 else []
     for key, style, content, bold in (
         ('heading', 'AnnexHeading', '{{heading}}', ''),
         ('article', 'AnnexArticle', article, 'Art. {{number}}.'),
@@ -171,6 +176,7 @@ def build(desktop, definition, target, word_2013):
         ('item1', 'AnnexItem1', item, label),
         ('item2', 'AnnexItem2', item, label),
         ('item3', 'AnnexItem3', item, label),
+        *dashes,
     ):
         styled(text, cursor, f'{{{{#{key}}}}}', tags)
         styled(text, cursor, content, style, bold)

@@ -81,15 +81,15 @@ describe('annexParagraphs', () => {
               : ['paragraph', item.paragraph]
     );
     expect(tiers).toEqual([
-      [1, { marker: '1.', text: 'cablul;', strong: true }],
-      [2, { marker: 'a)', text: 'izolația;', strong: true }],
-      [2, { marker: 'b)', text: 'ștecherul;', strong: true }],
-      [1, { marker: '2.', text: 'apărătoarea;', strong: true }],
-      [3, { marker: '–', text: 'fixarea ei.', strong: false }],
+      [1, { marker: '1.', text: 'cablul;' }],
+      [2, { marker: 'a)', text: 'izolația;' }],
+      [2, { marker: 'b)', text: 'ștecherul;' }],
+      [1, { marker: '2.', text: 'apărătoarea;' }],
+      [3, { marker: '–', text: 'fixarea ei.' }],
       ['paragraph', 'Fără marcaj.'],
       ['article', 'Se interzice:'],
-      [1, { marker: 'a)', text: 'fumatul;', strong: true }],
-      [2, { marker: '•', text: 'focul deschis.', strong: false }],
+      [1, { marker: 'a)', text: 'fumatul;' }],
+      [2, { marker: '•', text: 'focul deschis.' }],
     ]);
   });
 
@@ -148,7 +148,7 @@ describe.each([
         'paragraphs',
         'provider.legalName',
         ...(domain === 'ssm' ? ['provider.representativeName', 'provider.representativeRole'] : []),
-        ...(domain === 'ssm' ? ['strong'] : []),
+        ...(domain === 'ssm' ? ['dash1', 'dash2', 'dash3'] : []),
         'text',
         'title',
         'versionDate',
@@ -213,6 +213,50 @@ describe.each([
     expect(style('AnnexItem2')).toContain('<w:ind w:hanging="454" w:left="1174"/>');
     expect(style('AnnexArticle')).toMatch(/<w:tab w:val="left" w:pos="1080"[^>]*\/>/);
     expect(xml).toMatch(/<w:b\/>(?:(?!<\/w:r>)[\s\S])*<w:t[^>]*>a\)<\/w:t>/);
+  });
+
+  it('prints every bullet as the en dash of the common part, whatever glyph was typed', () => {
+    const typed = {
+      blocks: [
+        {
+          kind: 'article' as const,
+          paragraphs: [
+            'Se interzice:',
+            '• fumatul;',
+            '– focul deschis;',
+            'a) în depozit:',
+            '▪ cutiile de carton;',
+            '» buteliile;',
+            '- recipientele.',
+          ],
+        },
+      ],
+    };
+    const xml = part(renderAnnex(domain, typed, data), 'word/document.xml');
+    const items = (xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g) ?? []).filter(
+      (paragraph) => /AnnexItem|AnnexDash/.test(paragraph)
+    );
+    const labels = items.map((paragraph) => paragraphTexts(paragraph)[0]!.split('\t')[0]);
+    if (domain === 'su') {
+      expect(labels).toEqual(['•', '–', 'a)', '▪', '-']);
+      return;
+    }
+    expect(labels).toEqual(['–', '–', 'a)', '–', '–', '–']);
+    expect(items.map((paragraph) => /w:val="(Annex\w+)"/.exec(paragraph)![1])).toEqual([
+      'AnnexDash1',
+      'AnnexDash1',
+      'AnnexItem2',
+      'AnnexDash1',
+      'AnnexDash1',
+      'AnnexDash1',
+    ]);
+    // The common part's tiers: the dash at 6.35 mm, 12.7 mm, 25.4 mm, its text 6.35 mm further.
+    const styles = part(renderAnnex(domain, typed, data), 'word/styles.xml');
+    const indent = (id: string) =>
+      new RegExp(`w:styleId="${id}">[\\s\\S]*?<w:ind ([^>]*)/>`).exec(styles)![1];
+    expect(indent('AnnexDash1')).toBe('w:hanging="360" w:left="720"');
+    expect(indent('AnnexDash2')).toBe('w:hanging="360" w:left="1080"');
+    expect(indent('AnnexDash3')).toBe('w:hanging="360" w:left="1800"');
   });
 
   it('keeps a line that ends with ":" and the last article with what follows them', () => {

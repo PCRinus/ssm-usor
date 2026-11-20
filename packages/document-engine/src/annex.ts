@@ -15,8 +15,6 @@ export interface AnnexBody {
 interface AnnexItem {
   marker: string;
   text: string;
-  // A number or a letter prints bold, a bullet regular.
-  strong: boolean;
 }
 
 export interface AnnexParagraph {
@@ -26,6 +24,11 @@ export interface AnnexParagraph {
   item1: AnnexItem | false;
   item2: AnnexItem | false;
   item3: AnnexItem | false;
+  // The occupational safety annex prints every bullet, whatever glyph the member typed, as the
+  // en dash of the common part's lists, hung as its dashes are.
+  dash1?: { text: string } | false;
+  dash2?: { text: string } | false;
+  dash3?: { text: string } | false;
 }
 
 const marker = /^(\(?\p{Ll}{1,4}\)|\(?\d{1,3}(?:\.\d{1,3})*[.)]|[–—\-•·▪◦●○■►➢✓*])\s+/u;
@@ -77,15 +80,46 @@ export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
       const tier = Math.min(tiers.indexOf(kind) + 1, 3) as 1 | 2 | 3;
       paragraphs.push({
         ...empty,
-        [`item${tier}`]: {
-          marker: match[1]!,
-          text: text.slice(match[0].length),
-          strong: kind !== 'bullet',
-        },
+        [`item${tier}`]: { marker: match[1]!, text: text.slice(match[0].length) },
       });
     }
   }
   return paragraphs;
+}
+
+const tiers = ['1', '2', '3'] as const;
+
+// "»" opens a list item only in the occupational safety annex, which prints it as a dash.
+const withTypedDashes = (body: AnnexBody): AnnexBody => ({
+  blocks: body.blocks.map((block) =>
+    block.kind === 'article'
+      ? {
+          ...block,
+          paragraphs: block.paragraphs.map((text, index) =>
+            index > 0 ? text.replace(/^»(?=\s)/u, '–') : text
+          ),
+        }
+      : block
+  ),
+});
+
+function withDashes(paragraphs: AnnexParagraph[]): AnnexParagraph[] {
+  return paragraphs.map((paragraph) => {
+    const tier = tiers.find((each) => {
+      const item = paragraph[`item${each}`];
+      return item && markerKind(item.marker) === 'bullet';
+    });
+    if (!tier) return { ...paragraph, dash1: false, dash2: false, dash3: false };
+    const item = paragraph[`item${tier}`] as AnnexItem;
+    return {
+      ...paragraph,
+      [`item${tier}`]: false,
+      dash1: false,
+      dash2: false,
+      dash3: false,
+      [`dash${tier}`]: { text: item.text },
+    };
+  });
 }
 
 // `data` is what the own instructions' header merges (`issueDate`, `provider`, `client`,
@@ -94,7 +128,8 @@ export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
 export function renderAnnex(domain: AnnexDomain, body: AnnexBody, data: TemplateData): Uint8Array {
   const document = renderDocument(annexTemplate(domain), {
     ...data,
-    paragraphs: annexParagraphs(body),
+    paragraphs:
+      domain === 'ssm' ? withDashes(annexParagraphs(withTypedDashes(body))) : annexParagraphs(body),
   });
   if (domain !== 'ssm') return document;
   const zip = new PizZip(document);

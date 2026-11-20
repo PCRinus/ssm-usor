@@ -82,7 +82,7 @@ import {
 import { articleCountLabel } from './instruction-schema';
 
 const articlePlaceholder =
-  'Scrie articolul. Fiecare rând e un paragraf; un rând care începe cu „a)”, „1.”, „–” sau „•” se tipărește ca punct al unei enumerări.';
+  'Scrie articolul. Fiecare rând e un paragraf; un rând care începe cu „a)”, „1.” sau „–” se tipărește ca punct al unei enumerări.';
 
 type PasteOffer = { blockId: string; kept: string; pastedInto: string; result: SplitResult };
 
