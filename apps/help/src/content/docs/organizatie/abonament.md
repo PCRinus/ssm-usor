@@ -128,7 +128,7 @@ Dacă treci de treapta ta, lucrezi mai departe cu tot ce ai. Pagina îți spune 
 Termenul e aceeași zi din luna următoare celei în care ai trecut de treaptă: dacă ai trecut pe 14 noiembrie, mai poți adăuga lucrători noi până pe 14 decembrie inclusiv. Dacă a doua zi ai tot mai mulți lucrători decât treapta, nu mai poți:
 
 - adăuga lucrători, din formular sau dintr-un import din fișe;
-- anula trecerea unui fost lucrător la foști;
+- anula trecerea la foști a unui lucrător;
 - reactiva un client arhivat care are lucrători;
 - confirma importul unui client care vine cu lucrători.
 
