@@ -1295,7 +1295,7 @@ describe("the employee's signing agreement", () => {
       },
     });
     const user = userEvent.setup();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-state')).textContent).toBe(
       'Nesemnat'
@@ -1337,7 +1337,7 @@ describe("the employee's signing agreement", () => {
           expiresInSeconds: 600,
         }),
     });
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     await waitFor(() =>
       expect(within(card).getByTestId('signing-agreement-download').getAttribute('href')).toContain(
@@ -1402,7 +1402,7 @@ describe("the employee's signing agreement", () => {
       },
     });
     const user = userEvent.setup();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     await user.click(await within(card).findByTestId('signing-agreement-paper'));
     const dialog = await screen.findByTestId('signing-agreement-paper-dialog');
@@ -1426,7 +1426,7 @@ describe("the employee's signing agreement", () => {
   it('asks for an email or a phone when the agreement cannot name where the codes go', async () => {
     mockApi({ [`GET ${agreementPath}`]: () => conflict('employee_has_no_address') });
     const user = userEvent.setup();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     await user.click(await within(card).findByTestId('signing-agreement-download'));
     expect((await within(card).findByTestId('signing-agreement-no-address')).textContent).toContain(
@@ -1468,7 +1468,7 @@ describe("the employee's signing agreement", () => {
           },
         }),
     });
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('employee-portal-card');
     expect((await within(card).findByTestId('agreement-warning')).textContent).toBe(
       'Act adițional nesemnat'
@@ -1477,7 +1477,7 @@ describe("the employee's signing agreement", () => {
 
   it('does not warn about an employee who has no portal access', async () => {
     mockApi();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('employee-portal-card');
     await within(card).findByTestId('participant-none');
     expect(within(card).queryByTestId('agreement-warning')).toBeNull();
@@ -1507,7 +1507,7 @@ describe("the employee's signing agreement", () => {
           }),
         }),
     });
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('employee-portal-card');
     expect((await within(card).findByTestId('agreement-warning')).textContent).toBe(
       'Act adițional așteaptă angajatorul'
@@ -1526,7 +1526,7 @@ describe("the employee's signing agreement", () => {
           }),
         }),
     });
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
       'Semnat de lucrător pe 1 oct. 2026, așteaptă semnătura administratorului în portal.'
@@ -1547,7 +1547,7 @@ describe("the employee's signing agreement", () => {
       },
     });
     const user = userEvent.setup();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
       'Semnat electronic pe 2 oct. 2026.'
@@ -1598,7 +1598,7 @@ describe("the employee's signing agreement", () => {
       },
     });
     const user = userEvent.setup();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     await user.click(await within(card).findByTestId('signing-agreement-clause'));
     const clause = await screen.findByTestId('signing-agreement-clause-dialog');
@@ -1631,7 +1631,7 @@ describe("the employee's signing agreement", () => {
       [`GET /clients/${clientId}/documents`]: () =>
         Response.json({ items: [], notApplicable: [], lastGeneration: null }),
     });
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-annex')).textContent).toContain(
       'Anexa 13 la regulamentul intern nu este emisă.'
@@ -1647,7 +1647,7 @@ describe("the employee's signing agreement", () => {
           lastGeneration: null,
         }),
     });
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     await within(card).findByTestId('signing-agreement-state');
     await waitFor(() => expect(requests('GET', `/clients/${clientId}/documents`)).toHaveLength(1));

@@ -10,7 +10,6 @@ import type {
   FireInstallationListResponse,
   SigningAgreementResponse,
 } from '@/api/generated/api';
-import { openedFromRecord } from '@/app/opener';
 import { startWayBack } from '@/features/missing-data/way-back';
 import { resetReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
 import { formatRoDate } from '@/lib/dates';
@@ -1315,13 +1314,9 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(unchanged).not.toHaveProperty('jobPositionId');
     expect(unchanged).toMatchObject({ qualification: 'Sudor autorizat', commuteMinutes: 35 });
 
-    await act(() =>
-      runtime.router.navigate({
-        to: '/clienti/$clientId/angajati/$employeeId/editare',
-        params: { clientId, employeeId: sampleEmployee.id },
-      })
-    );
+    await user.click(screen.getByTestId('employee-employment-edit'));
     await screen.findByTestId('edit-employee-page');
+    await waitFor(() => expect(runtime.router.state.location.search).not.toHaveProperty('focus'));
     await user.click(screen.getByTestId('employee-workplace'));
     await user.click(
       within(await screen.findByRole('listbox')).getByRole('option', { name: /Sediu/ })
@@ -1677,14 +1672,9 @@ describe('employee detail', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('employees-open'));
     await screen.findByTestId('employee-page');
-    await act(() =>
-      runtime.router.navigate({
-        to: '/clienti/$clientId/angajati/$employeeId/editare',
-        params: { clientId, employeeId: sampleEmployee.id },
-        state: openedFromRecord(detailPage),
-      })
-    );
+    await user.click(screen.getByTestId('employee-identity-edit'));
     await screen.findByTestId('edit-employee-page');
+    await waitFor(() => expect(runtime.router.state.location.search).not.toHaveProperty('focus'));
     expect(screen.getByRole('link', { name: 'Înapoi' }).getAttribute('href')).toBe(detailPage);
 
     await user.click(screen.getByRole('link', { name: 'Renunță' }));
@@ -1980,9 +1970,14 @@ describe('employee editing', () => {
     expect(runtime.router.state.location.pathname).toBe(editPage);
   });
 
-  it('opens with what was entered, contract title and post apart', async () => {
+  it('opens from the employee page with what was entered, contract title and post apart', async () => {
     mockApi({ detail: () => Response.json({ employee: stored }) });
-    const runtime = mountApp(authFixture(makeSession()).client, editPage);
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `${employeesPage}/${sampleEmployee.id}`
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('employee-identity-edit'));
     await screen.findByTestId('edit-employee-page');
     expect(runtime.router.state.location.pathname).toBe(editPage);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Modifică');

@@ -195,7 +195,7 @@ const requests = (pathname: string, method = 'GET') => bodiesOf(pathname, method
 
 installFetchMock();
 
-const mountEmployee = () => mountApp(authFixture(makeSession()).client, employeePage);
+const mountEmployee = () => mountApp(authFixture(makeSession()).client, `${employeePage}/portal`);
 const portalCard = () => screen.findByTestId('employee-portal-card');
 
 describe("the employee's portal access", () => {
