@@ -547,8 +547,6 @@ describe('Word 2013 layout of the occupational safety set', () => {
     expect(chapter).toContain('<w:pageBreakBefore/>');
   });
 
-  // A list sits 2 pt under its lead-in, its items 2 pt apart, sub-lists included; and its
-  // sub-lists hang one tier under the item that introduces them.
   it.each([
     '2.2_general_training_material.docx',
     '3.2_own_instructions.docx',

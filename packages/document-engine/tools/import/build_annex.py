@@ -162,7 +162,6 @@ def build(desktop, definition, target, word_2013):
     tags = 'AnnexParagraph'
     styled(text, cursor, '{{#paragraphs}}', tags)
     article = 'Art. {{number}}.\t{{text}}' if word_2013 else 'Art. {{number}}. {{text}}'
-    # A number or a letter bold, a dash regular, as in the common part.
     label = '{{#strong}}{{marker}}{{/strong}}' if word_2013 else ''
     item = f'{label}{{{{^strong}}}}{{{{marker}}}}{{{{/strong}}}}\t{{{{text}}}}' if word_2013 else '{{marker}}\t{{text}}'
     for key, style, content, bold in (

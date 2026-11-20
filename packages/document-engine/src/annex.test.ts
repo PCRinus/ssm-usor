@@ -207,7 +207,6 @@ describe.each([
       expect(style('AnnexArticle')).toContain('<w:jc w:val="both"/>');
       return;
     }
-    // Left-aligned like the common part, the labels a tier in each and 8 mm from their text.
     for (const id of ['AnnexArticle', 'AnnexParagraph', 'AnnexItem1', 'AnnexItem2', 'AnnexItem3'])
       expect(style(id)).toContain('<w:jc w:val="left"/>');
     expect(style('AnnexItem1')).toContain('<w:ind w:hanging="454" w:left="814"/>');
