@@ -199,6 +199,16 @@ describe("the Date tab of a worker's page", () => {
     await waitFor(() => expect(document.activeElement).toBe(target));
   });
 
+  it('names an archived post without a link', async () => {
+    mockPage({ employee: { ...worker, jobPosition: { ...worker.jobPosition, archived: true } } });
+    open();
+    await screen.findByTestId('employee-page');
+    const post = screen.getByTestId('employee-job-position');
+    expect(post.textContent).toBe('Operator ambalare');
+    expect(post.tagName).toBe('SPAN');
+    expect(post.querySelector('svg')).toBeNull();
+  });
+
   it('links the post to its page and changes it from the same row', async () => {
     mockPage();
     open();
@@ -303,9 +313,9 @@ describe("the Date tab of a worker's page", () => {
 
     await user.click(eye);
     expect(value.textContent).toBe('2890714260037');
-    const hide = screen.getByRole('button', { name: 'Ascunde CNP-ul' });
-    expect(hide.getAttribute('aria-pressed')).toBe('true');
-    await user.click(hide);
+    expect(eye.getAttribute('aria-label')).toBe('Arată CNP-ul');
+    expect(eye.getAttribute('aria-pressed')).toBe('true');
+    await user.click(eye);
     expect(value.textContent).toBe('•••••••••0037');
   });
 

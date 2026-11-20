@@ -8,15 +8,7 @@ import {
 import type { HelpTopic } from '@ssm-usor/help-topics/topics';
 import { Button } from '@ssm-usor/ui/components/button';
 import { getRouteApi, Link } from '@tanstack/react-router';
-import {
-  ArrowRightLeft,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Pencil,
-  Plus,
-  TriangleAlert,
-} from 'lucide-react';
+import { ArrowRightLeft, Eye, EyeOff, Pencil, Plus, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import type { TrainingSheetsResponse } from '@/api/generated/api';
@@ -37,6 +29,7 @@ import { formatDate, todayIso } from '@/lib/dates';
 import { formatTenure } from './employee-format';
 import { EmployeeJobPositionDialog } from './employee-job-position-dialog';
 import { EmployeePending } from './employee-pending';
+import { LinkText } from './link-text';
 import { useEmployee } from './use-employee';
 
 const employeeRoute = getRouteApi('/_authenticated/clienti/$clientId/angajati/$employeeId');
@@ -97,9 +90,14 @@ function EditLink({
   );
 }
 
-// The last word and the chevron share a line, so the chevron never wraps alone.
-function PostLink({ clientId, post }: { clientId: string; post: { id: string; name: string } }) {
-  const cut = post.name.lastIndexOf(' ') + 1;
+function PostLink({
+  clientId,
+  post,
+}: {
+  clientId: string;
+  post: { id: string; name: string; archived: boolean };
+}) {
+  if (post.archived) return <span data-testid="employee-job-position">{post.name}</span>;
   return (
     <Link
       to="/clienti/$clientId/posturi/$jobPositionId"
@@ -108,11 +106,7 @@ function PostLink({ clientId, post }: { clientId: string; post: { id: string; na
       data-testid="employee-job-position"
       className="underline-offset-4 hover:underline"
     >
-      {post.name.slice(0, cut)}
-      <span className="whitespace-nowrap">
-        {post.name.slice(cut)}
-        <ChevronRight aria-hidden="true" className="ml-0.5 inline size-4 align-[-0.2em]" />
-      </span>
+      <LinkText>{post.name}</LinkText>
     </Link>
   );
 }
@@ -153,7 +147,7 @@ function Cnp({ value }: { value: string }) {
         size="icon-sm"
         className="-my-1.5 text-section-tab-foreground max-sm:-my-3 max-sm:size-11"
         data-testid="employee-cnp-toggle"
-        aria-label={revealed ? 'Ascunde CNP-ul' : 'Arată CNP-ul'}
+        aria-label="Arată CNP-ul"
         aria-pressed={revealed}
         onClick={() => setRevealed((current) => !current)}
       >
