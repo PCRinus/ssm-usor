@@ -237,7 +237,7 @@
       "file": "10_prevention_plan.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă, la aceeași înălțime. Fiecare plan poartă numele postului, cu locul de muncă alături. Coloanele își împart lățimea după cât text are fiecare, iar paginile se leagă pe latura de sus."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă, la aceeași înălțime. Fiecare plan poartă numele postului, cu locul de muncă alături. Coloanele își împart lățimea după cât text are fiecare, iar paginile se leagă pe latura de sus. O măsură pe rând în celule."
       }
     },
     {

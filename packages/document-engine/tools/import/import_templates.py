@@ -2067,7 +2067,7 @@ def sweep(path, word_2013=None):
         if word_2013:
             document, styles, numbering = typography(
                 labelled.get('word/document.xml', document), styles, labelled.get('word/numbering.xml'),
-                contents is not None)
+                contents is not None, os.path.basename(path))
             labelled['word/document.xml'], labelled['word/styles.xml'] = document, styles
             if numbering is not None:
                 labelled['word/numbering.xml'] = numbering

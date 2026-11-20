@@ -73,6 +73,16 @@ describe('measuring a column', () => {
     expect(held.floor).toBe(Math.ceil(textWidth('25\u00a0kg', size)) + 20);
   });
 
+  it('counts a hung measure from its indent, its dash once', () => {
+    const measured = measureColumn(
+      [],
+      { cells: [[{ lines: ['– Verificarea'], size, indent: 170 }]] },
+      0
+    );
+    expect(measured.floor).toBe(Math.ceil(170 + textWidth('Verificarea', size)) + 20);
+    expect(measured.oneLine).toBe(measured.floor);
+  });
+
   it('never breaks after a hyphen before a digit, in a date or a phone number', () => {
     for (const whole of ['31-12-2026', '0722-123-456']) {
       const measured = measureColumn([], { cells: [lines(`la ${whole}`)] }, 0);

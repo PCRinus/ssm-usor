@@ -30,7 +30,6 @@ HEADER_FILL = 'E3E8E0'
 # A row of one cell across the table in this fill names the group of rows under it (6's posts)
 # and keeps with the row after it, so a group never starts at a page's foot.
 GROUP_FILL = 'F1F4EF'
-# A table of more columns is set in the small print.
 WIDE_COLUMNS = 6
 PADDING = (('top', 40), ('left', 85), ('bottom', 40), ('right', 85))  # twips
 HOUSE_TABLE = 'HouseTable'

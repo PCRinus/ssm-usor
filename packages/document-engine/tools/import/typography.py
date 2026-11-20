@@ -47,7 +47,6 @@ LABEL_FORMATS = {'decimal': 'number', 'lowerLetter': 'letter', 'upperLetter': 'l
 
 
 def body_blocks(xml):
-    """The top-level paragraphs, tables and content controls of the body, as (kind, start, end)."""
     depth, start, kind = 0, 0, None
     for match in BLOCK_TAG.finditer(xml):
         closing, name, empty = match.groups()
@@ -69,6 +68,11 @@ def own_properties(paragraph):
     return match.group(1) if match else ''
 
 
+def spoken(paragraph):
+    """The text with its tabs, which a typed list label is followed by ("–⇥Verificați")."""
+    return ''.join(match.group(1) or '\t' for match in re.finditer(r'<w:t\b[^>]*>([^<]*)</w:t>|<w:tab/>', paragraph))
+
+
 def text_of(paragraph):
     return ''.join(match.group(2) for match in TEXT.finditer(paragraph))
 
@@ -84,7 +88,6 @@ def number(xml, name):
 
 
 class Styles:
-    """What a paragraph style says, through the styles it is based on."""
 
     def __init__(self, styles):
         self.xml = styles
@@ -114,7 +117,6 @@ class Styles:
 
 
 class Numbering:
-    """A list level's definition, through a num's override to its abstract list."""
 
     def __init__(self, numbering):
         self.xml = numbering or ''
@@ -177,7 +179,6 @@ def indent_of(xml):
 
 
 class Item:
-    """A list item of the body: its kind of label, and where its label and its text stand."""
 
     def __init__(self, kind, label, text, typed, level_key):
         self.kind, self.label, self.text, self.typed, self.level_key = kind, label, text, typed, level_key
@@ -185,7 +186,7 @@ class Item:
 
 def list_item(paragraph, styles, numbering):
     properties = own_properties(paragraph)
-    said = text_of(paragraph).strip()
+    said = unescaped(spoken(paragraph)).strip()
     found = numbering_of(properties, styles)
     style = re.search(r'<w:pStyle w:val="([^"]+)"', properties)
     style_left, style_hanging = styles.lookup(style.group(1) if style else None,
@@ -307,7 +308,6 @@ def escaped(text):
 
 
 def cut_runs(paragraph, positions):
-    """The paragraph with its runs cut at these offsets of its text, where a run allows it."""
     for start, end, at, said, simple in reversed(text_runs(paragraph)):
         plain = unescaped(said)
         inside = sorted({position - at for position in positions if at < position < at + len(plain)}, reverse=True)
@@ -327,8 +327,6 @@ def cut_runs(paragraph, positions):
 
 
 def edit_text_range(paragraph, start, end, change):
-    """Every run whose text lies within [start, end) of the paragraph's text passed through
-    `change`, cut at the two ends first."""
     paragraph = cut_runs(paragraph, [start, end])
     for run_start, run_end, at, said, _ in reversed(text_runs(paragraph)):
         length = len(unescaped(said))
@@ -357,7 +355,6 @@ def balanced_end(text, start):
 
 
 def note_span(text):
-    """Where a "(Preluare din …)" note stands at the head of a paragraph, after its label."""
     head = re.match(r'\s*(?:\(\d+\)\s*)?', text).end()
     if not NOTE.match(text, head):
         return None
@@ -365,14 +362,14 @@ def note_span(text):
     return (head, end) if end else None
 
 
-def body_styles(document, styles_xml):
-    """The copies of the originals' heading styles that hold body text: bold, and never
-    centred. 9's "Paragraph 1" is its title's, centred, and stays."""
+def body_styles(document, styles_xml, bold_only=True):
+    """The copies of the originals' heading styles that hold body text, never centred. 9's
+    "Paragraph 1" is its title's, centred, and stays."""
     found = []
     styles = Styles(styles_xml)
     for name in sorted(set(re.findall(r'<w:pStyle w:val="(Paragraph\d)"/>', document))):
         definition = re.search(rf'<w:style\b[^>]*w:styleId="{name}"[^>]*>.*?</w:style>', styles_xml, re.S)
-        if not definition or not re.search(r'<w:rPr>(?:(?!</w:rPr>).)*<w:b/>', definition.group(0), re.S):
+        if not definition or (bold_only and not re.search(r'<w:rPr>(?:(?!</w:rPr>).)*<w:b/>', definition.group(0), re.S)):
             continue
         centred = False
         for match in re.finditer(r'<w:p\b[^>]*>(?:(?!</w:p>).)*</w:p>', document, re.S):
@@ -389,7 +386,6 @@ def body_styles(document, styles_xml):
 
 
 def plain_articles(document, styles_xml):
-    """Only an article's labels bold, never its body, and a note italic."""
     names = body_styles(document, styles_xml)
 
     def paragraph(match):
@@ -428,8 +424,64 @@ def plain_articles(document, styles_xml):
     return document, styles_xml
 
 
+# The long documents quote the law article by article: an alineat's or a letter's label typed
+# at the head of a paragraph is bold, as the articles' are, and an article's body regular even
+# where a run of the original says bold.
+ARTICLE_DOCUMENTS = ('2.2_general_training_material.docx', '3.2_own_instructions.docx', '11_employer_briefing.docx')
+LEADING_LABEL = re.compile(r'\s*(\(\d+\)|[a-z]\))(?=\s)')
+
+
+def leading_label(said):
+    note = note_span(said)
+    found = LEADING_LABEL.match(said, note[1] if note else 0)
+    if found:
+        return (found.start(1), found.end(1)), found.end(1)
+    return None, note[1] if note else 0
+
+
+def explicitly_bold(xml, start, end):
+    return any(BOLD_ON.search(element(xml[run_start:run_end], 'rPr') or '')
+               for run_start, run_end, at, said, _ in text_runs(xml)
+               if said.strip() and at >= start and at + len(unescaped(said)) <= end)
+
+
+def bold_label(xml):
+    said = unescaped(text_of(xml))
+    label, _ = leading_label(said)
+    if label and not explicitly_bold(xml, *label):
+        xml = edit_text_range(xml, label[0], label[1], bold(True))
+    return xml
+
+
+def article_labels(document, styles_xml):
+    body = body_styles(document, styles_xml, bold_only=False)
+    edits = []
+    for kind, start, end in body_blocks(document):
+        xml = document[start:end]
+        if kind == 'p':
+            changed = bold_label(xml)
+            style = re.search(r'<w:pStyle w:val="(Paragraph\d)"/>', own_properties(changed))
+            if style and style.group(1) in body:
+                said = unescaped(text_of(changed))
+                _, after = leading_label(said)
+                if explicitly_bold(changed, after, len(said)):
+                    changed = cut_runs(changed, [after])
+                    for run_start, run_end, at, piece, _ in reversed(text_runs(changed)):
+                        run = changed[run_start:run_end]
+                        if at >= after and BOLD_ON.search(element(run, 'rPr') or ''):
+                            changed = changed[:run_start] + edit_run(run, bold(False)) + changed[run_end:]
+        elif kind == 'tbl' and '<w:tblStyle w:val="HouseTable"/>' in xml:
+            changed = re.sub(r'<w:p\b[^>]*>(?:(?!</w:p>).)*</w:p>', lambda match: bold_label(match.group(0)), xml, flags=re.S)
+        else:
+            continue
+        if changed != xml:
+            edits.append((start, end, changed))
+    for start, end, changed in reversed(edits):
+        document = document[:start] + changed + document[end:]
+    return document
+
+
 def heading_scale(document):
-    """A chapter 12 pt and a subchapter 11 pt, bold and centred, more room above than below."""
     def paragraph(match):
         xml = match.group(0)
         style = re.search(r'<w:pStyle w:val="(Heading[12])"/>', own_properties(xml))
@@ -483,7 +535,6 @@ def paragraph_styles(xml, styles):
 
 
 def dash_bullets(numbering):
-    """Every bullet an en dash in Arial, regular."""
     def level(match):
         xml = match.group(0)
         if '<w:numFmt w:val="bullet"/>' not in xml:
@@ -535,12 +586,10 @@ def is_loop_tags(paragraph):
 
 
 def next_tier(text):
-    """The label of the tier under an item whose text stands at `text`."""
     return next((label for label, _ in TIERS if label >= text), text)
 
 
 def lists(document, styles_xml, numbering_xml):
-    """Sub-lists one tier deeper, labels bold, and a list's spacing."""
     styles, numbering = Styles(styles_xml), Numbering(numbering_xml)
     blocks = [(kind, start, end) for kind, start, end in body_blocks(document)]
     paragraphs = [(start, end) for kind, start, end in blocks if kind == 'p']
@@ -573,7 +622,7 @@ def lists(document, styles_xml, numbering_xml):
             stack, previous = [], None
             continue
         start, end, xml, item = entry
-        said = text_of(xml).strip()
+        said = spoken(xml).strip()
         sibling = next((index for index in range(len(stack) - 1, -1, -1)
                         if stack[index]['kind'] == item.kind and stack[index]['was'] == item.label), None)
         if sibling is not None:
@@ -624,7 +673,7 @@ def lists(document, styles_xml, numbering_xml):
         next_start, _, next_xml, next_item = following
         before, after = spacing_of(xml, styles)
         next_before, _ = spacing_of(next_xml, styles)
-        said = text_of(xml).strip()
+        said = spoken(xml).strip()
         if next_item is not None and (said.endswith(':') or item is not None):
             if after > ITEM_GAP:
                 spacing.setdefault(start, {})['after'] = ITEM_GAP
@@ -648,8 +697,9 @@ def lists(document, styles_xml, numbering_xml):
         if edits.get(('label', start)):
             said = unescaped(text_of(changed))
             lead = len(said) - len(said.lstrip())
-            label = TYPED_ITEM.match(said.strip())
-            changed = edit_text_range(changed, lead, lead + len(label.group(1)), bold(True))
+            label = TYPED_ITEM.match(unescaped(spoken(changed)).strip())
+            if not explicitly_bold(changed, lead, lead + len(label.group(1))):
+                changed = edit_text_range(changed, lead, lead + len(label.group(1)), bold(True))
         if start in spacing:
             changed = set_spacing(changed, spacing[start].get('before'), spacing[start].get('after'))
         if changed != xml:
@@ -666,7 +716,7 @@ def dash_lines_in_cells(document):
             return hung_dash(xml)
         lines = re.split(r'<w:br/>', xml)
         said = [line for line in (unescaped(text_of(piece)).strip() for piece in lines) if line]
-        if len(said) < 2 or not all(re.match(r'[–-]\s', line) for line in said):
+        if len(said) < 2 or not all(re.match(r'[–-]\s+[^\W\d_]', line) for line in said):
             return xml
         return split_at_breaks(xml)
     def cell(match):
@@ -676,7 +726,7 @@ def dash_lines_in_cells(document):
 
 def hung_dash(paragraph):
     said = unescaped(text_of(paragraph))
-    dash = re.match(r'\s*[–-][ \t]+(?=\w)', said)
+    dash = re.match(r'\s*[–-][ \t]+(?=[^\W\d_])', said)
     if not dash:
         return paragraph
     paragraph = set_indent(paragraph, CELL_HANG, CELL_HANG, tab=False)
@@ -714,7 +764,6 @@ def split_at_breaks(paragraph):
 
 
 def replace_text_range(paragraph, start, end, replacement):
-    """The text in [start, end) replaced, in the first run's place; a tab as a tab."""
     paragraph = cut_runs(paragraph, [start, end])
     done = False
     for run_start, run_end, at, said, _ in reversed(text_runs(paragraph)):
@@ -735,12 +784,14 @@ def replace_text_range(paragraph, start, end, replacement):
     return paragraph
 
 
-def typography(document, styles, numbering, contents):
+def typography(document, styles, numbering, contents, name=None):
     if contents:
         document = heading_scale(document)
     else:
         document, styles = out_of_the_outline(document, styles)
     document, styles = plain_articles(document, styles)
+    if name in ARTICLE_DOCUMENTS:
+        document = article_labels(document, styles)
     if numbering is not None:
         numbering = dash_bullets(numbering if contents else article_tabs(numbering))
         document, numbering = lists(document, styles, numbering)

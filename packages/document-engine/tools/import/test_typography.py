@@ -3,7 +3,7 @@
 import re
 import unittest
 
-from typography import article_tabs, dash_bullets, dash_lines_in_cells, lists, plain_articles, typography
+from typography import article_labels, article_tabs, dash_bullets, dash_lines_in_cells, lists, plain_articles, typography
 
 STYLES = ('<w:styles><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/>'
           '<w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr><w:rPr><w:sz w:val="20"/></w:rPr></w:style>'
@@ -69,6 +69,17 @@ class Articles(unittest.TestCase):
         self.assertEqual(styles, STYLES)
 
 
+class Labels(unittest.TestCase):
+    def test_bolds_a_typed_label_and_clears_bold_from_an_articles_body(self):
+        article = ('<w:p><w:pPr><w:pStyle w:val="Paragraph1"/></w:pPr><w:r><w:t xml:space="preserve">(3) </w:t></w:r>'
+                   '<w:r><w:rPr><w:rStyle w:val="tal1"/><w:b/></w:rPr><w:t>Angajatorul asigură, conform alin. (1),</w:t></w:r></w:p>')
+        document = article_labels(body(article, paragraph('a) mijloacele;')), STYLES)
+        self.assertIn('<w:b/>', runs(document, '(3)')[0])
+        self.assertIn('<w:b w:val="false"/>', runs(document, 'Angajatorul')[0])
+        self.assertIn('<w:b/>', runs(document, 'a)')[0])
+        self.assertEqual(article_labels(document, STYLES), document)
+
+
 class Lists(unittest.TestCase):
     def test_hangs_a_sub_list_one_tier_under_the_item_that_introduces_it(self):
         document = body(paragraph('Măsuri:', num=2), paragraph('căilor de evacuare;', num=3),
@@ -88,6 +99,11 @@ class Lists(unittest.TestCase):
         self.assertIn('w:after="40"', items[1])
         self.assertIn('w:before="120"', items[3])
         self.assertRegex(re.search(r'<w:abstractNum w:abstractNumId="2">.*?</w:abstractNum>', numbering).group(0), r'<w:b/>')
+
+    def test_reads_a_dash_typed_with_a_tab_as_a_list_item(self):
+        typed = '<w:p><w:pPr><w:ind w:left="720" w:hanging="360"/><w:spacing w:before="0" w:after="40"/></w:pPr><w:r><w:t>–</w:t><w:tab/><w:t>Verificați.</w:t></w:r></w:p>'
+        laid, _ = lists(body(paragraph('Verificarea înainte de ridicare:', after=120), typed), STYLES, NUMBERING)
+        self.assertIn('w:after="40"', re.findall(r'<w:p>.*?</w:p>', laid)[0])
 
     def test_draws_every_bullet_as_an_en_dash_and_keeps_numbers(self):
         numbering = dash_bullets(NUMBERING)

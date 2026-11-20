@@ -147,8 +147,10 @@ export function measureColumn(
     amount += text.length;
     for (const { lines, size, indent = 0 } of cell)
       for (const line of lines) {
-        oneLine = Math.max(oneLine, indent + textWidth(line.trim(), size));
-        for (const word of wordsOf(line)) floor = Math.max(floor, indent + textWidth(word, size));
+        // A hung item's dash stands in its indent, in front of the text.
+        const text = indent > 0 ? line.replace(/^\s*[–—•-]\s+/u, '') : line;
+        oneLine = Math.max(oneLine, indent + textWidth(text.trim(), size));
+        for (const word of wordsOf(text)) floor = Math.max(floor, indent + textWidth(word, size));
       }
   }
   const room = padding + slack;
@@ -237,7 +239,7 @@ const cellText = (cell: string) =>
   [...cell.matchAll(paragraphPattern)].map(([paragraph]) => ({
     lines: linesOf(paragraph),
     size: paragraphSize(paragraph),
-    indent: Number(/<w:ind w:left="(\d+)"/.exec(paragraph)?.[1] ?? 0),
+    indent: Number(/<w:ind\b[^>]*\bw:left="(\d+)"/.exec(paragraph)?.[1] ?? 0),
   }));
 
 function withGrid(table: string, widths: number[]) {
