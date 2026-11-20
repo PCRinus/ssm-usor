@@ -128,13 +128,13 @@ Dacă treci de treapta ta, lucrezi mai departe cu tot ce ai. Pagina îți spune 
 Termenul e aceeași zi din luna următoare celei în care ai trecut de treaptă: dacă ai trecut pe 14 noiembrie, mai poți adăuga lucrători noi până pe 14 decembrie inclusiv. Dacă a doua zi ai tot mai mulți lucrători decât treapta, nu mai poți:
 
 - adăuga lucrători, din formular sau dintr-un import din fișe;
-- reactiva un fost lucrător;
+- anula trecerea unui fost lucrător la foști;
 - reactiva un client arhivat care are lucrători;
 - confirma importul unui client care vine cu lucrători.
 
-Restul merge ca până acum: adaugi clienți fără lucrători, modifici datele, marchezi plecările, emiți documente, instruiești, testezi și semnezi. Un import din fișe poate completa lucrătorii pe care îi ai deja: lasă deoparte persoanele noi, care nu se creează, și confirmă-i pe ceilalți. Pe pagina **Lucrători** și în ferestrele de import vezi de ce, cu legătura spre **Abonament**.
+Restul merge ca până acum: adaugi clienți fără lucrători, modifici datele, treci lucrătorii plecați la foști, emiți documente, instruiești, testezi și semnezi. Un import din fișe poate completa lucrătorii pe care îi ai deja: lasă deoparte persoanele noi, care nu se creează, și confirmă-i pe ceilalți. Pe pagina **Lucrători** și în ferestrele de import vezi de ce, cu legătura spre **Abonament**.
 
-Poți adăuga din nou, pe loc, când treci pe o treaptă care îi acoperă pe toți sau când ajungi la treapta ta sau sub ea, de exemplu arhivând clienții cu care nu mai lucrezi ori marcând lucrătorii care au plecat. Dacă treci din nou de treaptă mai târziu, ai iar o lună.
+Poți adăuga din nou, pe loc, când treci pe o treaptă care îi acoperă pe toți sau când ajungi la treapta ta sau sub ea, de exemplu arhivând clienții cu care nu mai lucrezi ori trecând la foști lucrătorii care au plecat. Dacă treci din nou de treaptă mai târziu, ai iar o lună.
 
 În perioada de probă numărul se compară cu limita probei, de 5.000 de lucrători, iar pe Enterprise nu există treaptă. Cât timp abonamentul e anulat sau contul e doar pentru citire, termenul nu curge; dacă reactivezi abonamentul și ai tot mai mulți lucrători decât treapta, ai din nou o lună întreagă.
 
