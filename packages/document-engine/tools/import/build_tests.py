@@ -19,6 +19,8 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(__file__))
 from build_sheets import ALL, TEMPLATES, cell, escape, row, rpr  # noqa: E402
+from table_style import draws_house_tables, house_tables_part  # noqa: E402
+from word_layout import lays_out_as_word_2013, word_2013_part  # noqa: E402
 
 SPEC = os.path.join(os.path.dirname(__file__), 'tests.ro.json')
 TEXT_WIDTH = 11906 - 1417 - 1134
@@ -182,6 +184,7 @@ def write(spec, test):
     types = re.sub(
         r'<Override PartName="/word/media/[^"]*"[^>]*/>', '', parts['[Content_Types].xml'].decode('utf-8'),
     )
+    house = draws_house_tables(document)
     with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as out:
         for item, data in parts.items():
             if item.startswith('word/media/'):
@@ -192,6 +195,8 @@ def write(spec, test):
                 data = rels.encode('utf-8')
             elif item == '[Content_Types].xml':
                 data = types.encode('utf-8')
+            if lays_out_as_word_2013(target) and item.endswith('.xml'):
+                data = house_tables_part(item, word_2013_part(item, data.decode('utf-8')), house).encode('utf-8')
             info = zipfile.ZipInfo(item, date_time=(2026, 10, 20, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             out.writestr(info, data)

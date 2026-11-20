@@ -40,6 +40,7 @@ from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
+from table_style import draws_house_tables, house_tables_part
 from word_layout import lays_out_as_word_2013, word_2013_part
 
 ROOT = '/work'
@@ -2023,14 +2024,16 @@ def sweep(path, word_2013=None):
     no run of paragraphs kept with the next longer than `KEEP_CHAIN` unless its lines are
     short, and the branding line small and grey; and in the documents with contents, a table
     of contents over real headings (`TABLES_OF_CONTENTS`). In the occupational safety set,
-    Word 2013's layout with every table on the margins (`word_layout`), which `word_2013`
-    asks for or leaves to the file's place. Safe to run again."""
+    Word 2013's layout with every table on the margins (`word_layout`) and the table house
+    style (`table_style`), which `word_2013` asks for or leaves to the file's place. Safe to
+    run again."""
     if word_2013 is None:
         word_2013 = lays_out_as_word_2013(path)
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
         styles = archive.read('word/styles.xml').decode('utf8')
         document = archive.read('word/document.xml').decode('utf8')
+        house = draws_house_tables(document)
         labelled = {}
         contents = TABLES_OF_CONTENTS.get(os.path.basename(path)[: -len('.docx')])
         if contents:
@@ -2066,7 +2069,7 @@ def sweep(path, word_2013=None):
             elif item.filename == 'word/styles.xml':
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')
             if word_2013 and item.filename.endswith('.xml'):
-                data = word_2013_part(item.filename, data.decode('utf8')).encode('utf8')
+                data = house_tables_part(item.filename, word_2013_part(item.filename, data.decode('utf8')), house).encode('utf8')
             archive.writestr(item, data)
 
 

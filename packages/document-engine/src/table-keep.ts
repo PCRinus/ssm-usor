@@ -7,8 +7,8 @@ const houseTable = 'HouseTable';
 const wholeRows = 6;
 const tallRowText = 700;
 // In twips.
-const tallRowRoom = 300 * 20;
-const keepRoom = 400 * 20;
+const tallRowRoom = 280 * 20;
+const keepRoom = 340 * 20;
 const padding = { vertical: 80, horizontal: 170 };
 const characterWidth = 0.55;
 const lineHeight = 1.15;
@@ -86,10 +86,19 @@ function estimatedHeight(row: string, grid: number[]) {
     let height = padding.vertical;
     for (const [paragraph] of cell.matchAll(paragraphPattern)) {
       const size = (sizeOf(paragraph) ?? 20) / 2;
-      const characters = lengthOf(textOf(paragraph));
       const lines = rotated
         ? 1
-        : Math.max(1, Math.ceil((characters * characterWidth * size * 20) / width));
+        : paragraph
+            .split(/<w:(?:br|cr)\b[^>]*\/>/)
+            .reduce(
+              (sum, piece) =>
+                sum +
+                Math.max(
+                  1,
+                  Math.ceil((lengthOf(textOf(piece)) * characterWidth * size * 20) / width)
+                ),
+              0
+            );
       height += lines * lineHeight * size * 20;
     }
     tallest = Math.max(tallest, height);
