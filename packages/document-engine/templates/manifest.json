@@ -9,7 +9,7 @@
       "file": "1.0_cover_decisions.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului; textul este neschimbat."
+        "note": "Tabelele stau exact pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
       }
     },
     {
@@ -20,8 +20,8 @@
       "title": "Decizia privind responsabilii cu instruirea",
       "file": "1.1_decision_training.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "kind": "correction",
+        "note": "Tabelele stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Paginile sunt numerotate, iar de la a doua antetul numește decizia; 25 mm pentru semnătură și ștampilă. Scris „și/sau”."
       }
     },
     {
@@ -33,7 +33,7 @@
       "file": "1.2_decision_risk_evaluation_team.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "note": "Tabelele stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Paginile sunt numerotate, iar de la a doua antetul numește decizia; 25 mm pentru semnătură și ștampilă."
       }
     },
     {
@@ -45,7 +45,7 @@
       "file": "1.3_decision_first_aid.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "note": "Tabelele stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Paginile sunt numerotate, iar de la a doua antetul numește decizia; 25 mm pentru semnătură și ștampilă."
       }
     },
     {
@@ -56,8 +56,8 @@
       "title": "Decizia privind pericolul grav și iminent",
       "file": "1.4_decision_imminent_danger.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "kind": "correction",
+        "note": "Tabelele stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Paginile sunt numerotate, iar de la a doua antetul numește decizia; 25 mm pentru semnătură și ștampilă. Scris „și/sau”."
       }
     },
     {
@@ -68,8 +68,8 @@
       "title": "Decizia privind reprezentanții lucrătorilor",
       "file": "1.5_decision_workers_representative.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "kind": "correction",
+        "note": "Tabelele stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Paginile sunt numerotate, iar de la a doua antetul numește decizia; 25 mm pentru semnătură și ștampilă. Ghilimele „…”."
       }
     },
     {
@@ -81,7 +81,7 @@
       "file": "2.1_cover_general_training_material.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului; textul este neschimbat."
+        "note": "Tabelele stau exact pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
       }
     },
     {
@@ -92,8 +92,8 @@
       "title": "Material de instruire introductiv-generală",
       "file": "2.2_general_training_material.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "kind": "correction",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Ghilimele „…” și „și/sau”."
       }
     },
     {
@@ -105,7 +105,7 @@
       "file": "3.1_cover_own_instructions.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului; textul este neschimbat."
+        "note": "Tabelele stau exact pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
       }
     },
     {
@@ -116,8 +116,8 @@
       "title": "Instrucțiuni proprii de securitate și sănătate în muncă",
       "file": "3.2_own_instructions.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "kind": "correction",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Ghilimele „…” și „și/sau”."
       }
     },
     {
@@ -129,7 +129,7 @@
       "file": "4.1_cover_training_themes.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului; textul este neschimbat."
+        "note": "Tabelele stau exact pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
       }
     },
     {
@@ -140,8 +140,8 @@
       "title": "Tematica și programul de instruire",
       "file": "4.2_training_themes.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "kind": "correction",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Scris „și/sau”."
       }
     },
     {
@@ -152,8 +152,8 @@
       "title": "Copertă – Test de verificare a cunoștințelor",
       "file": "5.0_cover_tests.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului; textul este neschimbat."
+        "kind": "correction",
+        "note": "Tabelele stau exact pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul: „Test de verificare a cunoștințelor la angajare (TASSM)”."
       }
     },
     {
@@ -164,8 +164,8 @@
       "title": "Test de verificare a cunoștințelor la angajare",
       "file": "5.1_test_hiring.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "kind": "correction",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Titlul: „Test de verificare a cunoștințelor la angajare (TASSM)”; specimen marcat, cheia în a), b), c)."
       }
     },
     {
@@ -176,8 +176,8 @@
       "title": "Lista internă de dotare cu echipament individual de protecție",
       "file": "6_protective_equipment_list.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "kind": "correction",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Semnatarii au 25 mm pentru semnătură și ștampilă și linie pentru dată. Ghilimele „…”, „și/sau”."
       }
     },
     {
@@ -189,7 +189,7 @@
       "file": "7.1_cover_event_registers.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului; textul este neschimbat."
+        "note": "Tabelele stau exact pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
       }
     },
     {
@@ -213,7 +213,7 @@
       "file": "8_control_report.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Rândul semnăturilor are 25 mm."
       }
     },
     {
@@ -224,8 +224,8 @@
       "title": "Evaluarea riscurilor de accidentare și îmbolnăvire profesională",
       "file": "9_risk_assessment.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Grilele metodei se citesc pe orice gri, iar consecințele sunt marcate cu X."
+        "kind": "correction",
+        "note": "Tabelele și caseta din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Grilele metodei se citesc pe orice gri, iar consecințele sunt marcate cu X. Semnăturile au rânduri de 25 mm."
       }
     },
     {
@@ -237,7 +237,7 @@
       "file": "10_prevention_plan.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Semnatarii au 25 mm pentru semnătură și ștampilă, la aceeași înălțime."
       }
     },
     {
@@ -249,7 +249,7 @@
       "file": "11.1_cover_employer_briefing.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau exact pe marginile textului; textul este neschimbat."
+        "note": "Tabelele stau exact pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
       }
     },
     {
@@ -260,8 +260,8 @@
       "title": "Material de informare a angajatorului",
       "file": "11_employer_briefing.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "kind": "correction",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Semnatarii au 25 mm pentru semnătură și ștampilă. Ghilimele „…”, „și/sau”, „marcaj ocazional”."
       }
     },
     {
@@ -272,8 +272,8 @@
       "title": "Regulament intern privind controlul propriu",
       "file": "12_control_regulation.docx",
       "change": {
-        "kind": "layout",
-        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri."
+        "kind": "correction",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului. Tabelele au același aspect în tot setul: linii negre, mai subțiri în interior, capul de tabel îngroșat pe fond gri-verde și repetat pe fiecare pagină, o liniuță centrată în celulele de date goale; tabelele scurte nu se mai rup între pagini, iar la cele lungi capul de tabel rămâne lângă primele rânduri. Predarea-primirea are titlul și formulările de pe coperți și 25 mm pentru semnătură și ștampilă."
       }
     },
     {

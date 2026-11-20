@@ -98,6 +98,7 @@
       "questions": [
         {
           "key": "A",
+          "keyLabels": "a)",
           "number": 1,
           "options": [
             {
@@ -117,6 +118,7 @@
         },
         {
           "key": "A",
+          "keyLabels": "a)",
           "number": 2,
           "options": [
             {
@@ -136,6 +138,7 @@
         },
         {
           "key": "A, B",
+          "keyLabels": "a), b)",
           "number": 3,
           "options": [
             {
@@ -155,6 +158,7 @@
         },
         {
           "key": "A",
+          "keyLabels": "a)",
           "number": 4,
           "options": [
             {
@@ -174,6 +178,7 @@
         },
         {
           "key": "A",
+          "keyLabels": "a)",
           "number": 5,
           "options": [
             {
@@ -193,6 +198,7 @@
         },
         {
           "key": "A",
+          "keyLabels": "a)",
           "number": 6,
           "options": [
             {
@@ -212,6 +218,7 @@
         },
         {
           "key": "A",
+          "keyLabels": "a)",
           "number": 7,
           "options": [
             {
@@ -231,6 +238,7 @@
         },
         {
           "key": "A",
+          "keyLabels": "a)",
           "number": 8,
           "options": [
             {
@@ -250,6 +258,7 @@
         },
         {
           "key": "A",
+          "keyLabels": "a)",
           "number": 9,
           "options": [
             {
@@ -269,6 +278,7 @@
         },
         {
           "key": "A",
+          "keyLabels": "a)",
           "number": 10,
           "options": [
             {
