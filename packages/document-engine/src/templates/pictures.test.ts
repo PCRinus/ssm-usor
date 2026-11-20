@@ -99,6 +99,16 @@ describe('2.2_general_training_material.docx', () => {
     .file('word/document.xml')!
     .asText();
 
+  it('closes the catalogue with the signs of no kind the law describes', () => {
+    const closing = catalogue['2.2'].at(-1)!;
+    expect(closing.heading).toBe('Alte indicatoare');
+    expect(closing.signs.map((sign) => sign.name)).toEqual(['Apă potabilă', 'Loc pentru fumat']);
+    const named = catalogue['2.2'].flatMap((group) => group.signs.map((sign) => sign.name));
+    expect(named.filter((sign) => closing.signs.some((each) => each.name === sign))).toHaveLength(
+      2
+    );
+  });
+
   it('heads each kind of sign right after the law describes it', () => {
     const headings = catalogue['2.2'].map((group) => group.heading);
     const paragraphs = (body.match(/<w:p\b[\s\S]*?<\/w:p>/g) ?? []).map(documentTextOf);

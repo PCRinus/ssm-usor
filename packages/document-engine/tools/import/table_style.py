@@ -92,13 +92,26 @@ LOOP_TAGS_ONLY = re.compile(r'(\{\{[#/^][^}]*\}\})+')
 ON = r'(?: w:val="(?:true|1|on)")?'
 
 
+NESTED_PROPERTIES = re.compile(r'<w:(rPr|pPrChange|rPrChange|tcPrChange|tblPrChange|sectPr)\b[^>]*>.*?</w:\1>', re.S)
+
+
+def own_children(inner, tag):
+    """The `tag` children of a properties element, not the ones of the run properties or the
+    revisions it holds: a paragraph mark's `w:spacing` is character spacing."""
+    nested = [match.span() for match in NESTED_PROPERTIES.finditer(inner)] if tag != 'rPr' else []
+    return [match for match in re.finditer(rf'<w:{tag}\b[^>]*/>|<w:{tag}\b[^>]*>.*?</w:{tag}>', inner, re.S)
+            if not any(start <= match.start() < end for start, end in nested)]
+
+
 def element(inner, tag):
-    match = re.search(rf'<w:{tag}\b[^>]*/>|<w:{tag}\b[^>]*>.*?</w:{tag}>', inner, re.S)
-    return match.group(0) if match else None
+    found = own_children(inner, tag)
+    return found[0].group(0) if found else None
 
 
 def without(inner, tag):
-    return re.sub(rf'<w:{tag}\b[^>]*/>|<w:{tag}\b[^>]*>.*?</w:{tag}>', '', inner, flags=re.S)
+    for match in reversed(own_children(inner, tag)):
+        inner = inner[:match.start()] + inner[match.end():]
+    return inner
 
 
 def put(inner, tag, xml, order):
@@ -430,15 +443,32 @@ def estimated_height(row, grid):
     return max(tallest, row_height(row))
 
 
-def keep_together(rows, header, grid):
-    """For each row, whether it may not split and whether it keeps with the next row (rule A)."""
+CLOSING_LENGTH = 300
+
+
+def closes_its_page(following):
+    """Whether the paragraph after a table is a short sentence that ends the page with a page
+    break: alone it would fill a page of its own, so the table keeps its last row with it."""
+    paragraph = re.match(r'<w:p(?:\s[^>]*[^/])?>(?:(?!</w:p>).)*</w:p>', following, re.S)
+    if not paragraph or '<w:br w:type="page"/>' not in paragraph.group(0):
+        return False
+    length = unescaped_length(text_of(paragraph.group(0)).strip())
+    return 0 < length <= CLOSING_LENGTH
+
+
+def keep_together(rows, header, grid, closing=False):
+    """For each row, whether it may not split and whether it keeps with the next row (rule A).
+    A list people sign by hand may start under the text that asks for the signatures rather
+    than move whole to the next page; a table kept whole keeps its last row with a `closing`
+    sentence."""
     heights = [estimated_height(row, grid) for row in rows]
     tall = [unescaped_length(text_of(row)) > TALL_ROW_TEXT or height > TALL_ROW_ROOM
             for row, height in zip(rows, heights)]
     if any(tall):
         return [not each for each in tall], [False] * len(rows)
     keeps = [False] * len(rows)
-    if len(rows) - header <= WHOLE_ROWS and sum(heights) <= KEEP_ROOM:
+    signed_by_hand = any('Semnătura' in text_of(row) for row in rows[:header])
+    if not signed_by_hand and len(rows) - header <= WHOLE_ROWS and sum(heights) <= KEEP_ROOM:
         chain = len(rows) - 1
     else:
         # A row keeps with the next one: the header and the first body row tie the second to them.
@@ -450,6 +480,8 @@ def keep_together(rows, header, grid):
     for index in range(header, len(rows) - 1):
         if is_group_row(rows[index], grid):
             keeps[index] = True
+    if closing and all(keeps[:-1]):
+        keeps[-1] = True
     return [True] * len(rows), keeps
 
 
@@ -636,7 +668,7 @@ def set_paragraphs_marks(row, change):
     return edit_paragraphs(row, lambda paragraph: set_paragraph(paragraph, mark_properties(change)))
 
 
-def house_table(table, kind, header_size=None, snap=True):
+def house_table(table, kind, header_size=None, snap=True, closing=False):
     rows = ROW.findall(table)
     if snap:
         wide = len(grid_of(table)) > WIDE_COLUMNS
@@ -675,7 +707,7 @@ def house_table(table, kind, header_size=None, snap=True):
     alignments = column_alignments(styled, header)
     styled = styled[:header] + [aligned_row(row, grid, alignments, merged_onto(row, styled[index + 1] if index + 1 < len(styled) else ''))
                                 for index, row in enumerate(styled) if index >= header]
-    cant_split, keeps = keep_together(styled, header, grid)
+    cant_split, keeps = keep_together(styled, header, grid, closing)
     styled = [apply_keep(row, cant, keep) for row, cant, keep in zip(styled, cant_split, keeps)]
     table = edit_properties(table, 'tblPr', house_table_properties(side_padding))
     return rebuilt(table, rows, styled)
@@ -926,7 +958,7 @@ def house_tables(xml, file_name=None):
         table = xml[start:end]
         kind = kind_of(table)
         if kind in ('house', 'consequences'):
-            table = house_table(table, kind, header_size, snap)
+            table = house_table(table, kind, header_size, snap, closes_its_page(xml[end:]))
         elif kind == 'scale':
             table = readable_grid(table)
         xml = xml[:start] + table + xml[end:]
@@ -974,3 +1006,61 @@ def house_tables_part(name, xml, house=True, file_name=None):
     if name == 'word/styles.xml' and house:
         return with_house_style(xml)
     return xml
+
+
+SECT_PR_ORDER = ['headerReference', 'footerReference', 'footnotePr', 'endnotePr', 'type', 'pgSz', 'pgMar',
+                 'paperSrc', 'pgBorders', 'lnNumType', 'pgNumType', 'cols', 'formProt', 'vAlign', 'noEndnote',
+                 'titlePg', 'textDirection', 'bidi', 'rtlGutter', 'docGrid', 'printerSettings', 'sectPrChange']
+BORDER_ORDER = ['top', 'left', 'start', 'bottom', 'right', 'end', 'insideH', 'insideV', 'tl2br', 'tr2bl']
+PARAGRAPH_BORDER_ORDER = ['top', 'left', 'bottom', 'right', 'between', 'bar']
+SCHEMA_ORDERS = {'rPr': R_PR_ORDER, 'pPr': P_PR_ORDER, 'tblPr': TBL_PR_ORDER, 'tcPr': TC_PR_ORDER,
+                 'sectPr': SECT_PR_ORDER, 'tblBorders': BORDER_ORDER, 'tcBorders': BORDER_ORDER,
+                 'tblCellMar': BORDER_ORDER, 'tcMar': BORDER_ORDER, 'pBdr': PARAGRAPH_BORDER_ORDER}
+TAG = re.compile(r'<(/?)([\w:]+)[^>]*?(/?)>')
+
+
+def top_level(inner):
+    """The child elements of `inner` as (name, xml), or None when it holds text between them."""
+    children, depth, start, name = [], 0, 0, None
+    for match in TAG.finditer(inner):
+        closing, tag, empty = match.group(1), match.group(2), match.group(3)
+        if depth == 0:
+            if inner[start:match.start()].strip():
+                return None
+            start, name = match.start(), tag
+        if empty:
+            if depth == 0:
+                children.append((name, inner[start:match.end()]))
+                start = match.end()
+        elif closing:
+            depth -= 1
+            if depth == 0:
+                children.append((name, inner[start:match.end()]))
+                start = match.end()
+        else:
+            depth += 1
+    return children if depth == 0 and not inner[start:].strip() else None
+
+
+def in_schema_order(xml):
+    """Every property element's children in the order the schema requires: Word refuses a file
+    whose `w:numPr` follows `w:spacing`, or whose `w:b` comes before `w:rFonts`. An element of
+    another name keeps its place after the one before it. Safe to run again."""
+    def ordered(match):
+        tag, attributes, inner = match.group(1), match.group(2) or '', match.group(3)
+        children = top_level(inner)
+        if not children:
+            return match.group(0)
+        sequence = SCHEMA_ORDERS[tag]
+        keys, last = [], -1
+        for name, _ in children:
+            local = name.split(':')[-1]
+            last = sequence.index(local) if name.startswith('w:') and local in sequence else last
+            keys.append(last)
+        children = [child for _, child in sorted(zip(keys, children), key=lambda pair: pair[0])]
+        return f'<w:{tag}{attributes}>' + ''.join(child for _, child in children) + f'</w:{tag}>'
+    # Inner elements first, so a paragraph's mark properties are in order before the paragraph's.
+    for tag in ['rPr', 'pBdr', 'tblBorders', 'tcBorders', 'tblCellMar', 'tcMar', 'tcPr', 'tblPr', 'sectPr', 'pPr']:
+        xml = re.sub(rf'<w:({tag})(\s[^>]*)?>((?:(?!<w:{tag}[\s>]).)*?)</w:{tag}>', ordered, xml, flags=re.S)
+    return xml
+

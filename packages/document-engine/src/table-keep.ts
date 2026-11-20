@@ -144,7 +144,10 @@ function keepTogether(rows: string[], header: number, grid: number[]) {
   }
   const total = (count: number) => heights.slice(0, count).reduce((sum, each) => sum + each, 0);
   let chain: number;
-  if (rows.length - header <= wholeRows && total(rows.length) <= keepRoom) {
+  // A list people sign by hand may start under the text that asks for the signatures, as the
+  // acknowledgement after a decision does, rather than leave most of that page empty.
+  const signedByHand = rows.slice(0, header).some((row) => /Semnătura/u.test(textOf(row)));
+  if (!signedByHand && rows.length - header <= wholeRows && total(rows.length) <= keepRoom) {
     chain = rows.length - 1;
   } else {
     // A row keeps with the next one: the header and the first body row tie the second to them.
@@ -160,6 +163,31 @@ function keepTogether(rows: string[], header: number, grid: number[]) {
   };
 }
 
+// The properties that open `rest`, to their own closing tag: a paragraph's `w:pPrChange` holds
+// another `w:pPr`, whose end is not the end of the paragraph's.
+function leadingProperties(rest: string, tag: string) {
+  if (new RegExp(`^<w:${tag}(?:\\s[^>]*)?/>`).test(rest)) {
+    const whole = /^<[^>]*>/.exec(rest)![0];
+    return { whole, inner: '' };
+  }
+  const opening = new RegExp(`^<w:${tag}(?:\\s[^>]*)?>`).exec(rest);
+  if (!opening) return null;
+  const tags = new RegExp(`<(/?)w:${tag}(?:\\s[^>]*)?(/?)>`, 'g');
+  tags.lastIndex = opening[0].length;
+  let depth = 1;
+  for (let match = tags.exec(rest); match; match = tags.exec(rest)) {
+    if (match[2]) continue;
+    depth += match[1] ? -1 : 1;
+    if (depth === 0) {
+      return {
+        whole: rest.slice(0, match.index + match[0].length),
+        inner: rest.slice(opening[0].length, match.index),
+      };
+    }
+  }
+  return null;
+}
+
 function editProperties(xml: string, tag: string, change: (inner: string) => string) {
   let element = xml;
   if (element.endsWith('/>') && element.split('<').length === 2) {
@@ -168,9 +196,14 @@ function editProperties(xml: string, tag: string, change: (inner: string) => str
   }
   const opening = /^<w:\w+\b[^>]*>(?:<w:tblPrEx>[\s\S]*?<\/w:tblPrEx>)?/.exec(element)![0].length;
   const rest = element.slice(opening);
-  const found = new RegExp(`^<w:${tag}>([\\s\\S]*?)</w:${tag}>|^<w:${tag}/>`).exec(rest);
-  const changed = change(found?.[1] ?? '');
-  const after = opening + (found ? found[0].length : 0);
+  const found = leadingProperties(rest, tag);
+  const inner = found?.inner ?? '';
+  // A revision is the properties' last child; its own copy of them is not edited.
+  const revision =
+    new RegExp(`<w:${tag}Change\\b[\\s\\S]*</w:${tag}Change>$`).exec(inner)?.[0] ?? '';
+  const edited = change(inner.slice(0, inner.length - revision.length));
+  const changed = edited || revision ? edited + revision : '';
+  const after = opening + (found ? found.whole.length : 0);
   return (
     element.slice(0, opening) +
     (changed ? `<w:${tag}>${changed}</w:${tag}>` : '') +
@@ -397,11 +430,24 @@ function mergedOnto(row: string, next: string | undefined) {
   );
 }
 
-function laidOut(table: string) {
+// A short sentence that closes a table and ends its page belongs on the table's page: alone it
+// would fill a page of its own (9's „Niciunul dintre factorii de risc…” after V.3).
+const closingLength = 300;
+
+function closesItsPage(following: string) {
+  const paragraph = /^<w:p(?:\s[^>]*[^/])?>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/.exec(following)?.[0];
+  if (!paragraph?.includes('<w:br w:type="page"/>')) return false;
+  const length = lengthOf(textOf(paragraph).trim());
+  return length > 0 && length <= closingLength;
+}
+
+function laidOut(table: string, closing = false) {
   const rows = [...table.matchAll(rowPattern)].map((match) => match[0]);
   let header = 0;
   while (header < rows.length && isHeader(rows[header]!)) header += 1;
-  const grid = [...table.matchAll(/<w:gridCol w:w="(\d+)"/g)].map((match) => Number(match[1]));
+  const grid = [...table.matchAll(/<w:gridCol\b[^>]*?\bw:w="(\d+)"/g)].map((match) =>
+    Number(match[1])
+  );
   const grouped = mergedDown(rows, header);
   const withMarks = grouped.map((row, index) =>
     index < header ? row : row.replace(cellPattern, (cell) => withEmptyMark(cell))
@@ -411,6 +457,7 @@ function laidOut(table: string) {
     index < header ? row : alignedRow(row, grid, alignments, mergedOnto(row, withMarks[index + 1]))
   );
   const { cantSplit, keeps } = keepTogether(marked, header, grid);
+  if (closing && keeps.slice(0, -1).every(Boolean)) keeps[keeps.length - 1] = true;
   let index = 0;
   return table.replace(rowPattern, () => {
     const row = withCantSplit(marked[index]!, cantSplit[index]!);
@@ -431,7 +478,7 @@ export function keepTablesTogether(document: string): string {
       table.slice(7).includes('<w:tbl>')
     )
       continue;
-    pieces.push(document.slice(at, start), laidOut(table));
+    pieces.push(document.slice(at, start), laidOut(table, closesItsPage(document.slice(end))));
     at = end;
   }
   pieces.push(document.slice(at));

@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
+
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
+import { setSamples } from '../tools/set-samples';
 import { contentWidths, fitColumnsToContent, measureColumn, textWidth } from './content-widths';
 import { renderDocument } from './render';
 
@@ -171,6 +174,34 @@ describe('fitting marked tables to their content', () => {
     const body = table(header);
     expect(gridsOf(fitted(body))).toEqual([[3000, 3000, 3000]]);
   });
+
+  it('fits a grid and cells whose attributes stand in another order or are more', () => {
+    const body = table(
+      header + bodyRow('F1. Cădere', 'Montarea balustradelor pe toată lungimea', '—')
+    )
+      .replaceAll('<w:gridCol w:w="3000"/>', '<w:gridCol w14:x="1" w:w="3000"/>')
+      .replaceAll('<w:tcW w:w="3000" w:type="dxa"/>', '<w:tcW w:type="dxa" w:w="3000"/>');
+    const xml = fitted(body);
+    const [grid] = gridsOf(xml);
+    expect(sum(grid!)).toBe(total);
+    expect(grid![1]).toBeGreaterThan(grid![2]!);
+    expect(cellWidthsOf(xml)).toEqual([...grid!, ...grid!]);
+  });
+
+  it('fits the prevention plan of every sample, so no plan table keeps its marker unfitted', () => {
+    const template = readFileSync(new URL('../templates/10_prevention_plan.docx', import.meta.url));
+    const marked = new PizZip(template).file('word/document.xml')!.asText();
+    expect(marked).toContain('ContentWidths');
+    for (const { data } of setSamples) {
+      const merged = new PizZip(renderDocument(template, data)).file('word/document.xml')!.asText();
+      expect(merged).not.toContain('ContentWidths');
+      const fitted = gridsOf(merged).filter(
+        (grid) => grid.length === gridsOf(marked).at(-1)!.length
+      );
+      expect(fitted.length).toBeGreaterThan(0);
+      expect(fitted.every((grid) => grid.join() !== gridsOf(marked).at(-1)!.join())).toBe(true);
+    }
+  }, 60_000);
 
   it('fits one row, its grid and its cells', () => {
     const xml = fitted(

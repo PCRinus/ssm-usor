@@ -68,4 +68,27 @@ describe('hangDashLines', () => {
     ])
       expect(hangDashLines(xml)).toBe(xml);
   });
+
+  it('leaves an empty paragraph whole and still hangs the measure after it', () => {
+    const merged = hangDashLines(table('<w:p/><w:p><w:r><w:t>- a &amp; b</w:t></w:r></w:p>'));
+    expect(merged).toContain('<w:p/><w:p><w:pPr><w:ind w:left="170" w:hanging="170"/></w:pPr>');
+    expect(merged.match(/<w:p[ >/]/g)).toHaveLength(5);
+    expect(textOf(merged.slice(merged.lastIndexOf('<w:p>')))).toBe('–⇥a &amp; b');
+  });
+
+  it('finds the dash after a run of spaces, and empty runs and properties do not stop it', () => {
+    const spaced = paragraph(
+      '<w:r><w:t xml:space="preserve"> </w:t></w:r><w:r/><w:r><w:t xml:space="preserve">– a</w:t></w:r>'
+    );
+    expect(paragraphsOf(hangDashLines(table(spaced))).map(textOf)).toEqual([' –⇥a']);
+    const bare = '<w:p><w:pPr/><w:r><w:t xml:space="preserve">– a</w:t></w:r></w:p>';
+    const hung = hangDashLines(table(bare));
+    expect(hung).not.toContain('<w:pPr/>');
+    expect(paragraphsOf(hung).map(textOf)).toEqual(['–⇥a']);
+  });
+
+  it('takes a dash before spaces and a digit for a minus sign', () => {
+    const minus = paragraph('<w:r><w:t xml:space="preserve">-  5 °C la exterior</w:t></w:r>');
+    expect(hangDashLines(table(minus))).toBe(table(minus));
+  });
 });

@@ -222,7 +222,7 @@ function rounded(widths: number[], total: number) {
 const gridOf = (table: string) =>
   [
     ...(/<w:tblGrid>([\s\S]*?)<\/w:tblGrid>/.exec(table)?.[1] ?? '').matchAll(
-      /<w:gridCol w:w="(\d+)"\/>/g
+      /<w:gridCol\b[^>]*?\bw:w="(\d+)"[^>]*\/>/g
     ),
   ].map((match) => Number(match[1]));
 
@@ -254,10 +254,7 @@ function withGrid(table: string, widths: number[]) {
         const width = widths
           .slice(column, column + spanOf(cell))
           .reduce((sum, each) => sum + each, 0);
-        return cell.replace(
-          /<w:tcW w:w="\d+" w:type="\w+"\/>/,
-          `<w:tcW w:w="${width}" w:type="dxa"/>`
-        );
+        return cell.replace(/<w:tcW\b[^>]*\/>/, `<w:tcW w:w="${width}" w:type="dxa"/>`);
       });
     });
 }

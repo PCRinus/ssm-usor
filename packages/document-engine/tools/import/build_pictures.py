@@ -255,9 +255,15 @@ SIGN_GROUPS = [
 
 
 def general_training_material(package, data):
-    for (after, before), group in zip(SIGN_GROUPS, data['2.2']):
-        heading = paragraph(run(group['heading'], bold=True), before=240, after=120, keep=True)
-        replace_between(package, after, before, heading + catalogue(package, group['signs']))
+    groups = data['2.2']
+    # Signs of no kind the law describes close the catalogue, after the fire-safety ones.
+    closing = groups[len(SIGN_GROUPS):]
+    for index, ((after, before), group) in enumerate(zip(SIGN_GROUPS, groups)):
+        content = ''
+        for each in [group] + (closing if index == len(SIGN_GROUPS) - 1 else []):
+            heading = paragraph(run(each['heading'], bold=True), before=240, after=120, keep=True)
+            content += heading + catalogue(package, each['signs'])
+        replace_between(package, after, before, content)
     for chapter, picture, alt, size in (('^Capitolul XIV\\. ', 'illustration-cpr', 'Prim ajutor', {'width_mm': 45}),
                                          ('^Capitolul XV\\. ', 'illustration-extinguisher', 'Stingător', {'height_mm': 40})):
         xml = package.document

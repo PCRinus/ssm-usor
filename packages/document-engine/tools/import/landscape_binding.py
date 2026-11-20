@@ -12,7 +12,8 @@ MOVED = LEFT_BINDING - MARGIN
 # A table drawn across the text column is this close to its width, LibreOffice's rounding.
 ACROSS = 3
 
-SECTION = re.compile(r'<w:sectPr\b[^>]*>.*?</w:sectPr>', re.S)
+# Not a self-closing <w:sectPr/>, which would swallow everything up to the next section's end.
+SECTION = re.compile(r'<w:sectPr(?:\s[^>]*[^/])?>.*?</w:sectPr>', re.S)
 PAGE_SIZE = re.compile(r'<w:pgSz\b[^>]*/>')
 PAGE_MARGINS = re.compile(r'<w:pgMar\b[^>]*/>')
 REFERENCE = re.compile(r'<w:(?:header|footer)Reference\b[^>]*\br:id="([^"]+)"')

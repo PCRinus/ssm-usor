@@ -43,7 +43,8 @@ from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 from decision_pages import decision_pages
 from signatures import signing_space
 from landscape_binding import landscape_bound_on_top
-from table_style import P_PR_ORDER, draws_house_tables, edit_properties, house_tables_part, marked_for_content_widths, put
+from table_style import (P_PR_ORDER, R_PR_ORDER, draws_house_tables, edit_properties, house_tables_part, in_schema_order,
+                         marked_for_content_widths, put)
 from typography import house_heading_style, paragraph_styles, typography, without_headings
 from word_layout import lays_out_as_word_2013, word_2013_part
 
@@ -1634,11 +1635,7 @@ def cap_keep_chains(xml, styles):
     return xml
 
 
-RUN_PROPERTIES = ['rStyle', 'rFonts', 'b', 'bCs', 'i', 'iCs', 'caps', 'smallCaps', 'strike',
-                  'dstrike', 'outline', 'shadow', 'emboss', 'imprint', 'noProof', 'snapToGrid',
-                  'vanish', 'webHidden', 'color', 'spacing', 'w', 'kern', 'position', 'sz', 'szCs',
-                  'highlight', 'u', 'effect', 'bdr', 'shd', 'fitText', 'vertAlign', 'rtl', 'cs',
-                  'em', 'lang', 'eastAsianLayout', 'specVanish', 'oMath']
+RUN_PROPERTIES = R_PR_ORDER
 BRANDING_RUN = {
     'color': f'<w:color w:val="{BRANDING_COLOR:06X}"/>',
     'sz': f'<w:sz w:val="{round(BRANDING_SIZE * 2)}"/>',
@@ -2118,7 +2115,10 @@ def sweep(path, word_2013=None):
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')
             if word_2013 and item.filename.endswith('.xml'):
                 data = house_tables_part(item.filename, word_2013_part(item.filename, data.decode('utf8')), house,
-                                         os.path.basename(path)).encode('utf8')
+                                         os.path.basename(path))
+                if re.fullmatch(r'word/(document|styles|numbering|header\d*|footer\d*)\.xml', item.filename):
+                    data = in_schema_order(data)
+                data = data.encode('utf8')
             archive.writestr(item, data)
 
 

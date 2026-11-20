@@ -10,11 +10,11 @@ const measuresColumn = /^Măsur[ai]\b/iu;
 // 3 mm, in twips.
 const cellHang = 170;
 // A dash before a digit is a minus sign ("- 5 °C"), not an item's.
-const dashLine = /^\s*[–-]\s+(?!\d)/u;
+const dashLine = /^\s*[–-]\s+(?![\s\d])/u;
 
 const rowPattern = /<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g;
-const paragraphPattern = /<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g;
-const runPattern = /<w:r\b[^>]*>(?:(?!<\/w:r>)[\s\S])*<\/w:r>/g;
+const paragraphPattern = /<w:p(?:\s[^>]*)?\/>|<w:p(?:\s[^>]*[^/])?>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g;
+const runPattern = /<w:r(?:\s[^>]*)?\/>|<w:r(?:\s[^>]*[^/])?>(?:(?!<\/w:r>)[\s\S])*<\/w:r>/g;
 const textOf = (xml: string) =>
   [...xml.matchAll(/<w:t\b[^>]*>([^<]*)<\/w:t>/g)].map((match) => match[1]).join('');
 
@@ -42,7 +42,12 @@ function withHangingDash(paragraph: string) {
         state = 'done';
         return `${open}${text.replace(/^\s+/u, '')}${close}`;
       }
-      const dash = /^\s*[–-](\s*)/u.exec(text)!;
+      if (text.trim() === '') return whole;
+      const dash = /^\s*[–-](\s*)/u.exec(text);
+      if (!dash) {
+        state = 'done';
+        return whole;
+      }
       const rest = text.slice(dash[0].length);
       state = rest === '' ? 'spaces' : 'done';
       return `${open}–${close}<w:tab/><w:t xml:space="preserve">${rest}${close}`;
@@ -52,13 +57,16 @@ function withHangingDash(paragraph: string) {
 
 function hangMeasures(paragraph: string) {
   const opening = /^<w:p\b[^>]*>/.exec(paragraph)![0];
-  const properties = /^<w:pPr>[\s\S]*?<\/w:pPr>/.exec(paragraph.slice(opening.length))?.[0] ?? '';
-  const body = paragraph.slice(opening.length + properties.length, -'</w:p>'.length);
+  const own =
+    /^<w:pPr\/>|^<w:pPr>[\s\S]*?<\/w:pPr>/.exec(paragraph.slice(opening.length))?.[0] ?? '';
+  const properties = own === '<w:pPr/>' ? '' : own;
+  const body = paragraph.slice(opening.length + own.length, -'</w:p>'.length);
   const lines: string[] = [''];
   let at = 0;
   for (const run of body.matchAll(runPattern)) {
     lines[lines.length - 1] += body.slice(at, run.index);
     at = run.index + run[0].length;
+    if (run[0].endsWith('/>')) continue;
     const runOpening = /^<w:r\b[^>]*>(?:<w:rPr>[\s\S]*?<\/w:rPr>)?/.exec(run[0])![0];
     const pieces = run[0].slice(runOpening.length, -'</w:r>'.length).split('<w:br/>');
     pieces.forEach((piece, index) => {

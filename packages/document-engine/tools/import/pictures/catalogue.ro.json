@@ -386,12 +386,6 @@
           "pictures": ["M032"]
         },
         {
-          "id": "22-33-35",
-          "name": "Loc pentru fumat",
-          "meaning": null,
-          "pictures": ["PF015"]
-        },
-        {
           "id": "22-33-43",
           "name": "Purtarea măștilor obligatorie",
           "meaning": null,
@@ -503,12 +497,6 @@
           "name": "Cale și acces de evacuare",
           "meaning": null,
           "pictures": ["E001"]
-        },
-        {
-          "id": "22-33-32",
-          "name": "Apă potabilă",
-          "meaning": "Indică apă bună de băut.",
-          "pictures": ["E015"]
         }
       ]
     },
@@ -556,6 +544,23 @@
           "name": "Hidrant",
           "meaning": null,
           "pictures": ["H"]
+        }
+      ]
+    },
+    {
+      "heading": "Alte indicatoare",
+      "signs": [
+        {
+          "id": "22-33-32",
+          "name": "Apă potabilă",
+          "meaning": "Indică apă bună de băut.",
+          "pictures": ["E015"]
+        },
+        {
+          "id": "22-33-35",
+          "name": "Loc pentru fumat",
+          "meaning": null,
+          "pictures": ["PF015"]
         }
       ]
     }

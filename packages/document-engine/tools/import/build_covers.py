@@ -209,9 +209,23 @@ def build(desktop, definition, cover, placing):
           f'below the contents')
 
 
+# The occupational safety covers were finished by hand after their last build (titles broken by
+# sense, one height for the title and the hand-over block): building them again would undo that.
+FINISHED_BY_HAND = 'covers.ro.json'
+
+
 def main():
-    # build_covers.py [number or type key ...]: only the covers named.
-    names = sys.argv[1:]
+    # build_covers.py [--overwrite-finished] [number or type key ...]: only the covers named.
+    overwrite = '--overwrite-finished' in sys.argv[1:]
+    names = [name for name in sys.argv[1:] if name != '--overwrite-finished']
+    if not overwrite:
+        with open(f'/work/tools/import/{FINISHED_BY_HAND}', encoding='utf8') as file:
+            finished = [f'{cover["number"]}_{cover["typeKey"]}' for cover in json.load(file)['covers']
+                        if not names or cover['number'] in names or cover['typeKey'] in names]
+        if finished:
+            sys.exit(f'Refusing to rebuild {", ".join(finished)}: the occupational safety covers are finished by '
+                     'hand (docs/document-engine.md, "Covers"). Edit them in place, build only the fire-safety '
+                     'covers by name, or pass --overwrite-finished to start over from the definition.')
     process, desktop = start_office()
     try:
         for definition_file in DEFINITIONS:

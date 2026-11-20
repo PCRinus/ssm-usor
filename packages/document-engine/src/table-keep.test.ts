@@ -47,6 +47,19 @@ describe('keeping the house tables together once merged', () => {
     expect(rows.every(staysWhole)).toBe(true);
   });
 
+  it('edits a paragraph whose properties hold a revision of their own', () => {
+    const revised =
+      '<w:pPr><w:jc w:val="left"/><w:pPrChange w:id="1" w:author="A"><w:pPr><w:jc w:val="center"/></w:pPr></w:pPrChange></w:pPr>';
+    const row = `<w:tr>${cell('{{#people}}{{name}}').replace('<w:p>', `<w:p>${revised}`)}${cell('{{note}}{{/people}}')}</w:tr>`;
+    const xml = new PizZip(renderDocument(docx(table(house, header + row)), { people: people(2) }))
+      .file('word/document.xml')!
+      .asText();
+    expect(xml.match(/<w:pPr>/g)?.length).toBe(xml.match(/<\/w:pPr>/g)?.length);
+    expect(xml).toContain(
+      '<w:pPrChange w:id="1" w:author="A"><w:pPr><w:jc w:val="center"/></w:pPr></w:pPrChange>'
+    );
+  });
+
   it('keeps a longer table only from its header to its second body row', () => {
     const rows = rowsOf(
       renderDocument(docx(table(house, header + loopRow)), { people: people(10) })

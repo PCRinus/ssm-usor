@@ -1,0 +1,93 @@
+import unittest
+
+import decision_pages
+import landscape_binding
+from table_style import closes_its_page, element, in_schema_order, keep_together, kind_of, without
+
+ROW = '<w:tr><w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>{}</w:t></w:r></w:p></w:tc></w:tr>'
+def table(rows, properties=''):
+    return f'<w:tbl><w:tblPr>{properties}</w:tblPr>{"".join(ROW.format(row) for row in rows)}</w:tbl>'
+
+
+class PropertyChildren(unittest.TestCase):
+    def test_a_paragraphs_spacing_is_not_its_marks_character_spacing(self):
+        inner = '<w:jc w:val="left"/><w:rPr><w:spacing w:val="3"/></w:rPr>'
+        self.assertIsNone(element(inner, 'spacing'))
+        self.assertEqual(without(inner, 'spacing'), inner)
+        inner = '<w:spacing w:after="0"/>' + inner
+        self.assertEqual(element(inner, 'spacing'), '<w:spacing w:after="0"/>')
+        self.assertEqual(without(inner, 'spacing'), '<w:jc w:val="left"/><w:rPr><w:spacing w:val="3"/></w:rPr>')
+
+    def test_run_properties_are_still_found(self):
+        self.assertEqual(element('<w:jc/><w:rPr><w:b/></w:rPr>', 'rPr'), '<w:rPr><w:b/></w:rPr>')
+
+
+class SchemaOrder(unittest.TestCase):
+    def test_properties_follow_the_schema(self):
+        xml = ('<w:p><w:pPr><w:pStyle w:val="N"/><w:spacing w:after="0"/><w:numPr><w:numId w:val="2"/></w:numPr>'
+               '<w:jc w:val="left"/><w:rPr><w:b/><w:rFonts w:ascii="Arial"/></w:rPr></w:pPr></w:p>')
+        self.assertEqual(in_schema_order(xml),
+                         '<w:p><w:pPr><w:pStyle w:val="N"/><w:numPr><w:numId w:val="2"/></w:numPr><w:spacing w:after="0"/>'
+                         '<w:jc w:val="left"/><w:rPr><w:rFonts w:ascii="Arial"/><w:b/></w:rPr></w:pPr></w:p>')
+
+    def test_ordered_properties_and_unknown_children_stay_put(self):
+        xml = '<w:rPr><w:rFonts w:ascii="A"/><w14:ligatures w14:val="all"/><w:b/></w:rPr>'
+        self.assertEqual(in_schema_order(xml), xml)
+        self.assertEqual(in_schema_order(in_schema_order(xml)), xml)
+
+
+class Sections(unittest.TestCase):
+    def test_a_self_closing_section_is_not_a_section(self):
+        xml = '<w:p><w:pPr><w:sectPr/></w:pPr></w:p><w:sectPr><w:pgSz w:w="11906"/></w:sectPr>'
+        for pattern in (decision_pages.SECTION, landscape_binding.SECTION):
+            self.assertEqual([m.group(0) for m in pattern.finditer(xml)], ['<w:sectPr><w:pgSz w:w="11906"/></w:sectPr>'])
+
+
+class Kinds(unittest.TestCase):
+    def test_a_ruled_table_is_a_house_table_and_a_layout_table_is_left_alone(self):
+        self.assertEqual(kind_of(table(['Nr. crt.', '1.'], properties='<w:tblStyle w:val="HouseTable"/>')), 'house')
+        self.assertEqual(kind_of(table(['Nr.crt.CONSECINȚE', '1.'], properties='<w:tblStyle w:val="HouseTable"/>')),
+                         'consequences')
+        scale = '<w:tblBorders><w:top w:val="single" w:sz="12"/></w:tblBorders>'
+        self.assertEqual(kind_of(table(['CLASE DE GRAVITATE', '1'], properties=scale)), 'scale')
+        self.assertIsNone(kind_of(table(['Semnătura', ''], properties='')))
+        self.assertIsNone(kind_of(table(['a']).replace('</w:p></w:tc>', '</w:p>' + table(['b']) + '</w:tc>', 1)))
+
+
+class KeepTogether(unittest.TestCase):
+    def test_a_short_table_keeps_whole_and_a_long_one_keeps_its_head(self):
+        grid = [4000]
+        short = [ROW.format(text) for text in ['Nr.', '1.', '2.', '3.']]
+        cant_split, keeps = keep_together(short, 1, grid)
+        self.assertEqual(cant_split, [True] * 4)
+        self.assertEqual(keeps, [True, True, True, False])
+        long = [ROW.format(text) for text in ['Nr.'] + [f'{n}.' for n in range(1, 13)]]
+        cant_split, keeps = keep_together(long, 1, grid)
+        self.assertEqual(keeps[:3], [True, True, False])
+        self.assertFalse(any(keeps[3:]))
+
+    def test_a_table_with_a_very_long_row_ties_nothing(self):
+        rows = [ROW.format('Nr.'), ROW.format('x ' * 400)]
+        cant_split, keeps = keep_together(rows, 1, [4000])
+        self.assertEqual(cant_split, [True, False])
+        self.assertEqual(keeps, [False, False])
+
+
+class SignedAndClosing(unittest.TestCase):
+    def test_a_list_signed_by_hand_keeps_only_its_head(self):
+        rows = [ROW.format('Semnătura de primire'), ROW.format('1.'), ROW.format('2.'), ROW.format('3.')]
+        _, keeps = keep_together(rows, 1, [4000])
+        self.assertEqual(keeps, [True, True, False, False])
+
+    def test_a_short_sentence_ending_its_page_keeps_with_a_whole_table(self):
+        sentence = '<w:p><w:r><w:t>Niciunul dintre factorii de risc.</w:t></w:r><w:r><w:br w:type="page"/></w:r></w:p>'
+        self.assertTrue(closes_its_page(sentence + '<w:p/>'))
+        self.assertFalse(closes_its_page(sentence.replace('<w:r><w:br w:type="page"/></w:r>', '')))
+        self.assertFalse(closes_its_page('<w:p/>' + sentence))
+        rows = [ROW.format('Nr.'), ROW.format('1.'), ROW.format('2.')]
+        _, keeps = keep_together(rows, 1, [4000], closing=True)
+        self.assertEqual(keeps, [True, True, True])
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -106,10 +106,14 @@ def content_types(xml):
     return xml
 
 
+# Not a self-closing <w:sectPr/>, which would swallow everything up to the next section's end.
+SECTION_OPENING = r'<w:sectPr(?:\s[^>]*[^/])?>'
+SECTION = re.compile(SECTION_OPENING + r'.*?</w:sectPr>', re.S)
+
 def section(xml):
     def change(match):
         properties = re.sub(r'<w:headerReference\b[^>]*/>|<w:titlePg(?: w:val="[^"]*")?/>', '', match.group(0))
-        opening = re.match(r'<w:sectPr\b[^>]*>', properties).end()
+        opening = re.match(SECTION_OPENING, properties).end()
         references = (f'<w:headerReference w:type="default" r:id="{HEADER_ID}"/>'
                       f'<w:headerReference w:type="first" r:id="{FIRST_HEADER_ID}"/>')
         properties = properties[:opening] + references + properties[opening:]
@@ -118,7 +122,7 @@ def section(xml):
         later = re.search(r'<w:(?:textDirection|bidi|rtlGutter|docGrid|printerSettings|sectPrChange)\b', properties)
         at = later.start() if later else properties.rindex('</w:sectPr>')
         return properties[:at] + '<w:titlePg/>' + properties[at:]
-    return re.sub(r'<w:sectPr\b[^>]*>.*?</w:sectPr>', change, xml, flags=re.S)
+    return re.sub(SECTION, change, xml)
 
 
 def is_decision(document):

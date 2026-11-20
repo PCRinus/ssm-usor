@@ -1428,9 +1428,11 @@ function setSample(
         ownInstructionsRevision: { id: 'r-1', number: 1 },
         annexTitles:
           'I.P.S.S.M. Activități de birou; I.P.S.S.M. Scări metalice; I.P.S.S.M. Aparat de sudură oxiacetilenică',
+        hasAnnexes: true,
         positions: [
           {
             name: 'Manager magazin',
+            workZone: 'Birou',
             trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Ana IONESCU',
             modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015' }],
             intervalLabel: '6 luni',
@@ -1449,8 +1451,9 @@ function setSample(
               },
             ],
           },
-          ...people.map(({ name, jobTitle }) => ({
+          ...people.map(({ name, jobTitle }, index) => ({
             name: jobTitle,
+            workZone: index === 0 ? 'Atelier' : legalName,
             trainer:
               people.length === 1
                 ? `${name} – conducătorul locului\u00a0de\u00a0muncă`
