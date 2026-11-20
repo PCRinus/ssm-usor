@@ -8,8 +8,8 @@
       "title": "Copertă – Deciziile interne",
       "file": "1.0_cover_decisions.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -20,8 +20,8 @@
       "title": "Decizia privind responsabilii cu instruirea",
       "file": "1.1_decision_training.docx",
       "change": {
-        "kind": "legal",
-        "note": "Citatul din H.G. 1425/2006 art. 98 începe acum cu fraza lui de deschidere și spune „activități specifice”, ca în lege; fraza despre conținutul instruirii suplimentare stă separat, după citatul art. 100, ca text al deciziei."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -32,8 +32,8 @@
       "title": "Decizia privind echipa de evaluare a riscurilor",
       "file": "1.2_decision_risk_evaluation_team.docx",
       "change": {
-        "kind": "correction",
-        "note": "Coordonatorul echipei de evaluare este evaluatorul de riscuri al organizației, cu calitatea și certificatul lui, când este completat în Abilitări; altfel, ca până acum, cel care generează documentele, cu titlul din profil."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -44,8 +44,8 @@
       "title": "Decizia privind responsabilii cu primul ajutor",
       "file": "1.3_decision_first_aid.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -56,8 +56,8 @@
       "title": "Decizia privind pericolul grav și iminent",
       "file": "1.4_decision_imminent_danger.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -68,8 +68,8 @@
       "title": "Decizia privind reprezentanții lucrătorilor",
       "file": "1.5_decision_workers_representative.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -80,8 +80,8 @@
       "title": "Copertă – Material de instruire introductiv-generală",
       "file": "2.1_cover_general_training_material.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -92,12 +92,8 @@
       "title": "Material de instruire introductiv-generală",
       "file": "2.2_general_training_material.docx",
       "change": {
-        "kind": "legal",
-        "note": "Art. 36 alin. (2) din O.U.G. 195/2002 cere conducătorilor și pasagerilor motocicletelor și mopedelor să poarte pe cap o cască omologată pentru categoria vehiculului, cu elementele de siguranță cuplate corect.",
-        "resolves": {
-          "act": "oug-195-2002",
-          "consolidatedOn": "2026-11-06"
-        }
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -108,8 +104,8 @@
       "title": "Copertă – Instrucțiuni proprii",
       "file": "3.1_cover_own_instructions.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -120,8 +116,8 @@
       "title": "Instrucțiuni proprii de securitate și sănătate în muncă",
       "file": "3.2_own_instructions.docx",
       "change": {
-        "kind": "legal",
-        "note": "Citatele din legislație au fost aduse la forma în vigoare: fișa de instruire (H.G. 1425/2006 art. 81 și 81¹), intervalele instruirii periodice (art. 96), durata minimă a instruirii (art. 80¹), concediul de risc maternal (O.U.G. 158/2005 art. 31) și echipamentele de protecție (H.G. 1048/2006 art. 3); textele despre MISSMIG și IPSSM nu mai sunt numerotate ca alineate ale legii."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -132,8 +128,8 @@
       "title": "Copertă – Tematica de instruire",
       "file": "4.1_cover_training_themes.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -144,8 +140,8 @@
       "title": "Tematica și programul de instruire",
       "file": "4.2_training_themes.docx",
       "change": {
-        "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -156,8 +152,8 @@
       "title": "Copertă – Test de verificare a cunoștințelor",
       "file": "5.0_cover_tests.docx",
       "change": {
-        "kind": "correction",
-        "note": "Coperta numește un singur test, cel la angajare (TASSM): testul de verificare periodică a fost scos din set, nicio prevedere legală nu îl cere."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -169,7 +165,7 @@
       "file": "5.1_test_hiring.docx",
       "change": {
         "kind": "layout",
-        "note": "Întrebările vin din banca de întrebări a organizației: testul le tipărește pe toate cele active, foaia de răspunsuri are un rând pentru fiecare, iar răspunsurile corecte se tipăresc din aceleași date. Sub titlu, rândul „La fiecare întrebare pot fi corecte unul sau mai multe răspunsuri.”, iar rezultatul arată pragul de 70% de răspunsuri corecte. Întrebarea cu pictograme nu mai există."
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -180,8 +176,8 @@
       "title": "Lista internă de dotare cu echipament individual de protecție",
       "file": "6_protective_equipment_list.docx",
       "change": {
-        "kind": "legal",
-        "note": "Citatul din Legea 319/2006 art. 12 numește litera b), singura pe care o preia."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -192,8 +188,8 @@
       "title": "Copertă – Registrele de evidență a evenimentelor",
       "file": "7.1_cover_event_registers.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -204,8 +200,8 @@
       "title": "Registrele de evidență a evenimentelor",
       "file": "7.2_event_registers.docx",
       "change": {
-        "kind": "correction",
-        "note": "Fraze incomplete sau neclare, reformulate."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -217,7 +213,7 @@
       "file": "8_control_report.docx",
       "change": {
         "kind": "layout",
-        "note": "Paginarea și rândul din subsol, așezate din nou; textul este neschimbat."
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -228,8 +224,8 @@
       "title": "Evaluarea riscurilor de accidentare și îmbolnăvire profesională",
       "file": "9_risk_assessment.docx",
       "change": {
-        "kind": "correction",
-        "note": "Evaluatorul numit pe prima pagină, în echipa de evaluare și la fiecare loc de muncă este evaluatorul de riscuri al organizației, cu calitatea și certificatul lui, când este completat în Abilitări; altfel, ca până acum, cel care generează documentele."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -240,8 +236,8 @@
       "title": "Planul de prevenire și protecție",
       "file": "10_prevention_plan.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -252,8 +248,8 @@
       "title": "Copertă – Material de informare a angajatorului",
       "file": "11.1_cover_employer_briefing.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -264,8 +260,8 @@
       "title": "Material de informare a angajatorului",
       "file": "11_employer_briefing.docx",
       "change": {
-        "kind": "legal",
-        "note": "Citatele din legislație au fost aduse la forma în vigoare: intervalele instruirii periodice (H.G. 1425/2006 art. 96), durata instruirii la locul de muncă (art. 92), revizuirea evaluării riscurilor (art. 15), comunicarea evenimentelor (Legea 319/2006 art. 26 și 27) și reprezentanții lucrătorilor (H.G. 1425/2006 art. 53); cuvintele lipsă au fost refăcute."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -276,8 +272,8 @@
       "title": "Regulament intern privind controlul propriu",
       "file": "12_control_regulation.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -287,8 +283,8 @@
       "title": "Anexă la Regulamentul intern privind semnarea electronică a fișelor de instruire",
       "file": "13_signing_regulation_annex.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială: fișele de instruire SSM și PSI se semnează cu semnătură electronică avansată, după H.G. 1425/2006 art. 81 alin. (3¹)–(3³) și Codul muncii art. 16."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -297,8 +293,8 @@
       "title": "Fișa individuală de instruire SSM",
       "file": "fisa_instruire_ssm.docx",
       "change": {
-        "kind": "correction",
-        "note": "Instruirile preluate de pe fișa pe hârtie apar cu mențiunea „transcris; semnat pe hârtie”, iar sub titlu fișa spune că rândurile transcrise sunt copiate de pe fișa pe hârtie și că originalul, cu semnăturile, se păstrează la angajator."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     },
     {
@@ -317,8 +313,8 @@
       "title": "Fișa de test",
       "file": "fisa_test.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială: întrebările testului susținut în portal, cu răspunsurile alese, punctajul, rezultatul și semnăturile persoanei testate și ale examinatorului."
+        "kind": "layout",
+        "note": "Tabelele și caseta cu datele documentului din antet stau exact pe marginile textului; textul este neschimbat."
       }
     }
   ]

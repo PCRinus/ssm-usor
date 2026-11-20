@@ -99,7 +99,7 @@ def add_page_fields(document, cell):
         cell.insertString(cursor, after, False)
 
 
-def build(desktop, definition, target):
+def build(desktop, definition, target, word_2013):
     document = desktop.loadComponentFromURL('private:factory/swriter', '_blank', 0, (prop('Hidden', True),))
     header = definition['header']
     build_header(document, header)
@@ -155,7 +155,7 @@ def build(desktop, definition, target):
 
     document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
     document.close(True)
-    sweep(target)
+    sweep(target, word_2013)
 
 
 def main():
@@ -165,7 +165,7 @@ def main():
     process, desktop = start_office()
     try:
         for domain, definition in definitions.items():
-            build(desktop, definition, targets[domain])
+            build(desktop, definition, targets[domain], word_2013=domain == 'ssm')
     finally:
         try:
             desktop.terminate()

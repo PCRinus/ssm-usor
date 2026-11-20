@@ -1,8 +1,10 @@
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
+import { annexTemplate } from '../annex-template';
+import { signingTypeKeys } from '../signing';
 import { documentText } from '../text';
-import { bodyOf, decisionFiles, documentTextOf, read, typesetFiles } from './read';
+import { bodyOf, decisionFiles, documentTextOf, entries, read, typesetFiles } from './read';
 
 // The house style the import script typesets every template to.
 describe('typesetting', () => {
@@ -377,4 +379,38 @@ describe('wording', () => {
       );
     }
   );
+});
+
+// tools/import/word_layout.py says why. The fire-safety set and the contracts keep their layout
+// until they are reviewed too.
+describe('Word 2013 layout of the occupational safety set', () => {
+  const files: [string, Uint8Array][] = [
+    ...entries
+      .filter((entry) => entry.set === 'ssm' && entry.typeKey !== signingTypeKeys.agreement)
+      .map((entry): [string, Uint8Array] => [entry.path, read(entry.path)]),
+    ['the annex template', annexTemplate('ssm')],
+  ];
+
+  it.each(files)('%s is laid out in compatibility mode 15', (_, bytes) => {
+    const settings = new PizZip(bytes).file('word/settings.xml')!.asText();
+    expect(settings.match(/<w:compatSetting w:name="compatibilityMode"[^>]*>/g)).toEqual([
+      '<w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/>',
+    ]);
+  });
+
+  it.each(files)('%s sets every table on the margins, the header box included', (_, bytes) => {
+    const zip = new PizZip(bytes);
+    const indents = Object.keys(zip.files)
+      .filter((name) => /^word\/[^/]+\.xml$/.test(name))
+      .flatMap(
+        (name) =>
+          zip
+            .file(name)!
+            .asText()
+            .match(/<w:tblInd\b[^>]*>/g) ?? []
+      );
+    expect(indents.filter((indent) => !/^<w:tblInd w:w="0" w:type="dxa"\/>$/.test(indent))).toEqual(
+      []
+    );
+  });
 });

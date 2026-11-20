@@ -7,7 +7,8 @@ the fire-safety one the annex of the general dispositions of OMAI 712/2005: thei
 in their order, typeset to the house style. Both are written as plain OOXML, without
 LibreOffice, on the package of the annual report (7.2): its styles, settings, fonts, theme and
 footer, without its box of document details, since a sheet is a form and carries no issue
-date. A blank is a cell with a line under it, never a run of dots.
+date; the occupational safety ones in Word 2013's layout (`word_layout`), as the rest of their
+set. A blank is a cell with a line under it, never a run of dots.
 
 Each sheet is also the form of the signed sheet (ADR 023): with `form.on` the hiring blocks, the
 admission and the periodic tables print their variant with a content control in every cell a
@@ -18,6 +19,8 @@ which LibreOffice exports as a PDF text field. Without it they print as before.
 import itertools
 import os
 import zipfile
+
+from word_layout import lays_out_as_word_2013, word_2013_part
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 TEMPLATES = os.path.join(ROOT, 'templates')
@@ -787,6 +790,8 @@ def write(name, body):
                 data = RELS.encode('utf-8')
             elif item == '[Content_Types].xml':
                 data = types.encode('utf-8')
+            if lays_out_as_word_2013(target) and item.endswith('.xml'):
+                data = word_2013_part(item, data.decode('utf-8')).encode('utf-8')
             info = zipfile.ZipInfo(item, date_time=(2026, 10, 16, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             out.writestr(info, data)

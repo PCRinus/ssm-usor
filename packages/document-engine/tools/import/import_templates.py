@@ -40,6 +40,8 @@ from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
+from word_layout import lays_out_as_word_2013, word_2013_part
+
 ROOT = '/work'
 PORT = 2002
 # One folder per documentation set (ADR 016), the same under `originals/` and `templates/`: a
@@ -2012,7 +2014,7 @@ PAGE_BREAK_PARAGRAPH = re.compile(
 PAGE_BREAK = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
 
 
-def sweep(path):
+def sweep(path, word_2013=None):
     """A last pass over the saved file, for what LibreOffice's API reaches in most places and
     not in all, or not at all: a dead link that survives clearing, an empty paragraph it writes
     as justified though its own model says otherwise, a picture floating between two lines,
@@ -2020,7 +2022,11 @@ def sweep(path):
     three rules every template keeps: a line ending in ":" keeps with the list item after it,
     no run of paragraphs kept with the next longer than `KEEP_CHAIN` unless its lines are
     short, and the branding line small and grey; and in the documents with contents, a table
-    of contents over real headings (`TABLES_OF_CONTENTS`). Safe to run again."""
+    of contents over real headings (`TABLES_OF_CONTENTS`). In the occupational safety set,
+    Word 2013's layout with every table on the margins (`word_layout`), which `word_2013`
+    asks for or leaves to the file's place. Safe to run again."""
+    if word_2013 is None:
+        word_2013 = lays_out_as_word_2013(path)
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
         styles = archive.read('word/styles.xml').decode('utf8')
@@ -2059,6 +2065,8 @@ def sweep(path):
                 data = xml.encode('utf8')
             elif item.filename == 'word/styles.xml':
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')
+            if word_2013 and item.filename.endswith('.xml'):
+                data = word_2013_part(item.filename, data.decode('utf8')).encode('utf8')
             archive.writestr(item, data)
 
 
