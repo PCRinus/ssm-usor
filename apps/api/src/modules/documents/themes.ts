@@ -12,8 +12,8 @@ export const ownInstructionsChapters: ChapterStructure = {
 };
 
 export const generalTrainingChapters: ChapterStructure = {
-  chapterStarts: [1, 7, 14, 16, 28, 81, 97, 109, 121, 152, 211, 236, 268, 278, 291, 300, 325],
-  articleCount: 325,
+  chapterStarts: [1, 7, 14, 16, 28, 82, 98, 110, 122, 153, 212, 237, 271, 281, 294, 303, 328],
+  articleCount: 328,
 };
 
 export const fireOwnInstructionsChapters: ChapterStructure = {

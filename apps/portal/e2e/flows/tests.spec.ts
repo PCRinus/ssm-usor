@@ -67,7 +67,7 @@ test('an employee with an awaiting hiring test reads the study card, answers ten
       phase: 'introductory_general',
       heldOn: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(new Date()),
       durationMinutes: 240,
-      material: 'Conform MISSMIG Art. 1 – 325',
+      material: 'Conform MISSMIG Art. 1 – 328',
       trainer: { name: 'Ana Ionescu', jobTitle: 'Inspector SSM' },
       verifier: { name: 'Ana Ionescu', jobTitle: 'Inspector SSM' },
       employeeIds: [employeeId],
