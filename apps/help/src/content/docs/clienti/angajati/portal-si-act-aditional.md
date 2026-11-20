@@ -130,6 +130,8 @@ Cu **Trimite**, fiecare invitație pleacă la fel ca atunci când inviți lucră
 
 Un lucrător care pleacă de la client își păstrează accesul: evidența lui rămâne, și odată cu ea dreptul lui de a o vedea. Revocă-l doar dacă angajatorul cere.
 
+Tabul **Portal** al unui fost lucrător e doar de citit: arată accesul și actul adițional cum sunt, dar nu-l mai inviți și nu-i retrimiți invitația. Rămân **Revocă accesul**, cât timp îl are, și **Revocă invitația**, pentru o invitație încă deschisă.
+
 ## Tabul Portal al clientului
 
 Tabul **Portal** al unui client adună tot ce ține de portal: administratorul clientului, lucrătorii cu accesul fiecăruia și semnăturile care așteaptă.
@@ -206,6 +208,8 @@ Rândul **Stare** arată una dintre stări:
 - **Clauză în contract**: contractul de muncă cuprinde deja clauza, așa că nu mai e nevoie de actul adițional.
 - **Semnează de mână**: lucrătorul a cerut în scris să semneze din nou de mână.
 
+La un fost lucrător actul nu se mai semnează: panoul îi arată starea, fără **Ce urmează** și fără să-l mai descarci pentru semnare sau să înregistrezi ceva. Un act nesemnat apare cu „Fost lucrător: actul nu se mai semnează.” **Descarcă actul semnat** și **Vezi clauza…** rămân.
+
 Sub stare, panoul mai arată, când e cazul: **Semnături**, cine a semnat în portal și când, sau că administratorul clientului e încă în așteptare; **Scan**, la actul semnat pe hârtie, cu scanul atașat sau „Fără scan atașat”; **Cererea lucrătorului**, la revenirea la semnarea de mână; și **Ce urmează**, cât timp mai e un pas de făcut. **Descarcă actul semnat** îți dă actul semnat în portal.
 
 ### Ce trebuie completat înainte
@@ -232,9 +236,9 @@ Pentru un lucrător nou, clauza poate intra direct în contractul individual de 
 
 ### Revenirea la semnarea de mână
 
-Când lucrătorul cere în scris să semneze din nou de mână, alege **Înregistrează revenirea la semnarea de mână…**. Treci **Data cererii**, ziua în care a scris-o (din start azi, nu în viitor), și, opțional, cererea scrisă scanată, care se salvează în **Documente**, la lucrător, ca scanul actului.
+Când lucrătorul cere în scris să semneze din nou de mână, alege **Înregistrează revenirea la semnarea de mână…**. Treci **Data cererii**, ziua în care a scris-o (din start azi, nu în viitor și nu înaintea zilei în care a fost semnat actul sau, dacă nu a fost semnat, descărcat), și, opțional, cererea scrisă scanată, care se salvează în **Documente**, la lucrător, ca scanul actului.
 
-Revenirea are efect din momentul în care o înregistrezi, nu din data cererii: de atunci, instruirile lui se semnează pe hârtie, iar cererile de semnare electronică în așteptare se anulează. Actul adițional și semnăturile de până atunci rămân la dosar. Panoul arată apoi **Semnează de mână**, iar rândul **Cererea lucrătorului** arată data cererii și scanul ei. Revenirea se înregistrează o singură dată.
+Revenirea are efect din momentul în care o înregistrezi, nu din data cererii: de atunci, instruirile lui se semnează pe hârtie, iar cererile de semnare electronică în așteptare se anulează. Actul adițional și semnăturile de până atunci rămân la dosar. Panoul arată apoi **Semnează de mână**, cu ziua de la care lucrătorul semnează fișele de mână, iar rândul **Cererea lucrătorului** arată data cererii și scanul ei. Revenirea se înregistrează o singură dată. La o revenire înregistrată înainte ca aplicația să păstreze aceste date, panoul nu arată nici ziua înregistrării, nici cererea.
 
 ### Anexa 13 la regulamentul intern
 

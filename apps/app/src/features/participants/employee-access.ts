@@ -22,13 +22,12 @@ export type AccessLead = 'invite' | 'contact' | 'resend';
 
 export const hasContact = (employee: InvitedEmployee) => Boolean(employee.email || employee.phone);
 
-// The access panel's forward step, which takes the tab's one dark button before the agreement's.
 export function accessLead(
   state: EmployeeParticipantState,
   employee: InvitedEmployee,
-  readOnly: boolean
+  locked: boolean
 ): AccessLead | null {
-  if (readOnly) return null;
+  if (locked) return null;
   if (state.participant) return null;
   if (state.invitation) return state.invitation.status === 'expired' ? 'resend' : null;
   return hasContact(employee) ? 'invite' : 'contact';

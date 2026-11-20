@@ -29,18 +29,24 @@ function EmployeePortal() {
   const employee = query.data?.employee;
   if (!employee || !session) return null;
   const readOnly = client.archivedAt !== null;
+  const former = employee.status === 'terminated';
   const state = access.data;
-  const invited = Boolean(state?.participant ?? state?.invitation);
+  const invited = Boolean(
+    state?.participant || (state?.invitation && state.invitation.status !== 'expired')
+  );
 
   return (
     <div data-testid="employee-portal" className="grid gap-4">
-      <EmployeePortalCard employee={employee} readOnly={readOnly} />
+      <EmployeePortalCard employee={employee} readOnly={readOnly} former={former} />
       <SigningAgreementCard
         employee={employee}
         readOnly={readOnly}
+        former={former}
         invited={invited}
-        leads={state !== undefined && accessLead(state, employee, readOnly) === null}
-        contactAsked={state !== undefined && !readOnly && !invited && !hasContact(employee)}
+        leads={state !== undefined && accessLead(state, employee, readOnly || former) === null}
+        contactAsked={
+          state !== undefined && !readOnly && !former && !invited && !hasContact(employee)
+        }
       />
     </div>
   );

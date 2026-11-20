@@ -63,7 +63,7 @@ import {
   summaryQuiet,
   SummaryRow,
 } from '@/features/clients/details/summary-list';
-import { formatDate, formatDay, todayIso } from '@/lib/dates';
+import { dateToIso, formatDate, formatDay, todayIso } from '@/lib/dates';
 
 import { noScan, type ScanChoice, useEmployeeFiles } from './agreement-scan';
 import { AgreementScanField } from './agreement-scan-field';
@@ -121,16 +121,23 @@ function Note({ testId, children }: { testId?: string; children: ReactNode }) {
   );
 }
 
-function stateNote(agreement: Agreement | null, readOnly: boolean, unsigned: boolean) {
+function stateNote(
+  agreement: Agreement | null,
+  { readOnly, former, unsigned }: { readOnly: boolean; former: boolean; unsigned: boolean }
+) {
   if (readOnly && unsigned) return 'Clientul e arhivat: actul nu se mai semnează.';
+  if (former && unsigned) return 'Fost lucrător: actul nu se mai semnează.';
   switch (agreement?.state) {
     case 'signed_on_paper':
       return agreement.signedAt ? `pe ${formatDay(agreement.signedAt)}` : null;
     case 'in_contract':
       return 'Clauza e în contractul de muncă, deci actul adițional nu mai e necesar.';
-    case 'withdrawn':
-      // The response holds no moment for the withdrawal itself, which took effect when recorded.
-      return 'Semnează fișele de mână; actul și semnăturile dinaintea revenirii rămân la dosar.';
+    case 'withdrawn': {
+      const recordedAt = agreement.withdrawal?.recordedAt;
+      return recordedAt
+        ? `Din ${formatDay(recordedAt)} semnează fișele de mână. Actul și semnăturile de până atunci rămân la dosar.`
+        : 'Semnează fișele de mână; actul și semnăturile dinaintea revenirii rămân la dosar.';
+    }
     default:
       return null;
   }
@@ -153,18 +160,21 @@ function nextStep(agreement: Agreement | null, invited: boolean) {
 
 const actionsClass = 'flex flex-wrap gap-2 max-sm:grid max-sm:[&>*]:w-full';
 
-// `readOnly` is an archived client, whose agreements no longer change. `leads` says the access
-// panel holds no forward step, so recording a downloaded agreement takes the tab's dark button;
-// `contactAsked` says the access panel already asks for the missing email or phone.
+// `readOnly` is an archived client and `former` a worker who left: neither agreement changes any
+// more. `leads` says the access panel holds no forward step, so recording a downloaded agreement
+// takes the tab's dark button; `contactAsked` says the access panel already asks for the missing
+// email or phone.
 export function SigningAgreementCard({
   employee,
   readOnly,
+  former,
   invited,
   leads,
   contactAsked,
 }: {
   employee: AgreementEmployee;
   readOnly: boolean;
+  former: boolean;
   invited: boolean;
   leads: boolean;
   contactAsked: boolean;
@@ -218,7 +228,8 @@ export function SigningAgreementCard({
         (document) => document.typeKey === 'signing_regulation_annex' && document.issued !== null
       )
     : true;
-  const paperLeads = leads && !readOnly && state === 'generated' && !awaitsEmployer;
+  const locked = readOnly || former;
+  const paperLeads = leads && !locked && state === 'generated' && !awaitsEmployer;
   const scanId =
     state === 'signed_on_paper' || state === 'withdrawn' ? (agreement?.clientFileId ?? null) : null;
   const requestScanId = agreement?.withdrawal?.fileId ?? null;
@@ -235,7 +246,7 @@ export function SigningAgreementCard({
           ? file.name
           : `Act-aditional-${formatEmployeeName(employee).replace(/\s+/g, '-')}.pdf`
       );
-      if (!agreement && !readOnly) {
+      if (!agreement) {
         await putSigningAgreementState(
           employee.clientId,
           employee.id,
@@ -292,7 +303,7 @@ export function SigningAgreementCard({
     </Button>
   );
   const buttons: ReactNode[] = [];
-  if (unsigned && !readOnly) {
+  if (unsigned && !locked) {
     buttons.push(...(paperLeads ? [paperButton, downloadButton] : [downloadButton, paperButton]));
     buttons.push(
       <Button
@@ -335,7 +346,7 @@ export function SigningAgreementCard({
       </Button>
     );
   }
-  if (agreed && !readOnly) {
+  if (agreed && !locked) {
     buttons.push(
       <Button
         key="withdraw"
@@ -352,7 +363,7 @@ export function SigningAgreementCard({
 
   const todos: ReactNode[] = [];
   if (
-    !readOnly &&
+    !locked &&
     (noAddress || (!contactAsked && unavailable?.reason === 'employee_has_no_address'))
   ) {
     todos.push(
@@ -378,7 +389,7 @@ export function SigningAgreementCard({
       </TodoLine>
     );
   }
-  if (!readOnly && (noRepresentative || unavailable?.reason === 'missing_document_data')) {
+  if (!locked && (noRepresentative || unavailable?.reason === 'missing_document_data')) {
     todos.push(
       <TodoLine
         key="representative"
@@ -400,7 +411,7 @@ export function SigningAgreementCard({
       </TodoLine>
     );
   }
-  if (!readOnly && !annexIssued) {
+  if (!locked && !annexIssued) {
     todos.push(
       <TodoLine
         key="annex"
@@ -422,8 +433,8 @@ export function SigningAgreementCard({
     );
   }
 
-  const note = query.isSuccess ? stateNote(agreement, readOnly, unsigned) : null;
-  const next = !readOnly && query.isSuccess ? nextStep(agreement, invited) : null;
+  const note = query.isSuccess ? stateNote(agreement, { readOnly, former, unsigned }) : null;
+  const next = !locked && query.isSuccess ? nextStep(agreement, invited) : null;
 
   return (
     <SectionCard
@@ -475,7 +486,7 @@ export function SigningAgreementCard({
                 )}
               </SummaryRow>
             )}
-            {agreement?.withdrawal && (
+            {agreement?.withdrawal?.requestedOn && (
               <SummaryRow label="Cererea lucrătorului" testId="signing-agreement-request">
                 <span className="tabular-nums">{formatDate(agreement.withdrawal.requestedOn)}</span>
                 {requestScanId && (
@@ -520,6 +531,7 @@ export function SigningAgreementCard({
       <PaperAgreementDialog employee={employee} open={marking} onClose={() => setMarking(false)} />
       <WithdrawalDialog
         employee={employee}
+        signedSince={agreement && signedSinceOf(agreement)}
         open={withdrawing}
         onClose={() => setWithdrawing(false)}
       />
@@ -575,20 +587,19 @@ function ScanLink({
 const saveFailed =
   'Nu am putut salva starea actului adițional. Verifică conexiunea și încearcă din nou.';
 
-// A scan sent before a refused save keeps its id, so trying again does not upload it twice.
-function useScanUpload(employee: AgreementEmployee) {
+// Once uploaded, the scan is chosen as a file among the employee's, so a save refused after it
+// neither uploads it again nor leaves it stored unseen.
+function useScanUpload(employee: AgreementEmployee, onUploaded: (scan: ScanChoice) => void) {
   const { request, queryClient } = useApi();
-  const [uploaded, setUploaded] = useState<{ file: File; id: string } | null>(null);
   return async (scan: ScanChoice) => {
     if (!scan.file) return scan.existingId || null;
-    if (uploaded?.file === scan.file) return uploaded.id;
     const { file } = await uploadClientFile(
       employee.clientId,
       scan.file,
       { fileName: scan.file.name, employeeId: employee.id },
       request
     );
-    setUploaded({ file: scan.file, id: file.id });
+    onUploaded({ file: null, existingId: file.id });
     await queryClient.invalidateQueries({
       queryKey: getListClientFilesQueryKey(employee.clientId),
     });
@@ -623,7 +634,7 @@ function useAgreementChange(employee: AgreementEmployee, done: string, onClose: 
       const issues = apiErrorBody(cause)?.issues ?? [];
       if (issues.some((issue) => issue.path === 'signedOn' || issue.path === 'requestedOn')) {
         setBusy(false);
-        return 'future' as const;
+        return 'date' as const;
       }
       setError(signingFailure(cause, saveFailed));
       setBusy(false);
@@ -639,6 +650,10 @@ function dateProblem(value: string, empty: string, future: string) {
   if (value > todayIso()) return future;
   return null;
 }
+
+// The API refuses a request dated before the day the agreement was signed, or else handed out.
+const signedSinceOf = (agreement: Agreement) =>
+  dateToIso(new Date(agreement.signedAt ?? agreement.employeeSignedAt ?? agreement.generatedAt));
 
 function PaperAgreementDialog({
   employee,
@@ -666,7 +681,7 @@ function PaperAgreementForm({
   const [signedOn, setSignedOn] = useState(todayIso);
   const [scan, setScan] = useState<ScanChoice>(noScan);
   const [dateError, setDateError] = useState<string | null>(null);
-  const upload = useScanUpload(employee);
+  const upload = useScanUpload(employee, setScan);
   const { busy, error, save } = useAgreementChange(
     employee,
     'Actul adițional semnat pe hârtie este înregistrat.',
@@ -684,7 +699,7 @@ function PaperAgreementForm({
       signedOn,
       clientFileId: await upload(scan),
     }));
-    if (result === 'future') setDateError(future);
+    if (result === 'date') setDateError(future);
   }
 
   return (
@@ -750,41 +765,48 @@ function PaperAgreementForm({
 
 function WithdrawalDialog({
   employee,
+  signedSince,
   open,
   onClose,
 }: {
   employee: AgreementEmployee;
+  signedSince: string | null;
   open: boolean;
   onClose: () => void;
 }) {
   return (
     <FormDialog open={open} onClose={onClose}>
-      {open && <WithdrawalForm employee={employee} onClose={onClose} />}
+      {open && <WithdrawalForm employee={employee} signedSince={signedSince} onClose={onClose} />}
     </FormDialog>
   );
 }
 
 function WithdrawalForm({
   employee,
+  signedSince,
   onClose,
 }: {
   employee: AgreementEmployee;
+  signedSince: string | null;
   onClose: () => void;
 }) {
   const [requestedOn, setRequestedOn] = useState(todayIso);
   const [scan, setScan] = useState<ScanChoice>(noScan);
   const [dateError, setDateError] = useState<string | null>(null);
-  const upload = useScanUpload(employee);
+  const upload = useScanUpload(employee, setScan);
   const { busy, error, save } = useAgreementChange(
     employee,
     'Revenirea la semnarea de mână este înregistrată.',
     onClose
   );
   const future = 'Data cererii nu poate fi în viitor.';
+  const early = 'Data cererii nu poate fi înaintea semnării actului.';
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const problem = dateProblem(requestedOn, 'Alege data cererii.', future);
+    const problem =
+      dateProblem(requestedOn, 'Alege data cererii.', future) ??
+      (signedSince && requestedOn < signedSince ? early : null);
     setDateError(problem);
     if (problem) return;
     const result = await save(async () => ({
@@ -792,7 +814,7 @@ function WithdrawalForm({
       requestedOn,
       requestFileId: await upload(scan),
     }));
-    if (result === 'future') setDateError(future);
+    if (result === 'date') setDateError(requestedOn > todayIso() ? future : early);
   }
 
   return (
@@ -819,6 +841,7 @@ function WithdrawalForm({
               id="signing-agreement-requested-on"
               testId="signing-agreement-requested-on"
               value={requestedOn}
+              min={signedSince ?? undefined}
               max={todayIso()}
               disabled={busy}
               invalid={Boolean(dateError)}

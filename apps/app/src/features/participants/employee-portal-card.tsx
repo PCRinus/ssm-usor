@@ -35,7 +35,6 @@ import { useTimeReached } from './use-time-reached';
 
 const channelNames: Record<ParticipantChannel, string> = { email: 'Email', sms: 'SMS' };
 
-// The address the invitation would go to: the email first, as the invitation proposes it.
 const proposedAddress = (employee: InvitedEmployee) =>
   employee.email
     ? { channel: 'email' as const, address: employee.email }
@@ -47,13 +46,16 @@ const values = '[&_dd>div:first-child]:font-medium';
 
 const stacked = 'grid gap-2 pt-3 [&>*]:w-full';
 
-// `readOnly` is an archived client, which the API refuses invitations and resends for.
+// `readOnly` is an archived client, which the API refuses invitations and resends for; a
+// `former` worker is no longer invited, and keeps only the access they still have.
 export function EmployeePortalCard({
   employee,
   readOnly,
+  former,
 }: {
   employee: InvitedEmployee;
   readOnly: boolean;
+  former: boolean;
 }) {
   const state = useEmployeeParticipant(employee.clientId, employee.id);
   const phone = useIsPhone();
@@ -62,7 +64,7 @@ export function EmployeePortalCard({
   const { actions, dialog } = usePortalAccessActions(employee.clientId, setMessage);
   const participant = state.data?.participant ?? null;
   const invitation = state.data?.invitation ?? null;
-  const lead = state.data ? accessLead(state.data, employee, readOnly) : null;
+  const lead = state.data ? accessLead(state.data, employee, readOnly || former) : null;
 
   const invite = lead === 'invite' && (
     <Button
@@ -107,6 +109,7 @@ export function EmployeePortalCard({
             <InvitationRow
               invitation={invitation}
               readOnly={readOnly}
+              former={former}
               actions={actions}
               phone={phone}
             />
@@ -119,7 +122,7 @@ export function EmployeePortalCard({
             employee={employee}
             participant={participant}
             invitation={invitation}
-            readOnly={readOnly}
+            readOnly={readOnly || former}
             phone={phone}
           />
         </SummaryList>
@@ -162,7 +165,6 @@ function AccessLine({
   );
 }
 
-// On a phone a row's buttons go under its value, full width, rather than beside its label.
 function RowWithActions({
   label,
   testId,
@@ -229,18 +231,22 @@ function ActiveRow({
 function InvitationRow({
   invitation,
   readOnly,
+  former,
   actions,
   phone,
 }: {
   invitation: PendingInvitation;
   readOnly: boolean;
+  former: boolean;
   actions: PortalAccessActions;
   phone: boolean;
 }) {
   const resendable = useTimeReached(invitation.resendableAt);
   const state = invitation.status === 'expired' ? 'expired' : 'invited';
   const resending = actions.resending === invitation.id;
-  const hint = !readOnly && !resendable && (
+  const resends = !readOnly && !former;
+  const revokes = !(former && state === 'expired');
+  const hint = resends && !resendable && (
     <SummaryNote
       data-testid="participant-invitation-hint"
       className={cn('font-normal', !phone && 'text-right')}
@@ -254,32 +260,36 @@ function InvitationRow({
       testId="participant-invitation"
       phone={phone}
       actions={
-        <div className={cn('grid justify-items-end gap-1', phone && 'justify-items-stretch')}>
-          <div className={cn('flex flex-wrap justify-end gap-2', phone && stacked)}>
-            {!readOnly && (
-              <Button
-                variant={state === 'expired' ? 'default' : 'secondary'}
-                size="sm"
-                data-testid="participant-invitation-resend"
-                disabled={!resendable || resending}
-                onClick={() =>
-                  actions.resend(invitation.id, invitation.resendableAt, targetOf(invitation))
-                }
-              >
-                {resending ? 'Se trimite…' : 'Retrimite'}
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              size="sm"
-              data-testid="participant-invitation-revoke"
-              onClick={() => actions.askRevokeInvitation(invitation.id, targetOf(invitation))}
-            >
-              Revocă invitația
-            </Button>
+        (resends || revokes) && (
+          <div className={cn('grid justify-items-end gap-1', phone && 'justify-items-stretch')}>
+            <div className={cn('flex flex-wrap justify-end gap-2', phone && stacked)}>
+              {resends && (
+                <Button
+                  variant={state === 'expired' ? 'default' : 'secondary'}
+                  size="sm"
+                  data-testid="participant-invitation-resend"
+                  disabled={!resendable || resending}
+                  onClick={() =>
+                    actions.resend(invitation.id, invitation.resendableAt, targetOf(invitation))
+                  }
+                >
+                  {resending ? 'Se trimite…' : 'Retrimite'}
+                </Button>
+              )}
+              {revokes && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  data-testid="participant-invitation-revoke"
+                  onClick={() => actions.askRevokeInvitation(invitation.id, targetOf(invitation))}
+                >
+                  Revocă invitația
+                </Button>
+              )}
+            </div>
+            {hint}
           </div>
-          {hint}
-        </div>
+        )
       }
     >
       <AccessLine person={invitation}>
