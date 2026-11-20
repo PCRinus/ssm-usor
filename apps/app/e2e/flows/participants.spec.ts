@@ -35,7 +35,7 @@ test('a member invites an employee to the portal by email and revokes the invita
   expect(created.status).toBe(201);
   const { employee } = (await created.json()) as { employee: { id: string } };
 
-  await signIn(page, owner.email, `/clienti/${clientId}/angajati/${employee.id}`);
+  await signIn(page, owner.email, `/clienti/${clientId}/angajati/${employee.id}/portal`);
   const card = page.getByTestId('employee-portal-card');
   await expect(card.getByTestId('participant-none')).toContainText(email);
 
@@ -75,7 +75,7 @@ test('a member invites an employee to the portal by email and revokes the invita
   await expect(row.getByTestId('portal-access-state')).toHaveText('Acces revocat');
   await expect(row.getByTestId('portal-roster-invite')).toBeVisible();
 
-  await page.goto(`/clienti/${clientId}/angajati/${employee.id}`);
+  await page.goto(`/clienti/${clientId}/angajati/${employee.id}/portal`);
   await expect(card.getByTestId('participant-none')).toBeVisible();
   await expect(card.getByTestId('participant-invite')).toBeVisible();
 });
