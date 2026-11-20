@@ -20,7 +20,7 @@ export function useEmployeeParticipant(clientId: string, employeeId: string) {
 
 export type AccessLead = 'invite' | 'contact' | 'resend';
 
-export const hasContact = (employee: InvitedEmployee) => Boolean(employee.email || employee.phone);
+const hasContact = (employee: InvitedEmployee) => Boolean(employee.email || employee.phone);
 
 export function accessLead(
   state: EmployeeParticipantState,

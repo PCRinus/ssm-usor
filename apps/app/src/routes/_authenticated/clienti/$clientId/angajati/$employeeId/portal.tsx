@@ -2,11 +2,7 @@ import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { useEmployee } from '@/features/employees/use-employee';
-import {
-  accessLead,
-  hasContact,
-  useEmployeeParticipant,
-} from '@/features/participants/employee-access';
+import { accessLead, useEmployeeParticipant } from '@/features/participants/employee-access';
 import { EmployeePortalCard } from '@/features/participants/employee-portal-card';
 import { SigningAgreementCard } from '@/features/signatures/signing-agreement-card';
 
@@ -34,6 +30,7 @@ function EmployeePortal() {
   const invited = Boolean(
     state?.participant || (state?.invitation && state.invitation.status !== 'expired')
   );
+  const lead = state && accessLead(state, employee, readOnly || former);
 
   return (
     <div data-testid="employee-portal" className="grid gap-4">
@@ -43,10 +40,8 @@ function EmployeePortal() {
         readOnly={readOnly}
         former={former}
         invited={invited}
-        leads={state !== undefined && accessLead(state, employee, readOnly || former) === null}
-        contactAsked={
-          state !== undefined && !readOnly && !former && !invited && !hasContact(employee)
-        }
+        leads={lead === null}
+        contactAsked={lead === 'contact'}
       />
     </div>
   );

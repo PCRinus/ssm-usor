@@ -1947,6 +1947,23 @@ describe("the employee's signing agreement", () => {
     );
   });
 
+  it('asks for an email or a phone on the agreement while an expired invitation holds the access panel', async () => {
+    mockApi({
+      [`GET ${employeePath}`]: () =>
+        Response.json({ employee: { ...employee, email: null, phone: null } }),
+      [`GET ${employeePath}/participant`]: () => openInvitation('expired'),
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: null,
+          unavailable: { reason: 'employee_has_no_address', missing: [] },
+        }),
+    });
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect(await within(card).findByTestId('signing-agreement-no-address')).toBeTruthy();
+    expect(screen.queryByTestId('participant-no-contact')).toBeNull();
+  });
+
   describe('of a former worker', () => {
     const former = { ...employee, status: 'terminated', terminatedAt: '2026-09-30' };
 
