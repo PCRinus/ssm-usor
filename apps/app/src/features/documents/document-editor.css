@@ -22,6 +22,7 @@
   --app-card: var(--card);
   --app-input: var(--input);
   --app-border: var(--border);
+  --app-link: var(--chart-1);
 }
 
 /* The chapter and search pane, in the app's type and colours. The editor's toolbar keeps its own. */
@@ -57,4 +58,17 @@
 /* The outline's filter box reads like the search beside it, and twenty chapters need no filter. */
 .docx-editor #docx-nav-panel-headings .docx-nav__searchbox {
   display: none;
+}
+
+/* The contents is a content control the engine keeps; lighting the whole block on hover hides
+   which chapter a click opens. An entry is several links, one per run and line, so the colour
+   goes to every link of the paragraph under the pointer. The editor sets each link's colour
+   inline, and its read-only rules outrank a plain override. */
+.docx-content-control-chrome[data-docx-toc] .docx-content-control-boundary {
+  opacity: 0 !important;
+}
+
+.docx-paragraph-fragment:has(a.docx-hyperlink[href^='#_Toc']:hover)
+  a.docx-hyperlink[href^='#_Toc'] {
+  color: var(--app-link) !important;
 }
