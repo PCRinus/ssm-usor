@@ -22,7 +22,13 @@ export interface PreviewDocument {
   docx: Uint8Array;
 }
 
-export function previewDocuments(templates: URL): PreviewDocument[] {
+export interface PreviewDocuments {
+  documents: PreviewDocument[];
+  /** A sample a template asks a field of that the sample does not give, with the reason. */
+  skipped: string[];
+}
+
+export function previewDocuments(templates: URL): PreviewDocuments {
   const files = templateSets
     .filter(({ set }) => set !== 'other')
     .map(({ folder }) => fileURLToPath(new URL(folder, templates)))
@@ -52,6 +58,7 @@ export function previewDocuments(templates: URL): PreviewDocument[] {
     )
   );
   const documents: PreviewDocument[] = [];
+  const skipped: string[] = [];
   for (const { folder, name } of files) {
     const template = new Uint8Array(readFileSync(`${folder}${name}`));
     const testCode = knowledgeTestCodes.get(`${folder}${name}`);
@@ -63,9 +70,9 @@ export function previewDocuments(templates: URL): PreviewDocument[] {
         documents.push({ name, label, docx: renderDocument(template, merged) });
       } catch (error) {
         if (!(error instanceof TemplateError)) throw error;
-        console.warn(`${name} (${label}) skipped: ${error.message}`);
+        skipped.push(`${name} (${label}): ${error.message}`);
       }
     }
   }
-  return documents;
+  return { documents, skipped };
 }

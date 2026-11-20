@@ -254,8 +254,9 @@ cannot split and are taller than a page sat in a run of paragraphs kept with the
 PDF holds more often (headers, page numbers, list labels, repeated header rows, contents) do
 not matter, and a word hyphenated or broken at the end of a line counts whole.
 `src/templates/converted-words.test.ts` checks the same on every sample and on the annexes
-through the converter when `GOTENBERG_URL` is set, as CI's flows job does. No check replaces
-reading the pages. The two samples of the SSM and SU sets are in `tools/set-samples.ts`, and
+through the converter, with production's PDF/A request, when `GOTENBERG_URL` is set, as CI's
+flows job does; it fails when a sample cannot be merged. No check replaces reading the pages.
+The two samples of the SSM and SU sets are in `tools/set-samples.ts`, and
 `src/templates/set-samples.test.ts` fails when a template of either set asks for a field they
 do not give.
 
@@ -548,15 +549,16 @@ outside a client's documents, the organization and a placeholder client). The PD
 instructions converts each annex as its own file, so each counts its own pages.
 
 `appendAnnexes(common, annexes)` is the Word download and the Word zip of a set: the common
-part, then each rendered
-annex as a section of its own with its header and footer copied in, its pages numbered again
-from 1 and the styles the common part lacks. Word counts a section's pages with the field
-`SECTIONPAGES`, but LibreOffice, which converts and previews the files, prints it as the number
-saved in the file (checked on 2026-11-02: every annex page read "din 1"). So by default every
-box of the downloaded file, the common part's included, prints "Pag. X" alone, where
-`NUMPAGES` would count the annexes into the common part's total; `{ pageCount: 'section' }`
-writes `SECTIONPAGES` instead. LibreOffice also adds an empty page before a section that
-restarts at 1 on an even page; Word does not.
+part, then each rendered annex as a section of its own with its header and footer copied in, its
+pages numbered again from 1 and the styles the common part lacks. The annexes take the common
+part's layout mode: in a revision generated before its set moved to Word 2013 layout, their
+tables' indents grow by the cells' left padding, so their boxes land on the margins there too.
+Word counts a section's pages with the field `SECTIONPAGES`, but LibreOffice, which converts and
+previews the files, prints it as the number saved in the file (checked on 2026-11-02: every
+annex page read "din 1"). So by default every box of the downloaded file, the common part's
+included, prints "Pag. X" alone, where `NUMPAGES` would count the annexes into the common part's
+total; `{ pageCount: 'section' }` writes `SECTIONPAGES` instead. LibreOffice also adds an empty
+page before a section that restarts at 1 on an even page; Word does not.
 
 ```sh
 pnpm --filter @ssm-usor/document-engine build-annex

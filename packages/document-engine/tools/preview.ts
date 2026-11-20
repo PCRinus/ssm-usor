@@ -15,9 +15,9 @@ const output = `${root}${outputArgument}/`;
 
 rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
-for (const { name, label, docx } of previewDocuments(
-  pathToFileURL(`${root}${templatesArgument}/`)
-)) {
+const { documents, skipped } = previewDocuments(pathToFileURL(`${root}${templatesArgument}/`));
+for (const reason of skipped) console.warn(`skipped ${reason}`);
+for (const { name, label, docx } of documents) {
   writeFileSync(`${output}${name.replace(/\.docx$/, '')}.${label}.docx`, docx);
 }
 

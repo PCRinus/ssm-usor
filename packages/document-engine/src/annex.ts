@@ -146,6 +146,43 @@ function stylesById(styles: string) {
   return byId;
 }
 
+// Word 2013's layout (compatibility mode 15) puts a table's lines on its indent; the modes
+// before it put its text there and its lines a cell's padding further out. A revision generated
+// before its set moved to mode 15 keeps its own settings, so the annexes appended to it take its
+// mode by moving their tables' indents by their left padding (tools/import/word_layout.py).
+const compatibilityMode = (settings: string | undefined) =>
+  Number(
+    /<w:compatSetting\b(?=[^>]*\bw:name="compatibilityMode")[^>]*\bw:val="(\d+)"/.exec(
+      settings ?? ''
+    )?.[1] ?? 12
+  );
+
+const isWord2013 = (mode: number) => mode >= 15;
+
+// Word's default left padding of a cell when the table names none, 0.08".
+const defaultCellPadding = 108;
+
+function indentTablesFor(xml: string, fromWord2013: boolean, toWord2013: boolean) {
+  if (fromWord2013 === toWord2013) return xml;
+  const direction = toWord2013 ? -1 : 1;
+  return xml.replace(/<w:tblPr>[\s\S]*?<\/w:tblPr>/g, (properties) => {
+    const margins = /<w:tblCellMar>[\s\S]*?<\/w:tblCellMar>/.exec(properties)?.[0] ?? '';
+    const padding = Number(
+      /<w:(?:left|start)\b[^>]*\bw:w="(\d+)"/.exec(margins)?.[1] ?? defaultCellPadding
+    );
+    const indent = Number(/<w:tblInd\b[^>]*\bw:w="(-?\d+)"/.exec(properties)?.[1] ?? 0);
+    const moved = `<w:tblInd w:w="${indent + direction * padding}" w:type="dxa"/>`;
+    if (/<w:tblInd\b/.test(properties)) return properties.replace(/<w:tblInd\b[^>]*\/>/, moved);
+    const following =
+      /<w:(?:tblBorders|shd|tblLayout|tblCellMar|tblLook|tblCaption|tblDescription)\b/.exec(
+        properties
+      );
+    return following
+      ? `${properties.slice(0, following.index)}${moved}${properties.slice(following.index)}`
+      : properties.replace(/<\/w:tblPr>$/, `${moved}</w:tblPr>`);
+  });
+}
+
 // In one file `NUMPAGES` counts every section's pages. `SECTIONPAGES` counts a section's own,
 // but LibreOffice prints it as the number saved in the file, so by default the boxes print
 // "Pag. X" without "din Y" (ADR 034, "The Word download").
@@ -171,6 +208,7 @@ export function appendAnnexes(
     return `rId${index}`;
   };
 
+  const commonWord2013 = isWord2013(compatibilityMode(zip.file('word/settings.xml')?.asText()));
   const { before, content, sectPr, after } = splitBody(documentXml);
   if ((documentXml.match(/<w:sectPr\b/g) ?? []).length === 1) {
     const targets = relationshipTargets(rels);
@@ -187,6 +225,10 @@ export function appendAnnexes(
     const annexTargets = relationshipTargets(
       annexZip.file('word/_rels/document.xml.rels')!.asText()
     );
+    const annexWord2013 = isWord2013(
+      compatibilityMode(annexZip.file('word/settings.xml')?.asText())
+    );
+    const inCommonMode = (xml: string) => indentTablesFor(xml, annexWord2013, commonWord2013);
     const parts = splitBody(annexZip.file('word/document.xml')!.asText());
     const copied = new Map<string, string>();
     const sectionXml = parts.sectPr.replace(
@@ -202,7 +244,7 @@ export function appendAnnexes(
           newId = nextId();
           copied.set(target, newId);
           const name = `annex${annexIndex + 1}-${target.replace(/^.*\//, '')}`;
-          let xml = annexZip.file(`word/${target}`)!.asText();
+          let xml = inCommonMode(annexZip.file(`word/${target}`)!.asText());
           if (kind === 'header') xml = countSectionPages(xml, pageCount);
           zip.file(`word/${name}`, xml);
           rels = rels.replace(
@@ -226,7 +268,7 @@ export function appendAnnexes(
     }
 
     if (lastSection) body = closeSection(body, lastSection);
-    body += parts.content;
+    body += inCommonMode(parts.content);
     lastSection = section;
   });
 

@@ -15,9 +15,17 @@ import re
 OUTSIDE = ('fire', 'other')
 OUTSIDE_FILES = ('act_aditional_semnare_electronica.docx',)
 
-COMPATIBILITY_MODE = re.compile(r'(<w:compatSetting w:name="compatibilityMode"[^>]*?w:val=")\d+(")')
+COMPATIBILITY_MODE = re.compile(r'<w:compatSetting\b(?=[^>]*\bw:name="compatibilityMode")[^>]*/>')
+MODE_VALUE = re.compile(r'\bw:val="[^"]*"')
 WORD_2013 = ('<w:compatSetting w:name="compatibilityMode" '
              'w:uri="http://schemas.microsoft.com/office/word" w:val="15"/>')
+# What follows <w:compat> in CT_Settings (ECMA-376 part 1, 17.15.1.78), extensions included: a
+# new <w:compat> goes before the first of them, or Word refuses the file as damaged.
+AFTER_COMPAT = re.compile(
+    r'<(?:w:(?:docVars|rsids|attachedSchema|themeFontLang|clrSchemeMapping|'
+    r'doNotIncludeSubdocsInStats|doNotAutoCompressPictures|forceUpgrade|captions|'
+    r'readModeInkLockDown|smartTagType|shapeDefaults|doNotEmbedSmartTags|decimalSymbol|'
+    r'listSeparator)\b|m:mathPr\b|sl:schemaLibrary\b|(?!w:|/)[\w]+:)')
 TABLE_INDENT = re.compile(r'<w:tblInd\b[^>]*/>')
 ON_THE_MARGIN = '<w:tblInd w:w="0" w:type="dxa"/>'
 
@@ -29,12 +37,16 @@ def lays_out_as_word_2013(path):
 
 def word_2013_settings(xml):
     if COMPATIBILITY_MODE.search(xml):
-        return COMPATIBILITY_MODE.sub(r'\g<1>15\2', xml)
-    if '<w:compat>' in xml:
-        return xml.replace('<w:compat>', f'<w:compat>{WORD_2013}', 1)
+        return COMPATIBILITY_MODE.sub(lambda match: MODE_VALUE.sub('w:val="15"', match.group(0)), xml)
+    # The compatSettings close the element, after the legacy flags.
+    if '</w:compat>' in xml:
+        return xml.replace('</w:compat>', f'{WORD_2013}</w:compat>', 1)
     if '<w:compat/>' in xml:
         return xml.replace('<w:compat/>', f'<w:compat>{WORD_2013}</w:compat>', 1)
-    return xml.replace('</w:settings>', f'<w:compat>{WORD_2013}</w:compat></w:settings>', 1)
+    body = xml.index('>', xml.index('<w:settings')) + 1
+    following = AFTER_COMPAT.search(xml, body)
+    at = following.start() if following else xml.rindex('</w:settings>')
+    return f'{xml[:at]}<w:compat>{WORD_2013}</w:compat>{xml[at:]}'
 
 
 def tables_on_the_margin(xml):

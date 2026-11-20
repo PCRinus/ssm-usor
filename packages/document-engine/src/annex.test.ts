@@ -320,6 +320,48 @@ describe('appendAnnexes', () => {
     }
   });
 
+  const indents = (file: Uint8Array, prefix: string) =>
+    headerParts(file)
+      .filter((name) => name.startsWith(`word/${prefix}`))
+      .flatMap((name) => part(file, name).match(/<w:tblInd\b[^>]*\/>/g) ?? []);
+
+  it('sets the annex boxes on the margins of a common part in Word 2013 layout', () => {
+    expect(part(common, 'word/settings.xml')).toContain('w:val="15"');
+    expect(new Set(indents(merged, 'annex'))).toEqual(
+      new Set(['<w:tblInd w:w="0" w:type="dxa"/>'])
+    );
+  });
+
+  // A revision generated before its set moved to Word 2013 layout keeps the mode it was saved in.
+  it('indents the annex boxes by their padding in a common part saved in an older mode', () => {
+    const zip = new PizZip(common);
+    zip.file(
+      'word/settings.xml',
+      part(common, 'word/settings.xml').replace(
+        /(w:name="compatibilityMode"[^>]*w:val=")15"/,
+        '$112"'
+      )
+    );
+    for (const name of headerParts(common)) {
+      zip.file(name, part(common, name).replace(/<w:tblInd w:w="0"/g, '<w:tblInd w:w="55"'));
+    }
+    const older = zip.generate({ type: 'uint8array' });
+    const appended = appendAnnexes(older, annexes);
+    expect(part(appended, 'word/settings.xml')).toBe(part(older, 'word/settings.xml'));
+    expect(indents(appended, 'header')).toEqual(indents(older, 'header'));
+    expect(new Set(indents(appended, 'annex'))).toEqual(
+      new Set(['<w:tblInd w:w="55" w:type="dxa"/>'])
+    );
+  });
+
+  it('leaves the annex boxes as they are when both parts share a mode', () => {
+    const fire = read('fire/2.1_fire_own_instructions.docx');
+    const annex = renderAnnex('su', suAnnexSample, suAnnexData);
+    expect(new Set(indents(appendAnnexes(fire, [annex]), 'annex'))).toEqual(
+      new Set(indents(annex, 'header'))
+    );
+  });
+
   it('brings the annex styles the common part lacks, once', () => {
     const styles = part(merged, 'word/styles.xml');
     for (const id of ['AnnexHeading', 'AnnexArticle', 'AnnexItem1', 'AnnexActs']) {
@@ -341,6 +383,8 @@ describe.skipIf(!converter)('the converter', () => {
     const common = read('3.2_own_instructions.docx');
     const annex = renderAnnex('ssm', ssmAnnexSample, ssmAnnexData);
     const pages = pageCount(await convert(common));
-    expect(pageCount(await convert(appendAnnexes(common, [annex, annex])))).toBe(pages + 6);
+    expect(
+      pageCount(await convert(appendAnnexes(common, [annex, annex]), { skipEmptyPages: true }))
+    ).toBe(pages + 6);
   }, 120_000);
 });
