@@ -94,6 +94,10 @@ for copyright. ISO's standard itself is copyrighted; the registered signs are me
 | `svg/arrow-fire.svg`           | [ISO 7010 Fire protection arrow 1.svg](https://commons.wikimedia.org/wiki/File:ISO_7010_Fire_protection_arrow_1.svg)                                                                                             | Maxxl2            | {{PD-self}}, {{PD-ineligible}} |
 | `svg/arrow-safe-condition.svg` | [ISO 7010 Safe condition arrow 1.svg](https://commons.wikimedia.org/wiki/File:ISO_7010_Safe_condition_arrow_1.svg)                                                                                               | Maxxl2            | {{PD-self}}, {{PD-ineligible}} |
 
+`P080` („No access for unauthorized persons”) is a registered ISO 7010 code, listed on the English Wikipedia's
+ISO 7010 page between P079 and P081; its Commons drawing dates from 2025. `E015`'s CC0 rests on its uploader's claim:
+Commons names no author.
+
 `svg/H.svg`, the hydrant sign, has no ISO or Romanian standard drawing; it is drawn here, a white H on fire
 red. `png/tape.png`, the occasional marking tape of 11, is a drawn illustration (below).
 

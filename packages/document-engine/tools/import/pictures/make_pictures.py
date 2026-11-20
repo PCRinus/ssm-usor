@@ -217,6 +217,9 @@ LEVELS = {
 LEVEL_OF = {tuple(map(int, pair)): level for level, pairs in LEVELS.items()
             for pair in re.findall(r'\((\d),(\d)\)', pairs)}
 MARGIN = 0.05
+# The method draws the first level's curve through the pair (g, p) = (1, 6), the last of the
+# first row, so that pair lies on it, not under it.
+THROUGH = {1: (6, 1)}
 # Where the provider's drawing has each curve at p = 1 … 6, read off the picture; the fitted
 # curves keep to it as far as the pairs allow.
 DRAWN = {
@@ -244,10 +247,15 @@ def level_curve(k):
     """g = a + b / (p - c) through the k-th point of the diagonal, between the pairs it parts."""
     dp, dg = diagonal_point(k)
     best = None
+    through = THROUGH.get(k)
     for ci in range(-150, int(dp * 50)):
         c = ci / 50
-        for bi in range(1, 600):
-            b = bi / 20
+        if through:
+            tp, tg = through
+            slopes = [(dg - tg) / (1 / (dp - c) - 1 / (tp - c))]
+        else:
+            slopes = [bi / 20 for bi in range(1, 600)]
+        for b in slopes:
             a = dg - b / (dp - c)
             error = 0
             for p in range(1, 7):
@@ -257,7 +265,10 @@ def level_curve(k):
                         break
                     continue
                 g = a + b / (p - c)
-                if g < low + MARGIN or g > high - MARGIN:
+                if through and p == through[0]:
+                    assert abs(g - through[1]) < 1e-9 and LEVEL_OF[(through[1], p)] == k
+                    continue
+                if b <= 0 or g < low + MARGIN or g > high - MARGIN:
                     break
                 if DRAWN[k][p - 1] is not None:
                     error += (g - DRAWN[k][p - 1]) ** 2
@@ -323,10 +334,11 @@ def clipped(points, left, right):
     return points
 
 
-def stripes(colour, outline):
+def stripes(colour, between, outline):
     """A hazard band, as annex 5 to H.G. 971/2006 asks: stripes at 45°, the two colours the same width."""
     width, height, stripe, edge = 70, 7, 3.5, 0.3
     drawing = Drawing(width + 2 * edge, height + 2 * edge)
+    drawing.rect(edge, edge, width, height, fill=between, stroke='none')
     pitch = stripe * math.sqrt(2)
     x = -height
     while x < width:
@@ -355,8 +367,8 @@ def main():
         'figure-1.4': risk_grid([], False),
         'figure-1.5a': risk_grid(curves[:1], True),
         'figure-1.5b': risk_grid(curves, True),
-        'stripes-yellow-black': stripes(SAFETY_YELLOW, '#000'),
-        'stripes-red-white': stripes(SAFETY_RED, SAFETY_RED),
+        'stripes-yellow-black': stripes(SAFETY_YELLOW, '#000', '#000'),
+        'stripes-red-white': stripes(SAFETY_RED, '#fff', SAFETY_RED),
     }
     for name, drawing in figures.items():
         text = drawing.svg()

@@ -103,7 +103,6 @@ describe('2.2_general_training_material.docx', () => {
     const headings = catalogue['2.2'].map((group) => group.heading);
     const paragraphs = (body.match(/<w:p\b[\s\S]*?<\/w:p>/g) ?? []).map(documentTextOf);
     expect(paragraphs.filter((text) => headings.includes(text))).toEqual(headings);
-    // The law's note under the warning signs is marked on the general danger sign.
     expect(paragraphs.indexOf('Pericol general*)')).toBeLessThan(
       paragraphs.findIndex((text) => text.startsWith('*) Acest panou de avertizare'))
     );

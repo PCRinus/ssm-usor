@@ -48,9 +48,10 @@ describe('typesetting', () => {
   it.each(typesetFiles)(
     '%s aligns nothing with spaces and spaces nothing with empty paragraphs',
     (name) => {
-      // A table cell or a text box may be empty; a paragraph that holds a picture or a formula is not.
-      // A table of contents is empty until the merge writes its entries.
+      // A table cell or a text box may be empty; a paragraph that holds a picture is not, and a
+      // formula counts as text. A table of contents is empty until the merge writes its entries.
       const body = bodyOf(name)
+        .replace(/<m:oMath(Para)?[ >][\s\S]*?<\/m:oMath\1>/g, '<w:t>x</w:t>')
         .replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '<w:tbl/>')
         .replace(/<w:txbxContent>[\s\S]*?<\/w:txbxContent>/g, '')
         .replace(/<w:sdt>(?:(?!<\/w:sdt>)[\s\S])*?Table of Contents[\s\S]*?<\/w:sdt>/g, '');
@@ -62,7 +63,7 @@ describe('typesetting', () => {
       const empty = paragraphsOf(body).filter(
         (paragraph) =>
           documentTextOf(paragraph).trim() === '' &&
-          !/<w:drawing|<w:object|<w:pict|<m:oMath|<mc:AlternateContent|<w:br w:type="page"\/>/.test(
+          !/<w:drawing|<w:object|<w:pict|<mc:AlternateContent|<w:br w:type="page"\/>/.test(
             paragraph
           )
       );

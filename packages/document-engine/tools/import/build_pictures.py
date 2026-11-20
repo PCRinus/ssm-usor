@@ -184,15 +184,20 @@ NO_BORDERS = ('<w:tblBorders>' + ''.join(f'<w:{side} w:val="nil"/>' for side in
 ROW_GAP = 170
 
 
-def catalogue(package, signs):
+def catalogue(package, signs, indent=0):
     """Two signs to a row, read across: a group runs over pages, so a row is read whole before
-    the next, which an order down the columns would not survive."""
-    text_column = (TEXT_WIDTH - 2 * SIGN_COLUMN) // 2
-    widths = [SIGN_COLUMN, text_column, SIGN_COLUMN, TEXT_WIDTH - 2 * SIGN_COLUMN - text_column]
+    the next, which an order down the columns would not survive. Under a list item the signs
+    start at the item's text, after an empty column `indent` wide: a table stays on the margins."""
+    room = TEXT_WIDTH - indent
+    text_column = (room - 2 * SIGN_COLUMN) // 2
+    widths = [SIGN_COLUMN, text_column, SIGN_COLUMN, room - 2 * SIGN_COLUMN - text_column]
     rows = ''
     for first in range(0, len(signs), 2):
-        cells = ''
         keep = first == 0
+        cells = ''
+        if indent:
+            cells += (f'<w:tc><w:tcPr><w:tcW w:w="{indent}" w:type="dxa"/></w:tcPr>'
+                      f'{paragraph("", keep=keep, size=2)}</w:tc>')
         for column in range(2):
             sign = signs[first + column] if first + column < len(signs) else None
             pictures = ''
@@ -216,7 +221,7 @@ def catalogue(package, signs):
                   f'{NO_BORDERS}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/>'
                   '<w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="113" w:type="dxa"/>'
                   '</w:tblCellMar><w:tblLook w:val="0000"/>')
-    grid = ''.join(f'<w:gridCol w:w="{width}"/>' for width in widths)
+    grid = ''.join(f'<w:gridCol w:w="{width}"/>' for width in ([indent] if indent else []) + widths)
     return f'<w:tbl><w:tblPr>{properties}</w:tblPr><w:tblGrid>{grid}</w:tblGrid>{rows}</w:tbl>'
 
 
@@ -268,9 +273,25 @@ def general_training_material(package, data):
     replace_between(package, r'^Exemplu:$', r'^Fig\. 1\. Mijloc de împrejmuire', figure)
 
 
+def list_text_indent(package, paragraph_xml):
+    """Where a list item's text starts: its own indent, or its list level's."""
+    own = re.search(r'<w:pPr>.*?<w:ind w:left="(\d+)"', paragraph_xml, re.S)
+    if own:
+        return int(own.group(1))
+    number = re.search(r'<w:numId w:val="(\d+)"', paragraph_xml).group(1)
+    level = re.search(r'<w:ilvl w:val="(\d+)"', paragraph_xml).group(1)
+    numbering = package.text('word/numbering.xml')
+    abstract = re.search(rf'<w:num w:numId="{number}"[^>]*>\s*<w:abstractNumId w:val="(\d+)"', numbering).group(1)
+    definition = re.search(rf'<w:abstractNum\b[^>]*w:abstractNumId="{abstract}".*?</w:abstractNum>', numbering, re.S).group(0)
+    return int(re.search(rf'<w:lvl w:ilvl="{level}".*?<w:ind w:left="(\d+)"', definition, re.S).group(1))
+
+
 def employer_briefing(package, data):
+    elements = body_elements(package.document)
+    _, begin, end = elements[find(elements, package.document, r'^Stoc de mijloace de semnalizare')]
+    indent = list_text_indent(package, package.document[begin:end])
     replace_between(package, r'^Stoc de mijloace de semnalizare', r'^Panouri informative',
-                    catalogue(package, data['11']))
+                    catalogue(package, data['11'], indent))
 
 
 MATH_RUN = '<w:rPr><w:rFonts w:ascii="Cambria Math" w:hAnsi="Cambria Math"/></w:rPr>'
@@ -296,6 +317,10 @@ def submatrix(upper, lower, index, rows):
     return (f'<m:sSub><m:e><m:limLow><m:e><m:limUpp><m:e>{m("M")}</m:e><m:lim>{m(upper)}</m:lim></m:limUpp></m:e>'
             f'<m:lim>{m(lower)}</m:lim></m:limLow></m:e><m:sub>{m(index, plain=True)}</m:sub></m:sSub>'
             f'{m("=")}{bars(rows)}')
+
+
+def brace(content):
+    return f'<m:d><m:dPr><m:begChr m:val="{{"/><m:endChr m:val=""/></m:dPr><m:e>{content}</m:e></m:d>'
 
 
 def omath(content):
@@ -329,18 +354,32 @@ def risk_assessment(package):
     while '<w:drawing' not in xml[elements[figure][1]:elements[figure][2]]:
         figure -= 1
     _, begin, end = elements[figure - 1]
+    assert re.search(r'<w:object\b|<m:oMath\b', xml[begin:end]), 'no formula before Fig. 1.1'
     limit = omath(m('y') + m('=') + fraction(m('1'), m('0')) + m('→+∞'))
     zero = omath(m('y') + m('=') + fraction(m('1'), m('+∞')) + m('→0'))
     xml = xml[:begin] + paragraph_content(xml[begin:end], limit + run(';   ') + zero + run('.')) + xml[end:]
     elements = body_elements(xml)
-    _, begin, end = elements[find(elements, xml, r'^- nivelul 4:\s*$') + 1]
+    first = find(elements, xml, r'^- nivelul 4:\s*$') + 1
+    last = find(elements, xml, r'^- nivelul 5:', first)
+    for _, begin, end in elements[first:last]:
+        assert re.search(r'<w:object\b|<m:oMath\b', xml[begin:end]), xml[begin:end][:200]
+    _, begin, _ = elements[first]
+    end = elements[last - 1][2]
     rows = [submatrix('6', 'p=5', '3,p', [['3,5', '3,6']]), submatrix('4', 'p=3', '4,p', [['4,3', '4,4']]),
             submatrix('3', 'p=2', '5,p', [['5,2', '5,3']]), submatrix('7', 'g=6', 'g,2', [['6,2'], ['7,2']]) + m(';')]
-    block = ('<m:d><m:dPr><m:begChr m:val="{"/><m:endChr m:val=""/></m:dPr><m:e><m:eqArr>'
-             + ''.join(f'<m:e>{row}</m:e>' for row in rows) + '</m:eqArr></m:e></m:d>')
-    xml = xml[:begin] + paragraph_content(xml[begin:end], omath(block)) + xml[end:]
-    # A bound left empty prints as a placeholder box.
-    xml = xml.replace('<m:lim></m:lim></m:limLow>', f'<m:lim>{m("p=1")}</m:lim></m:limLow>')
+    # One paragraph per submatrix, each in its brace as the other levels write them: LibreOffice
+    # centres the rows of a stack in a formula, which set the shorter rows in.
+    template = xml[begin:elements[first][2]]
+    lines = ''
+    for index, row in enumerate(rows):
+        after = 120 if index == len(rows) - 1 else 40
+        lines += re.sub(r'w:after="\d+"', f'w:after="{after}"', paragraph_content(template, omath(brace(row))), count=1)
+    xml = xml[:begin] + lines + xml[end:]
+    elements = body_elements(xml)
+    _, begin, end = elements[find(elements, xml, r'și elementul \(2,1\)\.\s*$')]
+    assert re.search(r'<w:object\b|<m:oMath\b', xml[begin:end]), 'no formula for level 1'
+    first_level = submatrix('6', 'p=1', '1,p', [['1,1', '1,2', '1,3', '1,4', '1,5', '1,6']])
+    xml = xml[:begin] + paragraph_content(xml[begin:end], omath(first_level) + run(' și elementul (2,1).')) + xml[end:]
     package.document = xml
 
 

@@ -380,12 +380,6 @@
           "pictures": ["M001"]
         },
         {
-          "id": "22-33-32",
-          "name": "Apă potabilă",
-          "meaning": "Indică apă bună de băut.",
-          "pictures": ["E015"]
-        },
-        {
           "id": "22-33-33",
           "name": "Obligatoriu încălțăminte",
           "meaning": "Purtarea încălțămintei antistatice sau antiscânteie este obligatorie.",
@@ -416,22 +410,10 @@
           "pictures": ["M001"]
         },
         {
-          "id": "22-34-12",
-          "name": "Mănuși obligatorii",
-          "meaning": null,
-          "pictures": ["M009"]
-        },
-        {
           "id": "22-34-13",
           "name": "Purtarea centurilor obligatorie",
           "meaning": "Purtarea centurii de siguranță este obligatorie.",
           "pictures": ["M020"]
-        },
-        {
-          "id": "22-34-14",
-          "name": "Protecția împotriva căderii obligatorie",
-          "meaning": "Purtarea hamului de siguranță este obligatorie.",
-          "pictures": ["M018"]
         },
         {
           "id": "22-34-15",
@@ -441,15 +423,9 @@
         },
         {
           "id": "22-34-21",
-          "name": "Obligație generală",
-          "meaning": "Folosirea mijloacelor de protecție indicate este obligatorie.",
-          "pictures": ["M001"]
-        },
-        {
-          "id": "22-34-22",
-          "name": "Folosiți calea pentru pietoni",
+          "name": "Folosiți mijloacele de protecție",
           "meaning": null,
-          "pictures": ["M024"]
+          "pictures": ["M001"]
         },
         {
           "id": "22-34-23",
@@ -527,6 +503,12 @@
           "name": "Cale și acces de evacuare",
           "meaning": null,
           "pictures": ["E001"]
+        },
+        {
+          "id": "22-33-32",
+          "name": "Apă potabilă",
+          "meaning": "Indică apă bună de băut.",
+          "pictures": ["E015"]
         }
       ]
     },
