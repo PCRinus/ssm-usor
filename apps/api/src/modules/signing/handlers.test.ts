@@ -74,6 +74,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -1202,7 +1203,371 @@ describe('the signing agreement state', () => {
       'client_file_id',
       'signed_at',
       'state',
+      'withdrawal_file_id',
+      'withdrawal_requested_on',
     ]);
+  });
+
+  describe('signed on paper on a given day', () => {
+    const agreementUpstream = (
+      row: Record<string, unknown> = {
+        state: 'generated',
+        generated_at: '2026-10-01T09:00:00+00:00',
+        signed_at: null,
+        client_file_id: null,
+      }
+    ) => ({
+      '/rest/v1/employees': () => [
+        { id: employeeId, email: 'ion@example.ro', phone: null, hired_at: '2026-03-02' },
+      ],
+      '/rest/v1/clients': () => [
+        { legal_representative_name: 'Maria IONESCU', legal_representative_role: 'Administrator' },
+      ],
+      'GET /rest/v1/employee_signing_agreements': () => [row],
+      'PATCH /rest/v1/employee_signing_agreements': ({ body }: { body: unknown }) => [
+        { ...row, ...(body as Record<string, unknown>) },
+      ],
+    });
+
+    it('stores the day as noon in Romania', async () => {
+      mockUpstream(agreementUpstream());
+
+      const response = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'signed_on_paper', signedOn: '2026-07-15' },
+      });
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        agreement: { state: 'signed_on_paper', signedAt: '2026-07-15T09:00:00.000Z' },
+      });
+      const [update] = callsTo('/rest/v1/employee_signing_agreements', 'PATCH');
+      expect(update!.body).toMatchObject({
+        signed_at: '2026-07-15T09:00:00.000Z',
+        withdrawal_requested_on: null,
+        withdrawal_file_id: null,
+      });
+    });
+
+    it('takes a day before the hire date, since the contract precedes it', async () => {
+      mockUpstream(agreementUpstream());
+
+      const response = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'signed_on_paper', signedOn: '2026-02-20' },
+      });
+
+      expect(response.status).toBe(200);
+    });
+
+    describe('just after midnight in Romania, still the day before in UTC', () => {
+      beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-11-19T22:30:00Z'));
+      });
+
+      it('takes today in Romania when no day is given', async () => {
+        mockUpstream(agreementUpstream());
+
+        await request(statePath, { method: 'PUT', body: { state: 'signed_on_paper' } });
+
+        const [update] = callsTo('/rest/v1/employee_signing_agreements', 'PATCH');
+        expect(update!.body).toMatchObject({ signed_at: '2026-11-20T10:00:00.000Z' });
+      });
+
+      it("takes Romania's today and refuses its tomorrow", async () => {
+        mockUpstream(agreementUpstream());
+
+        const today = await request(statePath, {
+          method: 'PUT',
+          body: { state: 'signed_on_paper', signedOn: '2026-11-20' },
+        });
+        const tomorrow = await request(statePath, {
+          method: 'PUT',
+          body: { state: 'signed_on_paper', signedOn: '2026-11-21' },
+        });
+
+        expect(today.status).toBe(200);
+        expect(tomorrow.status).toBe(400);
+      });
+    });
+
+    it('refuses a day in the future on signedOn', async () => {
+      mockUpstream(agreementUpstream());
+
+      const response = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'signed_on_paper', signedOn: '2999-01-01' },
+      });
+
+      expect(response.status).toBe(400);
+      const body = (await response.json()) as { issues?: { path: string }[] };
+      expect(body.issues?.map((issue) => issue.path)).toEqual(['signedOn']);
+      expect(callsTo('/rest/v1/employee_signing_agreements', 'PATCH')).toHaveLength(0);
+    });
+
+    it.each(['generated', 'withdrawn', 'in_contract'] as const)(
+      'refuses signedOn for %s',
+      async (state) => {
+        mockUpstream({});
+
+        const response = await request(statePath, {
+          method: 'PUT',
+          body: { state, signedOn: '2026-07-15' },
+        });
+
+        expect(response.status).toBe(400);
+        const body = (await response.json()) as { issues?: { path: string }[] };
+        expect(body.issues?.map((issue) => issue.path)).toEqual(['signedOn']);
+      }
+    );
+  });
+
+  describe('withdrawn on a written request', () => {
+    const requestFileId = 'c0000000-0000-4000-8000-000000000002';
+    const paperRow = {
+      state: 'signed_on_paper',
+      generated_at: '2026-10-01T09:00:00+00:00',
+      signed_at: '2026-10-02T09:00:00+00:00',
+      client_file_id: 'c0000000-0000-4000-8000-000000000001',
+      withdrawal_requested_on: null,
+      withdrawal_file_id: null,
+    };
+    const agreementUpstream = (row: Record<string, unknown> = paperRow) => ({
+      '/rest/v1/employees': () => [
+        { id: employeeId, email: 'ion@example.ro', phone: null, hired_at: '2026-03-02' },
+      ],
+      '/rest/v1/clients': () => [
+        { legal_representative_name: 'Maria IONESCU', legal_representative_role: 'Administrator' },
+      ],
+      'GET /rest/v1/employee_signing_agreements': () => [row],
+      'PATCH /rest/v1/employee_signing_agreements': ({ body }: { body: unknown }) => [
+        { ...row, ...(body as Record<string, unknown>) },
+      ],
+    });
+
+    it('records the request and its scan, and keeps how the agreement was signed', async () => {
+      mockUpstream(agreementUpstream());
+
+      const response = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'withdrawn', requestedOn: '2026-11-10', requestFileId },
+      });
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        agreement: {
+          state: 'withdrawn',
+          signedAt: '2026-10-02T09:00:00.000Z',
+          clientFileId: paperRow.client_file_id,
+          withdrawal: { requestedOn: '2026-11-10', fileId: requestFileId },
+        },
+      });
+      const [update] = callsTo('/rest/v1/employee_signing_agreements', 'PATCH');
+      expect(update!.body).toEqual({
+        state: 'withdrawn',
+        withdrawal_requested_on: '2026-11-10',
+        withdrawal_file_id: requestFileId,
+      });
+    });
+
+    it('dates the request today in Romania when no day is given, without a scan', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-19T22:30:00Z'));
+      mockUpstream(agreementUpstream());
+
+      const response = await request(statePath, { method: 'PUT', body: { state: 'withdrawn' } });
+
+      expect(await response.json()).toMatchObject({
+        agreement: { withdrawal: { requestedOn: '2026-11-20', fileId: null } },
+      });
+    });
+
+    it('answers when the withdrawal was recorded', async () => {
+      mockUpstream({
+        ...agreementUpstream(),
+        'GET /rest/v1/employee_signing_agreements': () => [
+          {
+            ...paperRow,
+            state: 'withdrawn',
+            withdrawal_requested_on: '2026-11-10',
+            withdrawn_at: '2026-11-12T08:15:00+00:00',
+          },
+        ],
+      });
+
+      expect(await (await request(statePath)).json()).toMatchObject({
+        agreement: {
+          withdrawal: {
+            recordedAt: '2026-11-12T08:15:00.000Z',
+            requestedOn: '2026-11-10',
+            fileId: null,
+          },
+        },
+      });
+    });
+
+    it('answers neither moment nor request for an agreement withdrawn before they were kept', async () => {
+      mockUpstream({
+        ...agreementUpstream(),
+        'GET /rest/v1/employee_signing_agreements': () => [
+          { ...paperRow, state: 'withdrawn', withdrawn_at: null },
+        ],
+      });
+
+      expect(await (await request(statePath)).json()).toMatchObject({
+        agreement: {
+          state: 'withdrawn',
+          withdrawal: { recordedAt: null, requestedOn: null, fileId: null },
+        },
+      });
+    });
+
+    it('records the request of an agreement withdrawn before it was kept, and nothing else', async () => {
+      mockUpstream(agreementUpstream({ ...paperRow, state: 'withdrawn', withdrawn_at: null }));
+
+      const response = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'withdrawn', requestedOn: '2026-10-20', requestFileId },
+      });
+
+      expect(response.status).toBe(200);
+      const [update] = callsTo('/rest/v1/employee_signing_agreements', 'PATCH');
+      expect(update!.body).toEqual({
+        withdrawal_requested_on: '2026-10-20',
+        withdrawal_file_id: requestFileId,
+      });
+      expect(await response.json()).toMatchObject({
+        agreement: {
+          signedAt: '2026-10-02T09:00:00.000Z',
+          withdrawal: { recordedAt: null, requestedOn: '2026-10-20', fileId: requestFileId },
+        },
+      });
+    });
+
+    it.each([
+      ['the paper signature', paperRow, '2026-10-01', '2026-10-02'],
+      [
+        "the employee's signature, before the employer's",
+        {
+          ...paperRow,
+          state: 'generated',
+          signed_at: null,
+          client_file_id: null,
+          employee_signed_at: '2026-10-05T21:30:00+00:00',
+        },
+        '2026-10-05',
+        '2026-10-06',
+      ],
+      [
+        'the handing out, when it was never signed',
+        { ...paperRow, state: 'generated', signed_at: null, client_file_id: null },
+        '2026-09-30',
+        '2026-10-01',
+      ],
+    ])('refuses a request dated before the Romanian day of %s', async (_, row, before, sameDay) => {
+      mockUpstream(agreementUpstream(row));
+
+      const refused = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'withdrawn', requestedOn: before },
+      });
+      const taken = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'withdrawn', requestedOn: sameDay },
+      });
+
+      expect(refused.status).toBe(400);
+      const body = (await refused.json()) as { issues?: { path: string }[] };
+      expect(body.issues?.map((issue) => issue.path)).toEqual(['requestedOn']);
+      expect(taken.status).toBe(200);
+      expect(callsTo('/rest/v1/employee_signing_agreements', 'PATCH')).toHaveLength(1);
+    });
+
+    it('refuses a request dated in the future', async () => {
+      mockUpstream(agreementUpstream());
+
+      const response = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'withdrawn', requestedOn: '2999-01-01' },
+      });
+
+      expect(response.status).toBe(400);
+      const body = (await response.json()) as { issues?: { path: string }[] };
+      expect(body.issues?.map((issue) => issue.path)).toEqual(['requestedOn']);
+      expect(callsTo('/rest/v1/employee_signing_agreements', 'PATCH')).toHaveLength(0);
+    });
+
+    it('refuses to record a withdrawal again', async () => {
+      mockUpstream(
+        agreementUpstream({
+          ...paperRow,
+          state: 'withdrawn',
+          withdrawal_requested_on: '2026-11-10',
+        })
+      );
+
+      const response = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'withdrawn', requestedOn: '2026-11-12' },
+      });
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ reason: 'agreement_withdrawal_recorded' });
+      expect(callsTo('/rest/v1/employee_signing_agreements', 'PATCH')).toHaveLength(0);
+    });
+
+    it('answers 409 for a scan that is not a file of the client', async () => {
+      mockUpstream({
+        ...agreementUpstream(),
+        'PATCH /rest/v1/employee_signing_agreements': () =>
+          databaseError('23503', 'violates foreign key constraint'),
+      });
+
+      const response = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'withdrawn', requestFileId },
+      });
+
+      expect(response.status).toBe(409);
+    });
+
+    it('clears the request when the agreement moves on to another state', async () => {
+      mockUpstream(
+        agreementUpstream({
+          ...paperRow,
+          state: 'withdrawn',
+          withdrawal_requested_on: '2026-11-10',
+          withdrawal_file_id: requestFileId,
+        })
+      );
+
+      const response = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'signed_on_paper', signedOn: '2026-11-15' },
+      });
+
+      expect(await response.json()).toMatchObject({ agreement: { withdrawal: null } });
+      const [update] = callsTo('/rest/v1/employee_signing_agreements', 'PATCH');
+      expect(update!.body).toMatchObject({
+        withdrawal_requested_on: null,
+        withdrawal_file_id: null,
+      });
+    });
+
+    it.each([
+      ['requestedOn', { state: 'signed_on_paper', requestedOn: '2026-11-10' }],
+      ['requestFileId', { state: 'generated', requestFileId }],
+      ['clientFileId', { state: 'withdrawn', clientFileId: requestFileId }],
+    ])('refuses %s outside its state', async (path, body) => {
+      mockUpstream({});
+
+      const response = await request(statePath, { method: 'PUT', body });
+
+      expect(response.status).toBe(400);
+      const error = (await response.json()) as { issues?: { path: string }[] };
+      expect(error.issues?.map((issue) => issue.path)).toEqual([path]);
+    });
   });
 
   it('answers 409 for an agreement signed electronically', async () => {

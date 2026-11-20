@@ -157,7 +157,7 @@ export function employeeRecord(
     phone: null,
     jobTitle: 'Barista',
     contractNumber: null,
-    jobPosition: { id: jobPositionId, name: 'Barista' },
+    jobPosition: { id: jobPositionId, name: 'Barista', archived: false },
     hiredAt: '2026-09-01',
     status: 'active',
     terminatedAt: null,

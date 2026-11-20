@@ -2260,7 +2260,8 @@ key, deleted with the employee): `state` is `generated`, `signed_electronically`
 them while it stands, and setting it voids their pending ones with `withdrawn`) or `in_contract` (a
 new hire whose employment contract carries the clause, which counts as agreed, with no PDF). It
 has `generated_at`, `signed_at` (set when `signed_electronically` or `signed_on_paper`, kept by a
-`withdrawn` that follows an electronic signature, else null),
+`withdrawn` that follows a signature, else null; a paper one is noon in Romania on the day the
+member gives),
 `marked_by` (only for `signed_on_paper`, `withdrawn` and `in_contract`, and forced to the signed-in
 member by a trigger whenever a member sets the state; kept as it was on any other member update)
 and `client_file_id`, the scan as a client file of the same client, set null when the file is
@@ -2275,6 +2276,17 @@ electronic signature (all by checks). Once either party has signed electronicall
 of the row is refused (`SIG07`), so that a paper mark never contradicts a signed file; the one
 change allowed is `withdrawn` (`20261018150000_agreement_withdrawal.sql`), which keeps
 `signed_at`, the file and both signing times as the evidence of what was signed.
+`withdrawal_requested_on` and `withdrawal_file_id` record the employee's written request behind a
+`withdrawn` (`20261122120000_agreement_withdrawal_request.sql`): its day and its scan, a client
+file of the same client set null when the file is deleted. `withdrawn_at` is when a member recorded
+the withdrawal, set by the same trigger as `marked_by` when the state becomes `withdrawn` and kept
+after; members never write it. All three are null in any other state (checks), and null on
+agreements withdrawn before they existed; members insert and update the request, also on the
+withdrawal of an agreement signed electronically. While an agreement stays withdrawn, its
+`generated_at`, `signed_at`, `client_file_id` and request do not change (`SIG10`,
+`agreement_withdrawal_recorded`), except a scan's link when its file is deleted and the request of
+an agreement withdrawn without one, which is recorded once. The withdrawal takes effect when it is
+recorded, whatever the request's day (ADR 023).
 
 `agreement_signatures` is the evidence of one party's signature on an agreement, written once:
 `employee_id` (restricting the agreement's and the employee's deletion), `party` (`employee` or

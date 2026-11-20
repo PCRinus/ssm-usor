@@ -9,6 +9,7 @@ import type {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
+import { formatDate } from '@/lib/dates';
 import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
@@ -52,7 +53,7 @@ const employeeFields = {
   firstName: 'Ion',
   email: 'ion.popescu@example.com',
   jobTitle: 'Sudor',
-  jobPosition: { id: welderId, name: 'Sudor' },
+  jobPosition: { id: welderId, name: 'Sudor', archived: false },
   hiredAt: '2020-03-01',
   workplace: null,
 };
@@ -644,7 +645,7 @@ describe("a record's signatures", () => {
         .getAllByTestId('signature-slot')
         .map((item) => item.textContent)
     ).toEqual([
-      'InstruitAnulatMotiv: salariatul a revenit la semnarea olografă',
+      'InstruitAnulatMotiv: salariatul a revenit la semnarea de mână',
       'InstructorAnulatMotiv: instruirea a fost modificată',
       'VerificatorAnulatMotiv: Data greșită',
     ]);
@@ -1268,20 +1269,105 @@ describe("the client's pending signatures", () => {
 });
 
 describe("the employee's signing agreement", () => {
-  it('downloads a new agreement and records it as generated', async () => {
-    let generated = false;
+  const requestFileId = '9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b';
+  const invitationId = '3f2c1b0a-9e8d-4c7b-a6f5-e4d3c2b1a090';
+
+  const scanFile = (id: string, name: string) => ({
+    id,
+    name,
+    note: null,
+    ownersOnly: false,
+    employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
+    originalFileName: `${name}.pdf`,
+    mimeType: 'application/pdf',
+    sizeBytes: 1200,
+    sha256: 'a'.repeat(64),
+    uploadedBy: null,
+    canChange: true,
+    createdAt: '2026-10-18T08:00:00.000Z',
+    updatedAt: '2026-10-18T08:00:00.000Z',
+    link: {
+      url: `http://127.0.0.1:54321/storage/v1/object/sign/client-files/${id}`,
+      fileName: `${name}.pdf`,
+      disposition: 'inline',
+      expiresInSeconds: 600,
+    },
+  });
+
+  const generated = (overrides: Record<string, unknown> = {}) => ({
+    state: 'generated',
+    generatedAt: '2026-10-18T09:00:00.000Z',
+    signedAt: null,
+    clientFileId: null,
+    employeeSignedAt: null,
+    employerSignedAt: null,
+    awaiting: 'employee',
+    withdrawal: null,
+    ...overrides,
+  });
+
+  const electronic = (overrides: Record<string, unknown> = {}) =>
+    generated({
+      state: 'signed_electronically',
+      generatedAt: '2026-10-01T09:00:00.000Z',
+      signedAt: '2026-10-02T09:00:00.000Z',
+      employeeSignedAt: '2026-10-01T10:00:00.000Z',
+      employerSignedAt: '2026-10-02T09:00:00.000Z',
+      awaiting: null,
+      ...overrides,
+    });
+
+  const openInvitation = (status = 'open') =>
+    Response.json({
+      participant: null,
+      invitation: {
+        id: invitationId,
+        clientId,
+        kind: 'employee',
+        employeeId,
+        fullName: 'Popescu Ion',
+        channel: 'email',
+        address: 'ion.popescu@example.com',
+        status,
+        lastSentAt: '2026-10-17T09:00:00.000Z',
+        resendableAt: '2026-10-17T09:10:00.000Z',
+        expiresAt: '2026-11-16T09:00:00.000Z',
+        createdAt: '2026-10-17T09:00:00.000Z',
+      },
+    });
+
+  const darkButtons = (scope: HTMLElement) =>
+    Array.from(scope.querySelectorAll('button, a')).filter(
+      (element) => element.getAttribute('data-variant') === 'default'
+    );
+
+  const isoDaysAgo = (days: number) => {
+    const day = new Date();
+    day.setDate(day.getDate() - days);
+    return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+  };
+  const roDate = (iso: string) => iso.split('-').reverse().join('.');
+
+  const scan = () => new File(['%PDF-1.7'], 'act-semnat.pdf', { type: 'application/pdf' });
+
+  const uploads = () =>
+    requestsTo(`/clients/${clientId}/files`, 'POST').map(([input, init]) => ({
+      url: new URL(String(input)),
+      body: init?.body,
+    }));
+
+  async function typeDate(field: HTMLElement, iso: string) {
+    const user = userEvent.setup();
+    await user.clear(field);
+    await user.type(field, roDate(iso));
+    await user.tab();
+  }
+
+  it('downloads a new agreement, records it as downloaded, and leaves the dark step to the invitation', async () => {
+    let downloaded = false;
     mockApi({
       [`GET ${agreementPath}/state`]: () =>
-        Response.json({
-          agreement: generated
-            ? {
-                state: 'generated',
-                generatedAt: '2026-10-18T09:00:00.000Z',
-                signedAt: null,
-                clientFileId: null,
-              }
-            : null,
-        }),
+        Response.json({ agreement: downloaded ? generated() : null, unavailable: null }),
       [`GET ${agreementPath}`]: () =>
         new Response(new Uint8Array([37, 80, 68, 70]), {
           headers: {
@@ -1290,15 +1376,18 @@ describe("the employee's signing agreement", () => {
           },
         }),
       [`PUT ${agreementPath}/state`]: () => {
-        generated = true;
+        downloaded = true;
         return Response.json({ agreement: null, unavailable: null });
       },
     });
     const user = userEvent.setup();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-state')).textContent).toBe(
       'Nesemnat'
+    );
+    expect(within(card).getByTestId('signing-agreement-next').textContent).toBe(
+      'Lucrătorul îl semnează în portal după ce îl inviți. Dacă preferă hârtia, descarcă-l și dă-l la semnat.'
     );
     await user.click(within(card).getByTestId('signing-agreement-download'));
     await waitFor(() =>
@@ -1308,10 +1397,56 @@ describe("the employee's signing agreement", () => {
     );
     expect(saved).toEqual(['Act-aditional-Popescu-Ion.pdf']);
     await waitFor(() =>
-      expect(within(card).getByTestId('signing-agreement-state').textContent).toBe('Generat')
+      expect(within(card).getByTestId('signing-agreement-state').textContent).toBe('Descărcat')
     );
-    expect(within(card).getByTestId('signing-agreement-detail').textContent).toBe(
-      'Descărcat pe 18 oct. 2026; se semnează de mână sau din portal.'
+    expect(within(card).getByTestId('signing-agreement-next').textContent).toBe(
+      'Pe 18 oct. 2026. După ce îl semnează lucrătorul și angajatorul, înregistrează-l.'
+    );
+    const tab = screen.getByTestId('employee-portal');
+    expect(darkButtons(tab).map((button) => button.textContent)).toEqual(['Invită în portal']);
+  });
+
+  it('makes recording the downloaded agreement the dark step once the employee is invited', async () => {
+    mockApi({
+      [`GET ${employeePath}/participant`]: () => openInvitation(),
+      [`GET ${agreementPath}/state`]: () => Response.json({ agreement: generated() }),
+    });
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await within(card).findByTestId('signing-agreement-state');
+    const tab = screen.getByTestId('employee-portal');
+    await waitFor(() =>
+      expect(darkButtons(tab).map((button) => button.getAttribute('data-testid'))).toEqual([
+        'signing-agreement-paper',
+      ])
+    );
+    expect(
+      Array.from(within(card).getByTestId('signing-agreement-actions').children).map((button) =>
+        button.getAttribute('data-testid')
+      )
+    ).toEqual([
+      'signing-agreement-paper',
+      'signing-agreement-download',
+      'signing-agreement-in-contract',
+    ]);
+  });
+
+  it('leaves the dark step to the resend while the invitation has expired', async () => {
+    mockApi({
+      [`GET ${employeePath}/participant`]: () => openInvitation('expired'),
+      [`GET ${agreementPath}/state`]: () => Response.json({ agreement: generated() }),
+    });
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await within(card).findByTestId('signing-agreement-paper');
+    const tab = screen.getByTestId('employee-portal');
+    await waitFor(() =>
+      expect(darkButtons(tab).map((button) => button.getAttribute('data-testid'))).toEqual([
+        'participant-invitation-resend',
+      ])
+    );
+    expect(within(card).getByTestId('signing-agreement-paper').getAttribute('data-variant')).toBe(
+      'secondary'
     );
   });
 
@@ -1319,34 +1454,23 @@ describe("the employee's signing agreement", () => {
     mockApi({
       [`GET ${agreementPath}/state`]: () =>
         Response.json({
-          agreement: {
-            state: 'generated',
-            generatedAt: '2026-10-18T09:00:00.000Z',
-            signedAt: null,
-            clientFileId: null,
+          agreement: generated({
             employeeSignedAt: '2026-10-19T09:00:00.000Z',
-            employerSignedAt: null,
             awaiting: 'employer',
-          },
+          }),
           unavailable: null,
         }),
-      [`GET ${agreementPath}/link`]: () =>
-        Response.json({
-          url: 'http://127.0.0.1:54321/storage/v1/object/sign/documents/agreement',
-          fileName: 'Act-aditional-semnare-electronica-Popescu-Ion.pdf',
-          expiresInSeconds: 600,
-        }),
     });
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     await waitFor(() =>
       expect(within(card).getByTestId('signing-agreement-download').getAttribute('href')).toContain(
         '/files/download?'
       )
     );
-    const address = new URL(
-      within(card).getByTestId('signing-agreement-download').getAttribute('href')!
-    );
+    const link = within(card).getByTestId('signing-agreement-download');
+    expect(link.textContent).toBe('Descarcă actul semnat');
+    const address = new URL(link.getAttribute('href')!);
     expect(address.searchParams.get('source')).toBe(
       'http://127.0.0.1:54321/storage/v1/object/sign/documents/agreement'
     );
@@ -1358,222 +1482,351 @@ describe("the employee's signing agreement", () => {
     expect(saved).toEqual([]);
   });
 
-  it('marks a generated agreement signed on paper with its scan', async () => {
+  it('records a paper agreement on the day it was signed, with a scan already among the files', async () => {
     let signed = false;
+    const signedOn = isoDaysAgo(3);
     mockApi({
+      [`GET ${employeePath}/participant`]: () => openInvitation(),
       [`GET ${agreementPath}/state`]: () =>
         Response.json({
-          agreement: {
-            state: signed ? 'signed_on_paper' : 'generated',
-            generatedAt: '2026-10-10T09:00:00.000Z',
-            signedAt: signed ? '2026-10-18T09:00:00.000Z' : null,
-            clientFileId: signed ? fileId : null,
-          },
+          agreement: signed
+            ? generated({
+                state: 'signed_on_paper',
+                signedAt: `${signedOn}T10:00:00.000Z`,
+                clientFileId: fileId,
+                awaiting: null,
+              })
+            : generated(),
         }),
       [`GET /clients/${clientId}/files`]: () =>
-        Response.json({
-          items: [
-            {
-              id: fileId,
-              name: 'Act adițional semnat',
-              note: null,
-              ownersOnly: false,
-              employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
-              originalFileName: 'act.pdf',
-              mimeType: 'application/pdf',
-              sizeBytes: 1200,
-              sha256: 'a'.repeat(64),
-              uploadedBy: null,
-              canChange: true,
-              createdAt: '2026-10-18T08:00:00.000Z',
-              updatedAt: '2026-10-18T08:00:00.000Z',
-              link: {
-                url: 'http://127.0.0.1:54321/storage/v1/object/sign/client-files/act',
-                fileName: 'act.pdf',
-                disposition: 'inline',
-                expiresInSeconds: 600,
-              },
-            },
-          ],
-        }),
+        Response.json({ items: [scanFile(fileId, 'Act adițional semnat')] }),
       [`PUT ${agreementPath}/state`]: () => {
         signed = true;
         return Response.json({ agreement: null, unavailable: null });
       },
     });
     const user = userEvent.setup();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     await user.click(await within(card).findByTestId('signing-agreement-paper'));
     const dialog = await screen.findByTestId('signing-agreement-paper-dialog');
-    const file = within(dialog).getByTestId('signing-agreement-file');
-    await waitFor(() => expect(file).toHaveProperty('disabled', false));
-    await user.selectOptions(file, fileId);
+    expect(dialog.textContent).toContain(
+      'Actul adițional semnat de mână de Popescu Ion și de angajator.'
+    );
+    const date = within(dialog).getByTestId('signing-agreement-signed-on');
+    expect((date as HTMLInputElement).value).toBe(roDate(isoDaysAgo(0)));
+    await typeDate(date, signedOn);
+    const existing = within(dialog).getByTestId('signing-agreement-file-existing');
+    await waitFor(() => expect(existing).toHaveProperty('disabled', false));
+    await user.selectOptions(existing, fileId);
     await user.click(within(dialog).getByTestId('signing-agreement-paper-submit'));
     await waitFor(() =>
       expect(requests('PUT', `${agreementPath}/state`).map((call) => call.body)).toEqual([
-        { state: 'signed_on_paper', clientFileId: fileId },
+        { state: 'signed_on_paper', signedOn, clientFileId: fileId },
       ])
     );
+    expect(uploads()).toHaveLength(0);
     await waitFor(() =>
       expect(within(card).getByTestId('signing-agreement-state').textContent).toBe(
         'Semnat pe hârtie'
       )
     );
+    expect(within(card).getByTestId('signing-agreement-scan-link').textContent).toBe(
+      'Act adițional semnat'
+    );
     expect(within(card).queryByTestId('signing-agreement-paper')).toBeNull();
+    expect(within(card).queryByTestId('signing-agreement-next')).toBeNull();
+  });
+
+  it('uploads a new scan among the employee’s files, then records the agreement with it, once', async () => {
+    let attempts = 0;
+    let uploaded = false;
+    mockApi({
+      [`GET ${agreementPath}/state`]: () => Response.json({ agreement: generated() }),
+      [`POST /clients/${clientId}/files`]: () => {
+        uploaded = true;
+        return Response.json({ file: scanFile(fileId, 'act-semnat') }, { status: 201 });
+      },
+      [`GET /clients/${clientId}/files`]: () =>
+        Response.json({ items: uploaded ? [scanFile(fileId, 'act-semnat')] : [] }),
+      [`PUT ${agreementPath}/state`]: () => {
+        attempts += 1;
+        return attempts === 1
+          ? Response.json({ error: 'internal', message: 'down' }, { status: 500 })
+          : Response.json({ agreement: null, unavailable: null });
+      },
+    });
+    const user = userEvent.setup();
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await user.click(await within(card).findByTestId('signing-agreement-paper'));
+    const dialog = await screen.findByTestId('signing-agreement-paper-dialog');
+    await user.upload(within(dialog).getByTestId('signing-agreement-file-input'), scan());
+    const chosen = within(dialog).getByTestId('signing-agreement-file-chosen');
+    expect(chosen.textContent).toContain('act-semnat.pdf');
+    expect(chosen.textContent).toContain('se salvează în Documente');
+    expect(within(dialog).queryByTestId('signing-agreement-file-existing')).toBeNull();
+
+    await user.click(within(dialog).getByTestId('signing-agreement-paper-submit'));
+    expect(await within(dialog).findByTestId('signing-agreement-error')).toBeTruthy();
+    expect(within(dialog).queryByTestId('signing-agreement-file-chosen')).toBeNull();
+    const existing = within(dialog).getByTestId('signing-agreement-file-existing');
+    await waitFor(() => expect((existing as HTMLSelectElement).value).toBe(fileId));
+    expect(existing.textContent).toContain('act-semnat');
+    await user.click(within(dialog).getByTestId('signing-agreement-paper-submit'));
+    await waitFor(() => expect(screen.queryByTestId('signing-agreement-paper-dialog')).toBeNull());
+
+    const sent = uploads();
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.url.searchParams.get('fileName')).toBe('act-semnat.pdf');
+    expect(sent[0]!.url.searchParams.get('employeeId')).toBe(employeeId);
+    expect(sent[0]!.body).toBeInstanceOf(File);
+    expect(requests('PUT', `${agreementPath}/state`).map((call) => call.body)).toEqual([
+      { state: 'signed_on_paper', signedOn: isoDaysAgo(0), clientFileId: fileId },
+      { state: 'signed_on_paper', signedOn: isoDaysAgo(0), clientFileId: fileId },
+    ]);
+  });
+
+  it('keeps a scan uploaded before a refused save among the files when the dialog is left', async () => {
+    let uploaded = false;
+    mockApi({
+      [`GET ${agreementPath}/state`]: () => Response.json({ agreement: electronic() }),
+      [`POST /clients/${clientId}/files`]: () => {
+        uploaded = true;
+        return Response.json({ file: scanFile(requestFileId, 'cerere') }, { status: 201 });
+      },
+      [`GET /clients/${clientId}/files`]: () =>
+        Response.json({ items: uploaded ? [scanFile(requestFileId, 'cerere')] : [] }),
+      [`PUT ${agreementPath}/state`]: () =>
+        Response.json({ error: 'internal', message: 'down' }, { status: 500 }),
+    });
+    const user = userEvent.setup();
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await user.click(await within(card).findByTestId('signing-agreement-withdraw'));
+    const dialog = await screen.findByTestId('signing-agreement-withdraw-dialog');
+    await user.upload(within(dialog).getByTestId('signing-agreement-request-file-input'), scan());
+    await user.click(within(dialog).getByTestId('signing-agreement-withdraw-submit'));
+    expect(await within(dialog).findByTestId('signing-agreement-error')).toBeTruthy();
+    const existing = within(dialog).getByTestId('signing-agreement-request-file-existing');
+    await waitFor(() => expect((existing as HTMLSelectElement).value).toBe(requestFileId));
+
+    await user.click(within(dialog).getByRole('button', { name: 'Renunță' }));
+    await waitFor(() =>
+      expect(screen.queryByTestId('signing-agreement-withdraw-dialog')).toBeNull()
+    );
+    expect(uploads()).toHaveLength(1);
+    expect(requests('PUT', `${agreementPath}/state`)).toHaveLength(1);
+  });
+
+  it('moves the focus to the remove button after a pick, and back to the choice after removing', async () => {
+    mockApi({ [`GET ${agreementPath}/state`]: () => Response.json({ agreement: generated() }) });
+    const user = userEvent.setup();
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await user.click(await within(card).findByTestId('signing-agreement-paper'));
+    const dialog = await screen.findByTestId('signing-agreement-paper-dialog');
+    await user.upload(within(dialog).getByTestId('signing-agreement-file-input'), scan());
+    const remove = within(dialog).getByTestId('signing-agreement-file-remove');
+    await waitFor(() => expect(document.activeElement).toBe(remove));
+
+    await user.click(remove);
+    const choose = within(dialog).getByTestId('signing-agreement-file-choose');
+    await waitFor(() => expect(document.activeElement).toBe(choose));
+  });
+
+  it('refuses a scan that is neither a PDF nor an image, and a day in the future', async () => {
+    mockApi({ [`GET ${agreementPath}/state`]: () => Response.json({ agreement: generated() }) });
+    const user = userEvent.setup({ applyAccept: false });
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await user.click(await within(card).findByTestId('signing-agreement-paper'));
+    const dialog = await screen.findByTestId('signing-agreement-paper-dialog');
+    await user.upload(
+      within(dialog).getByTestId('signing-agreement-file-input'),
+      new File(['x'], 'act.docx')
+    );
+    expect(within(dialog).getByTestId('signing-agreement-file-refusal').textContent).toBe(
+      'Alege un PDF sau o imagine (JPEG, PNG).'
+    );
+    await typeDate(within(dialog).getByTestId('signing-agreement-signed-on'), isoDaysAgo(-2));
+    await user.click(within(dialog).getByTestId('signing-agreement-paper-submit'));
+    expect(
+      (await within(dialog).findByTestId('signing-agreement-signed-on-error')).textContent
+    ).toBeTruthy();
+    expect(requests('PUT', `${agreementPath}/state`)).toHaveLength(0);
   });
 
   it('asks for an email or a phone when the agreement cannot name where the codes go', async () => {
-    mockApi({ [`GET ${agreementPath}`]: () => conflict('employee_has_no_address') });
+    mockApi({
+      [`GET ${employeePath}/participant`]: () => openInvitation(),
+      [`GET ${agreementPath}`]: () => conflict('employee_has_no_address'),
+    });
     const user = userEvent.setup();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     await user.click(await within(card).findByTestId('signing-agreement-download'));
-    expect((await within(card).findByTestId('signing-agreement-no-address')).textContent).toContain(
-      'Adaugă-i un email sau un telefon'
+    const line = await within(card).findByTestId('signing-agreement-no-address');
+    expect(line.textContent).toContain('Lucrătorul nu are email sau telefon');
+    expect(within(line).getByRole('link').getAttribute('href')).toBe(
+      `${employeePage}/editare?focus=contact`
     );
     expect(requests('PUT', `${agreementPath}/state`)).toHaveLength(0);
   });
 
-  const portalParticipant = () =>
-    Response.json({
-      participant: {
-        id: '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
-        clientId,
-        kind: 'employee',
-        employeeId,
-        fullName: 'Popescu Ion',
-        channel: 'email',
-        address: 'ion.popescu@example.com',
-        createdAt: '2026-10-10T09:00:00.000Z',
-        revokedAt: null,
-        noticeVersion: null,
-      },
-      invitation: null,
-    });
-
-  it('warns on the portal card of a participant whose agreement is not signed', async () => {
+  it('says why a download is refused even while the access panel asks for an email or a phone', async () => {
     mockApi({
-      [`GET ${employeePath}/participant`]: portalParticipant,
+      [`GET ${employeePath}`]: () =>
+        Response.json({ employee: { ...employee, email: null, phone: null } }),
       [`GET ${agreementPath}/state`]: () =>
         Response.json({
-          agreement: {
-            state: 'generated',
-            generatedAt: '2026-10-01T09:00:00.000Z',
-            signedAt: null,
-            clientFileId: null,
-            employeeSignedAt: null,
-            employerSignedAt: null,
-            awaiting: 'employee',
-          },
+          agreement: null,
+          unavailable: { reason: 'employee_has_no_address', missing: [] },
         }),
+      [`GET ${agreementPath}`]: () => conflict('employee_has_no_address'),
     });
-    mount(employeePage);
-    const card = await screen.findByTestId('employee-portal-card');
-    expect((await within(card).findByTestId('agreement-warning')).textContent).toBe(
-      'Act adițional nesemnat'
-    );
-  });
-
-  it('does not warn about an employee who has no portal access', async () => {
-    mockApi();
-    mount(employeePage);
-    const card = await screen.findByTestId('employee-portal-card');
-    await within(card).findByTestId('participant-none');
-    expect(within(card).queryByTestId('agreement-warning')).toBeNull();
-  });
-
-  const electronic = (overrides: Record<string, unknown> = {}) => ({
-    state: 'signed_electronically',
-    generatedAt: '2026-10-01T09:00:00.000Z',
-    signedAt: '2026-10-02T09:00:00.000Z',
-    clientFileId: null,
-    employeeSignedAt: '2026-10-01T10:00:00.000Z',
-    employerSignedAt: '2026-10-02T09:00:00.000Z',
-    awaiting: null,
-    ...overrides,
-  });
-
-  it('says on the portal card that an agreement the employee signed waits for the employer', async () => {
-    mockApi({
-      [`GET ${employeePath}/participant`]: portalParticipant,
-      [`GET ${agreementPath}/state`]: () =>
-        Response.json({
-          agreement: electronic({
-            state: 'generated',
-            signedAt: null,
-            employerSignedAt: null,
-            awaiting: 'employer',
-          }),
-        }),
-    });
-    mount(employeePage);
-    const card = await screen.findByTestId('employee-portal-card');
-    expect((await within(card).findByTestId('agreement-warning')).textContent).toBe(
-      'Act adițional așteaptă angajatorul'
-    );
-  });
-
-  it('says an agreement the employee signed waits for the administrator, and offers no paper mark', async () => {
-    mockApi({
-      [`GET ${agreementPath}/state`]: () =>
-        Response.json({
-          agreement: electronic({
-            state: 'generated',
-            signedAt: null,
-            employerSignedAt: null,
-            awaiting: 'employer',
-          }),
-        }),
-    });
-    mount(employeePage);
+    const user = userEvent.setup();
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
-    expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
-      'Semnat de lucrător pe 1 oct. 2026, așteaptă semnătura administratorului în portal.'
+    await screen.findByTestId('participant-no-contact');
+    expect(within(card).queryByTestId('signing-agreement-no-address')).toBeNull();
+    await user.click(within(card).getByTestId('signing-agreement-download'));
+    expect(await within(card).findByTestId('signing-agreement-no-address')).toBeTruthy();
+  });
+
+  it('says an agreement the employee signed waits for the administrator, and offers no paper record', async () => {
+    mockApi({
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: electronic({
+            state: 'generated',
+            signedAt: null,
+            employerSignedAt: null,
+            awaiting: 'employer',
+          }),
+        }),
+    });
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect((await within(card).findByTestId('signing-agreement-state')).textContent).toBe(
+      'Semnat de lucrător'
+    );
+    expect(within(card).getByTestId('signing-agreement-signatures').textContent).toBe(
+      'SemnăturiLucrătorul · 1 oct. 2026Administratorul clientului · în așteptare'
+    );
+    expect(within(card).getByTestId('signing-agreement-next').textContent).toBe(
+      'Urmează administratorul clientului, tot în portal.'
     );
     expect(within(card).queryByTestId('signing-agreement-paper')).toBeNull();
     expect(within(card).queryByTestId('signing-agreement-in-contract')).toBeNull();
     expect(within(card).getByTestId('signing-agreement-withdraw')).toBeTruthy();
   });
 
-  it('records the return to handwriting after an electronic signature, once confirmed', async () => {
+  it('records the return to handwriting with the day and scan of the request, keeping the signed act', async () => {
     let withdrawn = false;
+    let uploaded = false;
+    const requestedOn = isoDaysAgo(5);
     mockApi({
       [`GET ${agreementPath}/state`]: () =>
-        Response.json({ agreement: electronic(withdrawn ? { state: 'withdrawn' } : {}) }),
+        Response.json({
+          agreement: electronic(
+            withdrawn
+              ? {
+                  state: 'withdrawn',
+                  withdrawal: {
+                    recordedAt: '2026-11-12T08:15:00.000Z',
+                    requestedOn,
+                    fileId: requestFileId,
+                  },
+                }
+              : {}
+          ),
+        }),
+      [`POST /clients/${clientId}/files`]: () => {
+        uploaded = true;
+        return Response.json({ file: scanFile(requestFileId, 'cerere') }, { status: 201 });
+      },
+      [`GET /clients/${clientId}/files`]: () =>
+        Response.json({ items: uploaded ? [scanFile(requestFileId, 'Cererea lui Ion')] : [] }),
       [`PUT ${agreementPath}/state`]: () => {
         withdrawn = true;
-        return Response.json({ agreement: electronic({ state: 'withdrawn' }) });
+        return Response.json({ agreement: null });
       },
     });
     const user = userEvent.setup();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
-    expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
-      'Semnat electronic pe 2 oct. 2026.'
+    expect((await within(card).findByTestId('signing-agreement-state')).textContent).toBe(
+      'Semnat electronic'
     );
-    expect(within(card).getByTestId('signing-agreement-download')).toBeTruthy();
+    expect(within(card).getByTestId('signing-agreement-signatures').textContent).toBe(
+      'SemnăturiLucrătorul · 1 oct. 2026Administratorul clientului · 2 oct. 2026'
+    );
     await user.click(within(card).getByTestId('signing-agreement-withdraw'));
-    const dialog = await screen.findByTestId('signing-agreement-change-dialog');
+    const dialog = await screen.findByTestId('signing-agreement-withdraw-dialog');
     expect(dialog.textContent).toContain(
-      'Actul adițional semnat electronic și semnăturile de până acum rămân la dosar.'
+      'De acum, fișele lui se semnează de mână. Cererile de semnare electronică în așteptare se anulează; actul și semnăturile de până atunci rămân la dosar.'
     );
-    expect(requests('PUT', `${agreementPath}/state`)).toHaveLength(0);
-    await user.click(within(dialog).getByTestId('signing-agreement-change-confirm'));
+    await typeDate(within(dialog).getByTestId('signing-agreement-requested-on'), requestedOn);
+    await user.upload(within(dialog).getByTestId('signing-agreement-request-file-input'), scan());
+    await user.click(within(dialog).getByTestId('signing-agreement-withdraw-submit'));
     await waitFor(() =>
       expect(requests('PUT', `${agreementPath}/state`).map((call) => call.body)).toEqual([
-        { state: 'withdrawn' },
+        { state: 'withdrawn', requestedOn, requestFileId },
       ])
     );
+    expect(uploads()[0]!.url.searchParams.get('employeeId')).toBe(employeeId);
     await waitFor(() =>
       expect(within(card).getByTestId('signing-agreement-state').textContent).toBe(
-        'Revenire la semnarea olografă'
+        'Semnează de mână'
       )
     );
     expect(within(card).getByTestId('signing-agreement-detail').textContent).toBe(
-      'Salariatul a revenit la semnarea olografă. Actul adițional, semnat pe 2 oct. 2026, rămâne la dosar.'
+      'Din 12 nov. 2026 semnează fișele de mână. Actul și semnăturile de până atunci rămân la dosar.'
+    );
+    const request = within(card).getByTestId('signing-agreement-request');
+    expect(request.textContent).toContain(formatDate(requestedOn));
+    expect((await within(card).findByTestId('signing-agreement-request-scan')).textContent).toBe(
+      'Cererea lui Ion'
     );
     expect(within(card).queryByTestId('signing-agreement-withdraw')).toBeNull();
+    expect(within(card).getByTestId('signing-agreement-download').textContent).toBe(
+      'Descarcă actul semnat'
+    );
+  });
+
+  it('refuses a request dated before the agreement was signed', async () => {
+    mockApi({ [`GET ${agreementPath}/state`]: () => Response.json({ agreement: electronic() }) });
+    const user = userEvent.setup();
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await user.click(await within(card).findByTestId('signing-agreement-withdraw'));
+    const dialog = await screen.findByTestId('signing-agreement-withdraw-dialog');
+    await typeDate(within(dialog).getByTestId('signing-agreement-requested-on'), '2026-09-30');
+    await user.click(within(dialog).getByTestId('signing-agreement-withdraw-submit'));
+    expect(
+      (await within(dialog).findByTestId('signing-agreement-requested-on-error')).textContent
+    ).toBe('Data cererii nu poate fi înaintea semnării actului.');
+    expect(requests('PUT', `${agreementPath}/state`)).toHaveLength(0);
+  });
+
+  it('words a withdrawal the API has recorded already', async () => {
+    mockApi({
+      [`GET ${agreementPath}/state`]: () => Response.json({ agreement: electronic() }),
+      [`PUT ${agreementPath}/state`]: () => conflict('agreement_withdrawal_recorded'),
+    });
+    const user = userEvent.setup();
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await user.click(await within(card).findByTestId('signing-agreement-withdraw'));
+    const dialog = await screen.findByTestId('signing-agreement-withdraw-dialog');
+    await user.click(within(dialog).getByTestId('signing-agreement-withdraw-submit'));
+    expect((await within(dialog).findByTestId('signing-agreement-error')).textContent).toBe(
+      'Revenirea la semnarea de mână este deja înregistrată, cu cererea lucrătorului.'
+    );
+    expect(requests('PUT', `${agreementPath}/state`).map((call) => call.body)).toEqual([
+      { state: 'withdrawn', requestedOn: isoDaysAgo(0), requestFileId: null },
+    ]);
   });
 
   it("copies the contract clause with the provider's name and records a clause in the contract", async () => {
@@ -1598,9 +1851,9 @@ describe("the employee's signing agreement", () => {
       },
     });
     const user = userEvent.setup();
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
-    await user.click(await within(card).findByTestId('signing-agreement-clause'));
+    await user.click(await within(card).findByTestId('signing-agreement-in-contract'));
     const clause = await screen.findByTestId('signing-agreement-clause-dialog');
     await waitFor(() =>
       expect(within(clause).getByTestId('signing-agreement-clause-text').textContent).toContain(
@@ -1609,21 +1862,186 @@ describe("the employee's signing agreement", () => {
     );
     await user.click(within(clause).getByTestId('signing-agreement-clause-copy'));
     expect(await navigator.clipboard.readText()).toContain('PREVENȚIA PLUS SRL');
-    await user.keyboard('{Escape}');
-
-    await user.click(within(card).getByTestId('signing-agreement-in-contract'));
-    const dialog = await screen.findByTestId('signing-agreement-change-dialog');
-    await user.click(within(dialog).getByTestId('signing-agreement-change-confirm'));
+    expect(within(clause).getByTestId('signing-agreement-clause-copy').textContent).toBe('Copiată');
+    expect(requests('PUT', `${agreementPath}/state`)).toHaveLength(0);
+    await user.click(within(clause).getByTestId('signing-agreement-in-contract-confirm'));
     await waitFor(() =>
-      expect(within(card).getByTestId('signing-agreement-detail').textContent).toBe(
-        'Clauza este în contractul de muncă.'
+      expect(within(card).getByTestId('signing-agreement-state').textContent).toBe(
+        'Clauză în contract'
       )
+    );
+    expect(within(card).getByTestId('signing-agreement-detail').textContent).toBe(
+      'Clauza e în contractul de muncă, deci actul adițional nu mai e necesar.'
     );
     expect(requests('PUT', `${agreementPath}/state`).map((call) => call.body)).toEqual([
       { state: 'in_contract' },
     ]);
     expect(within(card).queryByTestId('signing-agreement-download')).toBeNull();
     expect(within(card).getByTestId('signing-agreement-withdraw')).toBeTruthy();
+
+    await user.click(within(card).getByTestId('signing-agreement-clause'));
+    const view = await screen.findByTestId('signing-agreement-clause-dialog');
+    expect(within(view).getByTestId('signing-agreement-clause-copy')).toBeTruthy();
+    expect(within(view).queryByTestId('signing-agreement-in-contract-confirm')).toBeNull();
+  });
+
+  it('shows the paper scan as missing without reading the files', async () => {
+    mockApi({
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: generated({
+            state: 'signed_on_paper',
+            signedAt: '2026-10-02T10:00:00.000Z',
+            awaiting: null,
+          }),
+        }),
+    });
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect((await within(card).findByTestId('signing-agreement-scan')).textContent).toContain(
+      'Fără scan atașat'
+    );
+    expect(within(card).getByTestId('signing-agreement-detail').textContent).toBe('pe 2 oct. 2026');
+    expect(requests('GET', `/clients/${clientId}/files`)).toHaveLength(0);
+  });
+
+  it('offers nothing to sign at an archived client', async () => {
+    mockApi({
+      [`GET /clients/${clientId}`]: () =>
+        Response.json({ client: { ...sampleClient, archivedAt: '2026-10-01T10:00:00+00:00' } }),
+    });
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
+      'Clientul e arhivat: actul nu se mai semnează.'
+    );
+    expect(within(card).queryByTestId('signing-agreement-actions')).toBeNull();
+    expect(within(card).queryByTestId('signing-agreement-next')).toBeNull();
+    expect(darkButtons(screen.getByTestId('employee-portal'))).toEqual([]);
+  });
+
+  it('shows a withdrawal recorded before its moment was kept without a day or a request', async () => {
+    mockApi({
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: electronic({
+            state: 'withdrawn',
+            withdrawal: { recordedAt: null, requestedOn: null, fileId: null },
+          }),
+        }),
+    });
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
+      'Semnează fișele de mână; actul și semnăturile dinaintea revenirii rămân la dosar.'
+    );
+    expect(within(card).queryByTestId('signing-agreement-request')).toBeNull();
+  });
+
+  it('does not count an expired invitation as the worker invited', async () => {
+    mockApi({ [`GET ${employeePath}/participant`]: () => openInvitation('expired') });
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect((await within(card).findByTestId('signing-agreement-next')).textContent).toBe(
+      'Lucrătorul îl semnează în portal după ce îl inviți. Dacă preferă hârtia, descarcă-l și dă-l la semnat.'
+    );
+  });
+
+  it('asks for an email or a phone on the agreement while an expired invitation holds the access panel', async () => {
+    mockApi({
+      [`GET ${employeePath}`]: () =>
+        Response.json({ employee: { ...employee, email: null, phone: null } }),
+      [`GET ${employeePath}/participant`]: () => openInvitation('expired'),
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: null,
+          unavailable: { reason: 'employee_has_no_address', missing: [] },
+        }),
+    });
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect(await within(card).findByTestId('signing-agreement-no-address')).toBeTruthy();
+    expect(screen.queryByTestId('participant-no-contact')).toBeNull();
+  });
+
+  describe('of a former worker', () => {
+    const former = { ...employee, status: 'terminated', terminatedAt: '2026-09-30' };
+
+    it('shows the access and an unsigned agreement, with nothing to do but revoke', async () => {
+      mockApi({
+        [`GET ${employeePath}`]: () => Response.json({ employee: former }),
+        [`GET ${employeePath}/participant`]: () => openInvitation(),
+        [`GET ${agreementPath}/state`]: () => Response.json({ agreement: generated() }),
+      });
+      mount(`${employeePage}/portal`);
+      const card = await screen.findByTestId('signing-agreement-card');
+      expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
+        'Fost lucrător: actul nu se mai semnează.'
+      );
+      expect(within(card).queryByTestId('signing-agreement-actions')).toBeNull();
+      expect(within(card).queryByTestId('signing-agreement-next')).toBeNull();
+      const access = screen.getByTestId('employee-portal-card');
+      expect(within(access).getByTestId('participant-invitation-revoke')).toBeTruthy();
+      expect(within(access).queryByTestId('participant-invitation-resend')).toBeNull();
+      expect(within(access).queryByTestId('participant-invitation-hint')).toBeNull();
+      expect(within(access).queryByTestId('participant-invite')).toBeNull();
+      expect(darkButtons(screen.getByTestId('employee-portal'))).toEqual([]);
+    });
+
+    it('keeps the signed act to download and the access to revoke, and records nothing', async () => {
+      mockApi({
+        [`GET ${employeePath}`]: () => Response.json({ employee: former }),
+        [`GET ${employeePath}/participant`]: () =>
+          Response.json({
+            participant: {
+              id: '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
+              clientId,
+              kind: 'employee',
+              employeeId,
+              fullName: 'Popescu Ion',
+              channel: 'email',
+              address: 'ion.popescu@example.com',
+              createdAt: '2026-10-10T09:00:00.000Z',
+              revokedAt: null,
+              noticeVersion: null,
+              language: null,
+            },
+            invitation: null,
+          }),
+        [`GET ${agreementPath}/state`]: () => Response.json({ agreement: electronic() }),
+      });
+      mount(`${employeePage}/portal`);
+      const card = await screen.findByTestId('signing-agreement-card');
+      await waitFor(() =>
+        expect(within(card).getByTestId('signing-agreement-download').textContent).toBe(
+          'Descarcă actul semnat'
+        )
+      );
+      expect(within(card).queryByTestId('signing-agreement-withdraw')).toBeNull();
+      expect(
+        within(screen.getByTestId('employee-portal-card')).getByTestId('participant-revoke')
+      ).toBeTruthy();
+    });
+
+    it('keeps the contract clause to read', async () => {
+      mockApi({
+        [`GET ${employeePath}`]: () => Response.json({ employee: former }),
+        [`GET ${agreementPath}/state`]: () =>
+          Response.json({
+            agreement: electronic({
+              state: 'in_contract',
+              signedAt: null,
+              employeeSignedAt: null,
+              employerSignedAt: null,
+            }),
+          }),
+      });
+      mount(`${employeePage}/portal`);
+      const card = await screen.findByTestId('signing-agreement-card');
+      expect(await within(card).findByTestId('signing-agreement-clause')).toBeTruthy();
+      expect(within(card).queryByTestId('signing-agreement-withdraw')).toBeNull();
+      expect(within(card).queryByTestId('signing-agreement-in-contract')).toBeNull();
+    });
   });
 
   it('warns while annex 13 of the internal regulation is not issued', async () => {
@@ -1631,11 +2049,13 @@ describe("the employee's signing agreement", () => {
       [`GET /clients/${clientId}/documents`]: () =>
         Response.json({ items: [], notApplicable: [], lastGeneration: null }),
     });
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
-    expect((await within(card).findByTestId('signing-agreement-annex')).textContent).toContain(
-      'Anexa 13 la regulamentul intern nu este emisă.'
+    const line = await within(card).findByTestId('signing-agreement-annex');
+    expect(line.textContent).toContain(
+      'Anexa 13 la regulamentul intern nu este emisă. Emite-o odată cu actele adiționale.'
     );
+    expect(within(line).getByRole('link').getAttribute('data-variant')).toBe('secondary');
   });
 
   it('does not warn about the annex for a client the annex does not apply to', async () => {
@@ -1647,7 +2067,7 @@ describe("the employee's signing agreement", () => {
           lastGeneration: null,
         }),
     });
-    mount(employeePage);
+    mount(`${employeePage}/portal`);
     const card = await screen.findByTestId('signing-agreement-card');
     await within(card).findByTestId('signing-agreement-state');
     await waitFor(() => expect(requests('GET', `/clients/${clientId}/documents`)).toHaveLength(1));

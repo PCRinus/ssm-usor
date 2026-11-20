@@ -50,7 +50,7 @@ const person = {
   email: 'ion.popescu@example.com',
   phone: '0721 000 000',
   jobTitle: 'Sudor',
-  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor' },
+  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor', archived: false },
   hiredAt: '2020-03-01',
   workplace: null,
 };
@@ -142,7 +142,9 @@ function mockApi(
       | 'createPosition'
       | 'move'
       | 'update'
-      | 'workplaces',
+      | 'workplaces'
+      | 'participant'
+      | 'agreement',
       Route
     >
   > = {}
@@ -182,12 +184,14 @@ function mockApi(
       return routes.detail?.(init, url) ?? Response.json({ employee: createdEmployee });
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/participant`) {
+      if (routes.participant) return routes.participant(init, url);
       return Response.json({
         participant: null,
         invitation: null,
       } satisfies EmployeeParticipantState);
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/signing-agreement/state`) {
+      if (routes.agreement) return routes.agreement(init, url);
       return Response.json({
         agreement: null,
         unavailable: null,
@@ -950,7 +954,8 @@ describe('the employment contract number', () => {
   const detailPath = `${employeesPath}/${sampleEmployee.id}`;
   const detailPage = `${employeesPage}/${sampleEmployee.id}`;
   const editPage = `${detailPage}/editare`;
-  const contractFact = () => screen.getByText('Nr. contract').nextElementSibling?.textContent;
+  const contractFact = () =>
+    screen.getByText('Nr. contract').closest('dt')?.nextElementSibling?.textContent;
 
   it('is sent with a new employee, trimmed', async () => {
     mockApi();
@@ -1248,43 +1253,30 @@ describe('training sheet fields on employees (ADR 021)', () => {
   it('shows the sheet fields on the employee page', async () => {
     mockApi({ detail: () => Response.json({ employee: withSheet }) });
     mountApp(authFixture(makeSession()).client, detailPage);
-    const section = (await screen.findByRole('heading', { name: 'Fișa de instruire' }))
-      .parentElement!;
+    const section = await screen.findByTestId('employee-sheet-data');
     const labels = [...section.querySelectorAll('dt')].map((term) => term.textContent);
-    expect(labels).toEqual([
-      'Punct de lucru',
-      'Data nașterii',
-      'Locul nașterii',
-      'Domiciliu',
-      'Adresa unde locuiește',
-      'Grupa sanguină',
-      'Calificarea',
-      'Studiile',
-      'Autorizații',
-      'Traseul de deplasare',
-      'Mijloace de transport',
-      'Durata deplasării (minute)',
-      'Observații',
-    ]);
-    expect(within(section).getByText('Atelier Str. Fabricii 3')).toBeTruthy();
+    expect(labels).toEqual(['Calificarea', 'Studiile', 'Autorizații', 'Traseul de deplasare']);
+    expect(
+      within(screen.getByTestId('employee-employment')).getByText('Atelier Str. Fabricii 3')
+    ).toBeTruthy();
     expect(within(section).getByText('Sudor autorizat')).toBeTruthy();
     expect(within(section).getByText('Școala profesională')).toBeTruthy();
     expect(within(section).getByText('ISCIR')).toBeTruthy();
-    expect(within(section).getByText('Str. Florilor 9, Timișoara')).toBeTruthy();
+    expect(screen.getByText('Str. Florilor 9, Timișoara')).toBeTruthy();
     expect(within(section).getByText('Pe jos, Transport public')).toBeTruthy();
     expect(
       within(section).getByText('Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24')
     ).toBeTruthy();
-    expect(within(section).getByText('35')).toBeTruthy();
+    expect(within(section).getByText('35 de minute')).toBeTruthy();
   });
 
   it('prints a dash for each empty sheet field', async () => {
     mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
     mountApp(authFixture(makeSession()).client, detailPage);
-    const section = (await screen.findByRole('heading', { name: 'Fișa de instruire' }))
-      .parentElement!;
+    await screen.findByTestId('employee-page');
     const value = (label: string) =>
-      within(section).getByText(label, { selector: 'dt' }).nextElementSibling?.textContent;
+      screen.getByText(label, { selector: 'dt span' }).closest('dt')?.nextElementSibling
+        ?.textContent;
     for (const label of [
       'Punct de lucru',
       'Adresa unde locuiește',
@@ -1292,8 +1284,6 @@ describe('training sheet fields on employees (ADR 021)', () => {
       'Studiile',
       'Autorizații',
       'Traseul de deplasare',
-      'Mijloace de transport',
-      'Durata deplasării (minute)',
     ]) {
       expect(value(label)).toBe('—');
     }
@@ -1304,7 +1294,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       detail: () => Response.json({ employee: withSheet }),
       workplaces: () => Response.json({ items: [registeredOffice] }),
     });
-    mountApp(authFixture(makeSession()).client, editPage);
+    const runtime = mountApp(authFixture(makeSession()).client, editPage);
     const user = userEvent.setup();
     await screen.findByTestId('edit-employee-page');
     await waitFor(() =>
@@ -1324,8 +1314,9 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(unchanged).not.toHaveProperty('jobPositionId');
     expect(unchanged).toMatchObject({ qualification: 'Sudor autorizat', commuteMinutes: 35 });
 
-    await user.click(screen.getByTestId('employee-edit'));
+    await user.click(screen.getByTestId('employee-employment-edit'));
     await screen.findByTestId('edit-employee-page');
+    await waitFor(() => expect(runtime.router.state.location.search).not.toHaveProperty('focus'));
     await user.click(screen.getByTestId('employee-workplace'));
     await user.click(
       within(await screen.findByRole('listbox')).getByRole('option', { name: /Sediu/ })
@@ -1437,7 +1428,10 @@ describe('employee status changes', () => {
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     await user.click(screen.getByTestId('employees-row-menu'));
-    await user.click(await screen.findByTestId('employees-terminate'));
+    expect((await screen.findByTestId('employees-terminate')).textContent).toBe(
+      'Trece la foști lucrători…'
+    );
+    await user.click(screen.getByTestId('employees-terminate'));
     const dialog = await screen.findByTestId('employee-status-dialog');
     expect(within(dialog).getByText('Popescu Ion')).toBeTruthy();
     const date = screen.getByTestId('employee-terminated-at') as HTMLInputElement;
@@ -1455,7 +1449,7 @@ describe('employee status changes', () => {
     await user.click(screen.getByTestId('employees-filter-terminated'));
     await screen.findByTestId('employees-row');
     expect(
-      await screen.findByText(fullText('Popescu Ion a fost trecut la foști lucrători.'))
+      await screen.findByText(fullText('Popescu Ion a trecut la foști lucrători.'))
     ).toBeTruthy();
   });
 
@@ -1542,7 +1536,10 @@ describe('employee status changes', () => {
     await screen.findByTestId('employees-row');
     await user.click(screen.getByTestId('employees-row-menu'));
     expect(screen.queryByTestId('employees-terminate')).toBeNull();
-    await user.click(await screen.findByTestId('employees-reactivate'));
+    expect((await screen.findByTestId('employees-reactivate')).textContent).toBe(
+      'Anulează trecerea la foști…'
+    );
+    await user.click(screen.getByTestId('employees-reactivate'));
     const dialog = await screen.findByTestId('employee-status-dialog');
     expect(within(dialog).queryByTestId('employee-terminated-at')).toBeNull();
     await user.click(screen.getByTestId('employee-status-confirm'));
@@ -1675,8 +1672,9 @@ describe('employee detail', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('employees-open'));
     await screen.findByTestId('employee-page');
-    await user.click(screen.getByTestId('employee-edit'));
+    await user.click(screen.getByTestId('employee-identity-edit'));
     await screen.findByTestId('edit-employee-page');
+    await waitFor(() => expect(runtime.router.state.location.search).not.toHaveProperty('focus'));
     expect(screen.getByRole('link', { name: 'Înapoi' }).getAttribute('href')).toBe(detailPage);
 
     await user.click(screen.getByRole('link', { name: 'Renunță' }));
@@ -1754,8 +1752,10 @@ describe('employee detail', () => {
       expect(screen.getByTestId('employee-status').textContent).toBe('Fost lucrător')
     );
     expect(screen.getByText('10 sept. 2026')).toBeTruthy();
-    expect(screen.getByText('Vechime la plecare')).toBeTruthy();
-    expect(screen.getByTestId('employee-status-action').textContent).toContain('Reactivează');
+    expect(screen.getByText(/^vechime la plecare:/)).toBeTruthy();
+    expect(screen.getByTestId('employee-status-action').textContent).toBe(
+      'Anulează trecerea la foști…'
+    );
   });
 
   it('shows a not-found screen for an employee outside the client', async () => {
@@ -1977,7 +1977,7 @@ describe('employee editing', () => {
       `${employeesPage}/${sampleEmployee.id}`
     );
     const user = userEvent.setup();
-    await user.click(await screen.findByTestId('employee-edit'));
+    await user.click(await screen.findByTestId('employee-identity-edit'));
     await screen.findByTestId('edit-employee-page');
     expect(runtime.router.state.location.pathname).toBe(editPage);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Modifică');
@@ -2123,7 +2123,7 @@ describe('employee editing', () => {
     await screen.findByTestId('edit-employee-page');
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('hiredAt-error')).textContent).toBe(
-      'Data angajării nu poate fi după data plecării.'
+      'Data angajării nu poate fi după data încetării.'
     );
     expect(screen.queryByTestId('employee-form-error')).toBeNull();
   });
@@ -2202,7 +2202,7 @@ describe('what a session replay of the employees shows', () => {
     expect(replayedText(screen.getByText('Atelier Str. Fabricii 3'))).toBe(
       'Atelier Str. Fabricii 3'
     );
-    expect(replayedText(screen.getByText('Post de lucru', { selector: 'dt' }))).toBe(
+    expect(replayedText(screen.getByText('Post de lucru', { selector: 'dt span' }))).toBe(
       'Post de lucru'
     );
   });
@@ -2223,5 +2223,273 @@ describe('what a session replay of the employees shows', () => {
       'Str. Xxxxx 0 – xxxxxxxxx 00'
     );
     expect(replayedText(screen.getByRole('heading', { level: 1 }))).toBe('Modifică: ******* ***');
+  });
+});
+
+describe("the worker page's header and tabs", () => {
+  const detailPage = `${employeesPage}/${sampleEmployee.id}`;
+  const participantPath = `${employeesPath}/${sampleEmployee.id}/participant`;
+  const archivedClient = { ...sampleClient, archivedAt: '2026-01-01T00:00:00+00:00' };
+  const formerEmployee = { ...createdEmployee, status: 'terminated', terminatedAt: '2026-09-30' };
+
+  const invitation = {
+    id: '3f2c1b0a-9e8d-4c7b-a6f5-e4d3c2b1a090',
+    clientId,
+    kind: 'employee',
+    employeeId: sampleEmployee.id,
+    fullName: 'Popescu Ion',
+    channel: 'email',
+    address: 'ion.popescu@example.com',
+    status: 'open',
+    lastSentAt: '2026-10-17T09:00:00.000Z',
+    resendableAt: '2026-10-17T09:10:00.000Z',
+    expiresAt: '2026-11-16T09:00:00.000Z',
+    createdAt: '2026-10-17T09:00:00.000Z',
+  };
+  const participant = {
+    id: '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
+    clientId,
+    kind: 'employee',
+    employeeId: sampleEmployee.id,
+    fullName: 'Popescu Ion',
+    channel: 'email',
+    address: 'ion.popescu@example.com',
+    createdAt: '2026-10-10T09:00:00.000Z',
+    revokedAt: null,
+    noticeVersion: null,
+    language: null,
+  };
+  const agreement = (overrides: Record<string, unknown>) => ({
+    state: 'generated',
+    generatedAt: '2026-10-18T09:00:00.000Z',
+    signedAt: null,
+    clientFileId: null,
+    employeeSignedAt: null,
+    employerSignedAt: null,
+    awaiting: 'employee',
+    ...overrides,
+  });
+
+  const access = (state: { participant?: unknown; invitation?: unknown }) => () =>
+    Response.json({ participant: null, invitation: null, ...state });
+  const agreementState = (value: unknown) => () =>
+    Response.json({ agreement: value, unavailable: null });
+
+  // The Documente tab reads nothing about the portal, so every read here is the header's.
+  async function openWorker(routes: Parameters<typeof mockApi>[0] = {}) {
+    mockApi(routes);
+    const runtime = mountApp(authFixture(makeSession()).client, `${detailPage}/documente`);
+    await screen.findByTestId('employee-layout');
+    return runtime;
+  }
+
+  const portalTab = () =>
+    screen.getAllByTestId('employee-section').find((tab) => tab.textContent?.startsWith('Portal'))!;
+
+  it('links the post and the client, and marks a current worker in green', async () => {
+    await openWorker();
+    const position = screen.getByTestId('employee-header-position');
+    expect(position.textContent).toBe('Sudor');
+    expect(position.getAttribute('href')).toBe(
+      `/clienti/${clientId}/posturi/${sampleEmployee.jobPosition.id}`
+    );
+    expect(screen.getByTestId('employee-header-client').getAttribute('href')).toBe(employeesPage);
+    const status = screen.getByTestId('employee-status');
+    expect(status.textContent).toBe('Lucrător actual');
+    expect(status.className).toContain('bg-success');
+    expect(status.querySelector('svg')).toBeTruthy();
+    const action = screen.getByTestId('employee-status-action');
+    expect(action.textContent).toBe('Trece la foști lucrători…');
+    expect(action.getAttribute('data-variant')).toBe('destructive-soft');
+    expect(screen.queryByTestId('employee-client-archived')).toBeNull();
+  });
+
+  it('names an archived post without a link', async () => {
+    await openWorker({
+      detail: () =>
+        Response.json({
+          employee: {
+            ...createdEmployee,
+            jobPosition: { ...createdEmployee.jobPosition, archived: true },
+          },
+        }),
+    });
+    const position = screen.getByTestId('employee-header-position');
+    expect(position.textContent).toBe('Sudor');
+    expect(position.tagName).toBe('SPAN');
+    expect(position.querySelector('svg')).toBeNull();
+  });
+
+  it('shows a former worker neutral, with the move undone from a grey button', async () => {
+    await openWorker({ detail: () => Response.json({ employee: formerEmployee }) });
+    const status = screen.getByTestId('employee-status');
+    expect(status.textContent).toBe('Fost lucrător');
+    expect(status.className).not.toContain('bg-success');
+    expect(status.querySelector('svg')).toBeNull();
+    const action = screen.getByTestId('employee-status-action');
+    expect(action.textContent).toBe('Anulează trecerea la foști…');
+    expect(action.getAttribute('data-variant')).toBe('secondary');
+  });
+
+  it('splits the worker into five tabs, Portal last, with the portal cards on it', async () => {
+    const runtime = await openWorker();
+    const user = userEvent.setup();
+    expect(screen.getAllByTestId('employee-section').map((tab) => tab.textContent)).toEqual([
+      'Date',
+      'Instruire SSM',
+      'Instruire SU',
+      'Documente',
+      'Portal',
+    ]);
+    await user.click(portalTab());
+    await screen.findByTestId('employee-portal');
+    expect(runtime.router.state.location.pathname).toBe(`${detailPage}/portal`);
+    expect(portalTab().getAttribute('aria-current')).toBe('page');
+    expect(await screen.findByTestId('employee-portal-card')).toBeTruthy();
+    expect(await screen.findByTestId('signing-agreement-card')).toBeTruthy();
+  });
+
+  it('flags an unsigned agreement of a worker invited to the portal, and leads to the Portal tab', async () => {
+    const runtime = await openWorker({
+      participant: access({ invitation }),
+      agreement: agreementState(null),
+    });
+    const user = userEvent.setup();
+    const flag = await screen.findByTestId('employee-agreement-flag');
+    expect(flag.textContent).toBe('Act adițional nesemnat');
+    expect(flag.getAttribute('data-flag')).toBe('unsigned');
+    expect(within(portalTab()).getByTestId('employee-portal-flag').textContent).toBe(
+      ', actul adițional nu e semnat'
+    );
+    await user.click(flag);
+    await screen.findByTestId('employee-portal');
+    expect(runtime.router.state.location.pathname).toBe(`${detailPage}/portal`);
+  });
+
+  it('flags a downloaded agreement the worker has not signed yet', async () => {
+    await openWorker({
+      participant: access({ participant }),
+      agreement: agreementState(agreement({})),
+    });
+    expect((await screen.findByTestId('employee-agreement-flag')).textContent).toBe(
+      'Act adițional nesemnat'
+    );
+  });
+
+  it('says the agreement waits for the employer once the worker signed it', async () => {
+    await openWorker({
+      participant: access({ participant }),
+      agreement: agreementState(
+        agreement({ employeeSignedAt: '2026-10-19T09:00:00.000Z', awaiting: 'employer' })
+      ),
+    });
+    const flag = await screen.findByTestId('employee-agreement-flag');
+    expect(flag.textContent).toBe('Act adițional așteaptă angajatorul');
+    expect(within(portalTab()).getByTestId('employee-portal-flag').textContent).toBe(
+      ', actul adițional așteaptă semnătura angajatorului'
+    );
+  });
+
+  it.each([
+    [
+      'signed on paper',
+      access({ participant }),
+      agreementState(agreement({ state: 'signed_on_paper', signedAt: '2026-10-20' })),
+    ],
+    [
+      'withdrawn for signing by hand',
+      access({ participant }),
+      agreementState(agreement({ state: 'withdrawn' })),
+    ],
+    ['of a worker not in the portal', access({}), agreementState(null)],
+  ])('raises no flag for an agreement %s', async (_, participantRoute, agreementRoute) => {
+    const runtime = await openWorker({ participant: participantRoute, agreement: agreementRoute });
+    await waitFor(() => expect(requestsTo(participantPath)).toHaveLength(1));
+    await waitFor(() => expect(runtime.queryClient.isFetching()).toBe(0));
+    expect(screen.queryByTestId('employee-agreement-flag')).toBeNull();
+    expect(screen.queryByTestId('employee-portal-flag')).toBeNull();
+  });
+
+  it.each([
+    [
+      'access',
+      () => Response.json({ error: 'internal_error', message: 'boom' }, { status: 500 }),
+      agreementState(null),
+    ],
+    [
+      'agreement',
+      access({ invitation }),
+      () => Response.json({ error: 'internal_error', message: 'boom' }, { status: 500 }),
+    ],
+  ])(
+    'raises no flag and keeps the page when the %s read fails',
+    async (_, participantRoute, agreementRoute) => {
+      const runtime = await openWorker({
+        participant: participantRoute,
+        agreement: agreementRoute,
+      });
+      await waitFor(() => expect(requestsTo(participantPath)).toHaveLength(1));
+      await waitFor(() => expect(runtime.queryClient.isFetching()).toBe(0));
+      expect(screen.queryByTestId('employee-agreement-flag')).toBeNull();
+      expect(screen.queryByTestId('employee-portal-flag')).toBeNull();
+      expect(screen.getByTestId('employee-status').textContent).toBe('Lucrător actual');
+      expect(screen.getAllByTestId('employee-section')).toHaveLength(5);
+      expect(screen.getByTestId('employee-header-position').textContent).toBe('Sudor');
+    }
+  );
+
+  it('asks nothing about the agreement for a former worker', async () => {
+    const runtime = await openWorker({
+      detail: () => Response.json({ employee: formerEmployee }),
+      participant: access({ invitation }),
+      agreement: agreementState(null),
+    });
+    await waitFor(() => expect(runtime.queryClient.isFetching()).toBe(0));
+    expect(requestsTo(participantPath)).toHaveLength(0);
+    expect(screen.queryByTestId('employee-agreement-flag')).toBeNull();
+  });
+
+  it("says an archived client's worker is only read, with no status action or flag", async () => {
+    const runtime = await openWorker({
+      client: () => Response.json({ client: archivedClient }),
+      participant: access({ invitation }),
+      agreement: agreementState(null),
+    });
+    const notice = screen.getByTestId('employee-client-archived');
+    expect(notice.textContent).toContain('Client arhivat');
+    expect(notice.textContent).toContain(
+      'Datele lucrătorului pot fi consultate și descărcate, dar nu modificate.'
+    );
+    expect(screen.getByTestId('employee-status').textContent).toBe('Lucrător actual');
+    expect(screen.queryByTestId('employee-status-action')).toBeNull();
+    await waitFor(() => expect(runtime.queryClient.isFetching()).toBe(0));
+    expect(requestsTo(participantPath)).toHaveLength(0);
+    expect(screen.queryByTestId('employee-agreement-flag')).toBeNull();
+  });
+
+  it('asks for the end date when a worker moves to former workers', async () => {
+    const user = userEvent.setup();
+    await openWorker();
+    await user.click(screen.getByTestId('employee-status-action'));
+    const dialog = await screen.findByTestId('employee-status-dialog');
+    expect(within(dialog).getByRole('heading').textContent).toBe('Trece la foști lucrători');
+    expect(within(dialog).getByText('Data încetării')).toBeTruthy();
+    const confirm = within(dialog).getByTestId('employee-status-confirm');
+    expect(confirm.textContent).toBe('Trece la foști');
+    expect(confirm.getAttribute('data-variant')).toBe('destructive-soft');
+  });
+
+  it('names the end date that undoing the move clears', async () => {
+    const user = userEvent.setup();
+    await openWorker({ detail: () => Response.json({ employee: formerEmployee }) });
+    await user.click(screen.getByTestId('employee-status-action'));
+    const dialog = await screen.findByTestId('employee-status-dialog');
+    expect(within(dialog).getByRole('heading').textContent).toBe('Anulezi trecerea la foști?');
+    expect(dialog.textContent).toContain(
+      'Popescu Ion redevine lucrător actual și data încetării, 30 sept. 2026, se șterge.'
+    );
+    expect(within(dialog).getByTestId('employee-status-confirm').textContent).toBe(
+      'Anulează trecerea'
+    );
   });
 });

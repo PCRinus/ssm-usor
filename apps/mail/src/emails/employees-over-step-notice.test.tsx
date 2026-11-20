@@ -35,7 +35,7 @@ describe('employees over the step notice', () => {
       );
       expect(body).toContain('Poți adăuga lucrători noi până pe 14.12.2026 inclusiv.');
       expect(body).toContain(
-        'nu mai poți adăuga lucrători noi, nici clienți cu lucrători, până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți.'
+        'nu mai poți adăuga lucrători noi, nici clienți cu lucrători, până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori îi treci la foști pe lucrătorii care nu mai lucrează la clienți.'
       );
       expect(body).toContain('Tot ce ai lucrat merge mai departe');
       expect(body).toContain('https://app.ssmusor.ro/organizatie/abonament');

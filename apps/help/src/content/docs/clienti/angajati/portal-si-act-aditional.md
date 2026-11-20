@@ -33,7 +33,7 @@ topics:
   - id: angajati.act-aditional-clauza
     heading: Clauza în contract
   - id: angajati.act-aditional-revenire
-    heading: Revenirea la semnarea olografă
+    heading: Revenirea la semnarea de mână
   - id: angajati.anexa-13
     heading: Anexa 13 la regulamentul intern
 sources:
@@ -42,10 +42,12 @@ sources:
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - packages/contracts/src/participants.ts
   - apps/app/src/features/participants/employee-portal-card.tsx
+  - apps/app/src/features/employees/employee-layout.tsx
   - apps/app/src/features/participants/invite-employee-dialog.tsx
   - apps/app/src/features/participants/bulk-invite-dialog.tsx
   - apps/app/src/features/participants/bulk-invite-format.ts
-  - apps/app/src/features/participants/participant-actions.tsx
+  - apps/app/src/features/participants/participant-actions.ts
+  - apps/app/src/features/participants/employee-access.ts
   - apps/app/src/features/participants/participant-errors.ts
   - apps/app/src/features/participants/sms-rules.ts
   - apps/app/src/features/participants/invite-administrator-dialog.tsx
@@ -59,11 +61,14 @@ sources:
   - apps/app/src/features/signatures/client-signature-requests.tsx
   - supabase/migrations/20261120100000_employee_list_portal.sql
   - apps/app/src/features/signatures/signing-agreement-card.tsx
+  - apps/app/src/features/signatures/agreement-scan-field.tsx
   - apps/app/src/features/signatures/agreement-warning.tsx
   - apps/app/src/features/signatures/signature-format.ts
 ---
 
-Pe tabul **Date** al unui lucrător, două carduri țin de semnarea electronică: **Acces la portal**, prin care lucrătorul își vede evidența și semnează, și **Actul adițional privind semnarea electronică**, acordul lui de a semna astfel fișele de instruire.
+Pe tabul **Portal** al unui lucrător, două panouri țin de semnarea electronică: **Acces la portal**, prin care lucrătorul își vede evidența și semnează, și **Actul adițional privind semnarea electronică**, acordul lui de a semna astfel fișele de instruire. Fiecare panou arată pe rânduri unde ai ajuns, iar butoanele stau lângă rândul la care se referă sau sub rânduri; pe telefon, toate coboară sub conținut, pe toată lățimea.
+
+Pe tab, un singur buton e închis la culoare: pasul următor. Cât timp lucrătorul nu e invitat, e **Invită în portal**; dacă nu are nici email, nici telefon, **Adaugă emailul sau telefonul**; când invitația a expirat, **Retrimite**. Altfel, după ce ai descărcat actul adițional, pasul următor e **Înregistrează actul semnat pe hârtie…**.
 
 ## Accesul la portal
 
@@ -71,11 +76,14 @@ Pe tabul **Date** al unui lucrător, două carduri țin de semnarea electronică
 
 Portalul îi dă lucrătorului acces direct la o parte din datele pe care angajatorul le ține despre el. Dreptul de acces din GDPR (art. 15) rămâne neschimbat: lucrătorul îl exercită printr-o cerere către angajator.
 
-Cardul arată dacă lucrătorul are acces, cu ce adresă și din ce zi, și în ce limbă folosește portalul. Tot aici poate apărea avertismentul **Act adițional nesemnat**, despre care vezi mai jos.
+Panoul **Acces la portal** are două rânduri:
+
+- **Acces**: **Fără invitație**, **Invitat**, cu data la care expiră invitația, **Invitație expirată**, cu data la care a expirat, sau **Are acces**, din ziua în care lucrătorul a intrat prima dată;
+- **Primește codul**: unde primește lucrătorul codurile, pe email sau prin SMS, și, odată intrat, limba în care folosește portalul. Cât timp nu e invitat, rândul arată adresa la care ar pleca invitația: emailul, dacă îl are, altfel telefonul.
 
 ### Invitația
 
-**Invită în portal** trimite adresa portalului la emailul sau la telefonul din datele lucrătorului. Dacă are ambele, alegi unde; emailul e ales din start. Lucrătorul intră apoi cu un cod primit la aceeași adresă: adresa la care l-ai invitat e cea cu care intră.
+**Invită în portal**, lângă titlul panoului, trimite adresa portalului la emailul sau la telefonul din datele lucrătorului. Dacă are ambele, alegi unde; emailul e ales din start. Lucrătorul intră apoi cu un cod primit la aceeași adresă: adresa la care l-ai invitat e cea cu care intră.
 
 SMS-urile pleacă doar la numere din România (+40) și nu pleacă deloc în perioada de probă, înainte să alegi un plan:
 
@@ -84,7 +92,7 @@ SMS-urile pleacă doar la numere din România (+40) și nu pleacă deloc în per
 
 La fel e și la invitarea administratorului clientului, din tabul **Portal**: în perioada de probă SMS-ul nu se poate alege, iar sub telefon scrie că SMS trimitem doar spre numere din România.
 
-Invitația e valabilă 30 de zile. Până o acceptă, vezi **Invitat**, cu data trimiterii și data la care expiră; după 30 de zile, **Invitație expirată**. **Retrimite** reînnoiește invitația și retrimite mesajul, cel mult o dată la 10 minute.
+Invitația e valabilă 30 de zile. Până o acceptă, vezi **Invitat**, cu data trimiterii și data la care expiră; după 30 de zile, **Invitație expirată**. **Retrimite**, pe rândul **Acces**, reînnoiește invitația și retrimite mesajul, cel mult o dată la 10 minute; până atunci, sub buton scrie ora de la care poți retrimite.
 
 Câteva mesaje pe care le poți vedea:
 
@@ -97,7 +105,7 @@ Câteva mesaje pe care le poți vedea:
 
 ### Lucrător fără email sau telefon
 
-Fără email și fără telefon, dialogul îți spune „Lucrătorul nu are email sau telefon” și te trimite la **Modifică datele**. Adaugă unul dintre ele, apoi trimite invitația.
+Fără email și fără telefon, rândul **Primește codul** arată „Fără email sau telefon”, iar în locul invitației apare **Adaugă emailul sau telefonul**, care te duce la datele de contact ale lucrătorului. Adaugă unul dintre ele, apoi revino pe tabul **Portal** și trimite invitația.
 
 ### Invitarea lucrătorilor din fișe
 
@@ -118,9 +126,11 @@ Cu **Trimite**, fiecare invitație pleacă la fel ca atunci când inviți lucră
 
 ### Revocarea
 
-**Revocă** anulează o invitație încă neacceptată. **Revocă accesul** îl oprește pe lucrător să mai intre în portal. Instruirile, fișele și celelalte date rămân la client, iar lucrătorul poate fi invitat din nou oricând.
+**Revocă invitația** anulează o invitație încă neacceptată. **Revocă accesul** îl oprește pe lucrător să mai intre în portal. Instruirile, fișele și celelalte date rămân la client, iar lucrătorul poate fi invitat din nou oricând.
 
 Un lucrător care pleacă de la client își păstrează accesul: evidența lui rămâne, și odată cu ea dreptul lui de a o vedea. Revocă-l doar dacă angajatorul cere.
+
+Tabul **Portal** al unui fost lucrător e doar de citit: arată accesul și actul adițional cum sunt, dar nu-l mai inviți și nu-i retrimiți invitația. Rămân **Revocă accesul**, cât timp îl are, și **Revocă invitația**, pentru o invitație încă deschisă.
 
 ## Tabul Portal al clientului
 
@@ -184,16 +194,23 @@ Actul adițional la contractul individual de muncă e acordul lucrătorului de a
 
 Lucrătorul semnează actul în portal, unde îl găsește de la prima autentificare, înaintea oricărei instruiri. Apoi administratorul clientului îl contrasemnează în portal pentru angajator, pentru că la modificarea contractului părțile folosesc același tip de semnătură: dacă lucrătorul semnează electronic, semnează electronic și angajatorul (Codul muncii, art. 16 alin. (1⁷)).
 
-Fără actul adițional semnat, lucrătorul poate semna în continuare instruirile. Lipsa apare ca avertisment, **Act adițional nesemnat**, pe pagina lui și în portal, dar nu blochează nimic.
+Fără actul adițional semnat, lucrătorul poate semna în continuare instruirile. Lipsa apare ca avertisment, **Act adițional nesemnat**, pe pagina lui și în portal, dar nu blochează nimic. Pe pagina lucrătorului, avertismentul stă și în capul paginii, iar tabul **Portal** are un triunghi galben; după semnătura lucrătorului, până contrasemnează administratorul, scrie **Act adițional așteaptă angajatorul**. Capul paginii nu-l arată la un lucrător fără acces și fără invitație în portal, după revenirea la semnarea de mână, la un fost lucrător și la un client arhivat.
 
 ### Stările actului adițional
 
+Rândul **Stare** arată una dintre stări:
+
 - **Nesemnat**: nimic nu s-a întâmplat încă. Lucrătorul îl poate semna din portal de la prima autentificare.
-- **Generat**: l-ai descărcat, ca să fie semnat de mână, sau lucrătorul l-a semnat în portal și se așteaptă semnătura administratorului clientului (**Act adițional așteaptă angajatorul**).
+- **Descărcat**: l-ai descărcat, ca să fie semnat de mână. **Ce urmează** arată ziua în care l-ai descărcat.
+- **Semnat de lucrător**: lucrătorul l-a semnat în portal; urmează administratorul clientului, tot în portal.
 - **Semnat electronic**: l-au semnat în portal atât lucrătorul, cât și administratorul clientului.
-- **Semnat pe hârtie**: l-ai marcat semnat de mână de ambele părți.
-- **Clauza în contract**: contractul de muncă cuprinde deja clauza, așa că nu mai e nevoie de actul adițional.
-- **Revenire la semnarea olografă**: lucrătorul a cerut în scris să semneze din nou de mână.
+- **Semnat pe hârtie**: ai înregistrat actul semnat de mână de ambele părți, cu ziua semnării.
+- **Clauză în contract**: contractul de muncă cuprinde deja clauza, așa că nu mai e nevoie de actul adițional.
+- **Semnează de mână**: lucrătorul a cerut în scris să semneze din nou de mână.
+
+La un fost lucrător actul nu se mai semnează: panoul îi arată starea, fără **Ce urmează** și fără să-l mai descarci pentru semnare sau să înregistrezi ceva. Un act nesemnat apare cu „Fost lucrător: actul nu se mai semnează.” **Descarcă actul semnat** și **Vezi clauza…** rămân.
+
+Sub stare, panoul mai arată, când e cazul: **Semnături**, cine a semnat în portal și când, sau că administratorul clientului e încă în așteptare; **Scan**, la actul semnat pe hârtie, cu scanul atașat sau „Fără scan atașat”; **Cererea lucrătorului**, la revenirea la semnarea de mână; și **Ce urmează**, cât timp mai e un pas de făcut. **Descarcă actul semnat** îți dă actul semnat în portal.
 
 ### Ce trebuie completat înainte
 
@@ -202,22 +219,29 @@ Actul adițional se poate descărca sau semna în portal doar când are tot ce t
 - emailul sau telefonul lucrătorului, pentru că actul spune unde primește lucrătorul codurile de semnare;
 - numele și funcția reprezentantului legal, în datele clientului.
 
-Când lipsește unul dintre ele, cardul îți spune ce și te trimite la câmpul lui. Numărul contractului individual de muncă e opțional; când îl ai, se tipărește lângă data angajării.
+Când lipsește unul dintre ele, panoul arată un rând galben cu ce lipsește și un buton spre locul unde îl completezi. Numărul contractului individual de muncă e opțional; când îl ai, se tipărește lângă data angajării.
 
 ### Semnat pe hârtie
 
-Pentru un lucrător care semnează de mână: **Descarcă** actul, tipărește-l și dă-l spre semnare lucrătorului și angajatorului. Apoi alege **Marchează semnat pe hârtie**. Poți atașa scanul, dacă l-ai încărcat întâi pe tabul **Documente** al lucrătorului.
+Pentru un lucrător care semnează de mână: **Descarcă actul pentru semnare pe hârtie**, tipărește-l și dă-l spre semnare lucrătorului și angajatorului. Apoi alege **Înregistrează actul semnat pe hârtie…**:
+
+- **Data semnării** e ziua în care l-au semnat; din start e azi și nu poate fi în viitor. Poate fi și dinaintea angajării, ca un act semnat odată cu contractul.
+- **Scanul actului** e opțional. Îl tragi în dialog sau îl alegi cu **Alege fișierul**, ca PDF sau imagine; la înregistrare se salvează în **Documente**, la lucrător. Dacă l-ai încărcat deja acolo, îl alegi din lista de dedesubt.
+
+După înregistrare, rândul **Scan** deschide scanul.
 
 ### Clauza în contract
 
-Pentru un lucrător nou, clauza poate intra direct în contractul individual de muncă, în locul actului adițional. **Copiază clauza pentru contract** îți dă textul, cu numele organizației tale. După semnarea contractului, alege **Clauza e în contract**.
+Pentru un lucrător nou, clauza poate intra direct în contractul individual de muncă, în locul actului adițional. **Folosește clauza în contractul de muncă…** îți arată textul, cu numele organizației tale; **Copiază clauza** îl copiază, ca să-l pui în contract. După semnarea contractului, alege în același dialog **Clauza e în contract**. Mai târziu, **Vezi clauza…** îți arată din nou textul.
 
-### Revenirea la semnarea olografă
+### Revenirea la semnarea de mână
 
-Când lucrătorul cere în scris să semneze din nou de mână, alege **Marchează revenirea la semnarea olografă**. De atunci, instruirile lui se semnează pe hârtie, iar cererile de semnare electronică în așteptare se anulează. Actul adițional și semnăturile de până atunci rămân la dosar.
+Când lucrătorul cere în scris să semneze din nou de mână, alege **Înregistrează revenirea la semnarea de mână…**. Treci **Data cererii**, ziua în care a scris-o (din start azi, nu în viitor și nu înaintea zilei în care a fost semnat actul sau, dacă nu a fost semnat, descărcat), și, opțional, cererea scrisă scanată, care se salvează în **Documente**, la lucrător, ca scanul actului.
+
+Revenirea are efect din momentul în care o înregistrezi, nu din data cererii: de atunci, instruirile lui se semnează pe hârtie, iar cererile de semnare electronică în așteptare se anulează. Actul adițional și semnăturile de până atunci rămân la dosar. Panoul arată apoi **Semnează de mână**, cu ziua de la care lucrătorul semnează fișele de mână, iar rândul **Cererea lucrătorului** arată data cererii și scanul ei. Revenirea se înregistrează o singură dată. La o revenire înregistrată înainte ca aplicația să păstreze aceste date, panoul nu arată nici ziua înregistrării, nici cererea.
 
 ### Anexa 13 la regulamentul intern
 
 Angajatorul hotărăște în regulamentul intern cum se semnează fișele de instruire (HG 1425/2006, art. 81 alin. (3¹)). În setul SSM, asta face anexa 13 la regulamentul intern, care se aplică unui client cu participanți în portal.
 
-Cât timp anexa nu e emisă, cardul actului adițional te avertizează și te trimite la **Documente SSM**. Emite anexa odată cu actele adiționale.
+Cât timp anexa nu e emisă, panoul actului adițional arată un rând galben și te trimite la **Documente SSM**. Emite anexa odată cu actele adiționale.

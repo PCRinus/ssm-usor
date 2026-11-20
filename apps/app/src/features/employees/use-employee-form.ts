@@ -18,6 +18,7 @@ import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
+import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import {
   employeesOverStepMessage,
@@ -55,7 +56,7 @@ const issueTargets: Partial<Record<string, IssueTarget<EmployeeFormValues>>> = {
     field: 'jobPosition',
     message: 'Postul ales nu mai există la acest client. Alege altul.',
   },
-  hiredAt: { field: 'hiredAt', message: 'Data angajării nu poate fi după data plecării.' },
+  hiredAt: { field: 'hiredAt', message: 'Data angajării nu poate fi după data încetării.' },
   workplaceId: {
     field: 'workplaceId',
     message: 'Punctul de lucru ales nu mai este activ la acest client. Alege altul.',
@@ -85,6 +86,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
     request,
     query: { queryKey: key(getListWorkplacesQueryKey(clientId)) },
   });
+  const positions = useJobPositionOptions(clientId);
 
   // A new employee of a client with one active workplace where activity takes place works there
   // (ADR 021, ADR 041); the person can still clear it, and a later refetch does not put it back.
@@ -213,6 +215,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
     prefillBirthDate,
     choosePosition,
     workplaces: workplaces.data?.items,
+    positionsPending: positions.isPending,
     isSaving: create.isPending || update.isPending,
   };
 }

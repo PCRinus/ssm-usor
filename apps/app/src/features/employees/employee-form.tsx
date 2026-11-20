@@ -29,6 +29,16 @@ import { type Employee, employeeErrorHelp, type EmployeeFormValues } from './emp
 import { EmployeeWorkplaceCombobox } from './employee-workplace-combobox';
 import { useEmployeeForm } from './use-employee-form';
 
+const focusedField: Record<EmployeeFocus, string> = {
+  employment: 'jobPosition',
+  identity: 'lastName',
+  contact: 'email',
+  'sheet-data': 'qualification',
+  notes: 'notes',
+  'commute-route': 'commuteRoute',
+  workplace: 'workplaceId',
+};
+
 // The employee form, for adding a person and for correcting what was entered about one. Whether
 // they still work there is not here: that is a status change, on their page.
 export function EmployeeForm({
@@ -44,16 +54,25 @@ export function EmployeeForm({
   focus?: EmployeeFocus;
 }) {
   // The shell renders this only for a signed-in user.
-  const { form, onSubmit, prefillBirthDate, choosePosition, workplaces, isSaving } =
-    useEmployeeForm(clientId, employee);
+  const {
+    form,
+    onSubmit,
+    prefillBirthDate,
+    choosePosition,
+    workplaces,
+    positionsPending,
+    isSaving,
+  } = useEmployeeForm(clientId, employee);
   const formRef = useRevealErrors(form);
   const cancel = useReturnOnClick(
     employee ? `/clienti/${clientId}/angajati/${employee.id}` : undefined
   );
-  // The workplace picker stays disabled, and so cannot take the focus, until its list loads.
+  // The pickers stay disabled, and so cannot take the focus, until their lists load.
   useFocusRequest(focus !== undefined, {
-    ready: focus !== 'workplace' || workplaces !== undefined,
-    field: focus === 'workplace' ? 'workplaceId' : 'commuteRoute',
+    ready:
+      (focus !== 'workplace' || workplaces !== undefined) &&
+      (focus !== 'employment' || !positionsPending),
+    field: focus && focusedField[focus],
   });
   const {
     register,

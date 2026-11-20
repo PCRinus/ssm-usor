@@ -1,10 +1,9 @@
-import { useFileLink } from '@ssm-usor/api-http/file-link';
+import { fileAddress, linkTarget, useFileLink } from '@ssm-usor/api-http/file-link';
 import { formatEmployeeName, signatureErrorReasons } from '@ssm-usor/contracts';
 import { signingContractClauseText } from '@ssm-usor/document-engine/signing';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -12,14 +11,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
-import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { useIsPhone } from '@ssm-usor/ui/hooks/use-mobile';
 import { saveFile } from '@ssm-usor/ui/lib/save-file';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
-import { Copy, FileDown, FileSignature, LoaderCircle, PenLine, Undo2 } from 'lucide-react';
-import { useState } from 'react';
+import {
+  Check,
+  Copy,
+  FileDown,
+  FileSignature,
+  LoaderCircle,
+  Pencil,
+  PenLine,
+  Undo2,
+} from 'lucide-react';
+import { type FormEvent, type ReactNode, useState } from 'react';
 
 import {
   getGetOrganizationCompanyDetailsQueryKey,
@@ -29,23 +38,35 @@ import {
   getSigningAgreementLink,
   putSigningAgreementState,
   type SigningAgreementResponseAgreement,
+  type SigningAgreementStateRequest,
+  uploadClientFile,
   useGetOrganizationCompanyDetails,
   useListClientDocuments,
-  useListClientFiles,
 } from '@/api/generated/api';
+import { apiErrorBody } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { openedFromRecord, openedHere } from '@/app/opener';
 import { useHoldOpen } from '@/components/close-guard';
+import { DatePicker } from '@/components/date-picker';
 import { FileLinkButton } from '@/components/file-link-button';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
-import { HelpLink } from '@/components/help-link';
 import { LoadFailed } from '@/components/load-failed';
-import { maskPeople } from '@/components/mask-people';
+import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
+import { TodoLine } from '@/components/todo-line';
 import { useMe } from '@/features/account/use-me';
-import { formatDay } from '@/lib/dates';
+import { uploadFailureMessage } from '@/features/client-files/client-file-format';
+import {
+  SummaryList,
+  SummaryNote,
+  summaryQuiet,
+  SummaryRow,
+} from '@/features/clients/details/summary-list';
+import { dateToIso, formatDate, formatDay, todayIso } from '@/lib/dates';
 
+import { noScan, type ScanChoice, useEmployeeFiles } from './agreement-scan';
+import { AgreementScanField } from './agreement-scan-field';
 import {
   agreementAwaitsEmployer,
   agreementStateLabels,
@@ -62,46 +83,104 @@ export interface AgreementEmployee {
 }
 
 type Agreement = NonNullable<SigningAgreementResponseAgreement>;
+type State = Agreement['state'] | 'none';
 
-const stateClasses = {
-  none: 'border-dashed border-border text-muted-foreground',
-  generated: 'border-warning-border bg-warning text-warning-foreground',
-  signed_electronically: 'border-success-border bg-success text-success-foreground',
-  signed_on_paper: 'border-success-border bg-success text-success-foreground',
+const warning = 'border-warning-border bg-warning text-warning-foreground';
+const success = 'border-success-border bg-success text-success-foreground';
+
+const stateClasses: Record<State, string> = {
+  none: warning,
+  generated: warning,
+  signed_electronically: success,
+  signed_on_paper: success,
+  in_contract: success,
   withdrawn: 'border-border bg-secondary text-secondary-foreground',
-  in_contract: 'border-success-border bg-success text-success-foreground',
-} as const;
+};
 
-function stateDetail(agreement: Agreement) {
-  switch (agreement.state) {
-    case 'generated':
-      return agreementAwaitsEmployer(agreement)
-        ? `Semnat de lucrător pe ${formatDay(agreement.employeeSignedAt)}, așteaptă semnătura administratorului în portal.`
-        : `Descărcat pe ${formatDay(agreement.generatedAt)}; se semnează de mână sau din portal.`;
-    case 'signed_electronically':
-      return agreement.signedAt ? `Semnat electronic pe ${formatDay(agreement.signedAt)}.` : null;
+const values = '[&_dd>div:first-child]:font-medium';
+
+function StateBadge({ state, label }: { state: State; label: string }) {
+  return (
+    <Badge
+      variant="outline"
+      data-testid="signing-agreement-state"
+      data-state={state}
+      className={stateClasses[state]}
+    >
+      {stateClasses[state] === success && <Check aria-hidden="true" />}
+      {label}
+    </Badge>
+  );
+}
+
+function Note({ testId, children }: { testId?: string; children: ReactNode }) {
+  return (
+    <SummaryNote data-testid={testId} className="font-normal">
+      {children}
+    </SummaryNote>
+  );
+}
+
+function stateNote(
+  agreement: Agreement | null,
+  { readOnly, former, unsigned }: { readOnly: boolean; former: boolean; unsigned: boolean }
+) {
+  if (readOnly && unsigned) return 'Clientul e arhivat: actul nu se mai semnează.';
+  if (former && unsigned) return 'Fost lucrător: actul nu se mai semnează.';
+  switch (agreement?.state) {
     case 'signed_on_paper':
-      return agreement.signedAt ? `Semnat pe hârtie pe ${formatDay(agreement.signedAt)}.` : null;
-    case 'withdrawn':
-      return agreement.signedAt
-        ? `Salariatul a revenit la semnarea olografă. Actul adițional, semnat pe ${formatDay(agreement.signedAt)}, rămâne la dosar.`
-        : 'Salariatul a revenit la semnarea olografă.';
+      return agreement.signedAt ? `pe ${formatDay(agreement.signedAt)}` : null;
     case 'in_contract':
-      return 'Clauza este în contractul de muncă.';
+      return 'Clauza e în contractul de muncă, deci actul adițional nu mai e necesar.';
+    case 'withdrawn': {
+      const recordedAt = agreement.withdrawal?.recordedAt;
+      return recordedAt
+        ? `Din ${formatDay(recordedAt)} semnează fișele de mână. Actul și semnăturile de până atunci rămân la dosar.`
+        : 'Semnează fișele de mână; actul și semnăturile dinaintea revenirii rămân la dosar.';
+    }
+    default:
+      return null;
   }
 }
 
-type Change = 'withdrawn' | 'in_contract';
+function nextStep(agreement: Agreement | null, invited: boolean) {
+  if (!agreement) {
+    return invited
+      ? 'Îl găsește în portal la prima autentificare, înaintea fișelor.'
+      : 'Lucrătorul îl semnează în portal după ce îl inviți. Dacă preferă hârtia, descarcă-l și dă-l la semnat.';
+  }
+  if (agreementAwaitsEmployer(agreement)) {
+    return 'Urmează administratorul clientului, tot în portal.';
+  }
+  if (agreement.state === 'generated') {
+    return `Pe ${formatDay(agreement.generatedAt)}. După ce îl semnează lucrătorul și angajatorul, înregistrează-l.`;
+  }
+  return null;
+}
 
-// `readOnly` is an archived client, whose agreements no longer change.
+const actionsClass = 'flex flex-wrap gap-2 max-sm:grid max-sm:[&>*]:w-full';
+
+// `readOnly` is an archived client and `former` a worker who left: neither agreement changes any
+// more. `leads` says the access panel holds no forward step, so recording a downloaded agreement
+// takes the tab's dark button; `contactAsked` says the access panel already asks for the missing
+// email or phone.
 export function SigningAgreementCard({
   employee,
   readOnly,
+  former,
+  invited,
+  leads,
+  contactAsked,
 }: {
   employee: AgreementEmployee;
   readOnly: boolean;
+  former: boolean;
+  invited: boolean;
+  leads: boolean;
+  contactAsked: boolean;
 }) {
   const { request, queryClient, ready, key } = useApi();
+  const phone = useIsPhone();
   const query = useSigningAgreement(employee.clientId, employee.id);
   const documents = useListClientDocuments(employee.clientId, undefined, {
     request,
@@ -114,11 +193,11 @@ export function SigningAgreementCard({
   const [noAddress, setNoAddress] = useState(false);
   const [noRepresentative, setNoRepresentative] = useState(false);
   const [marking, setMarking] = useState(false);
-  const [confirming, setConfirming] = useState<Change | null>(null);
-  const [showingClause, setShowingClause] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [clause, setClause] = useState<ClauseMode | null>(null);
   const agreement = query.data?.agreement ?? null;
   const unavailable = query.data?.unavailable ?? null;
-  const state = agreement?.state ?? 'none';
+  const state: State = agreement?.state ?? 'none';
   const awaitsEmployer = agreementAwaitsEmployer(agreement);
   const unsigned = state === 'none' || (state === 'generated' && !awaitsEmployer);
   const agreed =
@@ -149,6 +228,11 @@ export function SigningAgreementCard({
         (document) => document.typeKey === 'signing_regulation_annex' && document.issued !== null
       )
     : true;
+  const locked = readOnly || former;
+  const paperLeads = leads && !locked && state === 'generated' && !awaitsEmployer;
+  const scanId =
+    state === 'signed_on_paper' || state === 'withdrawn' ? (agreement?.clientFileId ?? null) : null;
+  const requestScanId = agreement?.withdrawal?.fileId ?? null;
 
   async function download() {
     setDownloading(true);
@@ -162,7 +246,7 @@ export function SigningAgreementCard({
           ? file.name
           : `Act-aditional-${formatEmployeeName(employee).replace(/\s+/g, '-')}.pdf`
       );
-      if (!agreement && !readOnly) {
+      if (!agreement) {
         await putSigningAgreementState(
           employee.clientId,
           employee.id,
@@ -189,124 +273,180 @@ export function SigningAgreementCard({
     }
   }
 
+  const paperButton = (
+    <Button
+      key="paper"
+      variant={paperLeads ? 'default' : 'secondary'}
+      size="sm"
+      data-testid="signing-agreement-paper"
+      onClick={() => setMarking(true)}
+    >
+      <PenLine aria-hidden="true" />
+      Înregistrează actul semnat pe hârtie…
+    </Button>
+  );
+  const downloadButton = (
+    <Button
+      key="download"
+      variant="secondary"
+      size="sm"
+      data-testid="signing-agreement-download"
+      disabled={downloading}
+      onClick={() => void download()}
+    >
+      {downloading ? (
+        <LoaderCircle aria-hidden="true" className="animate-spin" />
+      ) : (
+        <FileDown aria-hidden="true" />
+      )}
+      Descarcă actul pentru semnare pe hârtie
+    </Button>
+  );
+  const buttons: ReactNode[] = [];
+  if (unsigned && !locked) {
+    buttons.push(...(paperLeads ? [paperButton, downloadButton] : [downloadButton, paperButton]));
+    buttons.push(
+      <Button
+        key="clause"
+        variant="secondary"
+        size="sm"
+        data-testid="signing-agreement-in-contract"
+        onClick={() => setClause('record')}
+      >
+        <FileSignature aria-hidden="true" />
+        Folosește clauza în contractul de muncă…
+      </Button>
+    );
+  }
+  if (stored && state !== 'in_contract') {
+    buttons.push(
+      <FileLinkButton
+        key="signed"
+        variant="secondary"
+        size="sm"
+        data-testid="signing-agreement-download"
+        link={storedLink}
+      >
+        <FileDown aria-hidden="true" />
+        Descarcă actul semnat
+      </FileLinkButton>
+    );
+  }
+  if (state === 'in_contract') {
+    buttons.push(
+      <Button
+        key="view-clause"
+        variant="secondary"
+        size="sm"
+        data-testid="signing-agreement-clause"
+        onClick={() => setClause('view')}
+      >
+        <Copy aria-hidden="true" />
+        Vezi clauza…
+      </Button>
+    );
+  }
+  if (agreed && !locked) {
+    buttons.push(
+      <Button
+        key="withdraw"
+        variant="secondary"
+        size="sm"
+        data-testid="signing-agreement-withdraw"
+        onClick={() => setWithdrawing(true)}
+      >
+        <Undo2 aria-hidden="true" />
+        Înregistrează revenirea la semnarea de mână…
+      </Button>
+    );
+  }
+
+  const todos: ReactNode[] = [];
+  if (
+    !locked &&
+    (noAddress || (!contactAsked && unavailable?.reason === 'employee_has_no_address'))
+  ) {
+    todos.push(
+      <TodoLine
+        key="address"
+        data-testid="signing-agreement-no-address"
+        action={
+          <TodoAction phone={phone}>
+            <Link
+              to="/clienti/$clientId/angajati/$employeeId/editare"
+              params={{ clientId: employee.clientId, employeeId: employee.id }}
+              search={{ focus: 'contact' }}
+              state={openedFromRecord(`/clienti/${employee.clientId}/angajati/${employee.id}`)}
+            >
+              <Pencil aria-hidden="true" />
+              Adaugă emailul sau telefonul
+            </Link>
+          </TodoAction>
+        }
+      >
+        Lucrătorul nu are email sau telefon, iar actul adițional spune unde primește codurile de
+        semnare.
+      </TodoLine>
+    );
+  }
+  if (!locked && (noRepresentative || unavailable?.reason === 'missing_document_data')) {
+    todos.push(
+      <TodoLine
+        key="representative"
+        data-testid="signing-agreement-no-representative"
+        action={
+          <TodoAction phone={phone}>
+            <Link
+              to="/clienti/$clientId/detalii"
+              params={{ clientId: employee.clientId }}
+              state={openedHere}
+            >
+              <Pencil aria-hidden="true" />
+              Completează la client
+            </Link>
+          </TodoAction>
+        }
+      >
+        Clientul nu are reprezentant legal completat, iar actul adițional îl numește.
+      </TodoLine>
+    );
+  }
+  if (!locked && !annexIssued) {
+    todos.push(
+      <TodoLine
+        key="annex"
+        data-testid="signing-agreement-annex"
+        action={
+          <TodoAction phone={phone}>
+            <Link
+              to="/clienti/$clientId/documente-ssm"
+              params={{ clientId: employee.clientId }}
+              state={openedHere}
+            >
+              Deschide Documente SSM
+            </Link>
+          </TodoAction>
+        }
+      >
+        Anexa 13 la regulamentul intern nu este emisă. Emite-o odată cu actele adiționale.
+      </TodoLine>
+    );
+  }
+
+  const note = query.isSuccess ? stateNote(agreement, { readOnly, former, unsigned }) : null;
+  const next = !locked && query.isSuccess ? nextStep(agreement, invited) : null;
+
   return (
     <SectionCard
       data-testid="signing-agreement-card"
+      className="gap-4"
       title="Actul adițional privind semnarea electronică"
-      description={
-        <>
-          Acordul lucrătorului de a semna electronic fișele de instruire, la contractul individual
-          de muncă. <HelpLink topic="angajati.act-aditional">Află mai mult</HelpLink>
-        </>
-      }
-      action={
-        query.isSuccess && (
-          <div className="flex flex-wrap justify-end gap-2">
-            {unsigned && !readOnly && (
-              <Button
-                variant="secondary"
-                size="sm"
-                data-testid="signing-agreement-paper"
-                onClick={() => setMarking(true)}
-              >
-                <PenLine aria-hidden="true" />
-                Marchează semnat pe hârtie
-              </Button>
-            )}
-            {state !== 'in_contract' && stored && (
-              <FileLinkButton
-                variant="secondary"
-                size="sm"
-                data-testid="signing-agreement-download"
-                link={storedLink}
-              >
-                <FileDown aria-hidden="true" />
-                Descarcă
-              </FileLinkButton>
-            )}
-            {state !== 'in_contract' && !stored && (
-              <Button
-                variant="secondary"
-                size="sm"
-                data-testid="signing-agreement-download"
-                disabled={downloading}
-                onClick={() => void download()}
-              >
-                {downloading ? (
-                  <LoaderCircle aria-hidden="true" className="animate-spin" />
-                ) : (
-                  <FileDown aria-hidden="true" />
-                )}
-                Descarcă
-              </Button>
-            )}
-          </div>
-        )
-      }
+      help="angajati.act-aditional"
+      longTitle
     >
-      {(noAddress || unavailable?.reason === 'employee_has_no_address') && (
-        <Notice
-          variant="info"
-          data-testid="signing-agreement-no-address"
-          action={
-            <Button asChild variant="outline" size="sm">
-              <Link
-                to="/clienti/$clientId/angajati/$employeeId/editare"
-                params={{ clientId: employee.clientId, employeeId: employee.id }}
-                state={openedFromRecord(`/clienti/${employee.clientId}/angajati/${employee.id}`)}
-              >
-                Modifică datele
-              </Link>
-            </Button>
-          }
-        >
-          Actul adițional spune unde primește lucrătorul codurile de semnare. Adaugă-i un email sau
-          un telefon ca să-l poată semna din portal sau ca să-l descarci.
-        </Notice>
-      )}
-      {(noRepresentative || unavailable?.reason === 'missing_document_data') && (
-        <Notice
-          variant="info"
-          data-testid="signing-agreement-no-representative"
-          action={
-            <Button asChild variant="outline" size="sm">
-              <Link
-                to="/clienti/$clientId/detalii"
-                params={{ clientId: employee.clientId }}
-                state={openedHere}
-              >
-                Datele clientului
-              </Link>
-            </Button>
-          }
-        >
-          Actul adițional numește reprezentantul legal al clientului. Completează-i numele și
-          funcția în datele clientului ca să-l poată semna lucrătorul din portal sau ca să-l
-          descarci.
-        </Notice>
-      )}
-      {!annexIssued && (
-        <Notice
-          variant="warning"
-          data-testid="signing-agreement-annex"
-          action={
-            <Button asChild variant="outline" size="sm">
-              <Link
-                to="/clienti/$clientId/documente-ssm"
-                params={{ clientId: employee.clientId }}
-                state={openedHere}
-              >
-                Documente SSM
-              </Link>
-            </Button>
-          }
-        >
-          Anexa 13 la regulamentul intern nu este emisă. Ea stabilește, pentru angajator, cum se
-          semnează electronic fișele; emite-o odată cu actele adiționale.
-        </Notice>
-      )}
+      {todos.length > 0 && <div className="grid gap-3 border-b border-border/70 pb-4">{todos}</div>}
       {query.isPending ? (
-        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-16 w-full" />
       ) : query.isError ? (
         <LoadFailed
           error={query.error}
@@ -316,242 +456,204 @@ export function SigningAgreementCard({
           Nu am putut încărca starea actului adițional.
         </LoadFailed>
       ) : (
-        <div className="grid gap-3">
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <Badge
-              variant="outline"
-              data-testid="signing-agreement-state"
-              data-state={state}
-              className={stateClasses[state]}
-            >
-              {agreementStateLabels[state]}
-            </Badge>
-            <span className="text-muted-foreground" data-testid="signing-agreement-detail">
-              {agreement
-                ? stateDetail(agreement)
-                : 'Lucrătorul îl poate semna din portal de la prima autentificare. Descarcă-l ca să fie semnat de mână; pentru un lucrător nou, clauza poate intra direct în contractul de muncă.'}
-            </span>
-          </p>
-          {!readOnly && (unsigned || agreed) && (
-            <div className="flex flex-wrap gap-x-1 gap-y-1">
-              {unsigned && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  data-testid="signing-agreement-in-contract"
-                  onClick={() => setConfirming('in_contract')}
-                >
-                  <FileSignature aria-hidden="true" />
-                  Clauza e în contract
-                </Button>
-              )}
-              {(unsigned || state === 'in_contract') && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  data-testid="signing-agreement-clause"
-                  onClick={() => setShowingClause(true)}
-                >
-                  <Copy aria-hidden="true" />
-                  Copiază clauza pentru contract
-                </Button>
-              )}
-              {agreed && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  data-testid="signing-agreement-withdraw"
-                  onClick={() => setConfirming('withdrawn')}
-                >
-                  <Undo2 aria-hidden="true" />
-                  Marchează revenirea la semnarea olografă
-                </Button>
-              )}
+        <>
+          <SummaryList className={values}>
+            <SummaryRow label="Stare">
+              <StateBadge
+                state={state}
+                label={awaitsEmployer ? 'Semnat de lucrător' : agreementStateLabels[state]}
+              />
+              {note && <Note testId="signing-agreement-detail">{note}</Note>}
+            </SummaryRow>
+            {stored && agreement && (
+              <SummaryRow label="Semnături" testId="signing-agreement-signatures">
+                {agreement.employeeSignedAt && (
+                  <span className="block tabular-nums">
+                    Lucrătorul · {formatDay(agreement.employeeSignedAt)}
+                  </span>
+                )}
+                {agreement.employerSignedAt ? (
+                  <span className="block tabular-nums">
+                    Administratorul clientului · {formatDay(agreement.employerSignedAt)}
+                  </span>
+                ) : (
+                  awaitsEmployer && (
+                    <span className="block">
+                      Administratorul clientului ·{' '}
+                      <span className="text-warning-foreground">în așteptare</span>
+                    </span>
+                  )
+                )}
+              </SummaryRow>
+            )}
+            {agreement?.withdrawal?.requestedOn && (
+              <SummaryRow label="Cererea lucrătorului" testId="signing-agreement-request">
+                <span className="tabular-nums">{formatDate(agreement.withdrawal.requestedOn)}</span>
+                {requestScanId && (
+                  <span className="block">
+                    <ScanLink
+                      clientId={employee.clientId}
+                      employeeId={employee.id}
+                      fileId={requestScanId}
+                      testId="signing-agreement-request-scan"
+                    />
+                  </span>
+                )}
+              </SummaryRow>
+            )}
+            {(state === 'signed_on_paper' || (state === 'withdrawn' && scanId)) && (
+              <SummaryRow label="Scan" testId="signing-agreement-scan">
+                {scanId ? (
+                  <ScanLink
+                    clientId={employee.clientId}
+                    employeeId={employee.id}
+                    fileId={scanId}
+                    testId="signing-agreement-scan-link"
+                  />
+                ) : (
+                  <span className={cn('font-normal', summaryQuiet)}>Fără scan atașat</span>
+                )}
+              </SummaryRow>
+            )}
+            {next && (
+              <SummaryRow label="Ce urmează">
+                <span data-testid="signing-agreement-next">{next}</span>
+              </SummaryRow>
+            )}
+          </SummaryList>
+          {buttons.length > 0 && (
+            <div data-testid="signing-agreement-actions" className={actionsClass}>
+              {buttons}
             </div>
           )}
-        </div>
+        </>
       )}
       <PaperAgreementDialog employee={employee} open={marking} onClose={() => setMarking(false)} />
-      <AgreementChangeDialog
+      <WithdrawalDialog
         employee={employee}
-        change={confirming}
-        electronic={state === 'signed_electronically' || awaitsEmployer}
-        onClose={() => setConfirming(null)}
+        signedSince={agreement && signedSinceOf(agreement)}
+        open={withdrawing}
+        onClose={() => setWithdrawing(false)}
       />
-      <ContractClauseDialog open={showingClause} onClose={() => setShowingClause(false)} />
+      <ContractClauseDialog employee={employee} mode={clause} onClose={() => setClause(null)} />
     </SectionCard>
   );
 }
 
-const changeCopy = {
-  withdrawn: {
-    title: 'Revenirea la semnarea olografă',
-    confirm: 'Marchează revenirea',
-    done: 'Revenirea la semnarea olografă este înregistrată.',
-  },
-  in_contract: {
-    title: 'Clauza este în contractul de muncă',
-    confirm: 'Marchează clauza în contract',
-    done: 'Actul adițional este marcat ca clauză în contractul de muncă.',
-  },
-} as const;
+function TodoAction({ phone, children }: { phone: boolean; children: ReactNode }) {
+  return (
+    <Button asChild variant="secondary" size="sm" className={cn(phone && 'w-full')}>
+      {children}
+    </Button>
+  );
+}
 
-function AgreementChangeDialog({
-  employee,
-  change,
-  electronic,
-  onClose,
+// The scans are the employee's files; the list carries each one's signed link.
+function ScanLink({
+  clientId,
+  employeeId,
+  fileId,
+  testId,
 }: {
-  employee: AgreementEmployee;
-  change: Change | null;
-  electronic: boolean;
-  onClose: () => void;
+  clientId: string;
+  employeeId: string;
+  fileId: string;
+  testId: string;
 }) {
+  const { request } = useApi();
+  const files = useEmployeeFiles(clientId, employeeId);
+  const file = files.data?.items.find((item) => item.id === fileId);
+  if (files.isPending) return <Skeleton className="h-5 w-48" />;
+  if (!file || !request.baseUrl) {
+    return (
+      <span data-testid={testId} className={cn('font-normal', summaryQuiet)}>
+        Scan atașat
+      </span>
+    );
+  }
+  const disposition = file.link.disposition === 'inline' ? 'inline' : 'attachment';
+  return (
+    <a
+      data-testid={testId}
+      href={fileAddress(request.baseUrl, file.link, disposition)}
+      target={linkTarget(disposition)}
+      className="underline decoration-border underline-offset-4 hover:decoration-current"
+    >
+      <Masked>{file.name}</Masked>
+    </a>
+  );
+}
+
+const saveFailed =
+  'Nu am putut salva starea actului adițional. Verifică conexiunea și încearcă din nou.';
+
+// Once uploaded, the scan is chosen as a file among the employee's, so a save refused after it
+// neither uploads it again nor leaves it stored unseen.
+function useScanUpload(employee: AgreementEmployee, onUploaded: (scan: ScanChoice) => void) {
+  const { request, queryClient } = useApi();
+  return async (scan: ScanChoice) => {
+    if (!scan.file) return scan.existingId || null;
+    const { file } = await uploadClientFile(
+      employee.clientId,
+      scan.file,
+      { fileName: scan.file.name, employeeId: employee.id },
+      request
+    );
+    onUploaded({ file: null, existingId: file.id });
+    await queryClient.invalidateQueries({
+      queryKey: getListClientFilesQueryKey(employee.clientId),
+    });
+    return file.id;
+  };
+}
+
+function useAgreementChange(employee: AgreementEmployee, done: string, onClose: () => void) {
   const { request, queryClient } = useApi();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const copy = change ? changeCopy[change] : null;
+  useHoldOpen(busy);
 
-  async function save() {
-    if (!change || !copy) return;
+  async function save(change: () => Promise<SigningAgreementStateRequest>) {
     setBusy(true);
     setError(null);
+    let body: SigningAgreementStateRequest;
     try {
-      await putSigningAgreementState(employee.clientId, employee.id, { state: change }, request);
-      await invalidateSigningAgreement(queryClient, employee.clientId, employee.id);
-      toast.success(copy.done);
-      onClose();
+      body = await change();
     } catch (cause) {
-      setError(
-        signingFailure(
-          cause,
-          'Nu am putut salva starea actului adițional. Verifică conexiunea și încearcă din nou.'
-        )
-      );
-    } finally {
+      setError(uploadFailureMessage(cause));
       setBusy(false);
+      return 'failed' as const;
     }
-  }
-
-  return (
-    <Dialog
-      open={change !== null}
-      onOpenChange={(next) => {
-        if (!next && !busy) {
-          setError(null);
-          onClose();
-        }
-      }}
-    >
-      {copy && (
-        <DialogContent data-testid="signing-agreement-change-dialog" className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{copy.title}</DialogTitle>
-            <DialogDescription>
-              {change === 'withdrawn' ? (
-                <>
-                  {maskPeople`${formatEmployeeName(employee)} a cerut în scris să semneze din nou de mână. De la înregistrare, fișele lui se semnează pe hârtie, iar cererile de semnare electronică în așteptare se anulează. `}
-                  {electronic
-                    ? 'Actul adițional semnat electronic și semnăturile de până acum rămân la dosar.'
-                    : 'Fișele semnate până acum rămân valabile.'}
-                </>
-              ) : (
-                maskPeople`Contractul de muncă al lui ${formatEmployeeName(employee)} cuprinde clauza privind semnarea electronică, așa că nu mai este nevoie de un act adițional separat.`
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          {error && (
-            <Notice variant="destructive" data-testid="signing-agreement-change-error">
-              {error}
-            </Notice>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
-              Renunță
-            </Button>
-            <Button
-              type="button"
-              data-testid="signing-agreement-change-confirm"
-              disabled={busy}
-              onClick={() => void save()}
-            >
-              {busy ? 'Se salvează…' : copy.confirm}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      )}
-    </Dialog>
-  );
-}
-
-function ContractClauseDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { request: apiRequest, ready, key: userKey } = useApi();
-  const me = useMe();
-  const details = useGetOrganizationCompanyDetails({
-    request: apiRequest,
-    query: {
-      queryKey: userKey(getGetOrganizationCompanyDetailsQueryKey()),
-      enabled: open && ready,
-    },
-  });
-  // The agreement names the provider as the API draws it up: the legal name, else the app's name.
-  const providerName =
-    details.data?.companyDetails.legalName || me.data?.membership?.organization.name || '';
-  const paragraphs = signingContractClauseText(providerName);
-
-  async function copy() {
     try {
-      await navigator.clipboard.writeText(paragraphs.join('\n\n'));
-      toast.success('Clauza a fost copiată.');
-    } catch {
-      toast.error('Nu am putut copia clauza. Selectează textul și copiază-l de mână.');
+      await putSigningAgreementState(employee.clientId, employee.id, body, request);
+      await invalidateSigningAgreement(queryClient, employee.clientId, employee.id);
+      toast.success(done);
+      onClose();
+      return 'saved' as const;
+    } catch (cause) {
+      const issues = apiErrorBody(cause)?.issues ?? [];
+      if (issues.some((issue) => issue.path === 'signedOn' || issue.path === 'requestedOn')) {
+        setBusy(false);
+        return 'date' as const;
+      }
+      setError(signingFailure(cause, saveFailed));
+      setBusy(false);
+      return 'failed' as const;
     }
   }
 
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      {open && (
-        <DialogContent data-testid="signing-agreement-clause-dialog" className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Clauza pentru contractul de muncă</DialogTitle>
-            <DialogDescription>
-              Pentru un lucrător nou: clauza intră în contractul individual de muncă în locul
-              actului adițional. După semnarea contractului, marchează „Clauza e în contract”.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogBody>
-            {details.isPending && !me.data ? (
-              <Skeleton className="h-40 w-full" />
-            ) : (
-              <div
-                data-testid="signing-agreement-clause-text"
-                className="grid gap-3 rounded-md border bg-muted/40 p-4 text-sm leading-relaxed"
-              >
-                {paragraphs.map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
-                ))}
-              </div>
-            )}
-          </DialogBody>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Închide
-            </Button>
-            <Button
-              type="button"
-              data-testid="signing-agreement-clause-copy"
-              disabled={!providerName}
-              onClick={() => void copy()}
-            >
-              <Copy aria-hidden="true" />
-              Copiază clauza
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      )}
-    </Dialog>
-  );
+  return { busy, error, save };
 }
+
+function dateProblem(value: string, empty: string, future: string) {
+  if (!value) return empty;
+  if (value > todayIso()) return future;
+  return null;
+}
+
+// The API refuses a request dated before the day the agreement was signed, or else handed out.
+const signedSinceOf = (agreement: Agreement) =>
+  dateToIso(new Date(agreement.signedAt ?? agreement.employeeSignedAt ?? agreement.generatedAt));
 
 function PaperAgreementDialog({
   employee,
@@ -576,92 +678,72 @@ function PaperAgreementForm({
   employee: AgreementEmployee;
   onClose: () => void;
 }) {
-  const { request, queryClient, key } = useApi();
-  const params = { employeeId: employee.id };
-  const files = useListClientFiles(employee.clientId, params, {
-    request,
-    query: { queryKey: key(getListClientFilesQueryKey(employee.clientId, params)) },
-  });
-  const [clientFileId, setClientFileId] = useState('');
-  const [busy, setBusy] = useState(false);
-  useHoldOpen(busy);
-  const [error, setError] = useState<string | null>(null);
+  const [signedOn, setSignedOn] = useState(todayIso);
+  const [scan, setScan] = useState<ScanChoice>(noScan);
+  const [dateError, setDateError] = useState<string | null>(null);
+  const upload = useScanUpload(employee, setScan);
+  const { busy, error, save } = useAgreementChange(
+    employee,
+    'Actul adițional semnat pe hârtie este înregistrat.',
+    onClose
+  );
+  const future = 'Data semnării nu poate fi în viitor.';
 
-  async function save() {
-    setBusy(true);
-    setError(null);
-    try {
-      await putSigningAgreementState(
-        employee.clientId,
-        employee.id,
-        { state: 'signed_on_paper', clientFileId: clientFileId || null },
-        request
-      );
-      await invalidateSigningAgreement(queryClient, employee.clientId, employee.id);
-      toast.success('Actul adițional este marcat semnat pe hârtie.');
-      onClose();
-    } catch (cause) {
-      setError(
-        signingFailure(
-          cause,
-          'Nu am putut salva starea actului adițional. Verifică conexiunea și încearcă din nou.'
-        )
-      );
-    } finally {
-      setBusy(false);
-    }
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const problem = dateProblem(signedOn, 'Alege data semnării.', future);
+    setDateError(problem);
+    if (problem) return;
+    const result = await save(async () => ({
+      state: 'signed_on_paper',
+      signedOn,
+      clientFileId: await upload(scan),
+    }));
+    if (result === 'date') setDateError(future);
   }
 
-  const items = files.data?.items ?? [];
-  const noFiles = files.isSuccess && items.length === 0;
   return (
     <DialogContent
       data-testid="signing-agreement-paper-dialog"
       className="sm:max-w-md"
       showCloseButton={!busy}
     >
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void save();
-        }}
-        aria-busy={busy}
-        noValidate
-      >
+      <form onSubmit={(event) => void submit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
-          <DialogTitle>Marchează semnat pe hârtie</DialogTitle>
+          <DialogTitle>Actul semnat pe hârtie</DialogTitle>
           <DialogDescription>
-            Pentru actul adițional semnat de mână de lucrător și de angajator. Scanul îl poți atașa
-            din fișierele lucrătorului.
+            Actul adițional semnat de mână de{' '}
+            <Masked className="font-medium text-foreground">{formatEmployeeName(employee)}</Masked>{' '}
+            și de angajator.
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-5">
           <Field
-            id="signing-agreement-file"
-            label="Scanul semnat"
-            mark="optional"
-            hint={
-              noFiles
-                ? 'Lucrătorul nu are fișiere. Încarcă scanul pe tabul „Documente” al lucrătorului, ca să-l poți atașa.'
-                : undefined
-            }
+            id="signing-agreement-signed-on"
+            label="Data semnării"
+            error={dateError ? { type: 'manual', message: dateError } : undefined}
           >
-            <NativeSelect
-              id="signing-agreement-file"
-              data-testid="signing-agreement-file"
-              value={clientFileId}
-              disabled={busy || !files.isSuccess}
-              aria-describedby={noFiles ? 'signing-agreement-file-hint' : undefined}
-              onChange={(event) => setClientFileId(event.target.value)}
-            >
-              <NativeSelectOption value="">Fără fișier atașat</NativeSelectOption>
-              {items.map((file) => (
-                <NativeSelectOption key={file.id} value={file.id}>
-                  {file.name}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <DatePicker
+              id="signing-agreement-signed-on"
+              testId="signing-agreement-signed-on"
+              value={signedOn}
+              max={todayIso()}
+              disabled={busy}
+              invalid={Boolean(dateError)}
+              describedBy={dateError ? 'signing-agreement-signed-on-error' : undefined}
+              onChange={setSignedOn}
+              required
+            />
           </Field>
+          <AgreementScanField
+            id="signing-agreement-file"
+            label="Scanul actului"
+            clientId={employee.clientId}
+            employeeId={employee.id}
+            value={scan}
+            onChange={setScan}
+            disabled={busy}
+          />
         </DialogBody>
         {error && (
           <Notice variant="destructive" data-testid="signing-agreement-error" className="mt-4">
@@ -673,10 +755,242 @@ function PaperAgreementForm({
             Renunță
           </Button>
           <Button type="submit" data-testid="signing-agreement-paper-submit" disabled={busy}>
-            {busy ? 'Se salvează…' : 'Marchează semnat'}
+            {busy ? 'Se salvează…' : 'Înregistrează'}
           </Button>
         </DialogFooter>
       </form>
+    </DialogContent>
+  );
+}
+
+function WithdrawalDialog({
+  employee,
+  signedSince,
+  open,
+  onClose,
+}: {
+  employee: AgreementEmployee;
+  signedSince: string | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <FormDialog open={open} onClose={onClose}>
+      {open && <WithdrawalForm employee={employee} signedSince={signedSince} onClose={onClose} />}
+    </FormDialog>
+  );
+}
+
+function WithdrawalForm({
+  employee,
+  signedSince,
+  onClose,
+}: {
+  employee: AgreementEmployee;
+  signedSince: string | null;
+  onClose: () => void;
+}) {
+  const [requestedOn, setRequestedOn] = useState(todayIso);
+  const [scan, setScan] = useState<ScanChoice>(noScan);
+  const [dateError, setDateError] = useState<string | null>(null);
+  const upload = useScanUpload(employee, setScan);
+  const { busy, error, save } = useAgreementChange(
+    employee,
+    'Revenirea la semnarea de mână este înregistrată.',
+    onClose
+  );
+  const future = 'Data cererii nu poate fi în viitor.';
+  const early = 'Data cererii nu poate fi înaintea semnării actului.';
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const problem =
+      dateProblem(requestedOn, 'Alege data cererii.', future) ??
+      (signedSince && requestedOn < signedSince ? early : null);
+    setDateError(problem);
+    if (problem) return;
+    const result = await save(async () => ({
+      state: 'withdrawn',
+      requestedOn,
+      requestFileId: await upload(scan),
+    }));
+    if (result === 'date') setDateError(requestedOn > todayIso() ? future : early);
+  }
+
+  return (
+    <DialogContent
+      data-testid="signing-agreement-withdraw-dialog"
+      className="sm:max-w-md"
+      showCloseButton={!busy}
+    >
+      <form onSubmit={(event) => void submit(event)} aria-busy={busy} noValidate>
+        <DialogHeader>
+          <DialogTitle>Revenirea la semnarea de mână</DialogTitle>
+          <DialogDescription>
+            De acum, fișele lui se semnează de mână. Cererile de semnare electronică în așteptare se
+            anulează; actul și semnăturile de până atunci rămân la dosar.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody className="mt-5 grid gap-5">
+          <Field
+            id="signing-agreement-requested-on"
+            label="Data cererii"
+            error={dateError ? { type: 'manual', message: dateError } : undefined}
+          >
+            <DatePicker
+              id="signing-agreement-requested-on"
+              testId="signing-agreement-requested-on"
+              value={requestedOn}
+              min={signedSince ?? undefined}
+              max={todayIso()}
+              disabled={busy}
+              invalid={Boolean(dateError)}
+              describedBy={dateError ? 'signing-agreement-requested-on-error' : undefined}
+              onChange={setRequestedOn}
+              required
+            />
+          </Field>
+          <AgreementScanField
+            id="signing-agreement-request-file"
+            label="Cererea scrisă"
+            clientId={employee.clientId}
+            employeeId={employee.id}
+            value={scan}
+            onChange={setScan}
+            disabled={busy}
+          />
+        </DialogBody>
+        {error && (
+          <Notice variant="destructive" data-testid="signing-agreement-error" className="mt-4">
+            {error}
+          </Notice>
+        )}
+        <DialogFooter className="mt-6">
+          <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
+            Renunță
+          </Button>
+          <Button type="submit" data-testid="signing-agreement-withdraw-submit" disabled={busy}>
+            {busy ? 'Se salvează…' : 'Înregistrează revenirea'}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  );
+}
+
+type ClauseMode = 'record' | 'view';
+
+function ContractClauseDialog({
+  employee,
+  mode,
+  onClose,
+}: {
+  employee: AgreementEmployee;
+  mode: ClauseMode | null;
+  onClose: () => void;
+}) {
+  return (
+    <FormDialog open={mode !== null} onClose={onClose}>
+      {mode && <ContractClause employee={employee} mode={mode} onClose={onClose} />}
+    </FormDialog>
+  );
+}
+
+function ContractClause({
+  employee,
+  mode,
+  onClose,
+}: {
+  employee: AgreementEmployee;
+  mode: ClauseMode;
+  onClose: () => void;
+}) {
+  const { request: apiRequest, ready, key: userKey } = useApi();
+  const me = useMe();
+  const details = useGetOrganizationCompanyDetails({
+    request: apiRequest,
+    query: {
+      queryKey: userKey(getGetOrganizationCompanyDetailsQueryKey()),
+      enabled: ready,
+    },
+  });
+  const [copied, setCopied] = useState(false);
+  const { busy, error, save } = useAgreementChange(
+    employee,
+    'Actul adițional este înlocuit de clauza din contractul de muncă.',
+    onClose
+  );
+  // The agreement names the provider as the API draws it up: the legal name, else the app's name.
+  const providerName =
+    details.data?.companyDetails.legalName || me.data?.membership?.organization.name || '';
+  const paragraphs = signingContractClauseText(providerName);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(paragraphs.join('\n\n'));
+      setCopied(true);
+    } catch {
+      toast.error('Nu am putut copia clauza. Selectează textul și copiază-l de mână.');
+    }
+  }
+
+  return (
+    <DialogContent
+      data-testid="signing-agreement-clause-dialog"
+      className="sm:max-w-2xl"
+      showCloseButton={!busy}
+    >
+      <DialogHeader>
+        <DialogTitle>Clauza în contractul de muncă</DialogTitle>
+        <DialogDescription>
+          Pentru un lucrător nou: clauza intră în contractul individual de muncă în locul actului
+          adițional.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogBody>
+        {details.isPending && !me.data ? (
+          <Skeleton className="h-40 w-full" />
+        ) : (
+          <div
+            data-testid="signing-agreement-clause-text"
+            className="grid max-h-80 gap-3 overflow-y-auto rounded-md border bg-muted/40 p-4 text-sm leading-relaxed"
+          >
+            {paragraphs.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
+        )}
+      </DialogBody>
+      {error && (
+        <Notice variant="destructive" data-testid="signing-agreement-error">
+          {error}
+        </Notice>
+      )}
+      <DialogFooter>
+        <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
+          {mode === 'record' ? 'Renunță' : 'Închide'}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          data-testid="signing-agreement-clause-copy"
+          disabled={!providerName}
+          onClick={() => void copy()}
+        >
+          {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+          {copied ? 'Copiată' : 'Copiază clauza'}
+        </Button>
+        {mode === 'record' && (
+          <Button
+            type="button"
+            data-testid="signing-agreement-in-contract-confirm"
+            disabled={busy}
+            onClick={() => void save(async () => ({ state: 'in_contract' }))}
+          >
+            {busy ? 'Se salvează…' : 'Clauza e în contract'}
+          </Button>
+        )}
+      </DialogFooter>
     </DialogContent>
   );
 }

@@ -80,7 +80,7 @@ const voidReasonLabels: Record<SignatureVoidReason, string> = {
   paper: 'trecută pe hârtie',
   signer_left: 'semnatarul nu mai face parte din client sau din organizație',
   archived: 'clientul a fost arhivat',
-  withdrawn: 'salariatul a revenit la semnarea olografă',
+  withdrawn: 'salariatul a revenit la semnarea de mână',
   signed_on_paper: 'semnată pe hârtie',
 };
 
@@ -96,11 +96,11 @@ export const signerKindLabels: Record<SignerKind, string> = {
 
 export const agreementStateLabels: Record<SigningAgreementState | 'none', string> = {
   none: 'Nesemnat',
-  generated: 'Generat',
+  generated: 'Descărcat',
   signed_electronically: 'Semnat electronic',
   signed_on_paper: 'Semnat pe hârtie',
-  withdrawn: 'Revenire la semnarea olografă',
-  in_contract: 'Clauza în contract',
+  withdrawn: 'Semnează de mână',
+  in_contract: 'Clauză în contract',
 };
 
 export const agreementSigned = (state: SigningAgreementState | null | undefined) =>
@@ -134,6 +134,8 @@ const signingMessages: Partial<Record<string, string>> = {
     'Contul ales nu poartă numele tipărit în rubrică. Alege persoana cu acest nume sau folosește numele semnatarului.',
   [signatureErrorReasons.agreementRecorded]:
     'Actul adițional are o stare înregistrată și rămâne în dosarul lucrătorului.',
+  [signatureErrorReasons.agreementWithdrawalRecorded]:
+    'Revenirea la semnarea de mână este deja înregistrată, cu cererea lucrătorului.',
   [signatureErrorReasons.agreementSignedElectronically]:
     'Actul adițional este semnat electronic; starea lui nu se mai schimbă de aici.',
   [signatureErrorReasons.employeeHasNoAddress]:

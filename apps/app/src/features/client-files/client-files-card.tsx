@@ -11,7 +11,6 @@ import { Card } from '@ssm-usor/ui/components/card';
 import { Notice } from '@ssm-usor/ui/components/notice';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { FileUp, SearchX, Upload } from 'lucide-react';
 import { type MouseEvent, type ReactNode, useId, useMemo, useState } from 'react';
 
@@ -31,7 +30,6 @@ import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { LoadFailed } from '@/components/load-failed';
-import { phoneBleed } from '@/components/page-spacing';
 import { Masked } from '@/components/replay';
 import { SearchInput } from '@/components/search-input';
 import { useMe } from '@/features/account/use-me';
@@ -256,16 +254,28 @@ export function ClientFilesCard({
           >
             <EmptyState
               icon={FileUp}
-              title="Niciun fișier încă"
+              title={
+                employee ? (
+                  <>
+                    Niciun fișier încă <HelpLink topic={help} label={helpLabel} />
+                  </>
+                ) : (
+                  'Niciun fișier încă'
+                )
+              }
               actions={
-                <>
-                  {canUpload && uploadButton('Alege fișiere')}
-                  <HelpLink
-                    topic={help}
-                    label={helpLabel}
-                    className="my-0 size-9 self-center justify-self-center"
-                  />
-                </>
+                employee ? (
+                  canUpload && uploadButton('Încarcă fișiere')
+                ) : (
+                  <>
+                    {canUpload && uploadButton('Alege fișiere')}
+                    <HelpLink
+                      topic={help}
+                      label={helpLabel}
+                      className="my-0 size-9 self-center justify-self-center"
+                    />
+                  </>
+                )
               }
             >
               {canUpload
@@ -317,10 +327,18 @@ export function ClientFilesCard({
                     fileCountLabel(all)
                   )}
                 </ListCount>
-                <div className="ml-auto flex items-center gap-1">
-                  <HelpLink topic={help} label={helpLabel} className="my-0 size-9" />
-                  {canUpload && uploadButton('Încarcă fișiere')}
-                </div>
+                {employee ? (
+                  <>
+                    <HelpLink topic={help} label={helpLabel} className="my-0 ml-auto size-9" />
+                    {canUpload &&
+                      uploadButton('Încarcă fișiere', 'max-sm:order-first max-sm:w-full')}
+                  </>
+                ) : (
+                  <div className="ml-auto flex items-center gap-1">
+                    <HelpLink topic={help} label={helpLabel} className="my-0 size-9" />
+                    {canUpload && uploadButton('Încarcă fișiere')}
+                  </div>
+                )}
               </ListCardHeader>
               <AppliedFilters
                 facets={clientFileFacets}
@@ -377,7 +395,7 @@ export function ClientFilesCard({
                     data-testid="client-files-empty-filtered"
                     actions={
                       <Button
-                        variant="outline"
+                        variant={employee ? 'secondary' : 'outline'}
                         data-testid="client-files-empty-filtered-clear"
                         onClick={() =>
                           filtered ? changeFilters({}) : onSearch({ ...search, q: undefined })
@@ -421,28 +439,22 @@ export function ClientFilesCard({
   const titleId = useId();
   return (
     <>
-      {employee || title ? (
+      {title ? (
         <Card
-          data-testid={employee ? 'employee-files-card' : 'client-files-card'}
-          aria-label={employee ? 'Documentele lucrătorului' : undefined}
-          aria-labelledby={title ? titleId : undefined}
-          className={cn(
-            'relative gap-0 overflow-hidden py-0',
-            employee && [phoneBleed, 'max-sm:rounded-none max-sm:border-x-0']
-          )}
+          data-testid="client-files-card"
+          aria-labelledby={titleId}
+          className="relative gap-0 overflow-hidden py-0"
           {...dropHandlers}
         >
-          {title && (
-            <h2 id={titleId} className="px-4 pt-5 pb-1 text-lg leading-snug font-semibold sm:px-5">
-              {title}
-            </h2>
-          )}
+          <h2 id={titleId} className="px-4 pt-5 pb-1 text-lg leading-snug font-semibold sm:px-5">
+            {title}
+          </h2>
           {body}
         </Card>
       ) : (
         <section
-          data-testid="client-files-card"
-          aria-label="Alte documente"
+          data-testid={employee ? 'employee-files-card' : 'client-files-card'}
+          aria-label={employee ? 'Documentele lucrătorului' : 'Alte documente'}
           className="relative"
           {...dropHandlers}
         >

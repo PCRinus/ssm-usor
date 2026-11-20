@@ -4,6 +4,7 @@ import {
   signatureErrorReasons,
   type SigningAgreementResponse,
   type SigningAgreementState,
+  type SigningAgreementStateRequest,
   type SigningAgreementUnavailable,
 } from '@ssm-usor/contracts';
 import { buildSigningAgreementData, signingTypeKeys } from '@ssm-usor/document-engine';
@@ -21,7 +22,7 @@ import {
   participationOf,
 } from '../../lib/participant';
 import { requirePdfConverter } from '../../lib/pdf';
-import { collator } from '../../lib/romanian';
+import { collator, romanianDay, romanianNoon } from '../../lib/romanian';
 import { mergeBuiltIn } from '../../lib/templates';
 import { toIso, toIsoOrNull } from '../../lib/timestamps';
 import { awaitedParty, awaits } from './agreement-state';
@@ -68,7 +69,7 @@ const representativeMissing = (client: RepresentativeColumns) =>
   missingRepresentative(client).length > 0;
 
 export const agreementColumns =
-  'state, generated_at, signed_at, client_file_id, storage_path, employee_signed_at, employer_signed_at';
+  'state, generated_at, signed_at, client_file_id, storage_path, employee_signed_at, employer_signed_at, withdrawal_requested_on, withdrawal_file_id, withdrawn_at';
 
 export type AgreementRow = {
   state: string;
@@ -78,6 +79,9 @@ export type AgreementRow = {
   storage_path: string | null;
   employee_signed_at: string | null;
   employer_signed_at: string | null;
+  withdrawal_requested_on: string | null;
+  withdrawal_file_id: string | null;
+  withdrawn_at: string | null;
 };
 
 export const toAgreementState = (row: AgreementRow) => ({
@@ -88,6 +92,14 @@ export const toAgreementState = (row: AgreementRow) => ({
   employeeSignedAt: toIsoOrNull(row.employee_signed_at),
   employerSignedAt: toIsoOrNull(row.employer_signed_at),
   awaiting: awaitedParty(row),
+  withdrawal:
+    row.state === 'withdrawn'
+      ? {
+          recordedAt: toIsoOrNull(row.withdrawn_at),
+          requestedOn: row.withdrawal_requested_on,
+          fileId: row.withdrawal_file_id,
+        }
+      : null,
 });
 
 // What drawing the agreement up would refuse, told before the employee tries.
@@ -348,26 +360,78 @@ export const getSigningAgreementState: RouteHandler<
   return c.json(await agreementOf(createDataClient(c), clientId, employeeId), 200);
 };
 
+const invalid = (path: string, message: string) =>
+  new ApiError('validation_error', message, [{ path, message }]);
+
+// marked_by and withdrawn_at are the database's to set, from the member signed in and the clock.
+function stateChange(body: SigningAgreementStateRequest, sources: AgreementSources, today: string) {
+  const { state, clientFileId } = body;
+  if (state === 'generated') {
+    return {
+      state,
+      generated_at: new Date().toISOString(),
+      signed_at: null,
+      client_file_id: clientFileId ?? null,
+      withdrawal_requested_on: null,
+      withdrawal_file_id: null,
+    };
+  }
+  if (state === 'withdrawn') {
+    const row = sources.row;
+    if (row?.state === 'withdrawn' && row.withdrawal_requested_on) {
+      throw ApiError.conflict(
+        signatureErrorReasons.agreementWithdrawalRecorded,
+        'The withdrawal is recorded already, with its request.'
+      );
+    }
+    const requestedOn = body.requestedOn ?? today;
+    if (requestedOn > today) {
+      throw invalid('requestedOn', 'The request cannot be dated in the future.');
+    }
+    const signedSince = row && (row.signed_at ?? row.employee_signed_at ?? row.generated_at);
+    if (signedSince && requestedOn < romanianDay(signedSince)) {
+      throw invalid('requestedOn', 'The request cannot be dated before the agreement was signed.');
+    }
+    const request = {
+      withdrawal_requested_on: requestedOn,
+      withdrawal_file_id: body.requestFileId ?? null,
+    };
+    // A withdrawn agreement keeps how it was signed, its signing moment and paper scan included.
+    return row?.state === 'withdrawn' ? request : { state, ...request };
+  }
+  if (state === 'signed_on_paper') {
+    const signedOn = body.signedOn ?? today;
+    if (signedOn > today) {
+      throw invalid('signedOn', 'The agreement cannot be signed in the future.');
+    }
+    return {
+      state,
+      signed_at: romanianNoon(signedOn).toISOString(),
+      client_file_id: clientFileId ?? null,
+      withdrawal_requested_on: null,
+      withdrawal_file_id: null,
+    };
+  }
+  return {
+    state,
+    signed_at: null,
+    client_file_id: clientFileId ?? null,
+    withdrawal_requested_on: null,
+    withdrawal_file_id: null,
+  };
+}
+
 export const putSigningAgreementState: RouteHandler<
   typeof putSigningAgreementStateRoute,
   ApiEnv
 > = async (c) => {
   const { clientId, employeeId } = c.req.valid('param');
-  const { state, clientFileId } = c.req.valid('json');
+  const body = c.req.valid('json');
   const db = createDataClient(c);
   const sources = await agreementSources(db, clientId, employeeId);
   const agreement = sources.row;
-  if (state === 'generated') await requireRepresentative(db, clientId);
-  const now = new Date().toISOString();
-  // marked_by is the database's to set, from the member signed in.
-  const change =
-    state === 'generated'
-      ? { state, generated_at: now, signed_at: null, client_file_id: clientFileId ?? null }
-      : {
-          state,
-          signed_at: state === 'signed_on_paper' ? now : null,
-          client_file_id: clientFileId ?? null,
-        };
+  const change = stateChange(body, sources, romanianDay(new Date()));
+  if (body.state === 'generated') await requireRepresentative(db, clientId);
   // Not an upsert: members may update only these columns, and an upsert sets them all.
   const saved = agreement
     ? await db

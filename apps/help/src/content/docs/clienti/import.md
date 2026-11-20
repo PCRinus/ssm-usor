@@ -166,7 +166,7 @@ La prima plată primești, o singură dată, creditele AI de bun venit, ca să-�
 
 Înainte să pornești un import, fereastra de încărcare îți arată cât folosește și câte credite îți mai rămân luna aceasta și din cadoul de bun venit, plus, dacă adminul a pornit creditele AI extra, că importul poate folosi și credite extra; adminul vede și câte mai poate folosi până la plafon. Câte mai ai vezi oricând și pe pagina **Abonament**, în bara creditelor (vezi [Creditele AI](/organizatie/abonament/#creditele-ai)).
 
-Dacă organizația are de mai bine de o lună mai mulți lucrători activi decât treapta abonamentului, fereastra de încărcare îți spune asta înainte să pornești. Importul din fișe poate completa lucrătorii pe care îi ai deja, dar nu poate adăuga lucrători noi: lasă-i deoparte pe cei noi, care nu se creează, ca să confirmi restul. Un client nou care vine cu lucrători se confirmă abia după ce treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți (vezi [Cât folosești](/organizatie/abonament/#cât-folosești)).
+Dacă organizația are de mai bine de o lună mai mulți lucrători activi decât treapta abonamentului, fereastra de încărcare îți spune asta înainte să pornești. Importul din fișe poate completa lucrătorii pe care îi ai deja, dar nu poate adăuga lucrători noi: lasă-i deoparte pe cei noi, care nu se creează, ca să confirmi restul. Un client nou care vine cu lucrători se confirmă abia după ce treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori îi treci la foști pe lucrătorii care nu mai lucrează la clienți (vezi [Cât folosești](/organizatie/abonament/#cât-folosești)).
 
 ### Când nu ajung creditele
 
@@ -408,7 +408,7 @@ O instruire de pe fișă care e deja în aplicație, același domeniu, același 
 
 ### Cine a plecat din firmă
 
-O fișă cu data plecării e propusă cu comutatorul de lângă nume oprit, iar cardul plecării îți spune ce înseamnă. Pornește-l dacă vrei să-l ai în evidență: îl preluăm ca fost lucrător, cu instruirile lui, și apare la **Foști**. Dacă treci la persoana următoare fără să-l pornești, rămâne lăsat deoparte. Dacă ștergi data plecării înainte să treci mai departe, persoana e propusă inclusă, ca lucrător actual; dacă era deja lăsată deoparte, o iei înapoi cu comutatorul de lângă nume. Dacă scrii o dată a plecării la cineva verificat, care nu e deja lucrător al clientului, e lăsat deoparte până îl preiei.
+O fișă cu data încetării e propusă cu comutatorul de lângă nume oprit, iar cardul plecării îți spune ce înseamnă. Pornește-l dacă vrei să-l ai în evidență: îl preluăm ca fost lucrător, cu instruirile lui, și apare la **Foști**. Dacă treci la persoana următoare fără să-l pornești, rămâne lăsat deoparte. Dacă ștergi data încetării înainte să treci mai departe, persoana e propusă inclusă, ca lucrător actual; dacă era deja lăsată deoparte, o iei înapoi cu comutatorul de lângă nume. Dacă scrii o dată a încetării la cineva verificat, care nu e deja lucrător al clientului, e lăsat deoparte până îl preiei.
 
 Când persoana se potrivește cu un fost lucrător al clientului, vezi asta pe pagina ei. Dacă fișa scrie o dată a angajării de după plecarea lui, persoana a fost reangajată, iar în aplicație o reangajare e un lucrător nou (vezi [Reangajarea](/clienti/angajati/plecare/#reangajarea)). Importul nu reactivează fostul lucrător, iar persoana are ceva de hotărât până alegi una dintre:
 

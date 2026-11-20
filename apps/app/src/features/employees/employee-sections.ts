@@ -1,4 +1,4 @@
-import { Flame, FolderOpen, HardHat, IdCard } from 'lucide-react';
+import { Flame, FolderOpen, HardHat, IdCard, Smartphone } from 'lucide-react';
 
 export const employeeSections = [
   { to: '/clienti/$clientId/angajati/$employeeId', label: 'Date', icon: IdCard, exact: true },
@@ -18,6 +18,12 @@ export const employeeSections = [
     to: '/clienti/$clientId/angajati/$employeeId/documente',
     label: 'Documente',
     icon: FolderOpen,
+    exact: false,
+  },
+  {
+    to: '/clienti/$clientId/angajati/$employeeId/portal',
+    label: 'Portal',
+    icon: Smartphone,
     exact: false,
   },
 ] as const;

@@ -1615,6 +1615,18 @@ export const PortalSigningAgreementsResponseItemsItemAgreementAwaiting = {
   employer: 'employer',
 } as const;
 
+/**
+ * @nullable
+ */
+export type PortalSigningAgreementsResponseItemsItemAgreementWithdrawal = {
+  /** @nullable */
+  recordedAt: string | null;
+  /** @nullable */
+  requestedOn: string | null;
+  /** @nullable */
+  fileId: string | null;
+} | null;
+
 export type PortalSigningAgreementsResponseItemsItemAgreement = {
   state: PortalSigningAgreementsResponseItemsItemAgreementState;
   generatedAt: string;
@@ -1628,6 +1640,8 @@ export type PortalSigningAgreementsResponseItemsItemAgreement = {
   employerSignedAt: string | null;
   /** @nullable */
   awaiting: PortalSigningAgreementsResponseItemsItemAgreementAwaiting;
+  /** @nullable */
+  withdrawal: PortalSigningAgreementsResponseItemsItemAgreementWithdrawal;
 };
 
 export type PortalSigningAgreementsResponseItemsItem = {
@@ -1666,6 +1680,18 @@ export const SigningAgreementResponseAgreementAwaiting = {
 /**
  * @nullable
  */
+export type SigningAgreementResponseAgreementWithdrawal = {
+  /** @nullable */
+  recordedAt: string | null;
+  /** @nullable */
+  requestedOn: string | null;
+  /** @nullable */
+  fileId: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
 export type SigningAgreementResponseAgreement = {
   state: SigningAgreementResponseAgreementState;
   generatedAt: string;
@@ -1679,6 +1705,8 @@ export type SigningAgreementResponseAgreement = {
   employerSignedAt: string | null;
   /** @nullable */
   awaiting: SigningAgreementResponseAgreementAwaiting;
+  /** @nullable */
+  withdrawal: SigningAgreementResponseAgreementWithdrawal;
 } | null;
 
 export type SigningAgreementResponseUnavailableReason =

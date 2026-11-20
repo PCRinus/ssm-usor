@@ -212,7 +212,7 @@ export const employeeSchema = z.object({
   jobTitle: z.string(),
   contractNumber: z.string().nullable(),
   // The post the person fills; one per employee.
-  jobPosition: z.object({ id: z.uuid(), name: z.string() }),
+  jobPosition: z.object({ id: z.uuid(), name: z.string(), archived: z.boolean() }),
   hiredAt: z.iso.date(),
   status: employeeStatusSchema,
   terminatedAt: z.iso.date().nullable(),
@@ -251,7 +251,6 @@ export const employeeListItemSchema = employeeSchema
     email: true,
     phone: true,
     jobTitle: true,
-    jobPosition: true,
     hiredAt: true,
     status: true,
     terminatedAt: true,
@@ -262,6 +261,7 @@ export const employeeListItemSchema = employeeSchema
     tests: true,
   })
   .extend({
+    jobPosition: z.object({ id: z.uuid(), name: z.string() }),
     signaturesPending: z.int().min(0),
   });
 

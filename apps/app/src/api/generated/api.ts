@@ -1327,11 +1327,6 @@ export interface CompanyLookupResponse {
   company: CompanyLookupResponseCompany;
 }
 
-export type EmployeeListResponseItemsItemJobPosition = {
-  id: string;
-  name: string;
-};
-
 export type EmployeeListResponseItemsItemStatus =
   (typeof EmployeeListResponseItemsItemStatus)[keyof typeof EmployeeListResponseItemsItemStatus];
 
@@ -1518,6 +1513,11 @@ export type EmployeeListResponseItemsItemTests = {
   su: EmployeeListResponseItemsItemTestsSu;
 };
 
+export type EmployeeListResponseItemsItemJobPosition = {
+  id: string;
+  name: string;
+};
+
 export type EmployeeListResponseItemsItemPortalState =
   (typeof EmployeeListResponseItemsItemPortalState)[keyof typeof EmployeeListResponseItemsItemPortalState];
 
@@ -1588,7 +1588,6 @@ export type EmployeeListResponseItemsItem = {
   /** @nullable */
   phone: string | null;
   jobTitle: string;
-  jobPosition: EmployeeListResponseItemsItemJobPosition;
   hiredAt: string;
   status: EmployeeListResponseItemsItemStatus;
   /** @nullable */
@@ -1599,6 +1598,7 @@ export type EmployeeListResponseItemsItem = {
   updatedAt: string;
   training: EmployeeListResponseItemsItemTraining;
   tests: EmployeeListResponseItemsItemTests;
+  jobPosition: EmployeeListResponseItemsItemJobPosition;
   /** @minimum 0 */
   signaturesPending: number;
   portal: EmployeeListResponseItemsItemPortal;
@@ -1654,6 +1654,7 @@ export interface EmployeeInviteesResponse {
 export type EmployeeResponseEmployeeJobPosition = {
   id: string;
   name: string;
+  archived: boolean;
 };
 
 export type EmployeeResponseEmployeeStatus =
@@ -2266,11 +2267,6 @@ export interface UpdateEmployeeJobPositionRequest {
   jobTitle?: string;
 }
 
-export type OrganizationEmployeeListResponseItemsItemJobPosition = {
-  id: string;
-  name: string;
-};
-
 export type OrganizationEmployeeListResponseItemsItemStatus =
   (typeof OrganizationEmployeeListResponseItemsItemStatus)[keyof typeof OrganizationEmployeeListResponseItemsItemStatus];
 
@@ -2457,6 +2453,11 @@ export type OrganizationEmployeeListResponseItemsItemTests = {
   su: OrganizationEmployeeListResponseItemsItemTestsSu;
 };
 
+export type OrganizationEmployeeListResponseItemsItemJobPosition = {
+  id: string;
+  name: string;
+};
+
 export type OrganizationEmployeeListResponseItemsItemClient = {
   id: string;
   name: string;
@@ -2474,7 +2475,6 @@ export type OrganizationEmployeeListResponseItemsItem = {
   /** @nullable */
   phone: string | null;
   jobTitle: string;
-  jobPosition: OrganizationEmployeeListResponseItemsItemJobPosition;
   hiredAt: string;
   status: OrganizationEmployeeListResponseItemsItemStatus;
   /** @nullable */
@@ -2485,6 +2485,7 @@ export type OrganizationEmployeeListResponseItemsItem = {
   updatedAt: string;
   training: OrganizationEmployeeListResponseItemsItemTraining;
   tests: OrganizationEmployeeListResponseItemsItemTests;
+  jobPosition: OrganizationEmployeeListResponseItemsItemJobPosition;
   /** @minimum 0 */
   signaturesPending: number;
   client: OrganizationEmployeeListResponseItemsItemClient;
@@ -16365,6 +16366,18 @@ export const SigningAgreementResponseAgreementAwaiting = {
 /**
  * @nullable
  */
+export type SigningAgreementResponseAgreementWithdrawal = {
+  /** @nullable */
+  recordedAt: string | null;
+  /** @nullable */
+  requestedOn: string | null;
+  /** @nullable */
+  fileId: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
 export type SigningAgreementResponseAgreement = {
   state: SigningAgreementResponseAgreementState;
   generatedAt: string;
@@ -16378,6 +16391,8 @@ export type SigningAgreementResponseAgreement = {
   employerSignedAt: string | null;
   /** @nullable */
   awaiting: SigningAgreementResponseAgreementAwaiting;
+  /** @nullable */
+  withdrawal: SigningAgreementResponseAgreementWithdrawal;
 } | null;
 
 export type SigningAgreementResponseUnavailableReason =
@@ -16425,6 +16440,10 @@ export interface SigningAgreementStateRequest {
   state: SigningAgreementStateRequestState;
   /** @nullable */
   clientFileId?: string | null;
+  signedOn?: string;
+  requestedOn?: string;
+  /** @nullable */
+  requestFileId?: string | null;
 }
 
 export type SigningSessionResponseChannel =
@@ -46441,7 +46460,7 @@ export const getPutSigningAgreementStateUrl = (clientId: string, employeeId: str
 };
 
 /**
- * `generated` when it was handed to the employee, `signed_on_paper` when it came back signed by hand, with the scan as a file of the client in `clientFileId`, `withdrawn` when the employee went back to signing by hand (their pending trainee requests are voided and none is issued while it stands), `in_contract` for a new hire whose contract carries the clause. The database records the member signed in as `marked_by`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.
+ * `generated` when it was handed to the employee; `signed_on_paper` when it came back signed by hand, on `signedOn` (today in Romania by default, not in the future, stored as noon in Romania), with the scan as a file of the client in `clientFileId`; `withdrawn` when the employee went back to signing by hand, with the day of their written request in `requestedOn` (today by default, not in the future, not before the Romanian day the agreement was signed, or else handed out) and its scan, a file of the client, in `requestFileId`: the withdrawal takes effect now, whatever the request's day, and the database records the moment as `withdrawal.recordedAt`; their pending trainee requests are voided and none is issued while it stands, and the agreement keeps how it was signed. An agreement withdrawn before its request was kept takes `requestedOn` and `requestFileId` once, with `withdrawn` again, and nothing else changes; `in_contract` for a new hire whose contract carries the clause. `signedOn`, `requestedOn` and `requestFileId` are refused for any other state, and `clientFileId` for `withdrawn`. The database records the member signed in as `marked_by`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.
  * @summary Record an employee's signing agreement as handed out or signed on paper
  */
 export const putSigningAgreementState = async (

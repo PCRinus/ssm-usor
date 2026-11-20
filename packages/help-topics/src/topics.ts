@@ -20,7 +20,7 @@ export const helpTopics = {
   },
   'angajati.act-aditional-revenire': {
     path: '/clienti/angajati/portal-si-act-aditional/',
-    anchor: 'revenirea-la-semnarea-olografă',
+    anchor: 'revenirea-la-semnarea-de-mână',
   },
   'angajati.act-aditional-stari': {
     path: '/clienti/angajati/portal-si-act-aditional/',
@@ -35,6 +35,7 @@ export const helpTopics = {
     path: '/clienti/angajati/portal-si-act-aditional/',
     anchor: 'anexa-13-la-regulamentul-intern',
   },
+  'angajati.angajare': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'angajare' },
   'angajati.autorizatii': {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'autorizațiile',
@@ -59,7 +60,7 @@ export const helpTopics = {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'data-nașterii',
   },
-  'angajati.data-plecarii': { path: '/clienti/angajati/plecare/', anchor: 'data-plecării' },
+  'angajati.data-plecarii': { path: '/clienti/angajati/plecare/', anchor: 'data-încetării' },
   'angajati.date-fisa': {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'datele-pentru-fișa-de-instruire',
@@ -162,7 +163,7 @@ export const helpTopics = {
   },
   'angajati.observatii': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'observațiile' },
   'angajati.pagina-angajatului': { path: '/clienti/angajati/', anchor: 'pagina-unui-lucrător' },
-  'angajati.plecare': { path: '/clienti/angajati/plecare/', anchor: 'marcarea-plecării' },
+  'angajati.plecare': { path: '/clienti/angajati/plecare/', anchor: 'trecerea-la-foști-lucrători' },
   'angajati.portal': {
     path: '/clienti/angajati/portal-si-act-aditional/',
     anchor: 'accesul-la-portal',
@@ -175,7 +176,10 @@ export const helpTopics = {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'punctul-de-lucru',
   },
-  'angajati.reactivare': { path: '/clienti/angajati/plecare/', anchor: 'reactivarea' },
+  'angajati.reactivare': {
+    path: '/clienti/angajati/plecare/',
+    anchor: 'anularea-trecerii-la-foști',
+  },
   'angajati.reangajare': { path: '/clienti/angajati/plecare/', anchor: 'reangajarea' },
   'angajati.revocare-acces': {
     path: '/clienti/angajati/portal-si-act-aditional/',

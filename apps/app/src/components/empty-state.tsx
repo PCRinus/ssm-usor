@@ -10,7 +10,7 @@ export function EmptyState({
   className,
   children,
   ...props
-}: ComponentProps<'div'> & {
+}: Omit<ComponentProps<'div'>, 'title'> & {
   icon: LucideIcon;
   title?: ReactNode;
   titleAs?: 'h1' | 'h2' | 'h3';

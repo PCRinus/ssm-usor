@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { Link } from '@tanstack/react-router';
-import { MoreHorizontal, Pencil, RotateCcw, UserRoundMinus } from 'lucide-react';
+import { MoreHorizontal, Pencil, Undo2, UserRoundMinus } from 'lucide-react';
 
 import type { EmployeeListResponse } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
@@ -81,15 +81,15 @@ export function employeeColumns({
                   onSelect={() => onStatusChange({ employee, action: 'terminate' })}
                 >
                   <UserRoundMinus aria-hidden="true" />
-                  Marchează plecarea…
+                  Trece la foști lucrători…
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem
                   data-testid="employees-reactivate"
                   onSelect={() => onStatusChange({ employee, action: 'reactivate' })}
                 >
-                  <RotateCcw aria-hidden="true" />
-                  Reactivează…
+                  <Undo2 aria-hidden="true" />
+                  Anulează trecerea la foști…
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

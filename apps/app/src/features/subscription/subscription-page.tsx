@@ -392,9 +392,9 @@ function noticeFor(
           {formatCount(employees.used - employees.limit)} peste treapta ta, de{' '}
           {formatCount(employees.limit)}. Lucrezi mai departe cu tot ce ai
           {over?.blocked
-            ? ', dar nu mai adaugi lucrători până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți.'
+            ? ', dar nu mai adaugi lucrători până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori îi treci la foști pe lucrătorii care nu mai lucrează la clienți.'
             : over
-              ? '. Dacă după această dată ai tot mai mulți, nu mai poți adăuga lucrători noi până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți.'
+              ? '. Dacă după această dată ai tot mai mulți, nu mai poți adăuga lucrători noi până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori îi treci la foști pe lucrătorii care nu mai lucrează la clienți.'
               : '.'}
           {next
             ? ` ${nextStepSentence(choice, next)}`
