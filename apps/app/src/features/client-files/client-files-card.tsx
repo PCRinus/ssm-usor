@@ -383,7 +383,7 @@ export function ClientFilesCard({
                     data-testid="client-files-empty-filtered"
                     actions={
                       <Button
-                        variant="outline"
+                        variant={employee ? 'secondary' : 'outline'}
                         data-testid="client-files-empty-filtered-clear"
                         onClick={() =>
                           filtered ? changeFilters({}) : onSearch({ ...search, q: undefined })

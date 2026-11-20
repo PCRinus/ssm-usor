@@ -347,9 +347,9 @@ export function EmployeeTrainingTab({
         data-testid="training-records"
         data-sheet-panel
         aria-labelledby={recordsHeadingId}
-        className="overflow-hidden rounded-xl border bg-card pt-6"
+        className="overflow-hidden rounded-xl border bg-card pt-5"
       >
-        <div className="flex min-h-8 items-center px-6 pb-4 text-xl leading-7">
+        <div className="flex min-h-8 items-center px-5 pb-3 text-xl leading-7">
           <h2 id={recordsHeadingId} className="inline font-semibold tracking-[-0.01em]">
             Instruiri
           </h2>
@@ -370,7 +370,7 @@ export function EmployeeTrainingTab({
           <>
             {records.isSuccess && (
               <>
-                <ListCardHeader className="px-4 pt-0 pb-4 sm:px-6">
+                <ListCardHeader className="pt-0">
                   <ListFilters
                     facets={ownTrainingFacets}
                     values={listFilters.values}

@@ -358,7 +358,9 @@ describe("an employee's training tabs", () => {
     expect(within(actions).getByTestId('training-sheet-ssm')).toBeTruthy();
     expect(actions.firstElementChild).toBe(screen.getByTestId('training-record'));
     expect(
-      screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+      within(screen.getByTestId('employee-training-tab'))
+        .getAllByRole('heading', { level: 2 })
+        .map((heading) => heading.textContent)
     ).toEqual(['Testare', 'Instruiri']);
 
     const periodic = within(items[0]!);
@@ -491,7 +493,11 @@ describe("an employee's training tabs", () => {
     });
     mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const notice = await screen.findByTestId('training-sheet-ssm-missing');
-    expect(screen.queryByRole('heading', { name: 'Instruire SSM' })).toBeNull();
+    expect(
+      within(screen.getByTestId('employee-training-tab')).queryByRole('heading', {
+        name: 'Instruire SSM',
+      })
+    ).toBeNull();
     expect(screen.getByTestId('training-tab-actions').contains(notice)).toBe(false);
     expect(screen.getByTestId('employee-training-tab').contains(notice)).toBe(true);
     expect(
