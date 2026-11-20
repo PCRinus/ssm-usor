@@ -29,7 +29,7 @@ const textPattern = /(<w:t\b[^>]*>)([^<]*)(<\/w:t>)/g;
 const textOf = (xml: string) => [...xml.matchAll(textPattern)].map((match) => match[2]).join('');
 const lengthOf = (text: string) => text.replace(/&\w+;/g, '_').length;
 
-function topLevelTables(xml: string) {
+export function topLevelTables(xml: string) {
   const spans: [number, number][] = [];
   let depth = 0;
   let start = 0;
@@ -51,18 +51,18 @@ const rowProperties = (row: string) =>
   /^<w:tr\b[^>]*>(?:<w:tblPrEx>[\s\S]*?<\/w:tblPrEx>)?\s*<w:trPr>([\s\S]*?)<\/w:trPr>/.exec(
     row
   )?.[1] ?? '';
-const spanOf = (cell: string) =>
+export const spanOf = (cell: string) =>
   Number(/<w:gridSpan w:val="(\d+)"/.exec(cellProperties(cell))?.[1] ?? 1);
 const continuesMerge = (cell: string) => {
   const merge = /<w:vMerge(?: w:val="(\w+)")?\/>/.exec(cellProperties(cell));
   return merge !== null && merge[1] !== 'restart';
 };
-const isHeader = (row: string) =>
+export const isHeader = (row: string) =>
   /<w:tblHeader(?: w:val="(?:true|1|on)")?\/>/.test(rowProperties(row));
 const runPattern = /<w:r\b[^>]*>[\s\S]*?<\/w:r>/g;
 
 /** In half-points: the first run's with text, else the paragraph mark's, as the import guesses. */
-function paragraphSize(paragraph: string) {
+export function paragraphSize(paragraph: string) {
   const run = [...paragraph.matchAll(runPattern)].find(([each]) => textOf(each).trim());
   const runProperties = run && /<w:rPr>[\s\S]*?<\/w:rPr>/.exec(run[0])?.[0];
   const mark = /<w:pPr>[\s\S]*?<\/w:pPr>/.exec(paragraph)?.[0];
@@ -74,7 +74,7 @@ const sizeOf = (xml: string) => {
   return size ? Number(size[1]) : null;
 };
 
-function columnsOf(row: string) {
+export function columnsOf(row: string) {
   let column = 0;
   return [...row.matchAll(cellPattern)].map((match) => {
     const placed = { column, cell: match[0] };

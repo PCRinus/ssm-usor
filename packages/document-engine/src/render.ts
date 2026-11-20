@@ -1,6 +1,7 @@
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 
+import { fitColumnsToContent } from './content-widths';
 import { keepTablesTogether } from './table-keep';
 import { isTextPart, replaceText } from './text';
 import { fillTableOfContents } from './toc';
@@ -161,7 +162,7 @@ function tidy(zip: PizZip) {
     zip.file(
       body.name,
       fillTableOfContents(
-        keepTablesTogether(body.asText()),
+        keepTablesTogether(fitColumnsToContent(body.asText())),
         zip.file('word/styles.xml')?.asText() ?? ''
       )
     );

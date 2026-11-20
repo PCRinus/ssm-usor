@@ -223,8 +223,20 @@ describe('typesetting', () => {
     '%s has the house margins, no header but the document details, and a footer that ends with the branding line',
     (name) => {
       const xml = bodyOf(name);
-      // 25 mm left for binding, 20 mm elsewhere, in twentieths of a point.
-      expect(xml).toMatch(/<w:pgMar [^>]*w:left="1417"[^>]*w:right="1134"/);
+      // 25 mm for binding and 20 mm elsewhere, in twentieths of a point. The occupational
+      // safety set files a landscape page turned in its portrait binder, bound on its top edge:
+      // its left margin is 20 mm and its top margin and header 5 mm lower.
+      const boundOnTop = (section: string) =>
+        !name.startsWith('fire/') && section.includes('w:orient="landscape"');
+      const sections = xml.match(/<w:sectPr\b[\s\S]*?<\/w:sectPr>/g)!;
+      for (const section of sections)
+        expect(section).toMatch(
+          boundOnTop(section)
+            ? /<w:pgMar [^>]*w:left="1134"[^>]*w:right="1134"/
+            : /<w:pgMar [^>]*w:left="1417"[^>]*w:right="1134"/
+        );
+      const first = sections[0]!;
+      const lower = boundOnTop(first) ? 283 : 0;
       // The footer sits inside the bottom margin: 12 mm to the footer, the text ends above 20 mm.
       expect(xml).toMatch(/<w:pgMar [^>]*w:footer="680"/);
       const bottom = Number(/<w:pgMar [^>]*w:bottom="(\d+)"/.exec(xml)![1]);
@@ -246,9 +258,9 @@ describe('typesetting', () => {
           'Pag. 1 din 1',
         ]);
       } else if (headers.every((text) => text === '')) {
-        expect(xml).toMatch(/<w:pgMar [^>]*w:top="1134"/);
+        expect(first).toMatch(new RegExp(`<w:pgMar [^>]*w:top="${1134 + lower}"`));
       } else {
-        expect(xml).toMatch(/<w:pgMar [^>]*w:header="680"/);
+        expect(first).toMatch(new RegExp(`<w:pgMar [^>]*w:header="${680 + lower}"`));
         for (const text of headers) {
           expect(text).toContain('Data întocmirii documentului:{{issueDate}}');
           expect(text).toContain('Întocmit pentru:{{client.legalName}}');

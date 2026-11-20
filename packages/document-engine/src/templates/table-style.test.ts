@@ -92,10 +92,8 @@ describe('the table house style of the occupational safety set', () => {
     }
   );
 
-  it.each(houseTables)('%s, %s: pads every cell alike', (name, _, table) => {
-    // The registers of 7.2 are too dense for the house padding beside the text.
-    expect([padding(85), padding(55)].some((each) => table.includes(each))).toBe(true);
-    if (table.includes(padding(55))) expect(name).toBe('7.2_event_registers.docx');
+  it.each(houseTables)('%s, %s: pads every cell alike', (...[, , table]) => {
+    expect(table).toContain(padding(85));
     for (const cell of cellsOf(table).filter((each) => each.includes('<w:tcMar>'))) {
       expect(cell).toContain('<w:textDirection');
     }
@@ -166,6 +164,51 @@ describe('the table house style of the occupational safety set', () => {
       for (const run of runsOf(cell)) expect(run).toContain(`<w:color w:val="${colour}"/>`);
     }
   });
+
+  it('lets the merge fit the columns of the prevention plan, and of no other table', () => {
+    const marked = ssmFiles.flatMap((name) =>
+      tablesOf(name)
+        .filter((table) => table.includes('<w:tblCaption w:val="ContentWidths"/>'))
+        .map((table) => [name, table.includes('{{#plan}}')])
+    );
+    expect(marked).toEqual([['10_prevention_plan.docx', true]]);
+  });
+
+  it.each(ssmFiles)(
+    '%s draws the tables of a landscape page across its wider text column',
+    (name) => {
+      const zip = new PizZip(read(name));
+      const body = bodyOf(name);
+      const targets = new Map(
+        [
+          ...zip
+            .file('word/_rels/document.xml.rels')!
+            .asText()
+            .matchAll(/Id="([^"]+)"[^>]*Target="([^"]+)"/g),
+        ].map((match) => [match[1]!, match[2]!])
+      );
+      let start = 0;
+      for (const match of body.matchAll(/<w:sectPr\b[\s\S]*?<\/w:sectPr>/g)) {
+        const section = match[0];
+        const content = body.slice(start, match.index);
+        start = match.index + section.length;
+        if (!section.includes('w:orient="landscape"')) continue;
+        const headers = [...section.matchAll(/<w:headerReference\b[^>]*r:id="([^"]+)"/g)].map(
+          (reference) => zip.file(`word/${targets.get(reference[1]!)}`)!.asText()
+        );
+        const across = [content, ...headers]
+          .flatMap(topLevelTables)
+          .filter((table) => table.includes('<w:tblW w:w="5000" w:type="pct"/>'));
+        expect(across.length).toBeGreaterThan(0);
+        for (const table of across) {
+          const grid = [...table.matchAll(/<w:gridCol w:w="(\d+)"\/>/g)].map((each) =>
+            Number(each[1])
+          );
+          expect(grid.reduce((sum, each) => sum + each, 0)).toBe(16838 - 1134 - 1134);
+        }
+      }
+    }
+  );
 
   it.each([...fireFiles, 'act_aditional_semnare_electronica.docx'])(
     '%s keeps its tables as they were, until its set is reviewed',

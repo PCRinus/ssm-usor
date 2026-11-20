@@ -31,8 +31,8 @@ HEADER_FILL = 'E3E8E0'
 # and keeps with the row after it, so a group never starts at a page's foot.
 GROUP_FILL = 'F1F4EF'
 PADDING = (('top', 40), ('left', 85), ('bottom', 40), ('right', 85))  # twips
-# Beside the text of a register too dense for the house padding, where a header's words would
-# break inside the word: 7.2's registers of 12 to 18 columns, as they had it.
+# Beside the text of a table too dense for the house padding, where a header's words would
+# break inside the word.
 DENSE_SIDE_PADDING = 55
 HOUSE_TABLE = 'HouseTable'
 HOUSE_TABLE_STYLE = (f'<w:style w:type="table" w:customStyle="1" w:styleId="{HOUSE_TABLE}">'
@@ -913,6 +913,26 @@ def house_tables(xml):
             table = readable_grid(table)
         xml = xml[:start] + table + xml[end:]
     return around_tables(xml)
+
+
+# The merge shares the width among these tables' columns by what the client's data puts in them
+# (`src/content-widths.ts`), one set for the document: the prevention plan keeps the columns of
+# annex 7 to H.G. 1425/2006, whose kinds of measure are filled very unevenly from client to client.
+CONTENT_WIDTHS = 'ContentWidths'
+CONTENT_WIDTH_TABLES = {'10_prevention_plan.docx': '{{#plan}}'}
+
+
+def marked_for_content_widths(xml, file_name):
+    loop = CONTENT_WIDTH_TABLES.get(file_name)
+    if not loop:
+        return xml
+    for start, end in reversed(list(top_level_tables(xml))):
+        table = xml[start:end]
+        if loop in table:
+            table = edit_properties(table, 'tblPr', lambda inner: put(
+                inner, 'tblCaption', f'<w:tblCaption w:val="{CONTENT_WIDTHS}"/>', TBL_PR_ORDER))
+            xml = xml[:start] + table + xml[end:]
+    return xml
 
 
 def with_house_style(styles):

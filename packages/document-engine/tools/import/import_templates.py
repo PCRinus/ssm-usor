@@ -42,7 +42,8 @@ from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
 from decision_pages import decision_pages
 from signatures import signing_space
-from table_style import draws_house_tables, house_tables_part
+from landscape_binding import landscape_bound_on_top
+from table_style import draws_house_tables, house_tables_part, marked_for_content_widths
 from word_layout import lays_out_as_word_2013, word_2013_part
 
 ROOT = '/work'
@@ -2027,8 +2028,9 @@ def sweep(path, word_2013=None):
     short, and the branding line small and grey; and in the documents with contents, a table
     of contents over real headings (`TABLES_OF_CONTENTS`). In the occupational safety set,
     Word 2013's layout with every table on the margins (`word_layout`), the table house
-    style (`table_style`), one signing space for every signature (`signatures`) and the
-    decisions' page numbers and running header (`decision_pages`), which `word_2013` asks for
+    style (`table_style`), one signing space for every signature (`signatures`), the
+    decisions' page numbers and running header (`decision_pages`) and landscape pages bound on
+    their top edge (`landscape_binding`), which `word_2013` asks for
     or leaves to the file's place. Safe to run again."""
     if word_2013 is None:
         word_2013 = lays_out_as_word_2013(path)
@@ -2050,6 +2052,9 @@ def sweep(path, word_2013=None):
                      if re.search(r'\.(xml|rels)$', item.filename)}
             paged = decision_pages(texts)
             labelled.update({name: text for name, text in paged.items() if text != texts.get(name)})
+            texts.update(paged)
+            bound = landscape_bound_on_top(texts)
+            labelled.update({name: text for name, text in bound.items() if text != texts.get(name)})
             known = {item.filename for item, _ in entries}
             stamp = next(item for item, _ in entries if item.filename == 'word/document.xml').date_time
             for name in paged:
@@ -2077,7 +2082,7 @@ def sweep(path, word_2013=None):
                 xml = re.sub(r'(<w:pgNumType\b[^>]*?) w:start="\d+"', r'\1', xml)
                 if item.filename == 'word/document.xml':
                     if word_2013:
-                        xml = signing_space(xml)
+                        xml = marked_for_content_widths(signing_space(xml), os.path.basename(path))
                     xml = cap_keep_chains(keep_lead_ins(xml, styles), styles)
                     xml = PAGE_BREAK_PARAGRAPH.sub(PAGE_BREAK, xml)
                 elif item.filename.startswith('word/footer'):
