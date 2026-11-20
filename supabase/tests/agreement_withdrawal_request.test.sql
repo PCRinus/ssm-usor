@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(16);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -21,7 +21,8 @@ insert into public.job_positions (id, organization_id, client_id, name) values
 insert into public.employees (id, organization_id, client_id, job_position_id, last_name, first_name, job_title, hired_at, email) values
   ('e1e1e1e1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Popescu', 'Ion', 'Sudor', '2020-03-01', 'ion@example.com'),
   ('e1e1e1e1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Ionescu', 'Ana', 'Sudor', '2020-03-01', 'ana@example.com'),
-  ('e1e1e1e1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Marin', 'Dan', 'Sudor', '2020-03-01', 'dan@example.com');
+  ('e1e1e1e1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Marin', 'Dan', 'Sudor', '2020-03-01', 'dan@example.com'),
+  ('e1e1e1e1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Stan', 'Maria', 'Sudor', '2020-03-01', 'maria@example.com');
 
 insert into public.client_files (id, organization_id, client_id, name, original_file_name, mime_type, size_bytes, sha256, uploaded_by) values
   ('f1f1f1f1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Act adițional semnat', 'act.pdf', 'application/pdf', 10, repeat('a', 64), 'aaaaaaaa-0000-4000-8000-000000000001'),
@@ -123,6 +124,12 @@ select lives_ok(
      set state = 'withdrawn', withdrawal_requested_on = '2026-11-13', withdrawal_file_id = null
      where employee_id = 'e1e1e1e1-0000-4000-8000-000000000003' $$,
   'and a withdrawal is recorded without a scan'
+);
+
+select lives_ok(
+  $$ insert into public.employee_signing_agreements (employee_id, organization_id, client_id, state, withdrawal_requested_on, withdrawal_file_id)
+     values ('e1e1e1e1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'withdrawn', '2026-11-14', 'f1f1f1f1-0000-4000-8000-000000000002') $$,
+  'a member records a first agreement as withdrawn with its request'
 );
 
 select * from finish();
