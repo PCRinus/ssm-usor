@@ -2,7 +2,12 @@
 // written from the merged document, so a chapter a loop repeats is listed once per item. They
 // carry no page numbers: the PDF conversion recomputes the table with them, as the in-app
 // editor and Word do when asked, and a number guessed here would be wrong wherever the pages
-// break differently.
+// break differently. Where the template has a "Contents labels N" style (the occupational
+// safety set, tools/import/contents.py), an entry of level N prints its label bold, a tab, and
+// its title, with that style's tab stop and hang. LibreOffice's recomputed table, written from
+// the headings' plain text in the "toc N" styles, has neither.
+
+import { textWidth } from './content-widths';
 
 const contentsControl =
   /<w:sdt>(?:(?!<\/w:sdt>)[\s\S])*?<w:docPartGallery w:val="Table of Contents"\/>[\s\S]*?<\/w:sdt>/;
@@ -43,6 +48,47 @@ function headingLevels(styles: string) {
   return (id: string) => resolve(id, new Set());
 }
 
+const entryLabel = /^((?:sub)?capitolul [IVXLC]+\.(?:[IVXLC]+\.)?|anexa(?: nr\.)? \d+\.) (.+)$/i;
+
+type LabelColumn = { start: number; title: number; properties: string };
+
+/** Per level, where its labels start, where its titles start, and the tab and indent to set. */
+function labelColumns(styles: string) {
+  const columns = new Map<number, LabelColumn>();
+  for (const [, attributes, body] of styles.matchAll(styleDefinition)) {
+    const level = /w:styleId="ContentsLabels(\d)"/.exec(attributes!)?.[1];
+    if (!level) continue;
+    const tabs = /<w:tabs>[\s\S]*?<\/w:tabs>/.exec(body!)?.[0];
+    const indent = /<w:ind\b[^>]*\/>/.exec(body!)?.[0];
+    const title = tabs && /<w:tab w:val="left" w:pos="(\d+)"\/>/.exec(tabs)?.[1];
+    if (!indent || !title) continue;
+    const left = Number(/w:left="(\d+)"/.exec(indent)?.[1] ?? 0);
+    const hanging = Number(/w:hanging="(\d+)"/.exec(indent)?.[1] ?? 0);
+    columns.set(Number(level), {
+      start: left - hanging,
+      title: Number(title),
+      properties: tabs + indent,
+    });
+  }
+  return columns;
+}
+
+const run = (text: string, bold = false) =>
+  `<w:r>${bold ? '<w:rPr><w:b/><w:bCs/></w:rPr>' : ''}<w:t xml:space="preserve">${encode(text)}</w:t></w:r>`;
+
+function entry(level: number, text: string, column: LabelColumn | undefined) {
+  const style = `<w:pStyle w:val="TOC${level}"/>`;
+  const parts = column ? entryLabel.exec(text) : null;
+  if (!parts) return { properties: style, runs: run(text) };
+  const [, label, title] = parts;
+  // A label wider than its column would tab on to the page numbers' stop.
+  const fits = column!.start + textWidth(label!, 20, true) + 57 <= column!.title;
+  return {
+    properties: style + column!.properties,
+    runs: run(label!, true) + (fits ? '<w:r><w:tab/></w:r>' : run(' ')) + run(title!),
+  };
+}
+
 function outlineRange(instruction: string) {
   const range = /\\o\s+"(\d)-(\d)"/.exec(instruction);
   return range ? { from: Number(range[1]), to: Number(range[2]) } : { from: 1, to: 9 };
@@ -75,6 +121,7 @@ export function fillTableOfContents(document: string, styles: string): string {
   if (!instruction) return document;
 
   const levelOf = headingLevels(styles);
+  const columns = labelColumns(styles);
   const { from, to } = outlineRange(instruction[1]!);
   const takenNames = new Set(
     [...document.matchAll(/<w:bookmarkStart\b[^>]*w:name="([^"]+)"/g)].map((match) => match[1])
@@ -115,9 +162,10 @@ export function fillTableOfContents(document: string, styles: string): string {
     const opening =
       index === 0 ? `${fieldRun('begin')}<w:r>${instruction[0]}</w:r>${fieldRun('separate')}` : '';
     const closing = index === entries.length - 1 ? fieldRun('end') : '';
+    const { properties, runs } = entry(level, text, columns.get(level));
     return (
-      `<w:p><w:pPr><w:pStyle w:val="TOC${level}"/></w:pPr>${opening}` +
-      `<w:hyperlink w:anchor="${bookmark}" w:history="1"><w:r><w:t xml:space="preserve">${encode(text)}</w:t></w:r></w:hyperlink>` +
+      `<w:p><w:pPr>${properties}</w:pPr>${opening}` +
+      `<w:hyperlink w:anchor="${bookmark}" w:history="1">${runs}</w:hyperlink>` +
       `${closing}</w:p>`
     );
   });

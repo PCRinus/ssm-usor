@@ -5,7 +5,8 @@ header that is bold, centred, filled with the app's table-header grey-green and 
 every page; 1.5 mm of padding beside the text and 0.7 mm above and below it; a body row of
 single lines centred from top to bottom, one with more lines anywhere read from the top, never
 mixed; a column of short values centred, one of names or text from the left; row numbers
-regular; one mark, a centred dash, for a cell left empty in a table of data. Then the rule that keeps a table together (`keep_together`).
+regular; one mark, a centred dash, for a cell left empty in a table of data; a cell in a safety
+colour in the value the set's signs print (`safety_colours`). Then the rule that keeps a table together (`keep_together`).
 
 A table drawn this way names the table style `HOUSE_TABLE`, which holds nothing: the merge
 (`src/table-keep.ts`) lays the rule over again once a loop has repeated the rows, and touches
@@ -936,6 +937,48 @@ def readable_grid(table):
     return rebuilt(table, rows, styled)
 
 
+# The ISO 7010 colours of the set's safety signs (`pictures/svg`), with the text that reads on
+# each: H.G. 971/2006's table of safety colours shows what its signs print.
+SAFETY_COLOURS = {'red': ('B71F2E', 'FFFFFF'), 'yellow': ('F9A800', '000000'),
+                  'blue': ('005387', 'FFFFFF'), 'green': ('237F52', 'FFFFFF')}
+
+
+def safety_colour(fill):
+    """The safety colour a strongly coloured fill stands for, or None."""
+    if not re.fullmatch(r'[0-9A-Fa-f]{6}', fill or ''):
+        return None
+    red, green, blue = (int(fill[index:index + 2], 16) / 255 for index in (0, 2, 4))
+    high, low = max(red, green, blue), min(red, green, blue)
+    if high < 0.3 or high - low < 0.5 * high:
+        return None
+    if high == red:
+        hue = (60 * (green - blue) / (high - low)) % 360
+    elif high == green:
+        hue = 60 * (blue - red) / (high - low) + 120
+    else:
+        hue = 60 * (red - green) / (high - low) + 240
+    return ('red' if hue < 25 or hue >= 330 else 'yellow' if hue < 75 else 'green' if hue < 165
+            else 'blue' if hue < 270 else None)
+
+
+def safety_colours(table):
+    """A body cell filled with a safety colour prints the signs' value of it, its text bold in
+    the colour that reads on it."""
+    def cell_change(column, cell):
+        shading = re.search(r'<w:shd\b[^>]*/>', cell_properties(cell))
+        fill = shading and re.search(r'w:fill="(\w+)"', shading.group(0))
+        colour = fill and safety_colour(fill.group(1))
+        if not colour:
+            return cell
+        background, text = SAFETY_COLOURS[colour]
+        cell = edit_cell(cell, lambda inner: put(
+            inner, 'shd', f'<w:shd w:val="clear" w:color="auto" w:fill="{background}"/>', TC_PR_ORDER))
+        return edit_paragraphs(cell, lambda paragraph: edit_runs(
+            paragraph, lambda inner: coloured(text)(bold(True)(inner))))
+    rows = ROW.findall(table)
+    return rebuilt(table, rows, [with_cells(row, cell_change) for row in rows])
+
+
 def top_level_tables(xml):
     depth, start = 0, 0
     for match in re.finditer(r'<(/?)w:tbl>', xml):
@@ -1024,7 +1067,8 @@ def house_tables(xml, file_name=None):
         table = xml[start:end]
         kind = kind_of(table)
         if kind in ('house', 'consequences'):
-            table = house_table(table, kind, header_size, snap, closes_its_page(xml[end:]), page_room(xml[end:]))
+            table = safety_colours(house_table(table, kind, header_size, snap, closes_its_page(xml[end:]),
+                                               page_room(xml[end:])))
         elif kind == 'scale':
             table = readable_grid(table)
         xml = xml[:start] + table + xml[end:]

@@ -4,7 +4,8 @@ import unittest
 import decision_pages
 import landscape_binding
 from table_style import (PORTRAIT_KEEP_ROOM, body_floors, closes_its_page, element, house_table, in_schema_order,
-                         in_schema_values, is_signed_list, keep_together, kind_of, on_the_scale, page_room, without)
+                         in_schema_values, is_signed_list, keep_together, kind_of, on_the_scale, page_room,
+                         safety_colour, safety_colours, without)
 
 ROW = '<w:tr><w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>{}</w:t></w:r></w:p></w:tc></w:tr>'
 def table(rows, properties=''):
@@ -22,6 +23,27 @@ class PropertyChildren(unittest.TestCase):
 
     def test_run_properties_are_still_found(self):
         self.assertEqual(element('<w:jc/><w:rPr><w:b/></w:rPr>', 'rPr'), '<w:rPr><w:b/></w:rPr>')
+
+
+class SafetyColours(unittest.TestCase):
+    def test_a_strong_fill_is_the_safety_colour_it_stands_for(self):
+        for fill, colour in (('FF0000', 'red'), ('FFFF00', 'yellow'), ('3366FF', 'blue'), ('00CC00', 'green'),
+                             ('B71F2E', 'red'), ('F9A800', 'yellow'), ('005387', 'blue'), ('237F52', 'green')):
+            self.assertEqual(safety_colour(fill), colour, fill)
+        for fill in ('E3E8E0', 'F1F4EF', 'F3F3F3', 'FFFFFF', '000000', 'auto'):
+            self.assertIsNone(safety_colour(fill), fill)
+
+    def test_a_cell_in_a_safety_colour_prints_the_signs_value_and_readable_bold_text(self):
+        cell = ('<w:tc><w:tcPr><w:shd w:color="auto" w:fill="{}" w:val="clear"/></w:tcPr>'
+                '<w:p><w:r><w:rPr><w:color w:val="auto"/></w:rPr><w:t>X</w:t></w:r></w:p></w:tc>')
+        table = f'<w:tbl><w:tr>{cell.format("00CC00")}{cell.format("FFFF00")}</w:tr></w:tbl>'
+        out = safety_colours(table)
+        self.assertIn('w:fill="237F52"', out)
+        self.assertIn('w:fill="F9A800"', out)
+        self.assertEqual(out.count('<w:b/><w:bCs/>'), 4)
+        self.assertIn('<w:color w:val="FFFFFF"/>', out)
+        self.assertIn('<w:color w:val="000000"/>', out)
+        self.assertEqual(safety_colours(out), out)
 
 
 class SchemaOrder(unittest.TestCase):

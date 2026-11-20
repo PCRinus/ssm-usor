@@ -152,3 +152,56 @@ describe('a merged table of contents', () => {
     ]);
   });
 });
+
+describe('an entry of a level with a label column', () => {
+  const column =
+    '<w:tabs><w:tab w:val="left" w:pos="1596"/></w:tabs><w:ind w:left="1596" w:right="567" w:hanging="1596"/>';
+  const columned = styles.replace(
+    '</w:styles>',
+    '<w:style w:type="paragraph" w:customStyle="1" w:styleId="ContentsLabels1"><w:name w:val="Contents labels 1"/>' +
+      `<w:basedOn w:val="TOC1"/><w:semiHidden/><w:pPr>${column}</w:pPr></w:style></w:styles>`
+  );
+  const entries = contents(
+    fillTableOfContents(
+      document(
+        placeholder +
+          styled('Heading1', text('Capitolul IV. Organizarea activităților')) +
+          styled('Heading1', text('BIBLIOGRAFIE')) +
+          styled('Heading1', text('CAPITOLUL XXVIII. PREA LUNG PENTRU COLOANĂ'))
+      ),
+      columned
+    )
+  );
+
+  it('prints the label bold, a tab, then the title, with the column on the entry', () => {
+    expect(entries[0]).toContain(`<w:pPr><w:pStyle w:val="TOC1"/>${column}</w:pPr>`);
+    expect(entries[0]).toContain(
+      '<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">Capitolul IV.</w:t></w:r>' +
+        '<w:r><w:tab/></w:r><w:r><w:t xml:space="preserve">Organizarea activităților</w:t></w:r>'
+    );
+  });
+
+  it('leaves an entry without a label whole, in its style alone', () => {
+    expect(entries[1]).toContain('<w:pPr><w:pStyle w:val="TOC1"/></w:pPr>');
+    expect(entries[1]).toContain(
+      '<w:hyperlink w:anchor="_Toc000000002" w:history="1"><w:r><w:t xml:space="preserve">BIBLIOGRAFIE</w:t></w:r></w:hyperlink>'
+    );
+  });
+
+  it('follows a label wider than its column with a space, not a tab to the page number', () => {
+    expect(entries[2]).not.toContain('<w:tab/>');
+    expect(entryText(entries[2]!)).toBe('CAPITOLUL XXVIII. PREA LUNG PENTRU COLOANĂ');
+  });
+
+  it('leaves the entries of a level without a label column in one run', () => {
+    const plain = contents(
+      fillTableOfContents(
+        document(placeholder + styled('Heading1', text('Capitolul IV. Organizarea'))),
+        styles
+      )
+    );
+    expect(plain[0]).toContain(
+      '<w:hyperlink w:anchor="_Toc000000001" w:history="1"><w:r><w:t xml:space="preserve">Capitolul IV. Organizarea</w:t></w:r></w:hyperlink>'
+    );
+  });
+});
