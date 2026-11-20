@@ -84,7 +84,6 @@ import {
   ImpersonationMarker,
 } from '@/features/impersonation/impersonation-banner';
 import { ImportReadyWatcher } from '@/features/imports/import-ready-watcher';
-import { ImportsHeaderLink } from '@/features/imports/imports-header-link';
 import { importSections } from '@/features/imports/list/import-sections';
 import { MyImportsProvider } from '@/features/imports/my-imports';
 import { useMyImports } from '@/features/imports/use-my-imports';
@@ -247,6 +246,36 @@ function NavGroup({
     >
       <div className="min-h-0 overflow-hidden">{children}</div>
     </div>
+  );
+}
+
+// On a phone and in the icon rail the menu's counts are out of sight, so the toggle carries their sum.
+function SidebarToggle({ unread }: { unread: number }) {
+  const { isMobile, state } = useSidebar();
+  const waiting = useMyImports().waiting?.total ?? 0;
+  const behind = behindCountOf(useBehindSummary().data?.counts);
+  const total = waiting + behind + unread;
+  const shown = total > 0 && (isMobile || state === 'collapsed');
+  return (
+    <span className="relative inline-grid shrink-0">
+      <SidebarTrigger
+        data-testid="sidebar-toggle"
+        aria-label={
+          shown
+            ? `Comută meniul lateral: ${countOf(total, 'element de văzut', 'elemente de văzut')}`
+            : 'Comută meniul lateral'
+        }
+      />
+      {shown && (
+        <span
+          aria-hidden="true"
+          data-testid="sidebar-toggle-count"
+          className="pointer-events-none absolute -top-1.5 -right-2 grid h-[18px] min-w-[18px] place-items-center rounded-full border-2 border-card bg-brand-lime px-1 text-[11px] leading-none font-bold text-foreground tabular-nums"
+        >
+          {total > 99 ? '99+' : total}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -644,7 +673,7 @@ export function AppShell() {
             </a>
             <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
               <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-                <SidebarTrigger data-testid="sidebar-toggle" aria-label="Comută meniul lateral" />
+                <SidebarToggle unread={unreadCount + releases.unreadCount} />
                 <Separator orientation="vertical" className="!h-6" />
                 <Link to="/dashboard" aria-label="SSM Ușor — pagina principală">
                   <img
@@ -673,7 +702,6 @@ export function AppShell() {
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-3 md:gap-2">
-                <ImportsHeaderLink />
                 <SetupGuideHeaderButton variant="ring" />
                 <SetupGuideHeaderButton variant="pill" />
               </div>

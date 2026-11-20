@@ -80,9 +80,6 @@ export function closedSince(previous: ReadonlyMap<string, string>, items: readon
   );
 }
 
-export const tabWithWaiting = (counts: WaitingCounts): ImportKind =>
-  counts.client === 0 && counts.employees > 0 ? 'employees' : 'client';
-
 export const isAnyMoving = (items: readonly ImportItem[], now = Date.now()) =>
   items.some(
     (item) =>
