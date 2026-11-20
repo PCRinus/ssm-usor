@@ -4,6 +4,7 @@ import { appendAnnexes, renderAnnex, TemplateError } from '@ssm-usor/document-en
 import type { Json } from '../../database.types';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
+import { printedNames } from './printed-names';
 import { annexDomainOf, annexesData } from './snapshot';
 
 export function renderInstructionAnnex(
@@ -56,7 +57,8 @@ export async function renderSnapshotAnnexes(
         'An annexed instruction is no longer in the library; generate the document again.'
       );
     }
-    return renderInstructionAnnex(domain, body, annex.data);
+    const data = domain === 'ssm' ? printedNames('occupational_safety')(annex.data) : annex.data;
+    return renderInstructionAnnex(domain, body, data);
   });
 }
 

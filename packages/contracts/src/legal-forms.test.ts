@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { companyName, namesCompany } from './legal-forms';
+import { companyName, namesCompany, withLegalFormsKept } from './legal-forms';
 import {
   foldName,
   registeredNameAsWritten,
@@ -253,5 +253,26 @@ describe('namesCompany', () => {
   it('does not take a bare surname, or the name with another form, for the client', () => {
     expect(namesCompany('Instructajul îl face Stanciuc.', client)).toBe(false);
     expect(namesCompany('Stanciuc SRL livrează hârtie.', client)).toBe(false);
+  });
+});
+
+describe('withLegalFormsKept', () => {
+  const nbsp = ' ';
+
+  it.each([
+    ['S.C. SERVICIU EXTERN DEMO S.R.L.', `S.C.${nbsp}SERVICIU EXTERN DEMO${nbsp}S.R.L.`],
+    ['PIPETECH SRL', `PIPETECH${nbsp}SRL`],
+    ['S. C. Alfa Beta S. R. L.', `S.${nbsp}C.${nbsp}Alfa Beta${nbsp}S.${nbsp}R.${nbsp}L.`],
+    ['Alfa Construct S.R.L.-D.', `Alfa Construct${nbsp}S.R.L.-D.`],
+    ['Popescu Ion PFA', `Popescu Ion${nbsp}PFA`],
+    ['SC Alfa SA', `SC${nbsp}Alfa${nbsp}SA`],
+  ])('keeps the form of %s with the word beside it', (name, kept) => {
+    expect(withLegalFormsKept(name)).toBe(kept);
+  });
+
+  it('leaves a name without a form, or only a form, as it is', () => {
+    expect(withLegalFormsKept('Brutăria Fictivă')).toBe('Brutăria Fictivă');
+    expect(withLegalFormsKept('S.R.L.')).toBe('S.R.L.');
+    expect(withLegalFormsKept('Mobila SA Prod')).toBe('Mobila SA Prod');
   });
 });

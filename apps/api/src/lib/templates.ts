@@ -46,6 +46,7 @@ export function missingDocumentDataError(missing: MissingDocumentData[]) {
 /**
  * The merged file, and the part of the data it printed. That part is the revision's snapshot:
  * a new first-aider then marks the first aid decision as out of date, not the whole set.
+ * `printing` sets the data in type, for the file only.
  * `printedGaps` names the gaps behind the top-level names the template found no value for;
  * when there are any, the document is refused for them rather than left with a gap.
  */
@@ -53,10 +54,11 @@ export function merge(
   template: Uint8Array,
   data: Record<string, unknown>,
   typeKey: string,
-  printedGaps: (absentNames: string[]) => MissingDocumentData[] = () => []
+  printedGaps: (absentNames: string[]) => MissingDocumentData[] = () => [],
+  printing: (data: Record<string, unknown>) => Record<string, unknown> = (same) => same
 ) {
   try {
-    const { document, usedNames } = renderTemplate(template, data);
+    const { document, usedNames } = renderTemplate(template, printing(data));
     return {
       bytes: document,
       snapshot: Object.fromEntries(usedNames.map((name) => [name, data[name]])),

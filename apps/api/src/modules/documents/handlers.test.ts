@@ -1034,6 +1034,66 @@ describe('POST /clients/{clientId}/documents/generate', () => {
   const generate = (body: unknown = { issueDate: '2026-01-19', firstDecisionNumber: 3 }) =>
     request(`/clients/${clientId}/documents/generate`, 'POST', body);
 
+  it('lists the posts in Romanian order, Ș after S', async () => {
+    const shofer = 'a0000000-0000-4000-8000-000000000001';
+    mockUpstream({
+      templates: () =>
+        Response.json(
+          ['protective_equipment_list', 'risk_assessment', 'prevention_plan'].map((typeKey) => ({
+            type_key: typeKey,
+            title: typeKey,
+            document_template_versions: [
+              { id: typeKey, version: 1, storage_path: `built-in/${typeKey}/one.docx` },
+            ],
+          }))
+        ),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+      positions: () => Response.json([{ ...positionRow, id: shofer, name: 'Șofer' }, positionRow]),
+      riskEvaluations: () =>
+        Response.json([
+          ...evaluationRows,
+          evaluationRow(
+            'e0e0e0e0-0000-4000-8000-000000000300',
+            'job_position',
+            shofer,
+            workshopEvaluation
+          ),
+        ]),
+    });
+    const merged: Record<string, unknown>[] = [];
+    const engine = await import('@ssm-usor/document-engine');
+    vi.spyOn(engine, 'renderTemplate').mockImplementation((_template, data) => {
+      merged.push(data);
+      return { document: new Uint8Array([80, 75, 3, 4]), usedNames: [] };
+    });
+    expect((await generate()).status).toBe(201);
+    expect(merged).toHaveLength(3);
+    for (const data of merged) {
+      const printed = JSON.stringify(data);
+      expect(printed.indexOf('Sudor')).toBeGreaterThan(-1);
+      expect(printed.indexOf('Sudor')).toBeLessThan(printed.indexOf('Șofer'));
+    }
+  });
+
+  it('prints a name with its legal form kept on one line, and keeps the name as stored in the snapshot', async () => {
+    mockUpstream({
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+    });
+    const merged: Record<string, unknown>[] = [];
+    const engine = await import('@ssm-usor/document-engine');
+    vi.spyOn(engine, 'renderTemplate').mockImplementation((_template, data) => {
+      merged.push(data);
+      return { document: new Uint8Array([80, 75, 3, 4]), usedNames: ['client'] };
+    });
+    expect((await generate()).status).toBe(201);
+    expect(merged[0]?.client).toMatchObject({ legalName: 'S.C.\u00a0PIPETECH\u00a0S.R.L.' });
+    expect(sentBody('/rest/v1/document_revisions', 0).data_snapshot).toEqual({
+      client: printedClient,
+    });
+  });
+
   it('creates what the client lacks from the newest template versions', async () => {
     let listed = 0;
     mockUpstream({
@@ -1350,8 +1410,8 @@ const annexData = (index: number) => {
     page: 'ssm',
     branding: true,
     issueDate: '19.01.2026',
-    provider: printedProvider,
-    client: printedClient,
+    provider: { ...printedProvider, legalName: 'S.C.\u00a0SAFETY\u00a0S.R.L.' },
+    client: { ...printedClient, legalName: 'S.C.\u00a0PIPETECH\u00a0S.R.L.' },
     number,
     title,
     versionDate,
@@ -2318,7 +2378,13 @@ describe('POST /documents/{documentId}/issue', () => {
     expect((await issueWith(vi.fn(), convertDocuments)).status).toBe(200);
     expect(convertedFiles(convertDocuments.mock.calls[0]![0])).toEqual([
       '\u0001\u0002\u0003',
-      { ...annexData(0), page: 'su', fireSafetyTechnician: technician },
+      {
+        ...annexData(0),
+        page: 'su',
+        provider: printedProvider,
+        client: printedClient,
+        fireSafetyTechnician: technician,
+      },
     ]);
   });
 

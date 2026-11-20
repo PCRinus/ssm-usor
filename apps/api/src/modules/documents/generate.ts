@@ -26,6 +26,7 @@ import { buildDocumentContext, decisionNumberOf, documentApplies, documentData }
 import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
 import { buildFireSafetyContext, fireSafetyDocumentData } from './fire-safety';
 import { fireFirstDecisionNumber, inSetOrder, presentDocument, presentDocuments } from './present';
+import { printedNames } from './printed-names';
 import { addRevision } from './revisions';
 import {
   type Actor,
@@ -241,7 +242,9 @@ async function createDocument(
   const { bytes, snapshot } = merge(
     await files.readTemplate(template.storagePath),
     data,
-    template.typeKey
+    template.typeKey,
+    undefined,
+    printedNames(options.set)
   );
 
   let documentId = options.existingId;
@@ -452,7 +455,8 @@ export async function regenerateDraft(
     await files.readTemplate(template.storagePath),
     data,
     document.type_key,
-    (absentNames) => missing.filter((code) => rules.concerns(code, absentNames))
+    (absentNames) => missing.filter((code) => rules.concerns(code, absentNames)),
+    printedNames(set)
   );
 
   const generation = await db
