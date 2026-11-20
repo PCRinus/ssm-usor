@@ -1249,6 +1249,17 @@ describe('the signing agreement state', () => {
       });
     });
 
+    it('takes a day before the hire date, since the contract precedes it', async () => {
+      mockUpstream(agreementUpstream());
+
+      const response = await request(statePath, {
+        method: 'PUT',
+        body: { state: 'signed_on_paper', signedOn: '2026-02-20' },
+      });
+
+      expect(response.status).toBe(200);
+    });
+
     it('takes today in Romania when no day is given', async () => {
       mockUpstream(agreementUpstream());
 
@@ -1260,15 +1271,12 @@ describe('the signing agreement state', () => {
       expect(new Date(signedAt).getUTCHours()).toBeOneOf([9, 10]);
     });
 
-    it.each([
-      ['in the future', '2999-01-01'],
-      ['before the hire date', '2026-03-01'],
-    ])('refuses a day %s on signedOn', async (_case, signedOn) => {
+    it('refuses a day in the future on signedOn', async () => {
       mockUpstream(agreementUpstream());
 
       const response = await request(statePath, {
         method: 'PUT',
-        body: { state: 'signed_on_paper', signedOn },
+        body: { state: 'signed_on_paper', signedOn: '2999-01-01' },
       });
 
       expect(response.status).toBe(400);

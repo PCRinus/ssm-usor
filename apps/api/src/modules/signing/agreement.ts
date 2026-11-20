@@ -114,7 +114,7 @@ const unavailableFor = (
 type AgreementSources = {
   row: AgreementRow | null;
   client: RepresentativeColumns | null;
-  employee: { email: string | null; phone: string | null; hired_at: string };
+  employee: { email: string | null; phone: string | null };
 };
 
 const toAgreement = ({ row, client, employee }: AgreementSources): SigningAgreementResponse => ({
@@ -130,7 +130,7 @@ async function agreementSources(
   const [employee, agreement, client] = await Promise.all([
     db
       .from('employees')
-      .select('id, email, phone, hired_at')
+      .select('id, email, phone')
       .eq('id', employeeId)
       .eq('client_id', clientId)
       .maybeSingle(),
@@ -392,9 +392,6 @@ function stateChange(body: SigningAgreementStateRequest, sources: AgreementSourc
     const signedOn = body.signedOn ?? today;
     if (signedOn > today) {
       throw invalid('signedOn', 'The agreement cannot be signed in the future.');
-    }
-    if (signedOn < sources.employee.hired_at) {
-      throw invalid('signedOn', 'The agreement cannot be signed before the hire date.');
     }
     return {
       state,
