@@ -54,15 +54,24 @@ export function EmployeeForm({
   focus?: EmployeeFocus;
 }) {
   // The shell renders this only for a signed-in user.
-  const { form, onSubmit, prefillBirthDate, choosePosition, workplaces, isSaving } =
-    useEmployeeForm(clientId, employee);
+  const {
+    form,
+    onSubmit,
+    prefillBirthDate,
+    choosePosition,
+    workplaces,
+    positionsPending,
+    isSaving,
+  } = useEmployeeForm(clientId, employee);
   const formRef = useRevealErrors(form);
   const cancel = useReturnOnClick(
     employee ? `/clienti/${clientId}/angajati/${employee.id}` : undefined
   );
-  // The workplace picker stays disabled, and so cannot take the focus, until its list loads.
+  // The pickers stay disabled, and so cannot take the focus, until their lists load.
   useFocusRequest(focus !== undefined, {
-    ready: focus !== 'workplace' || workplaces !== undefined,
+    ready:
+      (focus !== 'workplace' || workplaces !== undefined) &&
+      (focus !== 'employment' || !positionsPending),
     field: focus && focusedField[focus],
   });
   const {

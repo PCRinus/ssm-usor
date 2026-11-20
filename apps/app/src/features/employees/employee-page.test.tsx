@@ -9,7 +9,7 @@ import type {
   SigningAgreementResponse,
 } from '@/api/generated/api';
 import { formatDate, todayIso } from '@/lib/dates';
-import { installFetchMock, mockApi } from '@/test/api';
+import { fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
 import {
@@ -36,7 +36,7 @@ const worker = employeeRecord({
   email: 'ioana.dumitrescu@example.com',
   phone: '0745 318 226',
   jobTitle: 'Operator la mașini de ambalat',
-  jobPosition: { id: jobPositionId, name: 'Operator ambalare' },
+  jobPosition: { id: jobPositionId, name: 'Operator ambalare', archived: false },
   hiredAt: '2021-03-03',
   birthDate: '1989-07-14',
   birthPlace: 'Târnăveni',
@@ -54,16 +54,23 @@ const worker = employeeRecord({
 const readySheet = { ready: true, missing: [], stored: false, sequences: [], versions: {} };
 const missingFrom = (missing: MissingSheetData[]) => ({ ...readySheet, ready: false, missing });
 
+const positionsResponse = () =>
+  Response.json({
+    items: [jobPositionRecord({ id: jobPositionId, name: 'Operator ambalare' })],
+  });
+
 function mockPage({
   employee = worker,
   archived = false,
   ssm = [],
   su = [],
+  positions = positionsResponse,
 }: {
   employee?: EmployeeResponseEmployee;
   archived?: boolean;
   ssm?: MissingSheetData[];
   su?: MissingSheetData[];
+  positions?: () => Response | Promise<Response>;
 } = {}) {
   const client = clientRecord({ archivedAt: archived ? '2026-11-01T10:00:00.000Z' : null });
   mockApi((init, url) => {
@@ -91,9 +98,7 @@ function mockPage({
       case `/clients/${clientId}/workplaces`:
         return Response.json({ items: [] });
       case `/clients/${clientId}/job-positions`:
-        return Response.json({
-          items: [jobPositionRecord({ id: jobPositionId, name: 'Operator ambalare' })],
-        });
+        return positions();
       default:
         return undefined;
     }
@@ -169,6 +174,28 @@ describe("the Date tab of a worker's page", () => {
     mockPage();
     mountApp(authFixture(makeSession()).client, `${page}/editare?focus=${focus}`);
     const target = await screen.findByTestId(field);
+    await waitFor(() => expect(document.activeElement).toBe(target));
+  });
+
+  it('focuses the post only once the positions have loaded', async () => {
+    let answerPositions: (response: Response) => void = () => undefined;
+    const positions = new Promise<Response>((resolve) => {
+      answerPositions = resolve;
+    });
+    mockPage({ positions: () => positions });
+    mountApp(authFixture(makeSession()).client, `${page}/editare?focus=employment`);
+    const target = await screen.findByTestId('employee-job-position');
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          String(input).endsWith(`/clients/${clientId}/job-positions`)
+        )
+      ).toBe(true)
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(document.activeElement).not.toBe(target);
+
+    answerPositions(positionsResponse());
     await waitFor(() => expect(document.activeElement).toBe(target));
   });
 
