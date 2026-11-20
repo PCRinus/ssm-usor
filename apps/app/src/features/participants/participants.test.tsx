@@ -214,8 +214,9 @@ describe("the employee's portal access", () => {
     mountEmployee();
     const card = await portalCard();
     await within(card).findByTestId('participant-none');
-    expect(card.textContent).toContain('ion.popescu@example.com');
-    expect(card.textContent).toContain('+40721000000');
+    expect(within(card).getByTestId('participant-code').textContent).toBe(
+      'Email · ion.popescu@example.com'
+    );
 
     await user.click(within(card).getByTestId('participant-invite'));
     const dialog = await screen.findByTestId('participant-invite-dialog');
@@ -238,9 +239,10 @@ describe("the employee's portal access", () => {
     expect(
       await screen.findByText(fullText('Invitația a fost trimisă pe +40721000000.'))
     ).toBeTruthy();
-    expect((await within(card).findByTestId('participant-invitation-text')).textContent).toContain(
-      'Invitat pe ion.popescu@example.com prin email la'
+    expect((await within(card).findByTestId('participant-invitation-text')).textContent).toMatch(
+      /^expiră pe /
     );
+    expect(within(card).getByTestId('portal-access-state').textContent).toBe('Invitat');
   });
 
   it('invites at the proposed email without a pick', async () => {
@@ -310,19 +312,18 @@ describe("the employee's portal access", () => {
     expect((options[0] as HTMLInputElement).checked).toBe(true);
   });
 
-  it('asks for an email or a phone first when the employee has neither', async () => {
+  it('asks for an email or a phone first when the employee has neither, as the dark step', async () => {
     mockApi({ employee: { ...sampleEmployee, email: null, phone: null } });
-    const user = userEvent.setup();
     mountEmployee();
     const card = await portalCard();
-    await user.click(await within(card).findByTestId('participant-invite'));
-    const dialog = await screen.findByTestId('participant-invite-dialog');
-    const notice = within(dialog).getByTestId('participant-invite-no-address');
-    expect(notice.textContent).toContain('nu are email sau telefon');
-    expect(within(notice).getByRole('link', { name: 'Modifică datele' }).getAttribute('href')).toBe(
-      `${employeePage}/editare`
+    expect((await within(card).findByTestId('participant-no-contact')).textContent).toBe(
+      'Fără email sau telefon'
     );
-    expect(within(dialog).queryByTestId('participant-invite-submit')).toBeNull();
+    const add = within(card).getByTestId('participant-add-contact');
+    expect(add.textContent).toBe('Adaugă emailul sau telefonul');
+    expect(add.getAttribute('href')).toBe(`${employeePage}/editare?focus=contact`);
+    expect(add.getAttribute('data-variant')).toBe('default');
+    expect(within(card).queryByTestId('participant-invite')).toBeNull();
   });
 
   it('words a refused invitation in the dialog', async () => {
@@ -366,9 +367,10 @@ describe("the employee's portal access", () => {
     expect(within(card).getByTestId('participant-invitation-hint').textContent).toBe(
       `Poți retrimite după ora ${formatTime(resendableAt)}.`
     );
-    expect(within(card).getByTestId('participant-invitation-text').textContent).toContain(
-      'Invitația expiră pe'
+    expect(within(card).getByTestId('participant-invitation-text').textContent).toMatch(
+      /^expiră pe /
     );
+    expect(resend.getAttribute('data-variant')).toBe('secondary');
     expect(within(card).queryByTestId('participant-invite')).toBeNull();
   });
 
@@ -383,9 +385,13 @@ describe("the employee's portal access", () => {
     const user = userEvent.setup();
     mountEmployee();
     const card = await portalCard();
-    expect((await within(card).findByTestId('participant-invitation-text')).textContent).toContain(
-      'a expirat pe'
+    expect((await within(card).findByTestId('participant-invitation-text')).textContent).toMatch(
+      /^a expirat pe /
     );
+    expect(within(card).getByTestId('portal-access-state').textContent).toBe('Invitație expirată');
+    expect(
+      within(card).getByTestId('participant-invitation-resend').getAttribute('data-variant')
+    ).toBe('default');
     await user.click(within(card).getByTestId('participant-invitation-resend'));
     await waitFor(() =>
       expect(requests(`/participant-invitations/${invitationId}/resend`, 'POST')).toHaveLength(1)
@@ -426,8 +432,9 @@ describe("the employee's portal access", () => {
     mountEmployee();
     const card = await portalCard();
     expect((await within(card).findByTestId('participant-active-text')).textContent).toMatch(
-      /^Are acces la portal cu \+40721000000 din /
+      /^din /
     );
+    expect(within(card).getByTestId('participant-code').textContent).toBe('SMS · 0721 000 000');
     await user.click(within(card).getByTestId('participant-revoke'));
     const dialog = await screen.findByTestId('participant-revoke-dialog');
     expect(dialog.textContent).toContain('Instruirile, fișele și celelalte date rămân');
@@ -442,6 +449,31 @@ describe("the employee's portal access", () => {
     const card = await portalCard();
     await within(card).findByTestId('participant-none');
     expect(within(card).queryByTestId('participant-invite')).toBeNull();
+  });
+
+  it('keeps the revoke of an archived client in plain view and offers no resend', async () => {
+    mockApi({
+      client: { ...sampleClient, archivedAt: '2026-10-01T10:00:00+00:00' },
+      state: () => Response.json({ participant: null, invitation: invitation() }),
+    });
+    mountEmployee();
+    const card = await portalCard();
+    expect(await within(card).findByTestId('participant-invitation-revoke')).toBeTruthy();
+    expect(within(card).queryByTestId('participant-invitation-resend')).toBeNull();
+    expect(within(card).queryByTestId('participant-invitation-hint')).toBeNull();
+    expect(within(card).queryByTestId('portal-access-menu')).toBeNull();
+  });
+
+  it('names the language a participant uses the portal in', async () => {
+    mockApi({
+      state: () =>
+        Response.json({ participant: participant({ language: 'ro' }), invitation: null }),
+    });
+    mountEmployee();
+    const card = await portalCard();
+    expect((await within(card).findByTestId('participant-language')).textContent).toBe(
+      'portal în română'
+    );
   });
 });
 
