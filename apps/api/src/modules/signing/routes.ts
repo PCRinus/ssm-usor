@@ -293,7 +293,7 @@ export const putSigningAgreementStateRoute = createRoute({
   operationId: 'putSigningAgreementState',
   summary: "Record an employee's signing agreement as handed out or signed on paper",
   description:
-    "`generated` when it was handed to the employee; `signed_on_paper` when it came back signed by hand, on `signedOn` (today in Romania by default, not in the future, stored as noon in Romania), with the scan as a file of the client in `clientFileId`; `withdrawn` when the employee went back to signing by hand, with the day of their written request in `requestedOn` (today by default, not in the future) and its scan, a file of the client, in `requestFileId`: the withdrawal takes effect now, whatever the request's day, their pending trainee requests are voided and none is issued while it stands, and the agreement keeps how it was signed; `in_contract` for a new hire whose contract carries the clause. `signedOn`, `requestedOn` and `requestFileId` are refused for any other state, and `clientFileId` for `withdrawn`. The database records the member signed in as `marked_by`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.",
+    "`generated` when it was handed to the employee; `signed_on_paper` when it came back signed by hand, on `signedOn` (today in Romania by default, not in the future, stored as noon in Romania), with the scan as a file of the client in `clientFileId`; `withdrawn` when the employee went back to signing by hand, with the day of their written request in `requestedOn` (today by default, not in the future, not before the Romanian day the agreement was signed, or else handed out) and its scan, a file of the client, in `requestFileId`: the withdrawal takes effect now, whatever the request's day, and the database records the moment as `withdrawal.recordedAt`; their pending trainee requests are voided and none is issued while it stands, and the agreement keeps how it was signed. An agreement withdrawn before its request was kept takes `requestedOn` and `requestFileId` once, with `withdrawn` again, and nothing else changes; `in_contract` for a new hire whose contract carries the clause. `signedOn`, `requestedOn` and `requestFileId` are refused for any other state, and `clientFileId` for `withdrawn`. The database records the member signed in as `marked_by`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -306,13 +306,14 @@ export const putSigningAgreementStateRoute = createRoute({
   responses: {
     200: { description: 'The state saved', content: agreementContent },
     400: {
-      description: 'Invalid path or body, or a day in the future',
+      description:
+        'Invalid path or body, a day in the future, or a request dated before the agreement',
       content: errorContent,
     },
     404: noEmployee,
     409: {
       description:
-        "The agreement is signed electronically (reason `agreement_signed_electronically`), the file is not of the client, the client is archived (reason `client_archived`), for `generated`, the client's legal representative is not filled in (reason `missing_document_data`), or, for `withdrawn`, the withdrawal is recorded already (reason `agreement_withdrawal_recorded`)",
+        "The agreement is signed electronically (reason `agreement_signed_electronically`), the file is not of the client, the client is archived (reason `client_archived`), for `generated`, the client's legal representative is not filled in (reason `missing_document_data`), or, for `withdrawn`, the withdrawal and its request are recorded already (reason `agreement_withdrawal_recorded`)",
       content: errorContent,
     },
     ...membershipErrors,

@@ -1773,6 +1773,7 @@ export type Database = {
           updated_at: string;
           withdrawal_file_id: string | null;
           withdrawal_requested_on: string | null;
+          withdrawn_at: string | null;
         };
         ComputedFields: never;
         Insert: {
@@ -1791,6 +1792,7 @@ export type Database = {
           updated_at?: string;
           withdrawal_file_id?: string | null;
           withdrawal_requested_on?: string | null;
+          withdrawn_at?: string | null;
         };
         Update: {
           client_file_id?: string | null;
@@ -1808,6 +1810,7 @@ export type Database = {
           updated_at?: string;
           withdrawal_file_id?: string | null;
           withdrawal_requested_on?: string | null;
+          withdrawn_at?: string | null;
         };
         Relationships: [
           {

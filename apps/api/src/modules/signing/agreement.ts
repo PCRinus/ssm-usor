@@ -69,7 +69,7 @@ const representativeMissing = (client: RepresentativeColumns) =>
   missingRepresentative(client).length > 0;
 
 export const agreementColumns =
-  'state, generated_at, signed_at, client_file_id, storage_path, employee_signed_at, employer_signed_at, withdrawal_requested_on, withdrawal_file_id';
+  'state, generated_at, signed_at, client_file_id, storage_path, employee_signed_at, employer_signed_at, withdrawal_requested_on, withdrawal_file_id, withdrawn_at';
 
 export type AgreementRow = {
   state: string;
@@ -81,6 +81,7 @@ export type AgreementRow = {
   employer_signed_at: string | null;
   withdrawal_requested_on: string | null;
   withdrawal_file_id: string | null;
+  withdrawn_at: string | null;
 };
 
 export const toAgreementState = (row: AgreementRow) => ({
@@ -92,8 +93,12 @@ export const toAgreementState = (row: AgreementRow) => ({
   employerSignedAt: toIsoOrNull(row.employer_signed_at),
   awaiting: awaitedParty(row),
   withdrawal:
-    row.state === 'withdrawn' && row.withdrawal_requested_on
-      ? { requestedOn: row.withdrawal_requested_on, fileId: row.withdrawal_file_id }
+    row.state === 'withdrawn'
+      ? {
+          recordedAt: toIsoOrNull(row.withdrawn_at),
+          requestedOn: row.withdrawal_requested_on,
+          fileId: row.withdrawal_file_id,
+        }
       : null,
 });
 
@@ -358,6 +363,7 @@ export const getSigningAgreementState: RouteHandler<
 const invalid = (path: string, message: string) =>
   new ApiError('validation_error', message, [{ path, message }]);
 
+// marked_by and withdrawn_at are the database's to set, from the member signed in and the clock.
 function stateChange(body: SigningAgreementStateRequest, sources: AgreementSources, today: string) {
   const { state, clientFileId } = body;
   if (state === 'generated') {
@@ -371,7 +377,8 @@ function stateChange(body: SigningAgreementStateRequest, sources: AgreementSourc
     };
   }
   if (state === 'withdrawn') {
-    if (sources.row?.state === 'withdrawn') {
+    const row = sources.row;
+    if (row?.state === 'withdrawn' && row.withdrawal_requested_on) {
       throw ApiError.conflict(
         signatureErrorReasons.agreementWithdrawalRecorded,
         'The withdrawal is recorded already, with its request.'
@@ -381,12 +388,16 @@ function stateChange(body: SigningAgreementStateRequest, sources: AgreementSourc
     if (requestedOn > today) {
       throw invalid('requestedOn', 'The request cannot be dated in the future.');
     }
-    // Neither the signing moment nor the paper scan is sent: what the agreement was stays on it.
-    return {
-      state,
+    const signedSince = row && (row.signed_at ?? row.employee_signed_at ?? row.generated_at);
+    if (signedSince && requestedOn < romanianDay(signedSince)) {
+      throw invalid('requestedOn', 'The request cannot be dated before the agreement was signed.');
+    }
+    const request = {
       withdrawal_requested_on: requestedOn,
       withdrawal_file_id: body.requestFileId ?? null,
     };
+    // A withdrawn agreement keeps how it was signed, its signing moment and paper scan included.
+    return row?.state === 'withdrawn' ? request : { state, ...request };
   }
   if (state === 'signed_on_paper') {
     const signedOn = body.signedOn ?? today;
@@ -421,7 +432,6 @@ export const putSigningAgreementState: RouteHandler<
   const agreement = sources.row;
   const change = stateChange(body, sources, romanianDay(new Date()));
   if (body.state === 'generated') await requireRepresentative(db, clientId);
-  // marked_by is the database's to set, from the member signed in.
   // Not an upsert: members may update only these columns, and an upsert sets them all.
   const saved = agreement
     ? await db

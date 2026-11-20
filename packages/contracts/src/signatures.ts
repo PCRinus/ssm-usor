@@ -243,10 +243,15 @@ export const signingAgreementSchema = z
     // Whose electronic signature the agreement waits for: the employee's first, then the
     // employer's; null once settled or recorded otherwise.
     awaiting: z.enum(['employee', 'employer']).nullable(),
-    // The employee's written request to sign by hand again; the withdrawal took effect when it was
-    // recorded, whatever the request's day. Null outside `withdrawn`, and on an agreement withdrawn
-    // before the request was recorded.
-    withdrawal: z.object({ requestedOn: z.iso.date(), fileId: z.uuid().nullable() }).nullable(),
+    // Null outside `withdrawn`. The withdrawal took effect at `recordedAt`, whatever the day of the
+    // employee's written request; both are null on an agreement withdrawn before they were kept.
+    withdrawal: z
+      .object({
+        recordedAt: z.iso.datetime({ offset: true }).nullable(),
+        requestedOn: z.iso.date().nullable(),
+        fileId: z.uuid().nullable(),
+      })
+      .nullable(),
   })
   .nullable();
 
@@ -281,11 +286,9 @@ export type SigningAgreementResponse = z.infer<typeof signingAgreementResponseSc
 export const signingAgreementStateRequestSchema = z
   .object({
     state: z.enum(['generated', 'signed_on_paper', 'withdrawn', 'in_contract']),
-    // The scan of the paper agreement, a file of the client.
     clientFileId: z.uuid().nullish(),
     signedOn: z.iso.date().optional(),
     requestedOn: z.iso.date().optional(),
-    // The scan of the withdrawal request, a file of the client.
     requestFileId: z.uuid().nullish(),
   })
   .superRefine((body, context) => {
