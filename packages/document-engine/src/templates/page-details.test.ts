@@ -61,6 +61,30 @@ describe('the details of the occupational safety set’s pages', () => {
     }
   });
 
+  it.each([
+    '1.1_decision_training.docx',
+    '1.2_decision_risk_evaluation_team.docx',
+    '1.3_decision_first_aid.docx',
+    '1.4_decision_imminent_danger.docx',
+    '1.5_decision_workers_representative.docx',
+    '5.1_test_hiring.docx',
+  ])('%s gives each hand signature a row of at least 15 mm', (name) => {
+    const tables = bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? [];
+    const signed = tables.flatMap((table) => {
+      const rows = table.match(/<w:tr\b[\s\S]*?<\/w:tr>/g) ?? [];
+      if (
+        rows.some((row) => row.includes('<w:tblHeader/>') && row.includes('Semnătura de primire'))
+      ) {
+        return rows.filter((row) => !row.includes('<w:tblHeader/>'));
+      }
+      return rows.filter((row) => row.includes('Semnătura persoanei testate'));
+    });
+    expect(signed.length).toBeGreaterThan(0);
+    for (const row of signed) {
+      expect(Number(/<w:trHeight w:val="(\d+)"/.exec(row)?.[1])).toBeGreaterThanOrEqual(850);
+    }
+  });
+
   it('names the control report over its form', () => {
     expect(documentTextOf(paragraphs(bodyOf('8_control_report.docx'))[0]!)).toBe(
       'REFERAT DE CONTROL'
