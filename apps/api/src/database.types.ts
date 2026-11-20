@@ -1771,6 +1771,8 @@ export type Database = {
           state: string;
           storage_path: string | null;
           updated_at: string;
+          withdrawal_file_id: string | null;
+          withdrawal_requested_on: string | null;
         };
         ComputedFields: never;
         Insert: {
@@ -1787,6 +1789,8 @@ export type Database = {
           state?: string;
           storage_path?: string | null;
           updated_at?: string;
+          withdrawal_file_id?: string | null;
+          withdrawal_requested_on?: string | null;
         };
         Update: {
           client_file_id?: string | null;
@@ -1802,6 +1806,8 @@ export type Database = {
           state?: string;
           storage_path?: string | null;
           updated_at?: string;
+          withdrawal_file_id?: string | null;
+          withdrawal_requested_on?: string | null;
         };
         Relationships: [
           {
@@ -1891,6 +1897,13 @@ export type Database = {
           {
             foreignKeyName: 'employee_signing_agreements_scan_of_client';
             columns: ['client_file_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_files';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'employee_signing_agreements_withdrawal_request_of_client';
+            columns: ['withdrawal_file_id', 'client_id'];
             isOneToOne: false;
             referencedRelation: 'client_files';
             referencedColumns: ['id', 'client_id'];

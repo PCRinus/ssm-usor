@@ -52,3 +52,19 @@ export function romanianDay(moment: Date | string) {
 }
 
 export const printedDay = (moment: Date | string) => printedDate(romanianDay(moment));
+
+const romanianHourFormat = new Intl.DateTimeFormat('en', {
+  hour: '2-digit',
+  hourCycle: 'h23',
+  timeZone: 'Europe/Bucharest',
+});
+
+/**
+ * Noon in Romania on an ISO date: the moment that stands for a day known only by its date, since
+ * it falls on that date in every time zone a reader is likely to be in.
+ */
+export function romanianNoon(day: string) {
+  const utcNoon = new Date(`${day}T12:00:00Z`);
+  const offsetHours = Number(romanianHourFormat.format(utcNoon)) - 12;
+  return new Date(utcNoon.getTime() - offsetHours * 3_600_000);
+}

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { definiteRole, listed, printedDay, romanianDay, runOn, withoutFinalStop } from './romanian';
+import {
+  definiteRole,
+  listed,
+  printedDay,
+  romanianDay,
+  romanianNoon,
+  runOn,
+  withoutFinalStop,
+} from './romanian';
 
 describe('a list in words', () => {
   it('joins the last item with "și" and the others with commas', () => {
@@ -50,6 +58,13 @@ describe('a job title made definite', () => {
 });
 
 describe('a day in Romania', () => {
+  it('stands as its noon there, in summer and in winter', () => {
+    expect(romanianNoon('2026-07-15').toISOString()).toBe('2026-07-15T09:00:00.000Z');
+    expect(romanianNoon('2026-01-15').toISOString()).toBe('2026-01-15T10:00:00.000Z');
+    expect(romanianNoon('2026-03-29').toISOString()).toBe('2026-03-29T09:00:00.000Z');
+    expect(romanianNoon('2026-10-25').toISOString()).toBe('2026-10-25T10:00:00.000Z');
+  });
+
   it('is past midnight there while it is still the day before in UTC, in summer and in winter', () => {
     expect(romanianDay('2026-10-15T21:06:12.345678+00:00')).toBe('2026-10-16');
     expect(romanianDay('2026-10-15T20:59:59+00:00')).toBe('2026-10-15');

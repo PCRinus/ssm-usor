@@ -100,6 +100,7 @@ const agreementAwaitingEmployee = {
   employeeSignedAt: null,
   employerSignedAt: null,
   awaiting: 'employee' as 'employee' | 'employer' | null,
+  withdrawal: null,
 };
 
 const agreementAwaitingEmployer = {

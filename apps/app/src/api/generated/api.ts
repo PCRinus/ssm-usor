@@ -16365,6 +16365,15 @@ export const SigningAgreementResponseAgreementAwaiting = {
 /**
  * @nullable
  */
+export type SigningAgreementResponseAgreementWithdrawal = {
+  requestedOn: string;
+  /** @nullable */
+  fileId: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
 export type SigningAgreementResponseAgreement = {
   state: SigningAgreementResponseAgreementState;
   generatedAt: string;
@@ -16378,6 +16387,8 @@ export type SigningAgreementResponseAgreement = {
   employerSignedAt: string | null;
   /** @nullable */
   awaiting: SigningAgreementResponseAgreementAwaiting;
+  /** @nullable */
+  withdrawal: SigningAgreementResponseAgreementWithdrawal;
 } | null;
 
 export type SigningAgreementResponseUnavailableReason =
@@ -16425,6 +16436,10 @@ export interface SigningAgreementStateRequest {
   state: SigningAgreementStateRequestState;
   /** @nullable */
   clientFileId?: string | null;
+  signedOn?: string;
+  requestedOn?: string;
+  /** @nullable */
+  requestFileId?: string | null;
 }
 
 export type SigningSessionResponseChannel =
@@ -46441,7 +46456,7 @@ export const getPutSigningAgreementStateUrl = (clientId: string, employeeId: str
 };
 
 /**
- * `generated` when it was handed to the employee, `signed_on_paper` when it came back signed by hand, with the scan as a file of the client in `clientFileId`, `withdrawn` when the employee went back to signing by hand (their pending trainee requests are voided and none is issued while it stands), `in_contract` for a new hire whose contract carries the clause. The database records the member signed in as `marked_by`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.
+ * `generated` when it was handed to the employee; `signed_on_paper` when it came back signed by hand, on `signedOn` (today in Romania by default, neither in the future nor before the hire date, stored as noon in Romania), with the scan as a file of the client in `clientFileId`; `withdrawn` when the employee went back to signing by hand, with the day of their written request in `requestedOn` (today by default, not in the future) and its scan, a file of the client, in `requestFileId`: the withdrawal takes effect now, whatever the request's day, their pending trainee requests are voided and none is issued while it stands, and the agreement keeps how it was signed; `in_contract` for a new hire whose contract carries the clause. `signedOn`, `requestedOn` and `requestFileId` are refused for any other state, and `clientFileId` for `withdrawn`. The database records the member signed in as `marked_by`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.
  * @summary Record an employee's signing agreement as handed out or signed on paper
  */
 export const putSigningAgreementState = async (

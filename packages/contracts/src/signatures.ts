@@ -114,6 +114,7 @@ export const signatureErrorReasons = {
   agreementSignerNotParty: 'agreement_signer_not_party',
   agreementRecorded: 'agreement_recorded',
   agreementWithdrawn: 'agreement_withdrawn',
+  agreementWithdrawalRecorded: 'agreement_withdrawal_recorded',
   signerNameMismatch: 'signer_name_mismatch',
 } as const;
 
@@ -242,6 +243,10 @@ export const signingAgreementSchema = z
     // Whose electronic signature the agreement waits for: the employee's first, then the
     // employer's; null once settled or recorded otherwise.
     awaiting: z.enum(['employee', 'employer']).nullable(),
+    // The employee's written request to sign by hand again; the withdrawal took effect when it was
+    // recorded, whatever the request's day. Null outside `withdrawn`, and on an agreement withdrawn
+    // before the request was recorded.
+    withdrawal: z.object({ requestedOn: z.iso.date(), fileId: z.uuid().nullable() }).nullable(),
   })
   .nullable();
 
@@ -268,11 +273,42 @@ export const signingAgreementResponseSchema = z.object({
 
 export type SigningAgreementResponse = z.infer<typeof signingAgreementResponseSchema>;
 
-/** `signed_electronically` is set by the signing flow only. */
-export const signingAgreementStateRequestSchema = z.object({
-  state: z.enum(['generated', 'signed_on_paper', 'withdrawn', 'in_contract']),
-  clientFileId: z.uuid().nullish(),
-});
+/**
+ * `signed_electronically` is set by the signing flow only. `signedOn` is the day a paper agreement
+ * was signed, `requestedOn` and `requestFileId` the day and the scan of a withdrawal request; each
+ * defaults to today in Romania and belongs to its state alone.
+ */
+export const signingAgreementStateRequestSchema = z
+  .object({
+    state: z.enum(['generated', 'signed_on_paper', 'withdrawn', 'in_contract']),
+    // The scan of the paper agreement, a file of the client.
+    clientFileId: z.uuid().nullish(),
+    signedOn: z.iso.date().optional(),
+    requestedOn: z.iso.date().optional(),
+    // The scan of the withdrawal request, a file of the client.
+    requestFileId: z.uuid().nullish(),
+  })
+  .superRefine((body, context) => {
+    const outOfState = (path: string, belongsTo: string) =>
+      context.addIssue({
+        code: 'custom',
+        path: [path],
+        message: `Only an agreement recorded as ${belongsTo} takes this field.`,
+      });
+    if (body.signedOn !== undefined && body.state !== 'signed_on_paper') {
+      outOfState('signedOn', 'signed_on_paper');
+    }
+    if (body.state !== 'withdrawn') {
+      if (body.requestedOn !== undefined) outOfState('requestedOn', 'withdrawn');
+      if (body.requestFileId != null) outOfState('requestFileId', 'withdrawn');
+    } else if (body.clientFileId != null) {
+      context.addIssue({
+        code: 'custom',
+        path: ['clientFileId'],
+        message: 'The scan of a withdrawal request goes in requestFileId.',
+      });
+    }
+  });
 
 export type SigningAgreementStateRequest = z.infer<typeof signingAgreementStateRequestSchema>;
 

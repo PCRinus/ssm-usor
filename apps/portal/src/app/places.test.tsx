@@ -41,6 +41,7 @@ const agreementSignedOnPaper = {
   employeeSignedAt: null,
   employerSignedAt: null,
   awaiting: null,
+  withdrawal: null,
 };
 
 beforeEach(() => {
