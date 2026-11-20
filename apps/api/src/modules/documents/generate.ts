@@ -15,6 +15,7 @@ import type { Json } from '../../database.types';
 import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
+import { printedNames } from '../../lib/printed-names';
 import { romanianDay } from '../../lib/romanian';
 import {
   builtInTemplates,
@@ -26,7 +27,6 @@ import { buildDocumentContext, decisionNumberOf, documentApplies, documentData }
 import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
 import { buildFireSafetyContext, fireSafetyDocumentData } from './fire-safety';
 import { fireFirstDecisionNumber, inSetOrder, presentDocument, presentDocuments } from './present';
-import { printedNames } from './printed-names';
 import { addRevision } from './revisions';
 import {
   type Actor,
@@ -243,8 +243,7 @@ async function createDocument(
     await files.readTemplate(template.storagePath),
     data,
     template.typeKey,
-    undefined,
-    printedNames(options.set)
+    { printing: printedNames(options.set) }
   );
 
   let documentId = options.existingId;
@@ -455,8 +454,10 @@ export async function regenerateDraft(
     await files.readTemplate(template.storagePath),
     data,
     document.type_key,
-    (absentNames) => missing.filter((code) => rules.concerns(code, absentNames)),
-    printedNames(set)
+    {
+      printedGaps: (absentNames) => missing.filter((code) => rules.concerns(code, absentNames)),
+      printing: printedNames(set),
+    }
   );
 
   const generation = await db

@@ -715,7 +715,7 @@ describe('GET /instruction-modules/{moduleId}/download', () => {
     expect(text).toContain('ANEXA 1');
     expect(text).toContain('I.P.S.S.M. Scări metalice');
     expect(text).toContain('versiunea din 26.09.2026');
-    expect(text).toContain('PREVENT CONSULT S.R.L.');
+    expect(text).toContain('PREVENT CONSULT\u00a0S.R.L.');
     expect(text).toContain('Numele clientului');
     expect(text).toMatch(/Art\. 2\.\s*Scara se sprijină/);
   });

@@ -306,7 +306,10 @@ describe('a document generated again while the set lacks data', () => {
             template,
             documentData(buildPartialDocumentContext(variant, typeKey), typeKey),
             typeKey,
-            (absentNames) => missing.filter((code) => documentGapConcerns(code, absentNames))
+            {
+              printedGaps: (absentNames) =>
+                missing.filter((code) => documentGapConcerns(code, absentNames)),
+            }
           )
         )
       ).toEqual(missing.filter((code) => documentGapConcerns(code, usedNames)));
@@ -1286,7 +1289,10 @@ describe('the fire-safety templates', () => {
               typeKey
             ),
             typeKey,
-            (absentNames) => missing.filter((code) => fireSafetyGapConcerns(code, absentNames))
+            {
+              printedGaps: (absentNames) =>
+                missing.filter((code) => fireSafetyGapConcerns(code, absentNames)),
+            }
           )
         )
       ).toEqual(missing.filter((code) => fireSafetyGapConcerns(code, usedNames)));

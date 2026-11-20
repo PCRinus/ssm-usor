@@ -1,4 +1,4 @@
-import { countOf, staffCategories, type StaffCategory } from '@ssm-usor/contracts';
+import { byRomanianName, countOf, staffCategories, type StaffCategory } from '@ssm-usor/contracts';
 import { Users } from 'lucide-react';
 
 import type { DataTableSort } from '@/components/data-table/columns';
@@ -63,8 +63,6 @@ export interface JobPositionRow {
   evaluation: PositionEvaluation | null | undefined;
 }
 
-const byName = new Intl.Collator('ro', { sensitivity: 'base', numeric: true });
-
 function riskRank(evaluation: PositionEvaluation | null | undefined) {
   if (!evaluation) return 2;
   return evaluation.factorCount === 0 || evaluation.globalRiskLevel === null ? 1 : 0;
@@ -77,8 +75,7 @@ export function shownJobPositions(rows: readonly JobPositionRow[], search: JobPo
   );
   const sort = search.sort ?? defaultJobPositionSort.sort;
   const direction = (search.order ?? defaultJobPositionSort.order) === 'asc' ? 1 : -1;
-  const names = (a: JobPositionRow, b: JobPositionRow) =>
-    byName.compare(a.position.name, b.position.name);
+  const names = (a: JobPositionRow, b: JobPositionRow) => byRomanianName(a.position, b.position);
   return kept.sort((a, b) => {
     if (sort === 'name') return names(a, b) * direction;
     if (sort === 'employees') {

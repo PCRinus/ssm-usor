@@ -4,6 +4,7 @@ import type { JobPositionRequest } from '@ssm-usor/contracts';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { byRomanianName } from '../../lib/romanian';
 import { requireClient, requireWritableClient } from '../clients/lookup';
 import {
   jobPositionColumns,
@@ -46,12 +47,15 @@ export const listJobPositions: RouteHandler<typeof listJobPositionsRoute, ApiEnv
     .from('job_positions')
     .select(jobPositionColumns)
     .eq('client_id', clientId)
-    .is('archived_at', null)
-    .order('name')
-    .order('id');
+    .is('archived_at', null);
   if (error) throw fromDatabaseError(error, 'list job positions');
   const counts = await jobPositionCounts(db, clientId);
-  return c.json({ items: data.map((row) => toJobPosition(row, counts.get(row.id))) }, 200);
+  return c.json(
+    {
+      items: [...data].sort(byRomanianName).map((row) => toJobPosition(row, counts.get(row.id))),
+    },
+    200
+  );
 };
 
 export const createJobPosition: RouteHandler<typeof createJobPositionRoute, ApiEnv> = async (c) => {

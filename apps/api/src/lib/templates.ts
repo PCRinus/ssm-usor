@@ -54,8 +54,13 @@ export function merge(
   template: Uint8Array,
   data: Record<string, unknown>,
   typeKey: string,
-  printedGaps: (absentNames: string[]) => MissingDocumentData[] = () => [],
-  printing: (data: Record<string, unknown>) => Record<string, unknown> = (same) => same
+  {
+    printedGaps = () => [],
+    printing = (same) => same,
+  }: {
+    printedGaps?: (absentNames: string[]) => MissingDocumentData[];
+    printing?: (data: Record<string, unknown>) => Record<string, unknown>;
+  } = {}
 ) {
   try {
     const { document, usedNames } = renderTemplate(template, printing(data));
@@ -81,7 +86,8 @@ export async function mergeBuiltIn(
   readTemplate: (storagePath: string) => Promise<Uint8Array>,
   typeKey: string,
   data: Record<string, unknown>,
-  documentName: string
+  documentName: string,
+  printing?: (data: Record<string, unknown>) => Record<string, unknown>
 ) {
   const [template] = await builtInTemplates(db, [typeKey]);
   if (!template) {
@@ -93,6 +99,6 @@ export async function mergeBuiltIn(
       'template_missing'
     );
   }
-  const merged = merge(await readTemplate(template.storagePath), data, typeKey);
+  const merged = merge(await readTemplate(template.storagePath), data, typeKey, { printing });
   return { ...merged, storagePath: template.storagePath };
 }

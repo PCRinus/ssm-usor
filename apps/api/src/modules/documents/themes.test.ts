@@ -248,6 +248,7 @@ describe('the themes', () => {
       positions: [
         {
           name: ' șofer ',
+          workZone: 'Atelier',
           intervalMonths: 6,
           moduleIds: ['m-new', 'm-ladder', 'm-office'],
           trainer: 'Ion POP – conducătorul locului de muncă',
@@ -257,6 +258,7 @@ describe('the themes', () => {
       periodicTrainingMinutes: 120,
     });
     expect(themes.annexTitles).toBe('I.P.S.S.M. Birou; I.P.S.S.M. Scări');
+    expect(themes.hasAnnexes).toBe(true);
     expect(themes.ownInstructionsRevision).toEqual({
       id: 'r1',
       number: 1,
@@ -264,6 +266,7 @@ describe('the themes', () => {
     });
     expect(themes.positions[0]).toMatchObject({
       name: 'șofer',
+      workZone: 'Atelier',
       trainer: 'Ion POP – conducătorul locului de muncă',
       modules: [
         { citation: 'I.P.S.S.M. Birou, Art.\u00a01\u00a0–\u00a012' },
@@ -273,12 +276,13 @@ describe('the themes', () => {
     });
   });
 
-  it('print a dash for a revision that annexes nothing, and no sessions without an interval', () => {
+  it('print a dash for a revision that annexes nothing, and say there is none, and no sessions without an interval', () => {
     const themes = trainingThemes({
       ownInstructions: { ...ownInstructions, annexes: [] },
       positions: [
         {
           name: 'Contabil',
+          workZone: 'S.C. SSM S.R.L.',
           intervalMonths: null,
           moduleIds: [],
           trainer: 'S.C. SSM S.R.L. – Dan MARIN',
@@ -288,6 +292,7 @@ describe('the themes', () => {
       periodicTrainingMinutes: 120,
     });
     expect(themes.annexTitles).toBe('—');
+    expect(themes.hasAnnexes).toBe(false);
     expect(themes.positions[0]).toMatchObject({ intervalLabel: '—', sessions: [] });
   });
 });

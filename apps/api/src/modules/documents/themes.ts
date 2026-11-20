@@ -151,8 +151,11 @@ export type ThemesContext = {
   /** Never printed: what makes the themes out of date when the own instructions change. */
   ownInstructionsRevision: { id: string; number: number; versionIds: string[] };
   annexTitles: string;
+  hasAnnexes: boolean;
   positions: {
     name: string;
+    /** Where the post works, or the client's name for a post without a work zone. */
+    workZone: string;
     trainer: string;
     modules: { citation: string }[];
     intervalLabel: string;
@@ -170,6 +173,7 @@ export function trainingThemes({
   ownInstructions: OwnInstructionsRevision;
   positions: readonly {
     name: string;
+    workZone: string;
     /** Null for a category the client does not train. */
     intervalMonths: number | null;
     moduleIds: readonly string[];
@@ -192,10 +196,12 @@ export function trainingThemes({
     },
     annexTitles:
       annexes.length === 0 ? '—' : annexes.map((annex) => `I.P.S.S.M. ${annex.title}`).join('; '),
+    hasAnnexes: annexes.length > 0,
     positions: positions.map((position) => {
       const modules = annexes.filter((annex) => position.moduleIds.includes(annex.moduleId));
       return {
         name: position.name.trim(),
+        workZone: position.workZone,
         trainer: position.trainer,
         modules: modules.map((module) => ({ citation: citation(module) })),
         intervalLabel: themeIntervalLabel(position.intervalMonths).toLocaleLowerCase('ro'),

@@ -14,6 +14,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
+import { printedNames } from '../../lib/printed-names';
 import { createSigner } from '../../lib/signer';
 import { mergeBuiltIn } from '../../lib/templates';
 import { particularsColumns, toParticulars } from '../employees/particulars';
@@ -180,7 +181,8 @@ export async function drawTrainingSheet(
     readTemplate,
     typeKey,
     buildTrainingSheetData(facts),
-    'training sheet'
+    'training sheet',
+    printedNames(domain === 'ssm' ? 'occupational_safety' : 'fire_safety')
   );
   return {
     pdf: await pdf.convertDocx(bytes),

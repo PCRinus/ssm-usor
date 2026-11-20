@@ -884,7 +884,7 @@ describe('the training themes', () => {
     );
   });
 
-  it('give every position its trainer, its modules, its interval and its sessions', () => {
+  it('give every position its work zone, or the client without one, its trainer, its modules, its interval and its sessions', () => {
     expect(
       themes!.positions.map(({ sessions, ...position }) => ({
         ...position,
@@ -893,6 +893,7 @@ describe('the training themes', () => {
     ).toEqual([
       {
         name: 'Contabil',
+        workZone: 'Birou',
         trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN',
         modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012' }],
         intervalLabel: '6 luni',
@@ -900,6 +901,7 @@ describe('the training themes', () => {
       },
       {
         name: 'Sudor',
+        workZone: 'S.C. PIPETECH S.R.L.',
         trainer: 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă',
         modules: [
           { citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012' },

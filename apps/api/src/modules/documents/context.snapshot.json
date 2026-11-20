@@ -1558,6 +1558,7 @@
   },
   "themes": {
     "annexTitles": "I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică",
+    "hasAnnexes": true,
     "ownInstructionsRevision": {
       "id": "d0d0d0d0-0000-4000-8000-000000000001",
       "number": 2,
@@ -1587,7 +1588,8 @@
             "month": "AUGUST"
           }
         ],
-        "trainer": "S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN"
+        "trainer": "S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN",
+        "workZone": "Birou"
       },
       {
         "intervalLabel": "2 luni",
@@ -1632,7 +1634,8 @@
             "month": "DECEMBRIE"
           }
         ],
-        "trainer": "Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă"
+        "trainer": "Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă",
+        "workZone": "S.C. PIPETECH S.R.L."
       }
     ]
   },

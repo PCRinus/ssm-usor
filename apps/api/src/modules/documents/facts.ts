@@ -7,7 +7,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
-import { romanianDay } from '../../lib/romanian';
+import { byRomanianName, romanianDay } from '../../lib/romanian';
 import { clientNotFound } from '../clients/lookup';
 import { bySortOrder, preventionMeasureFieldColumns } from '../risk-evaluations/evaluation';
 import type { DocumentFacts, SsmSetFacts } from './context';
@@ -83,7 +83,6 @@ function sharedReads(db: DataClient, clientId: string, preparer: Preparer) {
       )
       .eq('client_id', clientId)
       .in('type_key', ['decision_workers_representative', ...fireSafetyDocumentTypeKeys]),
-    // The entries in the order they were added.
     db
       .from('job_positions')
       .select(
@@ -202,11 +201,6 @@ function fireSafetyReads(
 
 type SharedReads = Awaited<ReturnType<typeof sharedReads>>;
 
-// The database's collation sorts "Șofer" with "Sofer", before "Sudor"; Romanian puts Ș after S.
-const romanian = new Intl.Collator('ro');
-const inRomanianOrder = (a: { name: string; id: string }, b: { name: string; id: string }) =>
-  romanian.compare(a.name, b.name) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-
 function sharedFactsOf([
   client,
   organization,
@@ -299,7 +293,7 @@ function sharedFactsOf([
       currentEmployee:
         person.employees?.status === 'active' && person.employees.archived_at === null,
     })),
-    jobPositions: [...positions.data].sort(inRomanianOrder).map((position) => ({
+    jobPositions: [...positions.data].sort(byRomanianName).map((position) => ({
       id: position.id,
       name: position.name,
       staffCategory: position.staff_category,

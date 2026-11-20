@@ -55,6 +55,31 @@ describe('shownJobPositions', () => {
     expect(names(shownJobPositions(rows, { order: 'desc' }))[0]).toBe('Zidar');
   });
 
+  it('orders names as the documents do: diacritics after their letter, numbers by value, ties by id', () => {
+    const named = [
+      row('Șofer', null),
+      row('Operator 10', null),
+      row('Sudor', null, { id: 'b' }),
+      row('Operator 2', null),
+      row('Sudor', null, { id: 'a' }),
+      row('Îngrijitor', null),
+      row('Inginer', null),
+    ];
+    expect(
+      shownJobPositions(named, {}).map(
+        ({ position }) => `${position.name}${position.id.length === 1 ? ` ${position.id}` : ''}`
+      )
+    ).toEqual([
+      'Inginer',
+      'Îngrijitor',
+      'Operator 2',
+      'Operator 10',
+      'Sudor a',
+      'Sudor b',
+      'Șofer',
+    ]);
+  });
+
   it('orders by workers, the name breaking ties', () => {
     expect(names(shownJobPositions(rows, { sort: 'employees', order: 'desc' }))).toEqual([
       'Ștanțator',

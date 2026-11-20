@@ -793,6 +793,7 @@ function contextParts(facts: SsmSetFacts): ContextParts<DocumentContext> {
             ownInstructions: facts.ownInstructions,
             positions: facts.jobPositions.map((position) => ({
               name: position.name,
+              workZone: position.workZone?.trim() || client.legalName.trim(),
               staffCategory: position.staffCategory,
               intervalMonths: intervalOf(position),
               moduleIds: position.instructions
