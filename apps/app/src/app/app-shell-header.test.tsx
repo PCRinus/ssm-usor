@@ -54,10 +54,14 @@ const failedClient = listed({
 
 let items: Record<string, unknown>[] = [];
 let me: Record<string, unknown> | undefined;
+let behind = { occupational_safety: 0, fire_safety: 0 };
 
 function mount() {
   mockApi((_init, url) => {
     if (url.pathname === '/imports') return Response.json({ items });
+    if (url.pathname === '/documents/behind/summary') {
+      return Response.json({ counts: behind, running: [] });
+    }
     if (url.pathname === '/imports/closed') {
       const pageSize = Number(url.searchParams.get('pageSize'));
       return Response.json({
@@ -88,6 +92,8 @@ function phoneWidth() {
 beforeEach(() => {
   items = [];
   me = undefined;
+  behind = { occupational_safety: 0, fire_safety: 0 };
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -96,8 +102,9 @@ afterEach(() => {
 
 installFetchMock();
 
-describe('the imports link in the header', () => {
-  it('stays out of the header while nothing waits for a check', async () => {
+describe('the count on the menu button', () => {
+  it('stays off while nothing in the menu waits', async () => {
+    phoneWidth();
     items = [
       readingEmployees,
       failedClient,
@@ -111,10 +118,14 @@ describe('the imports link in the header', () => {
     );
 
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(screen.queryByTestId('imports-link')).toBeNull();
+    expect(screen.queryByTestId('sidebar-toggle-count')).toBeNull();
+    expect(screen.getByTestId('sidebar-toggle').getAttribute('aria-label')).toBe(
+      'Comută meniul lateral'
+    );
   });
 
-  it("counts the whole team's imports waiting for a check, and asks for the open parts too", async () => {
+  it("adds up on a phone the team's imports waiting for a check and the documents to update", async () => {
+    phoneWidth();
     items = [
       readyEmployees,
       readyClient,
@@ -125,28 +136,35 @@ describe('the imports link in the header', () => {
         createdBy: { id: 'user-two', fullName: 'Ana Pop' },
       }),
     ];
-    const runtime = mount();
+    behind = { occupational_safety: 2, fire_safety: 1 };
+    mount();
     const user = userEvent.setup();
 
-    const link = await screen.findByRole('link', { name: 'Importuri AI: 3 de verificat' });
-    expect(within(link).getByTestId('imports-link-count').textContent).toBe('3');
+    const toggle = await screen.findByRole('button', {
+      name: 'Comută meniul lateral: 6 elemente de văzut',
+    });
+    expect(screen.getByTestId('sidebar-toggle-count').textContent).toBe('6');
+    expect(screen.queryByRole('link', { name: /Importuri AI: / })).toBeNull();
     const asked = new URL(
       String(fetchMock.mock.calls.find(([input]) => String(input).includes('/imports'))![0])
     );
     expect(Object.fromEntries(asked.searchParams)).toEqual({ kind: 'all', withOpenParts: 'true' });
 
-    await user.click(link);
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/importuri/clienti'));
+    await user.click(toggle);
+    const menu = await screen.findByRole('dialog');
+    expect(within(menu).getByTestId('nav-imports-count').textContent).toBe('3 de verificat');
   });
 
-  it('opens the Lucrători tab when only worker imports wait', async () => {
-    phoneWidth();
-    items = [readyEmployees, readingEmployees];
+  it('stays off on a computer while the menu shows its counts, and comes on in the icon rail', async () => {
+    items = [readyEmployees];
     mount();
+    const user = userEvent.setup();
 
-    const link = await screen.findByRole('link', { name: 'Importuri AI: 1 de verificat' });
-    expect(link.getAttribute('href')).toBe('/importuri/lucratori');
-    expect(within(link).getByTestId('imports-link-count').textContent).toBe('1');
+    expect((await screen.findByTestId('nav-imports-count')).textContent).toBe('1 de verificat');
+    expect(screen.queryByTestId('sidebar-toggle-count')).toBeNull();
+
+    await user.click(screen.getByTestId('sidebar-toggle'));
+    expect((await screen.findByTestId('sidebar-toggle-count')).textContent).toBe('1');
   });
 });
 

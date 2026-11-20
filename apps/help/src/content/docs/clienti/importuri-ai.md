@@ -13,7 +13,7 @@ topics:
 sources:
   - apps/app/src/features/imports/open-imports.ts
   - apps/app/src/features/imports/my-imports.tsx
-  - apps/app/src/features/imports/imports-header-link.tsx
+  - apps/app/src/app/app-shell.tsx
   - apps/app/src/features/imports/list/imports-layout.tsx
   - apps/app/src/features/imports/list/imports-tab.tsx
   - apps/app/src/features/imports/list/open-imports-list.tsx
@@ -26,7 +26,7 @@ sources:
 
 Pe **Importuri AI**, în meniul lateral sub **Clienții tăi**, găsești toate importurile echipei: importurile clienților din documentația lor SSM și SU, pe tabul **Clienți**, și importurile lucrătorilor din fișele de instruire, pe tabul **Lucrători**. Vezi și importurile pornite de colegi, fiecare cu numele celui care l-a pornit.
 
-Numărul de lângă fiecare tab arată câte importuri te așteaptă la verificare. Același număr apare în meniul lateral, lângă fiecare tab, iar cât timp nu ești pe pagină, totalul lor stă lângă **Importuri AI**. Când un import așteaptă verificarea, în capul paginii apare și **Importuri AI**, cu numărul lor; pe telefon e butonul rotund din dreapta sus. Te duce direct pe tabul cu importuri de verificat.
+Numărul de lângă fiecare tab arată câte importuri te așteaptă la verificare. Același număr apare în meniul lateral, lângă fiecare tab, iar cât timp nu ești pe pagină, totalul lor stă lângă **Importuri AI**. Pe telefon, unde meniul lateral e închis, butonul care îl deschide, din stânga sus, poartă un număr cât timp ceva din meniu te așteaptă: importurile de verificat, adunate cu documentele de actualizat și celelalte numere din meniu. La fel pe calculator, când ai strâns meniul la pictograme.
 
 Sub titlu vezi câte credite AI îți mai rămân luna aceasta sau, în perioada de probă, din cele ale perioadei. Când ai și credite de bun venit sau credite extra, numărul le cuprinde și pe ele, ca în meniul **Import nou**. Cum se socotesc găsești la [Creditele importurilor](/clienti/import/#creditele-importurilor).
 

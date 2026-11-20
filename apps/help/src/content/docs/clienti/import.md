@@ -229,7 +229,7 @@ Numele reprezentantului legal, al persoanei de contact și ale persoanelor cu at
 
 Nu trebuie să aștepți citirea: importul rămâne în **Importuri AI**, din meniul lateral, până creezi clientul sau renunți. Lista **Clienți** arată doar clienții creați, așa că un client nou din documente apare în ea abia după ce îl creezi. Dacă ai pornit tu importul și lucrezi între timp pe altă pagină din aplicație, îți apare o notificare când propunerea e gata, cu **Verifică propunerea**, sau când citirea s-a oprit.
 
-Toate importurile echipei le găsești pe pagina **Importuri AI**, din meniul lateral, grupate în **De verificat**, **Se citesc** și **S-au oprit**. Cât timp un import te așteaptă la verificare, în capul paginii apare și **Importuri AI**, cu numărul lor; pe telefon e butonul rotund din dreapta sus. Te duce direct pe pagină. Vezi [Importuri AI](/clienti/importuri-ai/).
+Toate importurile echipei le găsești pe pagina **Importuri AI**, din meniul lateral, grupate în **De verificat**, **Se citesc** și **S-au oprit**. Cât timp un import te așteaptă la verificare, numărul lor stă lângă **Importuri AI** în meniul lateral, iar pe telefon îl vezi adunat pe butonul care deschide meniul. Vezi [Importuri AI](/clienti/importuri-ai/).
 
 Documentele încărcate rămân la client, în **Alte documente**, pe un rând „Dosar importat pe …”, cu folderele lor. Vezi [Dosarele importate](/clienti/fisiere/#dosarele-importate). Fotografiile fișelor de instruire găsite printre ele sunt păstrate pentru importul lucrătorilor.
 

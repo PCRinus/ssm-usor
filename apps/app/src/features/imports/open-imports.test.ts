@@ -9,7 +9,6 @@ import {
   isAnyMoving,
   openImportsOf,
   statusesOf,
-  tabWithWaiting,
   waitingCounts,
 } from './open-imports';
 
@@ -292,8 +291,6 @@ describe('waitingCounts', () => {
       now
     );
     expect(counts).toEqual({ client: 2, employees: 1, total: 3 });
-    expect(tabWithWaiting(counts)).toBe('client');
-    expect(tabWithWaiting({ client: 0, employees: 1, total: 1 })).toBe('employees');
   });
 });
 
