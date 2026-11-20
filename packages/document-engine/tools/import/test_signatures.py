@@ -69,6 +69,31 @@ class SigningSpace(unittest.TestCase):
         self.assertNotIn('<w:b/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">Data', once)
         self.assertEqual(signing_space(once), once)
 
+    def test_two_signers_sign_in_the_set_s_space_with_the_last_article_kept_before_them(self):
+        signers = (
+            paragraph('Art. 7. Anexa se semnează.') + paragraph('Art. 8. Anexa produce efecte.')
+            + '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/></w:tblPr><w:tblGrid><w:gridCol w:w="4677"/>'
+            '<w:gridCol w:w="4678"/></w:tblGrid><w:tr>'
+            + cell(paragraph('Angajator'), paragraph('{{client.representativeName}}', bold=True, before=360),
+                   paragraph('{{client.representativeRole}}'))
+            + cell(paragraph('Întocmit'), paragraph('{{specialist.name}}', bold=True, before=360),
+                   paragraph('{{specialist.professionalTitle}}'))
+            + '</w:tr></w:tbl>' + paragraph('Consultat: ______')
+        )
+        once = signing_space(signers)
+        rows = re.findall(r'<w:tr\b[^>]*>.*?</w:tr>', once, re.S)
+        self.assertEqual([texts(row) for row in rows], [
+            ['Angajator', 'Întocmit'],
+            ['{{client.representativeRole}}', '{{specialist.professionalTitle}}'],
+            [LABEL, '{{client.representativeName}}', LABEL, '{{specialist.name}}'],
+        ])
+        self.assertIn(f'w:before="{SIGNING_ROOM - LABEL_LINE}"', once)
+        kept = [text for text, p in zip(texts(once), re.findall(r'<w:p\b[^>]*>.*?</w:p>', once, re.S))
+                if '<w:keepNext w:val="true"/>' in p]
+        self.assertEqual(kept[0], 'Art. 8. Anexa produce efecte.')
+        self.assertNotIn('Art. 7. Anexa se semnează.', kept)
+        self.assertEqual(signing_space(once), once)
+
     def test_a_ruled_table_is_left_alone(self):
         ruled = HANDOVER.replace('<w:tcBorders></w:tcBorders>', '<w:tcBorders><w:top w:val="single" w:sz="4"/></w:tcBorders>')
         self.assertEqual(signing_space(ruled), ruled)

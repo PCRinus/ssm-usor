@@ -216,9 +216,59 @@ def top_level_tables(xml):
     return spans
 
 
+def signers(table):
+    """For each column of a block of two signers, each a heading, a name and a role (13's
+    "Angajator" and "Întocmit"), those three paragraphs; None for any other table."""
+    if has_lines(table) or 'HouseTable' in table or len(re.findall(r'<w:gridCol\b', table)) != 2:
+        return None
+    found = []
+    for column in range(2):
+        paragraphs = [(text_of(paragraph).strip(), paragraph) for paragraph in column_paragraphs(table, column)]
+        paragraphs = [(text, paragraph) for text, paragraph in paragraphs if text and text != LABEL]
+        if len(paragraphs) != 3 or '{{' in paragraphs[0][0] or not paragraphs[0][0][:1].isupper():
+            return None
+        names = [paragraph for text, paragraph in paragraphs[1:] if NAME.fullmatch(text)]
+        roles = [paragraph for text, paragraph in paragraphs[1:] if not NAME.fullmatch(text) and text.startswith('{{')]
+        if len(names) != 1 or len(roles) != 1:
+            return None
+        found.append({'heading': paragraphs[0][1], 'role': roles[0], 'name': names[0]})
+    return found
+
+
+def signers_table(table, found):
+    head = table[:table.index('</w:tblGrid>') + len('</w:tblGrid>')]
+    columns = [cell_properties(table, column) for column in range(2)]
+
+    def row(contents, align='top'):
+        cells = ''.join(f'<w:tc>{aligned_cell(columns[column], align)}{contents[column]}</w:tc>' for column in range(2))
+        return f'<w:tr><w:trPr><w:cantSplit/></w:trPr>{cells}</w:tr>'
+
+    # The name keeps with what follows: the line for the employees' representative signs too.
+    return (head + row([spaced(side['heading'], ROLE_ABOVE, 0) for side in found])
+            + row([spaced(side['role'], 0, 0) for side in found], 'bottom')
+            + row([label(side['role']) + spaced(side['name'], NAME_ABOVE, 0) for side in found]) + '</w:tbl>')
+
+
 def handover_tables(xml):
     for start, end in reversed(top_level_tables(xml)):
-        xml = xml[:start] + handover_table(xml[start:end]) + xml[end:]
+        table = xml[start:end]
+        found = signers(table)
+        if found is None:
+            xml = xml[:start] + handover_table(table) + xml[end:]
+            continue
+        before = list(PARAGRAPH.finditer(xml[:start]))
+        # The last article goes with the signatures, never a signature alone on a page; the
+        # articles before it are left free.
+        article = before[-1] if before and xml[before[-1].end():start].strip() == '' else None
+        block = signers_table(table, found)
+        replaced = xml[:start] + block + xml[end:]
+        following = PARAGRAPH.match(replaced, start + len(block))
+        if following:
+            line = spaced(following.group(0), ROLE_ABOVE, keep=False)
+            replaced = replaced[:following.start()] + line + replaced[following.end():]
+        if article:
+            replaced = replaced[:article.start()] + spaced(article.group(0)) + replaced[article.end():]
+        xml = replaced
     return xml
 
 
