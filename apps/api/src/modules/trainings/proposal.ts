@@ -95,11 +95,18 @@ const sessionsOf = (value: unknown): Session[] =>
 
 const positionKey = (name: string) => name.trim().toLocaleUpperCase('ro');
 
+// Snapshots of themes generated before 2026-11 hold the post's name in capitals.
 function ssmThemesPosition(snapshot: unknown, positionName: string) {
   const positions = record(record(snapshot)?.themes)?.positions;
   if (!Array.isArray(positions)) return null;
   return (
-    positions.map(record).find((position) => position?.name === positionKey(positionName)) ?? null
+    positions
+      .map(record)
+      .find(
+        (position) =>
+          typeof position?.name === 'string' &&
+          positionKey(position.name) === positionKey(positionName)
+      ) ?? null
   );
 }
 

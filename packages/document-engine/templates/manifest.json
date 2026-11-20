@@ -141,7 +141,7 @@
       "file": "4.2_training_themes.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Scris „și/sau”."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Scris „și/sau”. Fiecare post începe cu numele lui, iar datele lui stau într-un bloc pe două coloane."
       }
     },
     {
@@ -177,7 +177,7 @@
       "file": "6_protective_equipment_list.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă și linie pentru dată. Ghilimele „…”, „și/sau”."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă și linie pentru dată. Ghilimele „…”, „și/sau”. Echipamentul posturilor stă într-un singur tabel, grupat pe posturi."
       }
     },
     {
@@ -225,7 +225,7 @@
       "file": "9_risk_assessment.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Grilele metodei se citesc pe orice gri, consecințele marcate cu X; semnături pe rânduri de 25 mm. Scris „și/sau”; marcajele „»” sunt buline."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Grilele metodei se citesc pe orice gri, consecințele marcate cu X; semnături pe rânduri de 25 mm. Scris „și/sau”; marcajele „»” sunt buline. Fișa de evaluare unește celulele grupelor."
       }
     },
     {
@@ -237,7 +237,7 @@
       "file": "10_prevention_plan.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă, la aceeași înălțime."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă, la aceeași înălțime. Fiecare plan poartă numele postului, cu locul de muncă alături."
       }
     },
     {
@@ -261,7 +261,7 @@
       "file": "11_employer_briefing.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. 25 mm pentru semnătură și ștampilă. Ghilimele „…”, „și/sau”, „marcaj ocazional”; testul la angajare are numele nou."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. 25 mm pentru semnătură și ștampilă. Ghilimele „…”, „și/sau”, „marcaj ocazional”; testul la angajare are numele nou. Actele și materialele informative sunt liste, nu tabele."
       }
     },
     {

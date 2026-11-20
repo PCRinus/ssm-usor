@@ -75,8 +75,12 @@ const collator = new Intl.Collator('ro');
 
 export const sensitiveGroupsName = 'Grupuri sensibile la riscuri specifice';
 
-const sensitiveGroupsHeading =
-  'GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI GRAVIDE, LĂUZE SAU FEMEI CARE ALĂPTEAZĂ, TINERI, PERSOANE CU DIZABILITĂȚI)';
+const sensitiveGroupsWho =
+  'femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități';
+const sensitiveGroupsHeading = `${sensitiveGroupsName} (${sensitiveGroupsWho})`.toLocaleUpperCase(
+  'ro'
+);
+const sensitiveGroupsTitle = `${sensitiveGroupsName} (${sensitiveGroupsWho})`;
 
 const sensitiveGroupsExecutant =
   'Lucrători din grupurile sensibile la riscuri specifice: femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități';
@@ -271,6 +275,9 @@ export type RiskAssessmentEvaluation = {
   name: string;
   /** "LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL", for every heading of the subchapter. */
   heading: string;
+  /** The prevention plan's heading: the post as the app spells it, the work zone beside it. */
+  title: string;
+  workZone: string | null;
   workZoneOrDash: string;
   workSystem: {
     executant: string;
@@ -486,6 +493,8 @@ function evaluationContext(
     roman: roman(index + 1),
     name,
     heading,
+    title: evaluation.kind === 'sensitive_groups' ? sensitiveGroupsTitle : name,
+    workZone,
     workZoneOrDash: workZone ?? dash,
     workSystem: {
       executant: evaluation.kind === 'sensitive_groups' ? sensitiveGroupsExecutant : name,

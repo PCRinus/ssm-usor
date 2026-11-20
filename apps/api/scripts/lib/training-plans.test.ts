@@ -27,10 +27,10 @@ describe('the hiring plans a training held is proposed from', () => {
   it('are the content lines and durations of the training themes 4.2', () => {
     const text = paragraphs('4.2_training_themes.docx');
     expect(text.join('\n')).toContain(
-      `CONȚINUTUL MATERIALULUI DE INSTRUIRE: ${hiringPlans.ssm.introductoryGeneral}`
+      `Conținutul instruirii\n${hiringPlans.ssm.introductoryGeneral}`
     );
     expect(text.join('\n')).toContain(
-      `CONȚINUTUL MATERIALULUI DE INSTRUIRE: ${hiringPlans.ssm.workplaceOpening}{{#modules}}{{citation}}; {{/modules}}${hiringPlans.ssm.workplaceClosing}`
+      `Conținutul instruirii\n${hiringPlans.ssm.workplaceOpening}{{#modules}}{{citation}}; {{/modules}}${hiringPlans.ssm.workplaceClosing}`
     );
     expect(totals(text)).toEqual([`${hiringMinutes.ssm} min`, `${hiringMinutes.ssm} min`]);
   });

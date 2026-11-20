@@ -173,7 +173,7 @@ export function trainingThemes({
     /** Null for a category the client does not train. */
     intervalMonths: number | null;
     moduleIds: readonly string[];
-    /** As the block prints it, "CINE EFECTUEAZĂ INSTRUIREA". */
+    /** As the block prints it, „Instruire efectuată de”. */
     trainer: string;
   }[];
   firstMonth: number;
@@ -195,10 +195,10 @@ export function trainingThemes({
     positions: positions.map((position) => {
       const modules = annexes.filter((annex) => position.moduleIds.includes(annex.moduleId));
       return {
-        name: position.name.trim().toLocaleUpperCase('ro'),
+        name: position.name.trim(),
         trainer: position.trainer,
         modules: modules.map((module) => ({ citation: citation(module) })),
-        intervalLabel: themeIntervalLabel(position.intervalMonths),
+        intervalLabel: themeIntervalLabel(position.intervalMonths).toLocaleLowerCase('ro'),
         sessions:
           position.intervalMonths === null
             ? []

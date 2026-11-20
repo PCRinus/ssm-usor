@@ -737,7 +737,7 @@ describe('the merge context', () => {
       ),
     };
     const trainerOf = (built: ReturnType<typeof buildDocumentContext>) =>
-      built.themes!.positions.find((position) => position.name === 'SUDOR')!.trainer;
+      built.themes!.positions.find((position) => position.name === 'Sudor')!.trainer;
     expect(
       trainerOf(
         buildDocumentContext({
@@ -796,7 +796,7 @@ describe('the merge context', () => {
       'training_themes'
     );
     expect(
-      unrepresented.themes?.positions.find((position) => position.name === 'SUDOR')?.trainer
+      unrepresented.themes?.positions.find((position) => position.name === 'Sudor')?.trainer
     ).toBe('S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN');
   });
 
@@ -892,20 +892,20 @@ describe('the training themes', () => {
       }))
     ).toEqual([
       {
-        name: 'CONTABIL',
+        name: 'Contabil',
         trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN',
         modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012' }],
-        intervalLabel: '6 LUNI',
+        intervalLabel: '6 luni',
         months: ['FEBRUARIE', 'AUGUST'],
       },
       {
-        name: 'SUDOR',
+        name: 'Sudor',
         trainer: 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă',
         modules: [
           { citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012' },
           { citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art.\u00a01\u00a0–\u00a031' },
         ],
-        intervalLabel: '2 LUNI',
+        intervalLabel: '2 luni',
         months: ['FEBRUARIE', 'APRILIE', 'IUNIE', 'AUGUST', 'OCTOMBRIE', 'DECEMBRIE'],
       },
     ]);

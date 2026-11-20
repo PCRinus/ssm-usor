@@ -263,13 +263,13 @@ describe('the themes', () => {
       versionIds: ['v-office', 'v-ladder'],
     });
     expect(themes.positions[0]).toMatchObject({
-      name: 'ȘOFER',
+      name: 'șofer',
       trainer: 'Ion POP – conducătorul locului de muncă',
       modules: [
         { citation: 'I.P.S.S.M. Birou, Art.\u00a01\u00a0–\u00a012' },
         { citation: 'I.P.S.S.M. Scări' },
       ],
-      intervalLabel: '6 LUNI',
+      intervalLabel: '6 luni',
     });
   });
 

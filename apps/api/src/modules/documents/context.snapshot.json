@@ -729,6 +729,7 @@
             "probabilityClass": 4
           }
         ],
+        "title": "Contabil",
         "unacceptable": [
           {
             "code": "F2",
@@ -749,6 +750,7 @@
           "workEnvironment": "Birou închis, cu iluminat natural și artificial, încălzit iarna și climatizat vara.",
           "workTask": "—"
         },
+        "workZone": "Birou",
         "workZoneOrDash": "Birou"
       },
       {
@@ -1184,6 +1186,7 @@
             "probabilityClass": 2
           }
         ],
+        "title": "Sudor",
         "unacceptable": [
           {
             "code": "F1",
@@ -1214,6 +1217,7 @@
           "workEnvironment": "Hală de producție cu iluminat mixt, zgomot și pulberi, ventilată natural.",
           "workTask": "Sudură electrică și autogenă."
         },
+        "workZone": null,
         "workZoneOrDash": "—"
       },
       {
@@ -1500,6 +1504,7 @@
             "probabilityClass": 3
           }
         ],
+        "title": "Grupuri sensibile la riscuri specifice (femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități)",
         "unacceptable": [
           {
             "code": "F4",
@@ -1520,6 +1525,7 @@
           "workEnvironment": "Mediul de muncă al postului ocupat.",
           "workTask": "Activitățile postului ocupat, adaptate: fără ridicarea de greutăți, fără muncă de noapte și fără expunere la substanțe periculoase."
         },
+        "workZone": null,
         "workZoneOrDash": "—"
       }
     ],
@@ -1562,13 +1568,13 @@
     },
     "positions": [
       {
-        "intervalLabel": "6 LUNI",
+        "intervalLabel": "6 luni",
         "modules": [
           {
             "citation": "I.P.S.S.M. Activități de birou, Art. 1 – 12"
           }
         ],
-        "name": "CONTABIL",
+        "name": "Contabil",
         "sessions": [
           {
             "content": "I.P.S.S.M. Art. 1 – 159; I.P.S.S.M. Activități de birou, Art. 1 – 12",
@@ -1584,7 +1590,7 @@
         "trainer": "S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN"
       },
       {
-        "intervalLabel": "2 LUNI",
+        "intervalLabel": "2 luni",
         "modules": [
           {
             "citation": "I.P.S.S.M. Activități de birou, Art. 1 – 12"
@@ -1593,7 +1599,7 @@
             "citation": "I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31"
           }
         ],
-        "name": "SUDOR",
+        "name": "Sudor",
         "sessions": [
           {
             "content": "I.P.S.S.M. Art. 1 – 44; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",

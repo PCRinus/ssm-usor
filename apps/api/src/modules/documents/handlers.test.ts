@@ -1989,10 +1989,10 @@ describe('the training themes', () => {
       annexTitles: 'I.P.S.S.M. Scări metalice',
       positions: [
         {
-          name: 'SUDOR',
+          name: 'Sudor',
           trainer: 'Florin TALOȘ – conducătorul locului\u00a0de\u00a0muncă',
           modules: [{ citation: 'I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014' }],
-          intervalLabel: '3 LUNI',
+          intervalLabel: '3 luni',
           sessions: [
             [
               'FEBRUARIE',
