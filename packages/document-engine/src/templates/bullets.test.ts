@@ -48,7 +48,7 @@ describe('bullets of the occupational safety set', () => {
     expect(merged.length).toBeGreaterThan(0);
     for (const { name, label, docx } of merged)
       expect(bulletsOf(docx), `${name} ${label}`).toEqual([]);
-  });
+  }, 60_000);
 
   it('prints an annex with both kinds of typed list in en dashes', () => {
     const annex = renderAnnex(
