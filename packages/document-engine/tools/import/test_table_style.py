@@ -2,7 +2,8 @@ import unittest
 
 import decision_pages
 import landscape_binding
-from table_style import closes_its_page, element, in_schema_order, keep_together, kind_of, without
+from table_style import (closes_its_page, element, in_schema_order, in_schema_values, keep_together, kind_of,
+                         without)
 
 ROW = '<w:tr><w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>{}</w:t></w:r></w:p></w:tc></w:tr>'
 def table(rows, properties=''):
@@ -34,6 +35,14 @@ class SchemaOrder(unittest.TestCase):
         xml = '<w:rPr><w:rFonts w:ascii="A"/><w14:ligatures w14:val="all"/><w:b/></w:rPr>'
         self.assertEqual(in_schema_order(xml), xml)
         self.assertEqual(in_schema_order(in_schema_order(xml)), xml)
+
+
+class SchemaValues(unittest.TestCase):
+    def test_on_off_values_and_font_names_the_schema_accepts(self):
+        self.assertEqual(in_schema_values('<w:trPr><w:tblHeader w:val="true"/><w:cantSplit w:val="false"/></w:trPr>'),
+                         '<w:trPr><w:tblHeader/></w:trPr>')
+        self.assertEqual(in_schema_values('<w:rFonts w:ascii="TimesNewRomanPSMT;Times New Roman" w:cs="Metro;Calibri"/>'),
+                         '<w:rFonts w:ascii="Times New Roman" w:cs="Calibri"/>')
 
 
 class Sections(unittest.TestCase):

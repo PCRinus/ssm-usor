@@ -44,6 +44,7 @@ from decision_pages import decision_pages
 from signatures import signing_space
 from landscape_binding import landscape_bound_on_top
 from table_style import (P_PR_ORDER, R_PR_ORDER, draws_house_tables, edit_properties, house_tables_part, in_schema_order,
+                         in_schema_values,
                          marked_for_content_widths, put)
 from typography import house_heading_style, paragraph_styles, typography, without_headings
 from word_layout import lays_out_as_word_2013, word_2013_part
@@ -2117,7 +2118,7 @@ def sweep(path, word_2013=None):
                 data = house_tables_part(item.filename, word_2013_part(item.filename, data.decode('utf8')), house,
                                          os.path.basename(path))
                 if re.fullmatch(r'word/(document|styles|numbering|header\d*|footer\d*)\.xml', item.filename):
-                    data = in_schema_order(data)
+                    data = in_schema_order(in_schema_values(data))
                 data = data.encode('utf8')
             archive.writestr(item, data)
 

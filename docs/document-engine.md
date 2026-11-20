@@ -425,6 +425,25 @@ keeps with the plan across a 1 pt paragraph, without which Word saves the two ta
 block with no table under it keeps with nothing, or chapter II's posts chain onto each other and
 move to the next page together. 9 keeps the subchapter's `heading` in capitals.
 
+## Checking the files against the schema
+
+Nobody on the team has Word to open the files in, so the occupational safety set is checked
+against the schema Word writes with Microsoft's own validator, the Open XML SDK's
+`OpenXmlValidator` at the Office 2019 file format:
+`pnpm --filter @ssm-usor/document-engine validate-ooxml [folder]`. It writes every template of
+the set, every preview merged from them (short and long, the per-employee sheets included), the
+own instructions with an annex appended and the annex alone into the folder, or a temporary
+one, and runs `tools/ooxml` over them in a `mcr.microsoft.com/dotnet/sdk:8.0` container, a line
+per error; it exits non-zero on any. It needs Docker; the validator's package is kept in the
+Docker volume `ssm-usor-ooxml-nuget`. It is not in CI, which would need Docker and .NET there.
+
+The sweep keeps the set valid: every properties element of the document, styles, numbering,
+header and footer parts has its children in the schema's order (`in_schema_order`), a table
+header row's on/off is bare (the schema takes only "on" or "off", and LibreOffice writes "true"),
+and a font name the originals gave as "PostScript;family" is cut to the family, the schema's
+limit being 31 characters (`in_schema_values`, both in `tools/import/table_style.py`). On
+2026-11-20 the set's templates and previews had 201 errors on `main` and none after these.
+
 ## Covers
 
 The covers are not imported, they are built:

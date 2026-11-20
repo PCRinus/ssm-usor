@@ -1064,3 +1064,17 @@ def in_schema_order(xml):
         xml = re.sub(rf'<w:({tag})(\s[^>]*)?>((?:(?!<w:{tag}[\s>]).)*?)</w:{tag}>', ordered, xml, flags=re.S)
     return xml
 
+
+FONTS = re.compile(r'<w:rFonts\b[^>]*>')
+FONT_ATTRIBUTE = re.compile(r'(\bw:(?:ascii|hAnsi|cs|eastAsia)=")([^"]*;[^"]*)(")')
+
+
+def in_schema_values(xml):
+    """Attribute values the schema accepts: a table header row's on/off takes only "on" or
+    "off", so the "true" LibreOffice writes there makes the file invalid, and a font name is at
+    most 31 characters, so the "PostScript;family" pair an original carried is cut to the
+    family. Safe to run again."""
+    xml = re.sub(r'<w:(tblHeader|cantSplit) w:val="(?:true|1|on)"/>', r'<w:\1/>', xml)
+    xml = re.sub(r'<w:(?:tblHeader|cantSplit) w:val="(?:false|0|off)"/>', '', xml)
+    family = lambda match: match.group(1) + match.group(2).split(';')[-1].strip() + match.group(3)
+    return FONTS.sub(lambda fonts: FONT_ATTRIBUTE.sub(family, fonts.group(0)), xml)
