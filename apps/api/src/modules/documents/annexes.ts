@@ -4,6 +4,7 @@ import { appendAnnexes, renderAnnex, TemplateError } from '@ssm-usor/document-en
 import type { Json } from '../../database.types';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
+import { printedNames } from '../../lib/printed-names';
 import { annexDomainOf, annexesData } from './snapshot';
 
 export function renderInstructionAnnex(
@@ -12,7 +13,11 @@ export function renderInstructionAnnex(
   data: Record<string, unknown>
 ) {
   try {
-    return renderAnnex(domain, body, data);
+    return renderAnnex(
+      domain,
+      body,
+      domain === 'ssm' ? printedNames('occupational_safety')(data) : data
+    );
   } catch (error) {
     if (error instanceof TemplateError) {
       console.error(`The ${domain} annex could not be merged: ${error.message}`);

@@ -145,9 +145,8 @@ def signatures(document, text, cursor, definition):
         tail.ParaBottomMargin = 0
         return
     plain(text, cursor, '', adjust=LEFT, below=0)
-    # A signature field brings its own room; the annex has less than the set's hand-over blocks,
-    # to keep to one page.
-    room = 4 if fields else compact['signingRoom'] if compact else 34
+    # A signature field brings its own room; the sweep gives the annex's signers the set's.
+    room = 4 if fields else 34
     table = insert_handover(document, text, cursor, tuple(
         (side['lines'] + ([FIELD_MARK + side['field']] if 'field' in side else []), side['name'], side['role'])
         for side in sides), signing_room=room)
@@ -172,7 +171,7 @@ def signatures(document, text, cursor, definition):
 
 
 def tighten(text, compact):
-    # The annex keeps to one page under a box of document details as tall as long names make it.
+    # Short names keep the annex to one page; long ones and the signing room take a second.
     for paragraph in _elements(text):
         if (paragraph.supportsService('com.sun.star.text.Paragraph')
                 and paragraph.ParaBottomMargin == round(6 * POINT)):

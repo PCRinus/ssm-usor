@@ -9,7 +9,7 @@
       "file": "1.0_cover_decisions.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; titlul numește domeniul, rândul dinaintea clientului spune doar „pentru”, iar lista are rândurile aliniate."
       }
     },
     {
@@ -20,8 +20,8 @@
       "title": "Decizia privind responsabilii cu instruirea",
       "file": "1.1_decision_training.docx",
       "change": {
-        "kind": "legal",
-        "note": "Citatul din H.G. 1425/2006 art. 98 începe acum cu fraza lui de deschidere și spune „activități specifice”, ca în lege; fraza despre conținutul instruirii suplimentare stă separat, după citatul art. 100, ca text al deciziei."
+        "kind": "correction",
+        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. Scris „și/sau”. Notele „(Conf. …)” cursive, listele spațiate la fel; PDF-ul nu mai are semne de carte din corpul textului. Procesul-verbal are rânduri de 15 mm pentru semnătură."
       }
     },
     {
@@ -33,7 +33,7 @@
       "file": "1.2_decision_risk_evaluation_team.docx",
       "change": {
         "kind": "correction",
-        "note": "Coordonatorul echipei de evaluare este evaluatorul de riscuri al organizației, cu calitatea și certificatul lui, când este completat în Abilitări; altfel, ca până acum, cel care generează documentele, cu titlul din profil."
+        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. Listele, spațiate la fel; PDF-ul nu mai are semne de carte din corpul textului. Procesul-verbal are rânduri de 15 mm pentru semnătură."
       }
     },
     {
@@ -45,7 +45,7 @@
       "file": "1.3_decision_first_aid.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. Listele, spațiate la fel; PDF-ul nu mai are semne de carte din corpul textului. Procesul-verbal are rânduri de 15 mm pentru semnătură."
       }
     },
     {
@@ -57,7 +57,7 @@
       "file": "1.4_decision_imminent_danger.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. Scris „și/sau”. Listele, spațiate la fel; PDF-ul nu mai are semne de carte din corpul textului. Procesul-verbal are rânduri de 15 mm pentru semnătură."
       }
     },
     {
@@ -69,7 +69,7 @@
       "file": "1.5_decision_workers_representative.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. Ghilimele „…”. Listele, spațiate la fel; PDF-ul nu mai are semne de carte din corpul textului. Procesul-verbal are rânduri de 15 mm pentru semnătură."
       }
     },
     {
@@ -80,8 +80,8 @@
       "title": "Copertă – Material de instruire introductiv-generală",
       "file": "2.1_cover_general_training_material.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "kind": "layout",
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; „introductiv-generală” nu se mai desparte."
       }
     },
     {
@@ -92,12 +92,8 @@
       "title": "Material de instruire introductiv-generală",
       "file": "2.2_general_training_material.docx",
       "change": {
-        "kind": "legal",
-        "note": "Art. 36 alin. (2) din O.U.G. 195/2002 cere conducătorilor și pasagerilor motocicletelor și mopedelor să poarte pe cap o cască omologată pentru categoria vehiculului, cu elementele de siguranță cuplate corect.",
-        "resolves": {
-          "act": "oug-195-2002",
-          "consolidatedOn": "2026-11-06"
-        }
+        "kind": "correction",
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Ghilimele „…” și „și/sau”. Semne standard în catalog, cu rostul lor, plus „Alte indicatoare”; desene noi. Articole neîngroșate, titluri mai mari, subliste mai înăuntru. Antetul nu mai rupe „introductiv-generală”; m¹) și liniuțele din anexe pe rânduri proprii. Trei preluări devin articole, cu renumerotare."
       }
     },
     {
@@ -109,7 +105,7 @@
       "file": "3.1_cover_own_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; rândul dinaintea clientului spune doar „pentru”."
       }
     },
     {
@@ -120,8 +116,8 @@
       "title": "Instrucțiuni proprii de securitate și sănătate în muncă",
       "file": "3.2_own_instructions.docx",
       "change": {
-        "kind": "legal",
-        "note": "Citatele din legislație au fost aduse la forma în vigoare: fișa de instruire (H.G. 1425/2006 art. 81 și 81¹), intervalele instruirii periodice (art. 96), durata minimă a instruirii (art. 80¹), concediul de risc maternal (O.U.G. 158/2005 art. 31) și echipamentele de protecție (H.G. 1048/2006 art. 3); textele despre MISSMIG și IPSSM nu mai sunt numerotate ca alineate ale legii."
+        "kind": "correction",
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Ghilimele „…” și „și/sau”. Articolele nu mai sunt îngroșate, titlurile au o scară clară, subcapitolele apar în cuprins, sublistele stau mai înăuntru, iar anexele sunt aliniate la stânga ca restul textului. Titlurile lungi din cuprins nu mai ating numărul paginii; durata instruirii încape pe un rând."
       }
     },
     {
@@ -132,8 +128,8 @@
       "title": "Copertă – Tematica de instruire",
       "file": "4.1_cover_training_themes.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "kind": "layout",
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile."
       }
     },
     {
@@ -145,7 +141,7 @@
       "file": "4.2_training_themes.docx",
       "change": {
         "kind": "correction",
-        "note": "Actele normative citate, scrise uniform („Legea 319/2006”, „H.G. 1425/2006”), cu un singur separator înaintea articolului; titlurile de capitol din marcajele „Preluare din” au fost scoase."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Scris „și/sau”. Fiecare post începe cu numele lui, iar datele lui stau într-un bloc pe două coloane. „Locul de muncă” al unui post e zona lui de lucru; lista instrucțiunilor specifice ocupă toată lățimea tabelului. Trimiterile MISSMIG urmează noua numerotare a articolelor."
       }
     },
     {
@@ -157,7 +153,7 @@
       "file": "5.0_cover_tests.docx",
       "change": {
         "kind": "correction",
-        "note": "Coperta numește un singur test, cel la angajare (TASSM): testul de verificare periodică a fost scos din set, nicio prevedere legală nu îl cere."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul: „Test de verificare a cunoștințelor la angajare (TASSM)”. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; rândul dinaintea clientului spune doar „pentru”."
       }
     },
     {
@@ -168,8 +164,8 @@
       "title": "Test de verificare a cunoștințelor la angajare",
       "file": "5.1_test_hiring.docx",
       "change": {
-        "kind": "layout",
-        "note": "Întrebările vin din banca de întrebări a organizației: testul le tipărește pe toate cele active, foaia de răspunsuri are un rând pentru fiecare, iar răspunsurile corecte se tipăresc din aceleași date. Sub titlu, rândul „La fiecare întrebare pot fi corecte unul sau mai multe răspunsuri.”, iar rezultatul arată pragul de 70% de răspunsuri corecte. Întrebarea cu pictograme nu mai există."
+        "kind": "correction",
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Titlul: „Test de verificare a cunoștințelor la angajare (TASSM)”; specimen marcat, cheia în a), b), c). Rândul semnăturilor are 15 mm."
       }
     },
     {
@@ -180,8 +176,8 @@
       "title": "Lista internă de dotare cu echipament individual de protecție",
       "file": "6_protective_equipment_list.docx",
       "change": {
-        "kind": "legal",
-        "note": "Citatul din Legea 319/2006 art. 12 numește litera b), singura pe care o preia."
+        "kind": "correction",
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă și linie pentru dată. Ghilimele „…”, „și/sau”. Echipamentul posturilor stă într-un singur tabel, grupat pe posturi. Liniuțele din celule au rândurile aliniate sub text. Categoria de personal încape pe un rând."
       }
     },
     {
@@ -192,8 +188,8 @@
       "title": "Copertă – Registrele de evidență a evenimentelor",
       "file": "7.1_cover_event_registers.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "kind": "layout",
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; lista are rândurile aliniate."
       }
     },
     {
@@ -205,7 +201,7 @@
       "file": "7.2_event_registers.docx",
       "change": {
         "kind": "correction",
-        "note": "Fraze incomplete sau neclare, reformulate."
+        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Paginile, așezate orizontal, se leagă pe latura de sus. Capetele de tabel ale celor patru registre au aceeași mărime. Clientul stă sub titlu; rânduri de aceeași înălțime, până la capătul paginii."
       }
     },
     {
@@ -216,8 +212,8 @@
       "title": "Referat de control",
       "file": "8_control_report.docx",
       "change": {
-        "kind": "layout",
-        "note": "Paginarea și rândul din subsol, așezate din nou; textul este neschimbat."
+        "kind": "correction",
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Rândul semnăturilor are 25 mm. Formularul are titlul „REFERAT DE CONTROL”."
       }
     },
     {
@@ -229,7 +225,7 @@
       "file": "9_risk_assessment.docx",
       "change": {
         "kind": "correction",
-        "note": "Evaluatorul numit pe prima pagină, în echipa de evaluare și la fiecare loc de muncă este evaluatorul de riscuri al organizației, cu calitatea și certificatul lui, când este completat în Abilitări; altfel, ca până acum, cel care generează documentele."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Grilele metodei se citesc pe orice gri, consecințele marcate cu X; semnături pe 25 mm; „și/sau”; liste cu liniuțe. Fișa de evaluare unește celulele grupelor; paginile orizontale se leagă sus. Figuri și formule refăcute; o măsură pe rând. TOTAL arată 100 %; bibliografia pe pagina ei."
       }
     },
     {
@@ -241,7 +237,7 @@
       "file": "10_prevention_plan.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă, la aceeași înălțime. Fiecare plan poartă numele postului, cu locul de muncă alături. Coloanele își împart lățimea după cât text are fiecare, iar paginile se leagă pe latura de sus. O măsură pe rând în celule."
       }
     },
     {
@@ -252,8 +248,8 @@
       "title": "Copertă – Material de informare a angajatorului",
       "file": "11.1_cover_employer_briefing.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "kind": "layout",
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile."
       }
     },
     {
@@ -264,8 +260,8 @@
       "title": "Material de informare a angajatorului",
       "file": "11_employer_briefing.docx",
       "change": {
-        "kind": "legal",
-        "note": "Citatele din legislație au fost aduse la forma în vigoare: intervalele instruirii periodice (H.G. 1425/2006 art. 96), durata instruirii la locul de muncă (art. 92), revizuirea evaluării riscurilor (art. 15), comunicarea evenimentelor (Legea 319/2006 art. 26 și 27) și reprezentanții lucrătorilor (H.G. 1425/2006 art. 53); cuvintele lipsă au fost refăcute."
+        "kind": "correction",
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. 25 mm pentru semnătură și ștampilă. Ghilimele „…”, „și/sau”, „marcaj ocazional”; testul la angajare are numele nou. Actele și materialele informative sunt liste, nu tabele. Tipurile de semnalizare au panourile standard și rostul fiecăruia. Articolele nu mai sunt îngroșate. Cuprinsul nu atinge numerele."
       }
     },
     {
@@ -277,7 +273,7 @@
       "file": "12_control_regulation.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Predarea-primirea are titlul și formulările de pe coperți și 25 mm pentru semnătură și ștampilă. Scris „și/sau”. Textul articolelor începe ca în decizii. Titlul se rupe după sens; graficul are legendă."
       }
     },
     {
@@ -288,7 +284,7 @@
       "file": "13_signing_regulation_annex.docx",
       "change": {
         "kind": "correction",
-        "note": "Versiunea inițială: fișele de instruire SSM și PSI se semnează cu semnătură electronică avansată, după H.G. 1425/2006 art. 81 alin. (3¹)–(3³) și Codul muncii art. 16."
+        "note": "Tabelele și caseta din antet stau pe marginile textului. Angajatorul și cel care a întocmit anexa au fiecare 25 mm pentru semnătură și ștampilă, sub ultimul articol."
       }
     },
     {
@@ -297,8 +293,8 @@
       "title": "Fișa individuală de instruire SSM",
       "file": "fisa_instruire_ssm.docx",
       "change": {
-        "kind": "correction",
-        "note": "Instruirile preluate de pe fișa pe hârtie apar cu mențiunea „transcris; semnat pe hârtie”, iar sub titlu fișa spune că rândurile transcrise sunt copiate de pe fișa pe hârtie și că originalul, cu semnăturile, se păstrează la angajator."
+        "kind": "layout",
+        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini."
       }
     },
     {
@@ -317,8 +313,8 @@
       "title": "Fișa de test",
       "file": "fisa_test.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială: întrebările testului susținut în portal, cu răspunsurile alese, punctajul, rezultatul și semnăturile persoanei testate și ale examinatorului."
+        "kind": "layout",
+        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini."
       }
     }
   ]

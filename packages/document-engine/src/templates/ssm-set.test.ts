@@ -2,7 +2,7 @@ import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
 import { knowledgeTestData } from '../../tools/knowledge-test-samples';
-import { described } from '../../tools/set-samples';
+import { described, setSamples } from '../../tools/set-samples';
 import { renderDocument, templatePlaceholders } from '../render';
 import { documentText } from '../text';
 import { bodyOf, documentTextOf, knowledgeTests, read, typesetFiles } from './read';
@@ -377,6 +377,35 @@ describe('employer_briefing', () => {
     );
     expect(text).not.toContain('1,30 ore');
   });
+
+  // A reference list reads better as a list than as a grid of cells.
+  it('lists the acts, its own documents and the other materials under headings, not in tables', () => {
+    const body = bodyOf('11_employer_briefing.docx');
+    const blocks = body.match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    const texts = blocks.map(documentTextOf);
+    const part = blocks.slice(
+      texts.findIndex((text) =>
+        text.includes('aplicabile în funcție de domeniile în care unitatea')
+      ),
+      texts.findIndex((text) => text.startsWith('Capitolul X.'))
+    );
+    const paragraphs = part.filter((block) => block.startsWith('<w:p')).map(documentTextOf);
+    expect(paragraphs).toEqual(
+      expect.arrayContaining([
+        'Acte normative în domeniul securității și sănătății în muncă',
+        'Legea 319/2006 – Legea securității și sănătății în muncă',
+        'Documente interne de informare',
+        'Cărți tehnice și manuale de utilizare – Toate informațiile necesare privind modul de utilizare, depozitarea, întreținerea și mentenanța, specificațiile tehnice, principiile de funcționare și sistemele de control și securitate, obligațiile și atenționările specifice, pentru fiecare echipament de muncă din dotarea unității, astfel încât acesta să fie folosit eficient și fără accidente.',
+        'Alte materiale informative',
+        'Stoc de mijloace de semnalizare',
+      ])
+    );
+    expect(paragraphs.filter((text) => / – /.test(text))).toHaveLength(21 + 7 + 1);
+    expect(part.join('')).not.toMatch(/TABEL|Nr\. crt\.|TIP SEMNALIZARE|HouseTable/);
+    expect(body).toContain(
+      'oferă informații concrete, aplicabile în funcție de domeniile în care unitatea își desfășoară activitatea, astfel:'
+    );
+  });
 });
 
 // ADR 024: the questions come from the organization's question bank, printed on the test and
@@ -398,12 +427,20 @@ describe('knowledge tests', () => {
     fireSafetyTechnician: { name: 'Radu STAN' },
   };
 
-  it.each(knowledgeTests)('%s asks for the questions besides its header', (_code, name) => {
+  it.each(knowledgeTests)('%s asks for the questions besides its header', (code, name) => {
     expect(
       templatePlaceholders(read(name)).filter(
         (each) => !each.includes('.') && !['branding', 'issueDate'].includes(each)
       )
-    ).toEqual(['$last', 'key', 'letter', 'number', 'options', 'questions', 'text']);
+    ).toEqual([
+      '$last',
+      code === 'TASSM' ? 'keyLabels' : 'key',
+      'letter',
+      'number',
+      'options',
+      'questions',
+      'text',
+    ]);
   });
 
   it.each(
@@ -417,7 +454,7 @@ describe('knowledge tests', () => {
       expect(text.match(/^\d+\. /gm)).toHaveLength(count * 2);
       expect(
         text.match(
-          /^TEST(ARE| ANUAL)? DE VERIFICARE .*\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
+          /^TEST( ANUAL)? DE VERIFICARE .*\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
         )
       ).toHaveLength(2);
       expect(text).toContain(
@@ -434,25 +471,54 @@ describe('knowledge tests', () => {
       const sheetStart = text.indexOf('Răspunsul dat');
       const sheet = text.slice(sheetStart, text.indexOf('\n1. ', sheetStart));
       expect(sheet.match(/^\d+$/gm)).toHaveLength(count);
-      const keyTitle =
-        code === 'TASSM' ? 'SPECIMEN CU RĂSPUNSURILE CORECTE' : 'RĂSPUNSURILE CORECTE';
-      const keyStart = text.indexOf(`\n${keyTitle}\nNr. întrebării\nRăspunsul corect\n`);
+      const keyStart = text.indexOf('\nRĂSPUNSURILE CORECTE\nNr. întrebării\nRăspunsul corect\n');
       expect(keyStart).toBeGreaterThan(sheetStart);
       const key = text.slice(keyStart);
-      expect(key.match(/^\d+\n[A-D](?:, [A-D])*$/gm)).toHaveLength(count);
+      // 5.1's key names the options as they are labelled; the fire-safety tests' are not reviewed yet.
+      const printed = (question: (typeof data.questions)[number]) =>
+        code === 'TASSM' ? question.keyLabels : question.key;
+      expect(
+        key.match(
+          code === 'TASSM' ? /^\d+\n[a-d]\)(?:, [a-d]\))*$/gm : /^\d+\n[A-D](?:, [A-D])*$/gm
+        )
+      ).toHaveLength(count);
       for (const question of data.questions) {
-        expect(key).toMatch(new RegExp(`^${question.number}\\n${question.key}$`, 'm'));
+        expect(key).toContain(`\n${question.number}\n${printed(question)}\n`);
+      }
+      if (code === 'TASSM') {
+        expect(
+          text.indexOf('\nSPECIMEN CU RĂSPUNSURILE CORECTE\nTEST DE VERIFICARE')
+        ).toBeGreaterThan(sheetStart);
       }
     }
   );
 
-  it.each(knowledgeTests)('%s opens the specimen on a page of its own', (_code, name) => {
-    const titles = (bodyOf(name).match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).filter((paragraph) =>
-      /^TEST(ARE| ANUAL)? DE VERIFICARE /.test(documentTextOf(paragraph))
+  it.each(knowledgeTests)('%s opens the specimen on a page of its own', (code, name) => {
+    const paragraphs: string[] = bodyOf(name).match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    const titles = paragraphs.filter((paragraph) =>
+      /^TEST( ANUAL)? DE VERIFICARE /.test(documentTextOf(paragraph))
     );
     expect(titles).toHaveLength(2);
     expect(titles[0]).toContain('<w:pageBreakBefore w:val="false"/>');
-    expect(titles[1]).toContain('<w:pageBreakBefore w:val="true"/>');
+    const opening =
+      code === 'TASSM' ? paragraphs[paragraphs.lastIndexOf(titles[1]!) - 1]! : titles[1]!;
+    expect(documentTextOf(opening)).toBe(
+      code === 'TASSM' ? 'SPECIMEN CU RĂSPUNSURILE CORECTE' : documentTextOf(titles[1]!)
+    );
+    expect(opening).toContain('<w:pageBreakBefore w:val="true"/>');
+  });
+
+  it('names the hiring test one way on its title and in its header box', () => {
+    const zip = new PizZip(read('5.1_test_hiring.docx'));
+    const titles = (bodyOf('5.1_test_hiring.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [])
+      .map(documentTextOf)
+      .filter((paragraph) => paragraph.startsWith('TEST '));
+    expect(titles).toEqual(Array(2).fill('TEST DE VERIFICARE A CUNOȘTINȚELOR LA ANGAJARE (TASSM)'));
+    for (const part of ['word/header1.xml', 'word/header2.xml', 'word/header3.xml']) {
+      expect(documentTextOf(zip.file(part)!.asText())).toContain(
+        'Test de verificare a cunoștințelor la angajare (TASSM)'
+      );
+    }
   });
 
   it('names the SU annual test annual, never periodic, in its titles and its header', () => {
@@ -585,20 +651,20 @@ describe('training_themes', () => {
         [7, 13],
         [14, 15],
         [16, 27],
-        [28, 80],
-        [81, 96],
-        [97, 108],
-        [109, 120],
-        [121, 151],
-        [152, 210],
-        [211, 235],
-        [236, 267],
-        [268, 277],
-        [278, 290],
-        [291, 299],
-        [300, 324],
+        [28, 81],
+        [82, 97],
+        [98, 109],
+        [110, 121],
+        [122, 152],
+        [153, 211],
+        [212, 236],
+        [237, 270],
+        [271, 280],
+        [281, 293],
+        [294, 302],
+        [303, 327],
       ].map(([from, to]) => `MISSMIG Art. ${from} – ${to}`),
-      'MISSMIG Art. 325',
+      'MISSMIG Art. 328',
     ]);
   });
 
@@ -653,9 +719,40 @@ describe('training_themes', () => {
   });
 
   it('labels the trainer without saying who it is, since the provider trains some posts', () => {
-    const text = lines.join('\n');
-    expect(text.match(/CINE EFECTUEAZĂ INSTRUIREA: /g)).toHaveLength(3);
-    expect(text).not.toContain('ȘEF DIRECT');
+    expect(lines.filter((line) => line === 'Instruire efectuată de')).toHaveLength(3);
+    expect(lines.join('\n')).not.toMatch(/ȘEF DIRECT|CINE EFECTUEAZĂ/);
+  });
+
+  it('heads each post with its name and sets its details in a key and value block', () => {
+    const data = setSamples.find((sample) => sample.label === 'long')!.data;
+    const merged = renderDocument(read('4.2_training_themes.docx'), data);
+    const text = documentText(merged).split('\n');
+    const posts = (data.themes as { positions: { name: string }[] }).positions;
+    for (const { name } of posts) {
+      expect(text.filter((line) => line === name).length).toBeGreaterThanOrEqual(2);
+    }
+    expect(text.filter((line) => line === 'Locul de muncă')).toHaveLength(1 + 2 * posts.length);
+    expect(text.filter((line) => line === 'Funcția')).toEqual(['Funcția']);
+    expect(text.filter((line) => line === 'Periodicitate')).toHaveLength(posts.length);
+    expect(text).toContain('6 luni');
+    expect(text.join('\n')).not.toMatch(/LOCUL DE MUNCĂ:|FUNCȚIA:|PERIODICITATE:/);
+  });
+
+  // A block that keeps with what follows it when no table follows chained every post of
+  // chapter II into one run, which moved them all to the next page.
+  it('keeps a periodic plan with its block, and no workplace block with the next post', () => {
+    const body = bodyOf('4.2_training_themes.docx');
+    const blocks = body.match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    const keyValue = blocks
+      .map((block, index) => ({ block, index }))
+      .filter(({ block }) => block.startsWith('<w:tbl>') && block.includes('Locul de muncă'));
+    expect(keyValue).toHaveLength(3);
+    const lastRowKeeps = (table: string) =>
+      /<w:keepNext\/>/.test(table.match(/<w:tr>(?:(?!<w:tr>)[\s\S])*<\/w:tr><\/w:tbl>$/)![0]);
+    expect(keyValue.map(({ block }) => lastRowKeeps(block))).toEqual([false, false, true]);
+    const [, , periodic] = keyValue;
+    expect(blocks[periodic!.index + 1]).toContain('<w:keepNext/>');
+    expect(blocks[periodic!.index + 2]).toContain('<w:tblStyle w:val="HouseTable"/>');
   });
 });
 
@@ -693,6 +790,34 @@ describe('risk_assessment', () => {
     expect(text).not.toMatch(/\d+ – \d+\s*(I|II|III|IV|V|VI)\b/);
   });
 
+  // A group's name covers its rows in one cell, never above empty bordered ones.
+  it("merges a component's and a group's cells down the rows of the evaluation sheet", () => {
+    const data = setSamples.find((sample) => sample.label === 'long')!.data;
+    const body = new PizZip(renderDocument(read('9_risk_assessment.docx'), data))
+      .file('word/document.xml')!
+      .asText();
+    const sheets = (body.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? []).filter((table) =>
+      documentTextOf(table).startsWith('Componenta sistemului de muncăFactori de risc identificați')
+    );
+    const evaluations = (
+      data.riskAssessment as { evaluations: { sheet: { component: string; group: string }[] }[] }
+    ).evaluations;
+    expect(sheets).toHaveLength(evaluations.length);
+    sheets.forEach((sheet, index) => {
+      const rows = sheet.match(/<w:tr>[\s\S]*?<\/w:tr>/g)!.slice(1);
+      const cells = (row: string) => row.match(/<w:tc>[\s\S]*?<\/w:tc>/g)!.slice(0, 2);
+      const merges = rows.map((row) =>
+        cells(row).map((cell) => (cell.includes('<w:vMerge/>') ? 'continue' : 'restart'))
+      );
+      expect(merges).toEqual(
+        evaluations[index]!.sheet.map(({ component, group }) => [
+          component ? 'restart' : 'continue',
+          group ? 'restart' : 'continue',
+        ])
+      );
+    });
+  });
+
   it('lists every factor with a measure in the measures sheet, as the plan does', () => {
     const sheet = text.slice(
       text.indexOf('IV. FIȘA DE MĂSURI PROPUSE'),
@@ -711,8 +836,56 @@ describe('risk_assessment', () => {
   });
 });
 
+describe('protective_equipment_list', () => {
+  const template = read('6_protective_equipment_list.docx');
+  const data = setSamples.find((sample) => sample.label === 'long')!.data;
+
+  // One header for every post, each post named on a row of the table.
+  it('lists every equipped post in one table, its name on a shaded row over its equipment', () => {
+    const body = new PizZip(renderDocument(template, data)).file('word/document.xml')!.asText();
+    const part = body.slice(body.indexOf('Necesarul de E.I.P. pe posturi de lucru'));
+    const tables = part.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? [];
+    expect(tables).toHaveLength(1);
+    const rows = tables[0]!.match(/<w:tr>[\s\S]*?<\/w:tr>/g)!;
+    const equipped = data.equippedPositions as { name: string; equipment: unknown[] }[];
+    expect(rows).toHaveLength(
+      1 + equipped.reduce((sum, post) => sum + 1 + post.equipment.length, 0)
+    );
+    const groupRows = rows.filter((row) => row.includes('w:fill="F1F4EF"'));
+    expect(groupRows.map(documentTextOf)).toEqual(
+      equipped.map((post) =>
+        'workZone' in post && post.workZone
+          ? `${post.name} – locul de muncă: ${post.workZone}`
+          : post.name
+      )
+    );
+    for (const row of groupRows) {
+      expect(row).toContain('<w:gridSpan w:val="4"/>');
+      expect(row).toContain('<w:keepNext/>');
+    }
+    expect(part).not.toContain('POST DE LUCRU');
+  });
+
+  it('prints neither the heading nor the table without an equipped post', () => {
+    const text = documentText(
+      renderDocument(template, { ...data, equippedPositions: [], hasEquippedPositions: false })
+    );
+    expect(text).not.toContain('Necesarul de E.I.P. pe posturi de lucru');
+    expect(text).not.toContain('Sortiment E.I.P. necesar de acordat');
+  });
+});
+
 describe('prevention_plan', () => {
   const text = documentText(read('10_prevention_plan.docx'));
+
+  // 4.2, 6 and 10 name a post in one form.
+  it('heads each plan with the post as the app spells it and its work zone beside it', () => {
+    const data = setSamples.find((sample) => sample.label === 'long')!.data;
+    const merged = documentText(renderDocument(read('10_prevention_plan.docx'), data));
+    expect(merged).toContain('Manager magazin – locul de muncă: Birou');
+    expect(merged).toMatch(/^Sudor$/m);
+    expect(merged).not.toContain('POSTUL DE LUCRU');
+  });
 
   it("prints nothing of the first client's posts or measures", () => {
     expect(text).not.toMatch(

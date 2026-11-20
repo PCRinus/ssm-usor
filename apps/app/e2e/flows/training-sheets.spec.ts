@@ -66,7 +66,7 @@ test('an employee with a route and a recorded training gets a training sheet as 
       phase: 'introductory_general',
       heldOn: today,
       durationMinutes: 240,
-      material: 'Conform MISSMIG Art. 1 – 325',
+      material: 'Conform MISSMIG Art. 1 – 328',
       trainer: { name: 'Dan MARIN', jobTitle: 'Inspector SSM' },
       verifier: { name: 'Dan MARIN', jobTitle: 'Inspector SSM' },
       employeeIds: [employee.id],

@@ -40,6 +40,15 @@ from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
+from decision_pages import decision_pages
+from signatures import signing_space
+from landscape_binding import landscape_bound_on_top
+from table_style import (P_PR_ORDER, R_PR_ORDER, draws_house_tables, edit_properties, house_tables_part, in_schema_order,
+                         in_schema_values,
+                         marked_for_content_widths, put)
+from typography import house_heading_style, paragraph_styles, typography, without_headings
+from word_layout import lays_out_as_word_2013, word_2013_part
+
 ROOT = '/work'
 PORT = 2002
 # One folder per documentation set (ADR 016), the same under `originals/` and `templates/`: a
@@ -1627,11 +1636,7 @@ def cap_keep_chains(xml, styles):
     return xml
 
 
-RUN_PROPERTIES = ['rStyle', 'rFonts', 'b', 'bCs', 'i', 'iCs', 'caps', 'smallCaps', 'strike',
-                  'dstrike', 'outline', 'shadow', 'emboss', 'imprint', 'noProof', 'snapToGrid',
-                  'vanish', 'webHidden', 'color', 'spacing', 'w', 'kern', 'position', 'sz', 'szCs',
-                  'highlight', 'u', 'effect', 'bdr', 'shd', 'fitText', 'vertAlign', 'rtl', 'cs',
-                  'em', 'lang', 'eastAsianLayout', 'specVanish', 'oMath']
+RUN_PROPERTIES = R_PR_ORDER
 BRANDING_RUN = {
     'color': f'<w:color w:val="{BRANDING_COLOR:06X}"/>',
     'sz': f'<w:sz w:val="{round(BRANDING_SIZE * 2)}"/>',
@@ -1868,6 +1873,7 @@ def size_list_labels(xml, numbering, styles):
 
 TEXT_WIDTH = round((21000 - MARGINS['LeftMargin'] - MARGINS['RightMargin']) * 1440 / 2540)  # twips
 TOC_HANG = 1134  # twips: a wrapped entry's lines run 2 cm in, clear of its "Capitolul IV." label
+TOC_NUMBER_ROOM = 567  # twips
 TOC_INSTRUCTION = r' TOC \o "1-2" \h \z \u '
 TOC_PLACEHOLDER = (
     '<w:sdt><w:sdtPr><w:docPartObj><w:docPartGallery w:val="Table of Contents"/><w:docPartUnique/>'
@@ -1888,12 +1894,13 @@ TABLES_OF_CONTENTS = {
     '2.2_general_training_material': {
         'title': r'^Cuprins:$',
         'end': r'^Notă:$',
-        'headings': [(1, r'^Capitolul [IVXLC]+\. ')],
+        'headings': [(1, r'^Capitolul [IVXLC]+\. '), (2, r'^Subcapitolul [IVXLC]+\.[IVXLC]+\. ')],
     },
     '3.2_own_instructions': {
         'title': r'^CUPRINS IPSSM',
         'end': r'^\{\{#annexes\}\}$',
-        'headings': [(1, r'^Capitolul [IVXLC]+\. ')],
+        'pageAfter': True,
+        'headings': [(1, r'^Capitolul [IVXLC]+\. '), (2, r'^Subcapitolul [IVXLC]+\.[IVXLC]+\.')],
     },
     '9_risk_assessment': {
         'title': r'^Cuprins$',
@@ -1909,7 +1916,6 @@ TABLES_OF_CONTENTS = {
     },
 }
 PARAGRAPH_STYLE = re.compile(r'<w:pStyle w:val="([^"]+)"/>')
-OUTLINE_LEVEL = re.compile(r'<w:outlineLvl w:val="\d"/>')
 
 
 def style_definition(styles, style_id):
@@ -1941,12 +1947,14 @@ def heading_style(level):
             f'<w:pPr><w:keepNext/><w:outlineLvl w:val="{level - 1}"/></w:pPr><w:rPr><w:b/><w:bCs/></w:rPr></w:style>')
 
 
-def contents_entry_style(level):
+def contents_entry_style(level, word_2013=False):
     left = (level - 1) * 567 + TOC_HANG
+    # An entry's words stop short of the page numbers, or a long one runs into its number.
+    right = f' w:right="{TOC_NUMBER_ROOM}"' if word_2013 else ''
     return (f'<w:style w:type="paragraph" w:styleId="TOC{level}"><w:name w:val="toc {level}"/>'
             '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:pPr>'
             f'<w:tabs><w:tab w:val="right" w:leader="dot" w:pos="{TEXT_WIDTH}"/></w:tabs>'
-            f'<w:spacing w:before="0" w:after="40"/><w:ind w:left="{left}" w:hanging="{TOC_HANG}"/><w:jc w:val="left"/>'
+            f'<w:spacing w:before="0" w:after="40"/><w:ind w:left="{left}"{right} w:hanging="{TOC_HANG}"/><w:jc w:val="left"/>'
             f'</w:pPr><w:rPr><w:rFonts w:ascii="{FONT}" w:hAnsi="{FONT}" w:cs="{FONT}"/>'
             f'<w:sz w:val="{round(BODY_SIZE * 2)}"/><w:szCs w:val="{round(BODY_SIZE * 2)}"/></w:rPr></w:style>')
 
@@ -1958,7 +1966,7 @@ def spoken_text(paragraph):
     return re.sub(r'\s+', ' ', ''.join(part or ' ' for part in parts)).strip()
 
 
-def table_of_contents(xml, styles, spec):
+def table_of_contents(xml, styles, spec, word_2013=False):
     """The typed contents become a table of contents field, which the engine fills from the
     headings of the merged document. Chapter titles take the "heading N" styles; the body text
     the originals set in them ("Art. 1.", "(Preluare din …)") moves to a copy of the style under
@@ -1977,7 +1985,7 @@ def table_of_contents(xml, styles, spec):
             if re.search(spec['joined'], paragraph_text(xml[start:end])):
                 xml = xml[:start] + joined_with_next(xml[start:end], xml[following:following_end]) + xml[following_end:]
 
-    xml = OUTLINE_LEVEL.sub('', re.sub(r'<w:pStyle w:val="Heading(\d)"/>', r'<w:pStyle w:val="Paragraph\1"/>', xml))
+    xml = without_headings(xml)
     contents_end = xml.index('</w:sdt>', xml.index('docPartGallery w:val="Table of Contents"'))
     for kind, start, end in reversed(list(body_blocks(xml))):
         if kind == 'p' and start > contents_end:
@@ -1985,22 +1993,38 @@ def table_of_contents(xml, styles, spec):
             level = next((level for level, pattern in spec['headings'] if re.search(pattern, text)), None)
             if level:
                 xml = xml[:start] + with_style(xml[start:end], f'Heading{level}') + xml[end:]
+    xml, styles = paragraph_styles(xml, styles)
+    if spec.get('pageAfter'):
+        xml = contents_page(xml, contents_end)
 
-    for level in sorted(set(re.findall(r'<w:pStyle w:val="Paragraph(\d)"/>', xml))):
-        if style_definition(styles, f'Paragraph{level}'):
-            continue
-        copy = style_definition(styles, f'Heading{level}').group(0)
-        copy = copy.replace(f'w:styleId="Heading{level}"', f'w:styleId="Paragraph{level}"')
-        copy = copy.replace(f'<w:name w:val="heading {level}"/>', f'<w:name w:val="Paragraph {level}"/>')
-        copy = OUTLINE_LEVEL.sub('', re.sub(r'<w:link w:val="[^"]*"/>', '', copy))
-        styles = styles.replace('</w:styles>', f'{copy}</w:styles>')
-
-    for style_id, definition in [('Heading1', heading_style(1)), ('Heading2', heading_style(2)),
-                                 ('TOC1', contents_entry_style(1)), ('TOC2', contents_entry_style(2))]:
+    heading = house_heading_style if word_2013 else heading_style
+    for style_id, definition in [('Heading1', heading(1)), ('Heading2', heading(2)),
+                                 ('TOC1', contents_entry_style(1, word_2013)), ('TOC2', contents_entry_style(2, word_2013))]:
         existing = style_definition(styles, style_id)
         styles = styles.replace(existing.group(0), definition) if existing \
             else styles.replace('</w:styles>', f'{definition}</w:styles>')
     return xml, styles
+
+
+def contents_page(xml, contents_end):
+    """The contents on a page of their own, the first chapter on the next; the typed annex
+    lines under them hang like the entries above."""
+    edits = []
+    for kind, start, end in body_blocks(xml):
+        if kind != 'p' or start < contents_end:
+            continue
+        paragraph = xml[start:end]
+        if '<w:pStyle w:val="Heading1"/>' in paragraph:
+            edits.append((start, end, edit_properties(
+                paragraph, 'pPr', lambda inner: put(inner, 'pageBreakBefore', '<w:pageBreakBefore/>', P_PR_ORDER))))
+            break
+        if not LOOP_TAGS_ONLY.fullmatch(paragraph_text(paragraph)):
+            hung = re.sub(r'<w:ind\b[^>]*/>', f'<w:ind w:left="{TOC_HANG}" w:hanging="{TOC_HANG}"/>', paragraph, count=1)
+            edits.append((start, end, re.sub(r'<w:tabs>.*?</w:tabs>', f'<w:tabs><w:tab w:val="left" w:pos="{TOC_HANG}"/></w:tabs>',
+                                             hung, count=1, flags=re.S)))
+    for start, end, paragraph in reversed(edits):
+        xml = xml[:start] + paragraph + xml[end:]
+    return xml
 
 
 # A paragraph holding only this marker becomes a page break of its own. A break set on a
@@ -2012,7 +2036,7 @@ PAGE_BREAK_PARAGRAPH = re.compile(
 PAGE_BREAK = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
 
 
-def sweep(path):
+def sweep(path, word_2013=None):
     """A last pass over the saved file, for what LibreOffice's API reaches in most places and
     not in all, or not at all: a dead link that survives clearing, an empty paragraph it writes
     as justified though its own model says otherwise, a picture floating between two lines,
@@ -2020,19 +2044,48 @@ def sweep(path):
     three rules every template keeps: a line ending in ":" keeps with the list item after it,
     no run of paragraphs kept with the next longer than `KEEP_CHAIN` unless its lines are
     short, and the branding line small and grey; and in the documents with contents, a table
-    of contents over real headings (`TABLES_OF_CONTENTS`). Safe to run again."""
+    of contents over real headings (`TABLES_OF_CONTENTS`). In the occupational safety set,
+    Word 2013's layout with every table on the margins (`word_layout`), the table house
+    style (`table_style`), one signing space for every signature (`signatures`), the
+    decisions' page numbers and running header (`decision_pages`) and landscape pages bound on
+    their top edge (`landscape_binding`), which `word_2013` asks for
+    or leaves to the file's place. Safe to run again."""
+    if word_2013 is None:
+        word_2013 = lays_out_as_word_2013(path)
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
         styles = archive.read('word/styles.xml').decode('utf8')
         document = archive.read('word/document.xml').decode('utf8')
+        house = draws_house_tables(document)
         labelled = {}
         contents = TABLES_OF_CONTENTS.get(os.path.basename(path)[: -len('.docx')])
         if contents:
-            document, styles = table_of_contents(document, styles, contents)
+            document, styles = table_of_contents(document, styles, contents, word_2013)
             labelled['word/document.xml'], labelled['word/styles.xml'] = document, styles
         if 'word/numbering.xml' in archive.namelist():
             labelled['word/document.xml'], labelled['word/numbering.xml'] = size_list_labels(
                 document, archive.read('word/numbering.xml').decode('utf8'), styles)
+        if word_2013:
+            document, styles, numbering = typography(
+                labelled.get('word/document.xml', document), styles, labelled.get('word/numbering.xml'),
+                contents is not None, os.path.basename(path))
+            labelled['word/document.xml'], labelled['word/styles.xml'] = document, styles
+            if numbering is not None:
+                labelled['word/numbering.xml'] = numbering
+            texts = {item.filename: labelled.get(item.filename, data.decode('utf8')) for item, data in entries
+                     if re.search(r'\.(xml|rels)$', item.filename)}
+            paged = decision_pages(texts)
+            labelled.update({name: text for name, text in paged.items() if text != texts.get(name)})
+            texts.update(paged)
+            bound = landscape_bound_on_top(texts)
+            labelled.update({name: text for name, text in bound.items() if text != texts.get(name)})
+            known = {item.filename for item, _ in entries}
+            stamp = next(item for item, _ in entries if item.filename == 'word/document.xml').date_time
+            for name in paged:
+                if name not in known:
+                    entry = zipfile.ZipInfo(name, stamp)
+                    entry.compress_type = zipfile.ZIP_DEFLATED
+                    entries.append((entry, b''))
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
         for item, data in entries:
             if item.filename in labelled:
@@ -2052,6 +2105,8 @@ def sweep(path):
                 # The API's PageNumberOffset does not let go of it.
                 xml = re.sub(r'(<w:pgNumType\b[^>]*?) w:start="\d+"', r'\1', xml)
                 if item.filename == 'word/document.xml':
+                    if word_2013:
+                        xml = marked_for_content_widths(signing_space(xml), os.path.basename(path))
                     xml = cap_keep_chains(keep_lead_ins(xml, styles), styles)
                     xml = PAGE_BREAK_PARAGRAPH.sub(PAGE_BREAK, xml)
                 elif item.filename.startswith('word/footer'):
@@ -2059,6 +2114,12 @@ def sweep(path):
                 data = xml.encode('utf8')
             elif item.filename == 'word/styles.xml':
                 data = OFFICE_DEFAULT_FONTS.sub(f'"{FONT}"', data.decode('utf8')).encode('utf8')
+            if word_2013 and item.filename.endswith('.xml'):
+                data = house_tables_part(item.filename, word_2013_part(item.filename, data.decode('utf8')), house,
+                                         os.path.basename(path))
+                if re.fullmatch(r'word/(document|styles|numbering|header\d*|footer\d*)\.xml', item.filename):
+                    data = in_schema_order(in_schema_values(data))
+                data = data.encode('utf8')
             archive.writestr(item, data)
 
 

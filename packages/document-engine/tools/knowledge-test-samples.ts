@@ -314,6 +314,7 @@ export function knowledgeTestData(code: KnowledgeTestCode, count: number) {
       text,
       options: options.map((option, at) => ({ letter: letters[at]!, text: option })),
       key: correct.map((at) => letters[at]!.toUpperCase()).join(', '),
+      keyLabels: correct.map((at) => `${letters[at]!})`).join(', '),
     })),
   };
 }

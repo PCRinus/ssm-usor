@@ -1,5 +1,8 @@
 import { printedDate } from '@ssm-usor/contracts';
 
+// One order for posts, in the documents and in the app's lists alike.
+export { byRomanianName } from '@ssm-usor/contracts/romanian';
+
 export const collator = new Intl.Collator('ro');
 
 export function listed(items: readonly string[]) {

@@ -87,8 +87,7 @@ describe('the annex on the electronic signature', () => {
       'poate reveni oricând la semnarea olografă, printr-o cerere scrisă',
       'cu consultarea sindicatului sau a reprezentanților salariaților, după caz (art. 241 din Legea 53/2003)',
       'de la luarea la cunoștință (art. 243 din Legea 53/2003)',
-      'Angajator\nFlorin Cristian TALOȘ\nAdministrator',
-      'Întocmit\nAna IONESCU\nEvaluator de risc SSM',
+      'Angajator\nÎntocmit\nAdministrator\nEvaluator de risc SSM\nsemnătura și ștampila\nFlorin Cristian TALOȘ\nsemnătura și ștampila\nAna IONESCU',
       'Consultat: ',
     ]) {
       expect(text).toContain(sentence);

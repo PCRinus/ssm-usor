@@ -24,6 +24,11 @@ export interface AnnexParagraph {
   item1: AnnexItem | false;
   item2: AnnexItem | false;
   item3: AnnexItem | false;
+  // The occupational safety annex prints every bullet, whatever glyph the member typed, as the
+  // en dash of the common part's lists, hung as its dashes are.
+  dash1?: { text: string } | false;
+  dash2?: { text: string } | false;
+  dash3?: { text: string } | false;
 }
 
 const marker = /^(\(?\p{Ll}{1,4}\)|\(?\d{1,3}(?:\.\d{1,3})*[.)]|[–—\-•·▪◦●○■►➢✓*])\s+/u;
@@ -82,11 +87,81 @@ export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
   return paragraphs;
 }
 
+const tiers = ['1', '2', '3'] as const;
+
+// "»" opens a list item only in the occupational safety annex, which prints it as a dash.
+const withTypedDashes = (body: AnnexBody): AnnexBody => ({
+  blocks: body.blocks.map((block) =>
+    block.kind === 'article'
+      ? {
+          ...block,
+          paragraphs: block.paragraphs.map((text, index) =>
+            index > 0 ? text.replace(/^»(?=\s)/u, '–') : text
+          ),
+        }
+      : block
+  ),
+});
+
+function withDashes(paragraphs: AnnexParagraph[]): AnnexParagraph[] {
+  return paragraphs.map((paragraph) => {
+    const tier = tiers.find((each) => {
+      const item = paragraph[`item${each}`];
+      return item && markerKind(item.marker) === 'bullet';
+    });
+    if (!tier) return { ...paragraph, dash1: false, dash2: false, dash3: false };
+    const item = paragraph[`item${tier}`] as AnnexItem;
+    return {
+      ...paragraph,
+      [`item${tier}`]: false,
+      dash1: false,
+      dash2: false,
+      dash3: false,
+      [`dash${tier}`]: { text: item.text },
+    };
+  });
+}
+
 // `data` is what the own instructions' header merges (`issueDate`, `provider`, `client`,
 // `branding`, and for `su` `fireSafetyTechnician`) with the annex's `number`, `title` and
 // `versionDate`.
 export function renderAnnex(domain: AnnexDomain, body: AnnexBody, data: TemplateData): Uint8Array {
-  return renderDocument(annexTemplate(domain), { ...data, paragraphs: annexParagraphs(body) });
+  const document = renderDocument(annexTemplate(domain), {
+    ...data,
+    paragraphs:
+      domain === 'ssm' ? withDashes(annexParagraphs(withTypedDashes(body))) : annexParagraphs(body),
+  });
+  if (domain !== 'ssm') return document;
+  const zip = new PizZip(document);
+  const part = zip.file('word/document.xml')!;
+  zip.file(part.name, keptWithWhatFollows(part.asText()));
+  return zip.generate({ type: 'uint8array', compression: 'DEFLATE' });
+}
+
+const annexParagraph =
+  /<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?<w:pStyle w:val="(Annex\w+)"\/>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g;
+
+// What the body says is known only once merged: a line that ends with ":" keeps with the list it
+// introduces, and the last paragraph with the closing "Acte normative" line, which is otherwise
+// left alone on a page.
+function keptWithWhatFollows(xml: string) {
+  const paragraphs = [...xml.matchAll(annexParagraph)];
+  const acts = paragraphs.findIndex((match) => match[1] === 'AnnexActs');
+  let result = xml;
+  for (let index = paragraphs.length - 1; index >= 0; index -= 1) {
+    const match = paragraphs[index]!;
+    const text = [...match[0].matchAll(/<w:t\b[^>]*>([^<]*)<\/w:t>/g)]
+      .map((piece) => piece[1])
+      .join('')
+      .trim();
+    const keep =
+      (match[1] !== 'AnnexHeading' && match[1] !== 'AnnexActs' && text.endsWith(':')) ||
+      index === acts - 1;
+    if (!keep || /<w:keepNext\/>/.test(match[0])) continue;
+    const kept = match[0].replace(/(<w:pStyle w:val="Annex\w+"\/>)/, '$1<w:keepNext/>');
+    result = result.slice(0, match.index) + kept + result.slice(match.index + match[0].length);
+  }
+  return result;
 }
 
 const relationshipTypes = {
@@ -146,6 +221,43 @@ function stylesById(styles: string) {
   return byId;
 }
 
+// Word 2013's layout (compatibility mode 15) puts a table's lines on its indent; the modes
+// before it put its text there and its lines a cell's padding further out. A revision generated
+// before its set moved to mode 15 keeps its own settings, so the annexes appended to it take its
+// mode by moving their tables' indents by their left padding (tools/import/word_layout.py).
+const compatibilityMode = (settings: string | undefined) =>
+  Number(
+    /<w:compatSetting\b(?=[^>]*\bw:name="compatibilityMode")[^>]*\bw:val="(\d+)"/.exec(
+      settings ?? ''
+    )?.[1] ?? 12
+  );
+
+const isWord2013 = (mode: number) => mode >= 15;
+
+// Word's default left padding of a cell when the table names none, 0.08".
+const defaultCellPadding = 108;
+
+function indentTablesFor(xml: string, fromWord2013: boolean, toWord2013: boolean) {
+  if (fromWord2013 === toWord2013) return xml;
+  const direction = toWord2013 ? -1 : 1;
+  return xml.replace(/<w:tblPr>[\s\S]*?<\/w:tblPr>/g, (properties) => {
+    const margins = /<w:tblCellMar>[\s\S]*?<\/w:tblCellMar>/.exec(properties)?.[0] ?? '';
+    const padding = Number(
+      /<w:(?:left|start)\b[^>]*\bw:w="(\d+)"/.exec(margins)?.[1] ?? defaultCellPadding
+    );
+    const indent = Number(/<w:tblInd\b[^>]*\bw:w="(-?\d+)"/.exec(properties)?.[1] ?? 0);
+    const moved = `<w:tblInd w:w="${indent + direction * padding}" w:type="dxa"/>`;
+    if (/<w:tblInd\b/.test(properties)) return properties.replace(/<w:tblInd\b[^>]*\/>/, moved);
+    const following =
+      /<w:(?:tblBorders|shd|tblLayout|tblCellMar|tblLook|tblCaption|tblDescription)\b/.exec(
+        properties
+      );
+    return following
+      ? `${properties.slice(0, following.index)}${moved}${properties.slice(following.index)}`
+      : properties.replace(/<\/w:tblPr>$/, `${moved}</w:tblPr>`);
+  });
+}
+
 // In one file `NUMPAGES` counts every section's pages. `SECTIONPAGES` counts a section's own,
 // but LibreOffice prints it as the number saved in the file, so by default the boxes print
 // "Pag. X" without "din Y" (ADR 034, "The Word download").
@@ -171,6 +283,7 @@ export function appendAnnexes(
     return `rId${index}`;
   };
 
+  const commonWord2013 = isWord2013(compatibilityMode(zip.file('word/settings.xml')?.asText()));
   const { before, content, sectPr, after } = splitBody(documentXml);
   if ((documentXml.match(/<w:sectPr\b/g) ?? []).length === 1) {
     const targets = relationshipTargets(rels);
@@ -187,6 +300,10 @@ export function appendAnnexes(
     const annexTargets = relationshipTargets(
       annexZip.file('word/_rels/document.xml.rels')!.asText()
     );
+    const annexWord2013 = isWord2013(
+      compatibilityMode(annexZip.file('word/settings.xml')?.asText())
+    );
+    const inCommonMode = (xml: string) => indentTablesFor(xml, annexWord2013, commonWord2013);
     const parts = splitBody(annexZip.file('word/document.xml')!.asText());
     const copied = new Map<string, string>();
     const sectionXml = parts.sectPr.replace(
@@ -202,7 +319,7 @@ export function appendAnnexes(
           newId = nextId();
           copied.set(target, newId);
           const name = `annex${annexIndex + 1}-${target.replace(/^.*\//, '')}`;
-          let xml = annexZip.file(`word/${target}`)!.asText();
+          let xml = inCommonMode(annexZip.file(`word/${target}`)!.asText());
           if (kind === 'header') xml = countSectionPages(xml, pageCount);
           zip.file(`word/${name}`, xml);
           rels = rels.replace(
@@ -226,7 +343,7 @@ export function appendAnnexes(
     }
 
     if (lastSection) body = closeSection(body, lastSection);
-    body += parts.content;
+    body += inCommonMode(parts.content);
     lastSection = section;
   });
 

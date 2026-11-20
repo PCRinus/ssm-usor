@@ -12,8 +12,8 @@ export const ownInstructionsChapters: ChapterStructure = {
 };
 
 export const generalTrainingChapters: ChapterStructure = {
-  chapterStarts: [1, 7, 14, 16, 28, 81, 97, 109, 121, 152, 211, 236, 268, 278, 291, 300, 325],
-  articleCount: 325,
+  chapterStarts: [1, 7, 14, 16, 28, 82, 98, 110, 122, 153, 212, 237, 271, 281, 294, 303, 328],
+  articleCount: 328,
 };
 
 export const fireOwnInstructionsChapters: ChapterStructure = {
@@ -151,8 +151,11 @@ export type ThemesContext = {
   /** Never printed: what makes the themes out of date when the own instructions change. */
   ownInstructionsRevision: { id: string; number: number; versionIds: string[] };
   annexTitles: string;
+  hasAnnexes: boolean;
   positions: {
     name: string;
+    /** Where the post works, or the client's name for a post without a work zone. */
+    workZone: string;
     trainer: string;
     modules: { citation: string }[];
     intervalLabel: string;
@@ -170,10 +173,11 @@ export function trainingThemes({
   ownInstructions: OwnInstructionsRevision;
   positions: readonly {
     name: string;
+    workZone: string;
     /** Null for a category the client does not train. */
     intervalMonths: number | null;
     moduleIds: readonly string[];
-    /** As the block prints it, "CINE EFECTUEAZĂ INSTRUIREA". */
+    /** As the block prints it, „Instruire efectuată de”. */
     trainer: string;
   }[];
   firstMonth: number;
@@ -192,13 +196,15 @@ export function trainingThemes({
     },
     annexTitles:
       annexes.length === 0 ? '—' : annexes.map((annex) => `I.P.S.S.M. ${annex.title}`).join('; '),
+    hasAnnexes: annexes.length > 0,
     positions: positions.map((position) => {
       const modules = annexes.filter((annex) => position.moduleIds.includes(annex.moduleId));
       return {
-        name: position.name.trim().toLocaleUpperCase('ro'),
+        name: position.name.trim(),
+        workZone: position.workZone,
         trainer: position.trainer,
         modules: modules.map((module) => ({ citation: citation(module) })),
-        intervalLabel: themeIntervalLabel(position.intervalMonths),
+        intervalLabel: themeIntervalLabel(position.intervalMonths).toLocaleLowerCase('ro'),
         sessions:
           position.intervalMonths === null
             ? []

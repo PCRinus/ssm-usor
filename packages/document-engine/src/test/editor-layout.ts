@@ -74,7 +74,9 @@ function fileText(bytes: Uint8Array) {
     .file('word/document.xml')!
     .asText()
     .replace(/<m:oMath(Para)?[ >][\s\S]*?<\/m:oMath\1>/g, '');
-  return [...xml.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>|<\/w:p>|<w:(?:tab|br|cr)\/>/g)]
+  return [
+    ...xml.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>|<\/w:p>|<w:(?:tab|br|cr|noBreakHyphen)\/>/g),
+  ]
     .map((match) => match[1] ?? ' ')
     .join('')
     .replace(/&(amp|lt|gt|quot|apos);/g, (_, name: string) => entities[name]!);

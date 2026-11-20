@@ -16,7 +16,7 @@ import { resolveTrainer } from '../documents/trainer';
 export const hiringPlans = {
   ssm: {
     introductoryGeneral:
-      'Conform MISSMIG Art. 1 – 325; Legislația de securitate și sănătate în muncă; Consecințele posibile ale necunoașterii și nerespectării legislației de securitate și sănătate în muncă; Măsuri de acordare a primului ajutor, de prevenire și stingere a incendiilor și evacuarea lucrătorilor; Riscurile de accidentare și îmbolnăvire profesională specifice unității.',
+      'Conform MISSMIG Art. 1 – 328; Legislația de securitate și sănătate în muncă; Consecințele posibile ale necunoașterii și nerespectării legislației de securitate și sănătate în muncă; Măsuri de acordare a primului ajutor, de prevenire și stingere a incendiilor și evacuarea lucrătorilor; Riscurile de accidentare și îmbolnăvire profesională specifice unității.',
     workplaceOpening:
       'H.G. 1051/2006, H.G. 1028/2006, H.G. 1146/2006, H.G. 493/2006, H.G. 259/2022; I.P.S.S.M. Art. 1 – 290; ',
     workplaceClosing:
@@ -95,11 +95,18 @@ const sessionsOf = (value: unknown): Session[] =>
 
 const positionKey = (name: string) => name.trim().toLocaleUpperCase('ro');
 
+// Snapshots of themes generated before 2026-11 hold the post's name in capitals.
 function ssmThemesPosition(snapshot: unknown, positionName: string) {
   const positions = record(record(snapshot)?.themes)?.positions;
   if (!Array.isArray(positions)) return null;
   return (
-    positions.map(record).find((position) => position?.name === positionKey(positionName)) ?? null
+    positions
+      .map(record)
+      .find(
+        (position) =>
+          typeof position?.name === 'string' &&
+          positionKey(position.name) === positionKey(positionName)
+      ) ?? null
   );
 }
 

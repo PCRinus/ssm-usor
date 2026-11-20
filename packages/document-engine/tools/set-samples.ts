@@ -13,7 +13,13 @@ export const described = (people: { name: string; jobTitle: string }[]) => {
   return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')}, și ${items.at(-1)}`;
 };
 
-function evaluation(roman: string, name: string, heading: string, count: number) {
+function evaluation(
+  roman: string,
+  name: string,
+  heading: string,
+  count: number,
+  workZone: string | null = null
+) {
   const labels = [
     ['MIJLOACE DE PRODUCȚIE', 'mijloacelor de producție'],
     ['MEDIUL DE MUNCĂ', 'mediului de muncă'],
@@ -24,7 +30,7 @@ function evaluation(roman: string, name: string, heading: string, count: number)
     code: `F${index + 1}`,
     description: `Factor de risc ${index + 1}: lovire, tăiere sau cădere la utilizarea echipamentelor de muncă din dotare.`,
     level: index % 4 === 0 ? 4 : 1 + (index % 3),
-    component: index % 4,
+    component: Math.floor((index * 4) / count),
   }));
   const measured = factors
     .filter((factor) => factor.level > 3 || factor.code === 'F2')
@@ -45,7 +51,9 @@ function evaluation(roman: string, name: string, heading: string, count: number)
     roman,
     name,
     heading,
-    workZoneOrDash: 'Atelier',
+    title: name,
+    workZone,
+    workZoneOrDash: workZone ?? '—',
     workSystem: {
       executant: name,
       workTask: 'Montaj și întreținere de instalații pe șantier.',
@@ -70,8 +78,9 @@ function evaluation(roman: string, name: string, heading: string, count: number)
     }),
     sheet: factors.map((factor, index) => ({
       ...factor,
-      component: index < 4 ? labels[factor.component]![0] : '',
-      group: index < 4 ? 'Factori de risc mecanic' : '',
+      component:
+        factors[index - 1]?.component === factor.component ? '' : labels[factor.component]![0],
+      group: factors[index - 1]?.component === factor.component ? '' : 'Factori de risc mecanic',
       consequence: factor.level > 3 ? 'Invaliditate gradul II' : 'ITM 3–45 zile',
       gravityClass: factor.level > 3 ? 5 : 2,
       probabilityClass: 3,
@@ -1403,7 +1412,8 @@ function setSample(
             'I',
             'Manager magazin',
             'LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: MANAGER MAGAZIN',
-            9
+            9,
+            'Birou'
           ),
           evaluation('II', 'Sudor', 'POSTUL DE LUCRU: SUDOR', 40),
           evaluation(
@@ -1418,12 +1428,14 @@ function setSample(
         ownInstructionsRevision: { id: 'r-1', number: 1 },
         annexTitles:
           'I.P.S.S.M. Activități de birou; I.P.S.S.M. Scări metalice; I.P.S.S.M. Aparat de sudură oxiacetilenică',
+        hasAnnexes: true,
         positions: [
           {
-            name: 'MANAGER MAGAZIN',
+            name: 'Manager magazin',
+            workZone: 'Birou',
             trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Ana IONESCU',
             modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015' }],
-            intervalLabel: '6 LUNI',
+            intervalLabel: '6 luni',
             sessions: [
               {
                 month: 'FEBRUARIE',
@@ -1439,8 +1451,9 @@ function setSample(
               },
             ],
           },
-          ...people.map(({ name, jobTitle }) => ({
-            name: jobTitle.toUpperCase(),
+          ...people.map(({ name, jobTitle }, index) => ({
+            name: jobTitle,
+            workZone: index === 0 ? 'Atelier' : legalName,
             trainer:
               people.length === 1
                 ? `${name} – conducătorul locului\u00a0de\u00a0muncă`
@@ -1454,7 +1467,7 @@ function setSample(
               { citation: 'I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a012' },
               { citation: 'I.P.S.S.M. Aparat de sudură oxiacetilenică' },
             ],
-            intervalLabel: '1 LUNĂ',
+            intervalLabel: '1 lună',
             sessions: [
               'IANUARIE',
               'FEBRUARIE',

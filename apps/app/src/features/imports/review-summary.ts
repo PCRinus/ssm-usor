@@ -191,7 +191,7 @@ export function sectionDescription(
         management.length === 0
           ? ''
           : management.length === 1
-            ? ` Postul «${String(management[0]!.values.name)}» se preia doar dacă e ocupat cu contract de muncă.`
+            ? ` Postul „${String(management[0]!.values.name)}” se preia doar dacă e ocupat cu contract de muncă.`
             : ` ${countOf(management.length, 'post de conducere', 'posturi de conducere')} se preiau doar dacă sunt ocupate cu contract de muncă.`;
       return `${count(kept.length, 'post', 'posturi')}.${managementText}${others(['jobPositions'], 'Un alt post', 'posturi')}`;
     }

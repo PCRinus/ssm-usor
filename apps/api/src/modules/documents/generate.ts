@@ -15,6 +15,7 @@ import type { Json } from '../../database.types';
 import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
+import { printedNames } from '../../lib/printed-names';
 import { romanianDay } from '../../lib/romanian';
 import {
   builtInTemplates,
@@ -241,7 +242,8 @@ async function createDocument(
   const { bytes, snapshot } = merge(
     await files.readTemplate(template.storagePath),
     data,
-    template.typeKey
+    template.typeKey,
+    { printing: printedNames(options.set) }
   );
 
   let documentId = options.existingId;
@@ -452,7 +454,10 @@ export async function regenerateDraft(
     await files.readTemplate(template.storagePath),
     data,
     document.type_key,
-    (absentNames) => missing.filter((code) => rules.concerns(code, absentNames))
+    {
+      printedGaps: (absentNames) => missing.filter((code) => rules.concerns(code, absentNames)),
+      printing: printedNames(set),
+    }
   );
 
   const generation = await db

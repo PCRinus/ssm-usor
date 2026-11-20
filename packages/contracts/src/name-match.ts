@@ -8,7 +8,7 @@ import {
 } from './legal-forms';
 import { capitalized } from './romanian';
 
-export { namesCompany } from './legal-forms';
+export { namesCompany, withLegalFormsKept } from './legal-forms';
 
 // A name that is nothing but a legal form keeps it, or every such name would be the same.
 export function foldName(value: string) {

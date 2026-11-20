@@ -79,7 +79,7 @@ Cât timp instrucțiunea nu are niciun articol, deasupra secțiunilor apare „A
 
 - **Textul gri** din fiecare căsuță e un îndemn: spune ce să scrii acolo. Nu se salvează și nu se tipărește, iar o secțiune lăsată goală nu apare în anexă.
 - **Arată un exemplu** pune în secțiune un articol scris de noi, ca model. Îl adaptezi sau îl ștergi.
-- Fiecare rând dintr-un articol e un paragraf. Un rând care începe cu „a)”, „1.”, „–” sau „•” se tipărește ca punct al unei enumerări.
+- Fiecare rând dintr-un articol e un paragraf. Un rând care începe cu „a)”, „1.”, „–” sau „•” se tipărește ca punct al unei enumerări. În instrucțiunile SSM, un rând care începe cu altă bulină („•”, „▪”, „»”, „-”) se tipărește tot cu „–”, ca listele din partea comună.
 - **Previzualizare** îți arată anexa așa cum se tipărește, chiar înainte să salvezi.
 
 După ultimul articol, anexa tipărește singură „Acte normative avute în vedere”: Legea nr. 319/2006 și H.G. nr. 1425/2006 la IPSSM, Legea nr. 307/2006 și normele generale aprobate prin O.M.A.I. nr. 163/2007 la IPSU. Nu le scrii tu.

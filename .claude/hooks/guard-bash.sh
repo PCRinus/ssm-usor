@@ -56,19 +56,33 @@ if [ "$is_push" = true ] && has 'pr-screenshots' \
   deny "pr-screenshots is never force-pushed: it holds the screenshots of every open pull request."
 fi
 
+# The branch being committed or pushed, not the one the session happens to sit in. Only a
+# `git -C` or `cd` in command position counts, so a commit message quoting one cannot steer the
+# check, and a path that is no repository falls back to the session's folder rather than to none.
+assignments='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*'
+path_arg='("([^"]+)"|'"'"'([^'"'"']+)'"'"'|([^[:space:];&|]+))'
+repo_dir=$(printf '%s' "$command" | sed -nE "s/^(.*[;&|(])?[[:space:]]*${assignments}git[[:space:]]+-C[[:space:]]+${path_arg}.*/\\4\\5\\6/p" | head -1)
+[ -n "$repo_dir" ] || repo_dir=$(printf '%s' "$command" | sed -nE "s/^[[:space:]]*cd[[:space:]]+${path_arg}.*/\\2\\3\\4/p" | head -1)
+if [ -n "$repo_dir" ] && ! git -C "$repo_dir" rev-parse --git-dir >/dev/null 2>&1; then
+  repo_dir=""
+fi
+in_repo() {
+  if [ -n "$repo_dir" ]; then git -C "$repo_dir" "$@"; else git "$@"; fi
+}
+
 if { [ "$is_commit" = true ] || [ "$is_push" = true ]; } && ! has 'pr-screenshots'; then
-  branch=$(git branch --show-current 2>/dev/null || true)
+  branch=$(in_repo branch --show-current 2>/dev/null || true)
   if [ "$branch" != "pr-screenshots" ]; then
     added=""
     if [ "$is_commit" = true ]; then
-      added=$(git diff --cached --name-only --diff-filter=A 2>/dev/null || true)
+      added=$(in_repo diff --cached --name-only --diff-filter=A 2>/dev/null || true)
     else
-      base=$(git merge-base HEAD origin/main 2>/dev/null || true)
-      [ -n "$base" ] && added=$(git diff --name-only --diff-filter=A "$base" HEAD 2>/dev/null || true)
+      base=$(in_repo merge-base HEAD origin/main 2>/dev/null || true)
+      [ -n "$base" ] && added=$(in_repo diff --name-only --diff-filter=A "$base" HEAD 2>/dev/null || true)
     fi
-    stray=$(printf '%s\n' "$added" | grep -Ei '\.(png|jpe?g|webp|gif)$' | grep -Ev '^apps/[^/]+/(public|src/assets)/' || true)
+    stray=$(printf '%s\n' "$added" | grep -Ei '\.(png|jpe?g|webp|gif)$' | grep -Ev '^(apps/[^/]+/(public|src/assets)|packages/document-engine/tools/import/pictures)/' || true)
     if [ -n "$stray" ]; then
-      deny "Images outside an app's public/ or src/assets/ folder are going into this branch: $(printf '%s' "$stray" | head -5 | tr '\n' ' '). Screenshots for a pull request go on the orphan branch pr-screenshots (git worktree add /tmp/pr-screenshots pr-screenshots, copy into <branch-name>/, commit, push), never on a feature branch or main."
+      deny "Images outside an app's public/ or src/assets/ folder (or the document templates' source pictures) are going into this branch: $(printf '%s' "$stray" | head -5 | tr '\n' ' '). Screenshots for a pull request go on the orphan branch pr-screenshots (git worktree add /tmp/pr-screenshots pr-screenshots, copy into <branch-name>/, commit, push), never on a feature branch or main."
     fi
   fi
 fi

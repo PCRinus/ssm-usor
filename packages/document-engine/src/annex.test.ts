@@ -7,6 +7,7 @@ import { ssmAnnexData, ssmAnnexSample, suAnnexData, suAnnexSample } from '../too
 import { annexParagraphs, appendAnnexes, renderAnnex } from './annex';
 import { annexTemplate } from './annex-template';
 import { TemplateError, templatePlaceholders } from './render';
+import { convert, converter } from './test/converter';
 
 const templatesUrl = new URL('../templates/', import.meta.url);
 const read = (name: string) => new Uint8Array(readFileSync(new URL(name, templatesUrl)));
@@ -147,6 +148,7 @@ describe.each([
         'paragraphs',
         'provider.legalName',
         ...(domain === 'ssm' ? ['provider.representativeName', 'provider.representativeRole'] : []),
+        ...(domain === 'ssm' ? ['dash1', 'dash2', 'dash3'] : []),
         'text',
         'title',
         'versionDate',
@@ -171,7 +173,7 @@ describe.each([
       `versiunea din ${data.versionDate}`,
     ]);
     expect(texts[4]).toBe('Domeniul de aplicare');
-    expect(texts[5]).toMatch(/^Art\. 1\. Prezenta instrucțiune se aplică /);
+    expect(texts[5]).toMatch(/^Art\. 1\.\s+Prezenta instrucțiune se aplică /);
     expect(texts.at(-1)).toMatch(
       domain === 'ssm'
         ? /^Acte normative avute în vedere: Legea nr\. 319\/2006 .* H\.G\. nr\. 1425\/2006\.$/
@@ -179,7 +181,7 @@ describe.each([
     );
     const articles = texts.filter((text) => /^Art\. \d+\./.test(text));
     expect(articles).toHaveLength(sample.blocks.filter((block) => block.kind === 'article').length);
-    expect(articles.at(-1)).toMatch(new RegExp(`^Art\\. ${articles.length}\\. `));
+    expect(articles.at(-1)).toMatch(new RegExp(`^Art\\. ${articles.length}\\.\\s`));
   });
 
   it('starts the text on a page of its own', () => {
@@ -192,12 +194,83 @@ describe.each([
   it('sets "Art. N." in bold and hangs a marked paragraph from its marker', () => {
     const xml = part(rendered, 'word/document.xml');
     expect(xml).toMatch(/<w:b\/><\/w:rPr><w:t[^>]*>Art\. 1\.<\/w:t>/);
-    expect(xml).toMatch(/<w:pStyle w:val="AnnexItem1"\/>[\s\S]*?<w:t[^>]*>a\)<\/w:t><w:tab\/>/);
-    const styles = part(rendered, 'word/styles.xml');
-    expect(styles).toMatch(
-      /w:styleId="AnnexItem1">[\s\S]*?<w:ind w:hanging="360" w:left="360"\/><w:jc w:val="both"\/>/
+    expect(xml).toMatch(
+      /<w:pStyle w:val="AnnexItem1"\/>[\s\S]*?<w:t[^>]*>a\)<\/w:t>(?:(?!<w:t[ >])[\s\S])*(?:<w:t\/>)?<w:tab\/>/
     );
-    expect(styles).toMatch(/w:styleId="AnnexArticle">[\s\S]*?<w:jc w:val="both"\/>/);
+    const styles = part(rendered, 'word/styles.xml');
+    const style = (id: string) =>
+      new RegExp(`w:styleId="${id}">[\\s\\S]*?</w:style>`).exec(styles)![0];
+    if (domain === 'su') {
+      expect(style('AnnexItem1')).toMatch(
+        /<w:ind w:hanging="360" w:left="360"\/><w:jc w:val="both"\/>/
+      );
+      expect(style('AnnexArticle')).toContain('<w:jc w:val="both"/>');
+      return;
+    }
+    for (const id of ['AnnexArticle', 'AnnexParagraph', 'AnnexItem1', 'AnnexItem2', 'AnnexItem3'])
+      expect(style(id)).toContain('<w:jc w:val="left"/>');
+    expect(style('AnnexItem1')).toContain('<w:ind w:hanging="454" w:left="814"/>');
+    expect(style('AnnexItem2')).toContain('<w:ind w:hanging="454" w:left="1174"/>');
+    expect(style('AnnexArticle')).toMatch(/<w:tab w:val="left" w:pos="1080"[^>]*\/>/);
+    expect(xml).toMatch(/<w:b\/>(?:(?!<\/w:r>)[\s\S])*<w:t[^>]*>a\)<\/w:t>/);
+  });
+
+  it('prints every bullet as the en dash of the common part, whatever glyph was typed', () => {
+    const typed = {
+      blocks: [
+        {
+          kind: 'article' as const,
+          paragraphs: [
+            'Se interzice:',
+            '• fumatul;',
+            '– focul deschis;',
+            'a) în depozit:',
+            '▪ cutiile de carton;',
+            '» buteliile;',
+            '- recipientele.',
+          ],
+        },
+      ],
+    };
+    const xml = part(renderAnnex(domain, typed, data), 'word/document.xml');
+    const items = (xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g) ?? []).filter(
+      (paragraph) => /AnnexItem|AnnexDash/.test(paragraph)
+    );
+    const labels = items.map((paragraph) => paragraphTexts(paragraph)[0]!.split('\t')[0]);
+    if (domain === 'su') {
+      expect(labels).toEqual(['•', '–', 'a)', '▪', '-']);
+      return;
+    }
+    expect(labels).toEqual(['–', '–', 'a)', '–', '–', '–']);
+    expect(items.map((paragraph) => /w:val="(Annex\w+)"/.exec(paragraph)![1])).toEqual([
+      'AnnexDash1',
+      'AnnexDash1',
+      'AnnexItem2',
+      'AnnexDash1',
+      'AnnexDash1',
+      'AnnexDash1',
+    ]);
+    // The common part's tiers: the dash at 6.35 mm, 12.7 mm, 25.4 mm, its text 6.35 mm further.
+    const styles = part(renderAnnex(domain, typed, data), 'word/styles.xml');
+    const indent = (id: string) =>
+      new RegExp(`w:styleId="${id}">[\\s\\S]*?<w:ind ([^>]*)/>`).exec(styles)![1];
+    expect(indent('AnnexDash1')).toBe('w:hanging="360" w:left="720"');
+    expect(indent('AnnexDash2')).toBe('w:hanging="360" w:left="1080"');
+    expect(indent('AnnexDash3')).toBe('w:hanging="360" w:left="1800"');
+  });
+
+  it('keeps a line that ends with ":" and the last article with what follows them', () => {
+    if (domain === 'su') return;
+    const xml = part(rendered, 'word/document.xml');
+    const paragraphs = xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g)!;
+    const leadIns = paragraphs.filter(
+      (paragraph) =>
+        /:<\/w:t><\/w:r><\/w:p>$/.test(paragraph) && /Annex(Article|Paragraph|Item)/.test(paragraph)
+    );
+    expect(leadIns.length).toBeGreaterThan(0);
+    for (const paragraph of leadIns) expect(paragraph).toContain('<w:keepNext/>');
+    const acts = paragraphs.findIndex((paragraph) => paragraph.includes('AnnexActs'));
+    expect(paragraphs[acts - 1]).toContain('<w:keepNext/>');
   });
 
   it('names the annex in its header and counts its pages within it', () => {
@@ -235,7 +308,7 @@ describe.each([
       data
     );
     expect(paragraphTexts(part(typed, 'word/document.xml'))).toContain(
-      'Art. 1. Tensiune < 50 V & curent {{mic}}.'
+      `Art. 1.${domain === 'ssm' ? '\t' : ' '}Tensiune < 50 V & curent {{mic}}.`
     );
   });
 
@@ -319,6 +392,48 @@ describe('appendAnnexes', () => {
     }
   });
 
+  const indents = (file: Uint8Array, prefix: string) =>
+    headerParts(file)
+      .filter((name) => name.startsWith(`word/${prefix}`))
+      .flatMap((name) => part(file, name).match(/<w:tblInd\b[^>]*\/>/g) ?? []);
+
+  it('sets the annex boxes on the margins of a common part in Word 2013 layout', () => {
+    expect(part(common, 'word/settings.xml')).toContain('w:val="15"');
+    expect(new Set(indents(merged, 'annex'))).toEqual(
+      new Set(['<w:tblInd w:w="0" w:type="dxa"/>'])
+    );
+  });
+
+  // A revision generated before its set moved to Word 2013 layout keeps the mode it was saved in.
+  it('indents the annex boxes by their padding in a common part saved in an older mode', () => {
+    const zip = new PizZip(common);
+    zip.file(
+      'word/settings.xml',
+      part(common, 'word/settings.xml').replace(
+        /(w:name="compatibilityMode"[^>]*w:val=")15"/,
+        '$112"'
+      )
+    );
+    for (const name of headerParts(common)) {
+      zip.file(name, part(common, name).replace(/<w:tblInd w:w="0"/g, '<w:tblInd w:w="55"'));
+    }
+    const older = zip.generate({ type: 'uint8array' });
+    const appended = appendAnnexes(older, annexes);
+    expect(part(appended, 'word/settings.xml')).toBe(part(older, 'word/settings.xml'));
+    expect(indents(appended, 'header')).toEqual(indents(older, 'header'));
+    expect(new Set(indents(appended, 'annex'))).toEqual(
+      new Set(['<w:tblInd w:w="55" w:type="dxa"/>'])
+    );
+  });
+
+  it('leaves the annex boxes as they are when both parts share a mode', () => {
+    const fire = read('fire/2.1_fire_own_instructions.docx');
+    const annex = renderAnnex('su', suAnnexSample, suAnnexData);
+    expect(new Set(indents(appendAnnexes(fire, [annex]), 'annex'))).toEqual(
+      new Set(indents(annex, 'header'))
+    );
+  });
+
   it('brings the annex styles the common part lacks, once', () => {
     const styles = part(merged, 'word/styles.xml');
     for (const id of ['AnnexHeading', 'AnnexArticle', 'AnnexItem1', 'AnnexActs']) {
@@ -327,21 +442,8 @@ describe('appendAnnexes', () => {
   });
 });
 
-const converter = process.env.GOTENBERG_URL;
 const pageCount = (pdf: Uint8Array) =>
   new TextDecoder('latin1').decode(pdf).match(/\/Type\s*\/Page\b/g)?.length ?? 0;
-async function convert(docx: Uint8Array) {
-  const form = new FormData();
-  form.append('files', new Blob([new Uint8Array(docx)]), 'document.docx');
-  // LibreOffice adds an empty page before a section that restarts at 1 on an even page.
-  form.append('skipEmptyPages', 'true');
-  const response = await fetch(`${converter}/forms/libreoffice/convert`, {
-    method: 'POST',
-    body: form,
-  });
-  expect(response.ok).toBe(true);
-  return new Uint8Array(await response.arrayBuffer());
-}
 
 describe.skipIf(!converter)('the converter', () => {
   it('prints the sample annexes on their pages: a title page, then the text', async () => {
@@ -353,6 +455,8 @@ describe.skipIf(!converter)('the converter', () => {
     const common = read('3.2_own_instructions.docx');
     const annex = renderAnnex('ssm', ssmAnnexSample, ssmAnnexData);
     const pages = pageCount(await convert(common));
-    expect(pageCount(await convert(appendAnnexes(common, [annex, annex])))).toBe(pages + 6);
+    expect(
+      pageCount(await convert(appendAnnexes(common, [annex, annex]), { skipEmptyPages: true }))
+    ).toBe(pages + 6);
   }, 120_000);
 });

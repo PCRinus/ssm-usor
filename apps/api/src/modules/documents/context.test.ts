@@ -609,6 +609,7 @@ describe('the merge context', () => {
         { letter: 'c', text: 'alt răspuns greșit.' },
       ],
       key: 'A, B',
+      keyLabels: 'a), b)',
     });
     expect(questions[0]!.key).toBe('A');
     expect(documentData(context, 'decision_training')).not.toHaveProperty('questions');
@@ -736,7 +737,7 @@ describe('the merge context', () => {
       ),
     };
     const trainerOf = (built: ReturnType<typeof buildDocumentContext>) =>
-      built.themes!.positions.find((position) => position.name === 'SUDOR')!.trainer;
+      built.themes!.positions.find((position) => position.name === 'Sudor')!.trainer;
     expect(
       trainerOf(
         buildDocumentContext({
@@ -795,7 +796,7 @@ describe('the merge context', () => {
       'training_themes'
     );
     expect(
-      unrepresented.themes?.positions.find((position) => position.name === 'SUDOR')?.trainer
+      unrepresented.themes?.positions.find((position) => position.name === 'Sudor')?.trainer
     ).toBe('S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN');
   });
 
@@ -883,7 +884,7 @@ describe('the training themes', () => {
     );
   });
 
-  it('give every position its trainer, its modules, its interval and its sessions', () => {
+  it('give every position its work zone, or the client without one, its trainer, its modules, its interval and its sessions', () => {
     expect(
       themes!.positions.map(({ sessions, ...position }) => ({
         ...position,
@@ -891,20 +892,22 @@ describe('the training themes', () => {
       }))
     ).toEqual([
       {
-        name: 'CONTABIL',
+        name: 'Contabil',
+        workZone: 'Birou',
         trainer: 'S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN',
         modules: [{ citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012' }],
-        intervalLabel: '6 LUNI',
+        intervalLabel: '6 luni',
         months: ['FEBRUARIE', 'AUGUST'],
       },
       {
-        name: 'SUDOR',
+        name: 'Sudor',
+        workZone: 'S.C. PIPETECH S.R.L.',
         trainer: 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor\u00a0de\u00a0muncă',
         modules: [
           { citation: 'I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012' },
           { citation: 'I.P.S.S.M. Sudură oxiacetilenică, Art.\u00a01\u00a0–\u00a031' },
         ],
-        intervalLabel: '2 LUNI',
+        intervalLabel: '2 luni',
         months: ['FEBRUARIE', 'APRILIE', 'IUNIE', 'AUGUST', 'OCTOMBRIE', 'DECEMBRIE'],
       },
     ]);

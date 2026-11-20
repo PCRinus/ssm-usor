@@ -306,7 +306,10 @@ describe('a document generated again while the set lacks data', () => {
             template,
             documentData(buildPartialDocumentContext(variant, typeKey), typeKey),
             typeKey,
-            (absentNames) => missing.filter((code) => documentGapConcerns(code, absentNames))
+            {
+              printedGaps: (absentNames) =>
+                missing.filter((code) => documentGapConcerns(code, absentNames)),
+            }
           )
         )
       ).toEqual(missing.filter((code) => documentGapConcerns(code, usedNames)));
@@ -423,10 +426,10 @@ describe('the risk assessment and the prevention plan', () => {
     (typeKey) => {
       const text = render(typeKey, declared);
       expect(text).toContain(declaration);
-      expect(text).not.toContain('GRUPURI SENSIBILE');
+      expect(text).not.toMatch(/GRUPURI SENSIBILE|Grupuri sensibile la riscuri specifice \(/);
       const evaluated = render(typeKey, facts);
       expect(evaluated).not.toContain('declară că nu are lucrători');
-      expect(evaluated).toContain('GRUPURI SENSIBILE LA RISCURI SPECIFICE');
+      expect(evaluated).toMatch(/GRUPURI SENSIBILE LA RISCURI SPECIFICE/i);
     },
     30_000
   );
@@ -624,13 +627,13 @@ describe('the protective equipment list', () => {
 
   it('prints a section per equipped position, and names the others after them', () => {
     const text = renderWith('protective_equipment_list', facts);
-    expect(text).toContain('POST DE LUCRU:');
+    expect(text).toContain('Necesarul de E.I.P. pe posturi de lucru');
     expect(text).not.toContain('de mai sus');
     expect(text).toMatch(
       /\nPentru postul de lucru Contabil nu este necesară dotarea cu echipament individual de protecție\.\nObservații:/
     );
     expect(text.indexOf('Pentru postul de lucru Contabil')).toBeGreaterThan(
-      text.lastIndexOf('POST DE LUCRU:')
+      text.lastIndexOf('Sortiment E.I.P. necesar de acordat')
     );
     expect(text).toContain(handover);
   }, 30_000);
@@ -644,7 +647,7 @@ describe('the protective equipment list', () => {
         equipment: [],
       })),
     });
-    expect(text).not.toContain('POST DE LUCRU:');
+    expect(text).not.toContain('Necesarul de E.I.P. pe posturi de lucru');
     expect(text).toMatch(
       /dispozițiile din prezenta hotărâre\.\nPentru posturile de lucru Contabil și Sudor nu este necesară dotarea cu echipament individual de protecție\./
     );
@@ -767,7 +770,11 @@ describe('the prevention plan', () => {
       )
     );
     for (const evaluation of context.riskAssessment.evaluations) {
-      expect(text).toContain(evaluation.heading);
+      expect(text).toContain(
+        evaluation.workZone
+          ? `${evaluation.title} – locul de muncă: ${evaluation.workZone}`
+          : evaluation.title
+      );
       for (const row of evaluation.plan) {
         expect(text).toContain(`${row.code}. ${row.description}`);
         expect(text).toContain(row.responsiblePerson);
@@ -1282,7 +1289,10 @@ describe('the fire-safety templates', () => {
               typeKey
             ),
             typeKey,
-            (absentNames) => missing.filter((code) => fireSafetyGapConcerns(code, absentNames))
+            {
+              printedGaps: (absentNames) =>
+                missing.filter((code) => fireSafetyGapConcerns(code, absentNames)),
+            }
           )
         )
       ).toEqual(missing.filter((code) => fireSafetyGapConcerns(code, usedNames)));

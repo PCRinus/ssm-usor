@@ -1,6 +1,9 @@
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 
+import { fitColumnsToContent } from './content-widths';
+import { hangDashLines } from './dash-lines';
+import { keepTablesTogether } from './table-keep';
 import { isTextPart, replaceText } from './text';
 import { fillTableOfContents } from './toc';
 
@@ -159,7 +162,10 @@ function tidy(zip: PizZip) {
   if (body) {
     zip.file(
       body.name,
-      fillTableOfContents(body.asText(), zip.file('word/styles.xml')?.asText() ?? '')
+      fillTableOfContents(
+        keepTablesTogether(fitColumnsToContent(hangDashLines(body.asText()))),
+        zip.file('word/styles.xml')?.asText() ?? ''
+      )
     );
   }
   return zip;

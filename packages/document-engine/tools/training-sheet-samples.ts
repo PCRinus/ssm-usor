@@ -64,7 +64,7 @@ const ssmRecords = {
       trainer: 'Dan MARIN',
       trainerJobTitle: 'Inspector SSM',
       material:
-        'Conform MISSMIG Art. 1 – 325; Legislația de securitate și sănătate în muncă; Măsuri de acordare a primului ajutor, de prevenire și stingere a incendiilor și evacuarea lucrătorilor.',
+        'Conform MISSMIG Art. 1 – 328; Legislația de securitate și sănătate în muncă; Măsuri de acordare a primului ajutor, de prevenire și stingere a incendiilor și evacuarea lucrătorilor.',
       occupation: 'Sudor',
       note: transcribedNote,
     },

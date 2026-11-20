@@ -31,3 +31,13 @@ export const capitalized = (text: string) => text.charAt(0).toLocaleUpperCase('r
 
 export const uncapitalized = (text: string) =>
   text.charAt(0).toLocaleLowerCase('ro') + text.slice(1);
+
+const namesInOrder = new Intl.Collator('ro', { numeric: true });
+
+/**
+ * By name as Romanian sorts it, a letter with a diacritic after its plain letter („Sudor” before
+ * „Șofer”) and numbers by value („Operator 2” before „Operator 10”), which the database's
+ * collation does not do; then by id, so equal names keep one order everywhere.
+ */
+export const byRomanianName = (a: { name: string; id: string }, b: { name: string; id: string }) =>
+  namesInOrder.compare(a.name, b.name) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);

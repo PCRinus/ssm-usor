@@ -26,6 +26,7 @@ import {
   rewriteVersioned,
   signField,
 } from '../../lib/pdf-signing';
+import { printedNames } from '../../lib/printed-names';
 import { mergeBuiltIn } from '../../lib/templates';
 import { loadSheetFacts } from '../trainings/employee-sheets';
 import {
@@ -83,7 +84,9 @@ export function signedSheetContext(c: Context<ApiEnv>): SignedSheetContext {
     sheetFacts: (clientId, employeeId) => loadSheetFacts(db, clientId, employeeId),
     async drawForm(domain, data) {
       const typeKey = trainingSheetTypeKeys[domain];
-      return (await mergeBuiltIn(db, files.readTemplate, typeKey, data, 'training sheet')).bytes;
+      const printing = printedNames(domain === 'ssm' ? 'occupational_safety' : 'fire_safety');
+      return (await mergeBuiltIn(db, files.readTemplate, typeKey, data, 'training sheet', printing))
+        .bytes;
     },
   };
 }

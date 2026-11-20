@@ -62,6 +62,26 @@ describe('trainingProposal', () => {
     });
   });
 
+  it('finds the post in themes generated when they printed its name in capitals', () => {
+    const context = buildDocumentContext(facts);
+    const capitals = {
+      ...ssmThemes,
+      snapshot: {
+        ...context,
+        themes: {
+          ...context.themes!,
+          positions: context.themes!.positions.map((position) => ({
+            ...position,
+            name: position.name.toLocaleUpperCase('ro'),
+          })),
+        },
+      },
+    };
+    expect(trainingProposal({ ...base, themes: capitals }).material).toBe(
+      trainingProposal(base).material
+    );
+  });
+
   it('takes the last session before the month when none falls in it', () => {
     expect(trainingProposal({ ...base, heldOn: '2026-05-30' }).material).toMatch(
       /^I\.P\.S\.S\.M\. Art\. 45 – 95;/

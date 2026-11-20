@@ -520,3 +520,35 @@ export function searchWithoutLegalForms(value: string) {
   }
   return splitWords(kept.slice(first));
 }
+
+const initialsOfForms = new Set(
+  legalForms
+    .flatMap((form) => form.initials)
+    .map((initials) => foldText(initials).replaceAll(' ', ''))
+);
+const formLetters = (words: readonly string[]) => foldText(words.join(' ')).replaceAll(' ', '');
+
+/**
+ * The name with no-break spaces that keep its legal form on the line of the word beside it:
+ * a lone "S.R.L." at the start of a line reads as an error. A form written with spaces
+ * ("S. R. L.") stays whole too.
+ */
+export function withLegalFormsKept(name: string) {
+  const words = name.trim().split(/\s+/);
+  const opening =
+    [2, 1].find(
+      (length) => length < words.length && formLetters(words.slice(0, length)) === 'sc'
+    ) ?? 0;
+  const closing =
+    [4, 3, 2, 1].find(
+      (length) =>
+        length < words.length - opening && initialsOfForms.has(formLetters(words.slice(-length)))
+    ) ?? 0;
+  if (opening === 0 && closing === 0) return name;
+  const end = words.length - closing;
+  return words.reduce(
+    (text, word, index) =>
+      index === 0 ? word : `${text}${index <= opening || index >= end ? '\u00a0' : ' '}${word}`,
+    ''
+  );
+}

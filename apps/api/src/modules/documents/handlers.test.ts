@@ -1030,9 +1030,103 @@ describe('GET /clients/{clientId}/documents', () => {
   });
 });
 
+// In Romanian order: a letter with a diacritic after its plain letter, numbers by value.
+const postNames = [
+  'Inginer',
+  'Îngrijitor',
+  'Manager',
+  'Măcelar',
+  'Operator 2',
+  'Operator 10',
+  'Sudor',
+  'Șofer',
+  'Tapițer',
+  'Tâmplar',
+  'Țesător',
+];
+const shuffledPositions = () =>
+  [...postNames].reverse().map((name, index) => ({
+    ...positionRow,
+    id: `a0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+    name,
+  }));
+const evaluationsOf = (positions: readonly { id: string }[]) => [
+  evaluationRows[0],
+  ...positions.map((position, index) =>
+    evaluationRow(
+      `e0e0e0e0-0000-4000-8000-${String(300 + index).padStart(12, '0')}`,
+      'job_position',
+      position.id,
+      workshopEvaluation
+    )
+  ),
+];
+// The order in which a document's data names the posts above, each once.
+const printedOrder = (data: unknown) => {
+  const printed = JSON.stringify(data);
+  return postNames
+    .map((name) => ({ name, at: printed.search(new RegExp(`"${name}"`)) }))
+    .filter(({ at }) => at >= 0)
+    .sort((a, b) => a.at - b.at)
+    .map(({ name }) => name);
+};
+
 describe('POST /clients/{clientId}/documents/generate', () => {
   const generate = (body: unknown = { issueDate: '2026-01-19', firstDecisionNumber: 3 }) =>
     request(`/clients/${clientId}/documents/generate`, 'POST', body);
+
+  it('lists the posts in Romanian order, diacritics after their letter and numbers by value', async () => {
+    const shuffled = shuffledPositions();
+    const types = [
+      'protective_equipment_list',
+      'risk_assessment',
+      'prevention_plan',
+      'own_instructions',
+    ];
+    mockUpstream({
+      templates: () =>
+        Response.json(
+          types.map((typeKey) => ({
+            type_key: typeKey,
+            title: typeKey,
+            document_template_versions: [
+              { id: typeKey, version: 1, storage_path: `built-in/${typeKey}/one.docx` },
+            ],
+          }))
+        ),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+      positions: () => Response.json(shuffled),
+      riskEvaluations: () => Response.json(evaluationsOf(shuffled)),
+    });
+    const merged: Record<string, unknown>[] = [];
+    const engine = await import('@ssm-usor/document-engine');
+    vi.spyOn(engine, 'renderTemplate').mockImplementation((_template, data) => {
+      merged.push(data);
+      return { document: new Uint8Array([80, 75, 3, 4]), usedNames: [] };
+    });
+    expect((await generate()).status).toBe(201);
+    expect(merged).toHaveLength(types.length);
+    for (const data of merged) expect(printedOrder(data)).toEqual(postNames);
+  });
+
+  it('prints a name with its legal form kept on one line, and keeps the name as stored in the snapshot', async () => {
+    mockUpstream({
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+    });
+    const merged: Record<string, unknown>[] = [];
+    const engine = await import('@ssm-usor/document-engine');
+    vi.spyOn(engine, 'renderTemplate').mockImplementation((_template, data) => {
+      merged.push(data);
+      return { document: new Uint8Array([80, 75, 3, 4]), usedNames: ['client'] };
+    });
+    expect((await generate()).status).toBe(201);
+    expect(merged[0]?.client).toMatchObject({ legalName: 'S.C.\u00a0PIPETECH\u00a0S.R.L.' });
+    expect(sentBody('/rest/v1/document_revisions', 0).data_snapshot).toEqual({
+      client: printedClient,
+    });
+  });
 
   it('creates what the client lacks from the newest template versions', async () => {
     let listed = 0;
@@ -1350,8 +1444,8 @@ const annexData = (index: number) => {
     page: 'ssm',
     branding: true,
     issueDate: '19.01.2026',
-    provider: printedProvider,
-    client: printedClient,
+    provider: { ...printedProvider, legalName: 'S.C.\u00a0SAFETY\u00a0S.R.L.' },
+    client: { ...printedClient, legalName: 'S.C.\u00a0PIPETECH\u00a0S.R.L.' },
     number,
     title,
     versionDate,
@@ -1964,6 +2058,20 @@ describe('the training themes', () => {
     expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
   });
 
+  it('list the posts in Romanian order', async () => {
+    mockUpstream({
+      ...withOwnInstructions,
+      documents: () => Response.json(themesDocument(null)),
+      positions: () => Response.json(shuffledPositions()),
+      riskEvaluations: () => Response.json(evaluationsOf(shuffledPositions())),
+    });
+    expect((await regenerate()).status).toBe(200);
+    const { themes } = sentBody('/rest/v1/document_revisions', 0, 'PATCH').data_snapshot as {
+      themes: { positions: { name: string }[] };
+    };
+    expect(themes.positions.map((position) => position.name)).toEqual(postNames);
+  });
+
   it("cite the newest own instructions revision, with the modules it annexes at their versions' counts", async () => {
     mockUpstream({ ...withOwnInstructions, documents: () => Response.json(themesDocument(null)) });
     expect((await regenerate()).status).toBe(200);
@@ -1987,12 +2095,14 @@ describe('the training themes', () => {
         versionIds: [annexedVersion.id],
       },
       annexTitles: 'I.P.S.S.M. Scări metalice',
+      hasAnnexes: true,
       positions: [
         {
-          name: 'SUDOR',
+          name: 'Sudor',
+          workZone: 'Atelier',
           trainer: 'Florin TALOȘ – conducătorul locului\u00a0de\u00a0muncă',
           modules: [{ citation: 'I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014' }],
-          intervalLabel: '3 LUNI',
+          intervalLabel: '3 luni',
           sessions: [
             [
               'FEBRUARIE',
@@ -2318,7 +2428,13 @@ describe('POST /documents/{documentId}/issue', () => {
     expect((await issueWith(vi.fn(), convertDocuments)).status).toBe(200);
     expect(convertedFiles(convertDocuments.mock.calls[0]![0])).toEqual([
       '\u0001\u0002\u0003',
-      { ...annexData(0), page: 'su', fireSafetyTechnician: technician },
+      {
+        ...annexData(0),
+        page: 'su',
+        provider: printedProvider,
+        client: printedClient,
+        fireSafetyTechnician: technician,
+      },
     ]);
   });
 
@@ -3955,6 +4071,24 @@ describe('the fire-safety set', () => {
           ? Response.json({ id: generationId })
           : Response.json({ issue_date: '2026-10-01', first_decision_number: 4 }),
     };
+
+    it('list the posts of each category in Romanian order', async () => {
+      const posts = shuffledPositions().map((position) => ({
+        ...position,
+        needs_fire_instructions: true,
+        job_position_instructions: [...position.job_position_instructions, hotWork],
+      }));
+      mockUpstream({
+        ...withIpsu,
+        positions: () => Response.json(posts),
+        documents: () => Response.json(themesDocument(null)),
+      });
+      expect((await request(`/documents/${themesId}/regenerate`, 'POST', {})).status).toBe(200);
+      const { fireThemes } = sentBody('/rest/v1/document_revisions', 0, 'PATCH').data_snapshot as {
+        fireThemes: { categories: { posts: string[] }[] };
+      };
+      expect(fireThemes.categories.flatMap((category) => category.posts)).toEqual(postNames);
+    });
 
     it('are generated after the IPSU, citing the revision made in the same run', async () => {
       let reads = 0;

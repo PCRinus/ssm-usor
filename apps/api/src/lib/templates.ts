@@ -46,6 +46,7 @@ export function missingDocumentDataError(missing: MissingDocumentData[]) {
 /**
  * The merged file, and the part of the data it printed. That part is the revision's snapshot:
  * a new first-aider then marks the first aid decision as out of date, not the whole set.
+ * `printing` sets the data in type, for the file only.
  * `printedGaps` names the gaps behind the top-level names the template found no value for;
  * when there are any, the document is refused for them rather than left with a gap.
  */
@@ -53,10 +54,16 @@ export function merge(
   template: Uint8Array,
   data: Record<string, unknown>,
   typeKey: string,
-  printedGaps: (absentNames: string[]) => MissingDocumentData[] = () => []
+  {
+    printedGaps = () => [],
+    printing = (same) => same,
+  }: {
+    printedGaps?: (absentNames: string[]) => MissingDocumentData[];
+    printing?: (data: Record<string, unknown>) => Record<string, unknown>;
+  } = {}
 ) {
   try {
-    const { document, usedNames } = renderTemplate(template, data);
+    const { document, usedNames } = renderTemplate(template, printing(data));
     return {
       bytes: document,
       snapshot: Object.fromEntries(usedNames.map((name) => [name, data[name]])),
@@ -79,7 +86,8 @@ export async function mergeBuiltIn(
   readTemplate: (storagePath: string) => Promise<Uint8Array>,
   typeKey: string,
   data: Record<string, unknown>,
-  documentName: string
+  documentName: string,
+  printing?: (data: Record<string, unknown>) => Record<string, unknown>
 ) {
   const [template] = await builtInTemplates(db, [typeKey]);
   if (!template) {
@@ -91,6 +99,6 @@ export async function mergeBuiltIn(
       'template_missing'
     );
   }
-  const merged = merge(await readTemplate(template.storagePath), data, typeKey);
+  const merged = merge(await readTemplate(template.storagePath), data, typeKey, { printing });
   return { ...merged, storagePath: template.storagePath };
 }

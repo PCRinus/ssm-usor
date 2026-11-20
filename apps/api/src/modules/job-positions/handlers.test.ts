@@ -105,7 +105,6 @@ describe('GET /clients/{clientId}/job-positions', () => {
       ({ url }) => url.searchParams
     );
     expect(list!.get('archived_at')).toBe('is.null');
-    expect(list!.get('order')).toBe('name.asc,id.asc');
     // People who left, and rows archived as mistakes, are not in a position any more.
     expect(counts!.get('employees.status')).toBe('neq.terminated');
     expect(counts!.get('employees.archived_at')).toBe('is.null');
@@ -114,6 +113,31 @@ describe('GET /clients/{clientId}/job-positions', () => {
     expect(items.map((item) => [item.instructionCount, item.fireInstructionCount])).toEqual([
       [0, 0],
       [1, 0],
+    ]);
+  });
+
+  it('lists the positions in Romanian order, which the database does not keep', async () => {
+    const names = ['Șofer', 'Operator 10', 'Sudor', 'Operator 2', 'Îngrijitor', 'Inginer'];
+    mockUpstream({
+      positions: (_init, url) =>
+        url?.searchParams.get('select')?.includes('employees(count)')
+          ? Response.json([])
+          : Response.json(
+              names.map((name, index) => ({
+                ...welder,
+                id: `00000000-0000-4000-8000-00000000000${index}`,
+                name,
+              }))
+            ),
+    });
+    const { items } = jobPositionListResponseSchema.parse(await (await request(path)).json());
+    expect(items.map((item) => item.name)).toEqual([
+      'Inginer',
+      'Îngrijitor',
+      'Operator 2',
+      'Operator 10',
+      'Sudor',
+      'Șofer',
     ]);
   });
 

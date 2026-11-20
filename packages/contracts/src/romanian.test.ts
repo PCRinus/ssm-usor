@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  byRomanianName,
   capitalized,
   countNoun,
   countOf,
@@ -87,5 +88,60 @@ describe('a phrase carried into a sentence', () => {
     expect(uncapitalized('Art. 5 din Legea 319')).toBe('art. 5 din Legea 319');
     expect(uncapitalized('3 rânduri')).toBe('3 rânduri');
     expect(uncapitalized('')).toBe('');
+  });
+});
+
+describe('byRomanianName', () => {
+  const named = (name: string, id = name) => ({ name, id });
+
+  it('puts a letter with a diacritic after its plain letter and numbers by value', () => {
+    const names = [
+      'Țesător',
+      'Tâmplar',
+      'Tapițer',
+      'Șofer',
+      'Sudor',
+      'Operator 10',
+      'Operator 2',
+      'Măcelar',
+      'Manager',
+      'Îngrijitor',
+      'Inginer',
+      'Ăsta-i agent',
+      'Agent',
+      'Âlt post',
+    ];
+    expect(
+      names
+        .map((name) => named(name))
+        .sort(byRomanianName)
+        .map(({ name }) => name)
+    ).toEqual([
+      'Agent',
+      'Ăsta-i agent',
+      'Âlt post',
+      'Inginer',
+      'Îngrijitor',
+      'Manager',
+      'Măcelar',
+      'Operator 2',
+      'Operator 10',
+      'Sudor',
+      'Șofer',
+      'Tapițer',
+      'Tâmplar',
+      'Țesător',
+    ]);
+  });
+
+  it('breaks a tie between equal names by id, whatever order it starts from', () => {
+    const twins = [named('Sudor', 'b'), named('Sudor', 'a'), named('Sudor', 'c')];
+    expect([...twins].sort(byRomanianName).map(({ id }) => id)).toEqual(['a', 'b', 'c']);
+    expect(
+      [...twins]
+        .reverse()
+        .sort(byRomanianName)
+        .map(({ id }) => id)
+    ).toEqual(['a', 'b', 'c']);
   });
 });

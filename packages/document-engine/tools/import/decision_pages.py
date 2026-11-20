@@ -1,0 +1,147 @@
+"""Page numbers and a running header for the occupational safety set's decisions, without an office.
+
+"Pag. X din Y" stands in the top right corner of every page. The first page shows nothing else
+there: its title block names the decision. From the second page a slim header names the decision
+and the client beside the page number, with a thin rule under it, so a page that comes loose
+still says what it belongs to. Safe to run again: each part is written whole, the same every
+time.
+"""
+
+import re
+
+DECISION_TITLE = re.compile(r'Nr\. \{\{decisionNumber\}\} SSM din \{\{issueDate\}\}')
+HEADER = 'word/header1.xml'
+FIRST_HEADER = 'word/header2.xml'
+HEADER_ID = 'rIdDecisionHeader'
+FIRST_HEADER_ID = 'rIdDecisionFirstHeader'
+HEADER_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml'
+HEADER_RELATIONSHIP = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/header'
+TEXT_WIDTH = 11906 - 1417 - 1134
+PAGE_COLUMN = 1200
+GREY = '555555'
+SIZE = 16
+NAMESPACES = ('xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+              'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"')
+LINE = 'Decizia nr. {{decisionNumber}} SSM din {{issueDate}} · {{client.legalName}}'
+
+
+def run_properties():
+    return (f'<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"/>'
+            f'<w:b w:val="false"/><w:color w:val="{GREY}"/><w:sz w:val="{SIZE}"/><w:szCs w:val="{SIZE}"/>'
+            '<w:lang w:val="ro-RO"/></w:rPr>')
+
+
+def run(text):
+    return f'<w:r>{run_properties()}<w:t xml:space="preserve">{text}</w:t></w:r>'
+
+
+def field(code, shown):
+    # The bare keyword: with LibreOffice's "\* ARABIC" the in-app editor paints the cached
+    # number on every page.
+    parts = ['<w:fldChar w:fldCharType="begin"/>', f'<w:instrText xml:space="preserve"> {code} </w:instrText>',
+             '<w:fldChar w:fldCharType="separate"/>', f'<w:t>{shown}</w:t>', '<w:fldChar w:fldCharType="end"/>']
+    return ''.join(f'<w:r>{run_properties()}{part}</w:r>' for part in parts)
+
+
+def page_of_pages():
+    return run('Pag. ') + field('PAGE', '1') + run(' din ') + field('NUMPAGES', '1')
+
+
+def paragraph(content, align, style, after=0):
+    return (f'<w:p><w:pPr><w:pStyle w:val="{style}"/><w:spacing w:before="0" w:after="{after}"/>'
+            f'<w:ind w:left="0" w:right="0" w:hanging="0"/><w:jc w:val="{align}"/>{run_properties()}</w:pPr>'
+            f'{content}</w:p>')
+
+
+# Word wants a paragraph after a table, here as small as it gets. The room under it keeps the
+# body off the rule when a long client name takes the header to two lines.
+CLOSING = ('<w:p><w:pPr><w:pStyle w:val="Header"/><w:spacing w:before="0" w:after="120" w:line="20" '
+           'w:lineRule="exact"/><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr></w:pPr></w:p>')
+
+
+def header(first=False):
+    """The running header from the second page, or the first page's: the page number alone, in
+    the same place, over the title block that names the decision."""
+    # Two cells rather than a right tab: a long client name wraps inside its own cell instead of
+    # pushing the page number onto a line of its own.
+    widths = (TEXT_WIDTH - PAGE_COLUMN, PAGE_COLUMN)
+    contents = ('' if first else run(LINE), page_of_pages())
+    cells = ''.join(
+        f'<w:tc><w:tcPr><w:tcW w:w="{width}" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>'
+        f'{paragraph(content, align, "Header")}</w:tc>'
+        for width, content, align in zip(widths, contents, ('left', 'right')))
+    rule = '' if first else (f'<w:tblBorders><w:bottom w:val="single" w:sz="4" w:space="0" '
+                             f'w:color="{GREY}"/></w:tblBorders>')
+    table = (
+        '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:jc w:val="left"/>'
+        f'<w:tblInd w:w="0" w:type="dxa"/>{rule}'
+        '<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/>'
+        '<w:left w:w="0" w:type="dxa"/><w:bottom w:w="45" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>'
+        '</w:tblCellMar></w:tblPr>'
+        f'<w:tblGrid><w:gridCol w:w="{widths[0]}"/><w:gridCol w:w="{widths[1]}"/></w:tblGrid>'
+        f'<w:tr><w:trPr><w:cantSplit/></w:trPr>{cells}</w:tr></w:tbl>')
+    return f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:hdr {NAMESPACES}>{table}{CLOSING}</w:hdr>'
+
+
+PAGE_PARAGRAPH = re.compile(r'<w:p\b(?:(?!</w:p>).)*?<w:instrText[^>]*>\s*PAGE\s*</w:instrText>.*?</w:p>', re.S)
+
+
+def footer(xml):
+    """The footer holds the branding line alone: the page number is in the header."""
+    return PAGE_PARAGRAPH.sub('', xml)
+
+
+def relationships(xml):
+    for identifier, target in ((HEADER_ID, HEADER), (FIRST_HEADER_ID, FIRST_HEADER)):
+        if f'Id="{identifier}"' not in xml:
+            xml = xml.replace('</Relationships>', f'<Relationship Id="{identifier}" Type="{HEADER_RELATIONSHIP}" '
+                                                  f'Target="{target[len("word/"):]}"/></Relationships>')
+    return xml
+
+
+def content_types(xml):
+    for part in (HEADER, FIRST_HEADER):
+        if f'PartName="/{part}"' not in xml:
+            xml = xml.replace('</Types>', f'<Override PartName="/{part}" ContentType="{HEADER_TYPE}"/></Types>')
+    return xml
+
+
+# Not a self-closing <w:sectPr/>, which would swallow everything up to the next section's end.
+SECTION_OPENING = r'<w:sectPr(?:\s[^>]*[^/])?>'
+SECTION = re.compile(SECTION_OPENING + r'.*?</w:sectPr>', re.S)
+
+def section(xml):
+    def change(match):
+        properties = re.sub(r'<w:headerReference\b[^>]*/>|<w:titlePg(?: w:val="[^"]*")?/>', '', match.group(0))
+        opening = re.match(SECTION_OPENING, properties).end()
+        references = (f'<w:headerReference w:type="default" r:id="{HEADER_ID}"/>'
+                      f'<w:headerReference w:type="first" r:id="{FIRST_HEADER_ID}"/>')
+        properties = properties[:opening] + references + properties[opening:]
+        properties = re.sub(r'(<w:pgMar\b[^>]*?) w:header="\d+"', r'\1 w:header="680"', properties)
+        # titlePg comes after formProt and vAlign and before textDirection (CT_SectPr).
+        later = re.search(r'<w:(?:textDirection|bidi|rtlGutter|docGrid|printerSettings|sectPrChange)\b', properties)
+        at = later.start() if later else properties.rindex('</w:sectPr>')
+        return properties[:at] + '<w:titlePg/>' + properties[at:]
+    return re.sub(SECTION, change, xml)
+
+
+def is_decision(document):
+    return any(DECISION_TITLE.fullmatch(''.join(re.findall(r'<w:t\b[^>]*>([^<]*)</w:t>', paragraph)).strip())
+               for paragraph in re.findall(r'<w:p\b[^>]*>.*?</w:p>', document, re.S))
+
+
+def decision_pages(parts):
+    """`parts`, name to text, with the decision's header and page numbers; `parts` unchanged for
+    any other document."""
+    if not is_decision(parts['word/document.xml']):
+        return parts
+    parts = dict(parts)
+    parts[HEADER] = header()
+    parts[FIRST_HEADER] = header(first=True)
+    parts['word/_rels/document.xml.rels'] = relationships(parts['word/_rels/document.xml.rels'])
+    parts['[Content_Types].xml'] = content_types(parts['[Content_Types].xml'])
+    parts['word/document.xml'] = section(parts['word/document.xml'])
+    for name in parts:
+        if re.fullmatch(r'word/footer\d*\.xml', name):
+            parts[name] = footer(parts[name])
+    return parts

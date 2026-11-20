@@ -5,10 +5,11 @@
 The questions are the organization's question bank, merged in as `questions`, so a test's body
 is the same for every test but its title and the heading of its key: the title and the line
 saying that a question may have several correct answers, the questions, the table for the name,
-the date, the two signatures and the result, the empty answer sheet, then on a new page the same
-questions again and the key. Only `word/document.xml` is written, as plain OOXML: each file keeps
-its own package, the box of document details in its header and the branding footer included, and
-loses the pictures its original body held.
+the date, the two signatures and the result, the empty answer sheet, then on a new page, under a
+framed heading where the spec names one (`specimen`), the same questions again and the key, in
+the options' own labels where the spec asks for them (`keyLabels`). Only `word/document.xml` is
+written, as plain OOXML: each file keeps its own package, the box of document details in its
+header and the branding footer included, and loses the pictures its original body held.
 """
 
 import json
@@ -19,6 +20,8 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(__file__))
 from build_sheets import ALL, TEMPLATES, cell, escape, row, rpr  # noqa: E402
+from table_style import HEADER_FILL, draws_house_tables, house_tables_part  # noqa: E402
+from word_layout import lays_out_as_word_2013, word_2013_part  # noqa: E402
 
 SPEC = os.path.join(os.path.dirname(__file__), 'tests.ro.json')
 TEXT_WIDTH = 11906 - 1417 - 1134
@@ -142,6 +145,17 @@ def numbered(heading, value):
     return table(widths, [head, body], margin=80)
 
 
+def specimen(test, title):
+    """The copy for the examiner opens a page under a heading that says so, or under the title."""
+    if not test.get('specimen'):
+        return [text(test['title'], page=True, **title)]
+    heading = text(test['specimen'], page=True, size=12, bold=True, align='center', after=240, keep=True)
+    side = '<w:{0} w:val="single" w:sz="8" w:space="4" w:color="000000"/>'
+    framed = ('<w:widowControl/><w:pBdr>' + ''.join(side.format(edge) for edge in ('top', 'left', 'bottom', 'right'))
+              + f'</w:pBdr><w:shd w:val="clear" w:color="auto" w:fill="{HEADER_FILL}"/>')
+    return [heading.replace('<w:widowControl/>', framed, 1), text(test['title'], **title)]
+
+
 def body(spec, test):
     title = dict(size=12, bold=True, align='center', keep=True)
     several = dict(italic=True, align='center', keep=True)
@@ -158,11 +172,11 @@ def body(spec, test):
         identity(spec),
         text('', after=120, keep=True),
         numbered(spec['answers'], ''),
-        text(test['title'], page=True, **title),
+        *specimen(test, title),
         text(spec['several'], **several),
         questions(),
         text(test['keyTitle'], bold=True, align='center', before=240, after=120, keep=True),
-        numbered(spec['key'], '{{key}}'),
+        numbered(spec['key'], '{{keyLabels}}' if test.get('keyLabels') else '{{key}}'),
         closing,
     ])
 
@@ -182,6 +196,7 @@ def write(spec, test):
     types = re.sub(
         r'<Override PartName="/word/media/[^"]*"[^>]*/>', '', parts['[Content_Types].xml'].decode('utf-8'),
     )
+    house = draws_house_tables(document)
     with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as out:
         for item, data in parts.items():
             if item.startswith('word/media/'):
@@ -192,6 +207,8 @@ def write(spec, test):
                 data = rels.encode('utf-8')
             elif item == '[Content_Types].xml':
                 data = types.encode('utf-8')
+            if lays_out_as_word_2013(target) and item.endswith('.xml'):
+                data = house_tables_part(item, word_2013_part(item, data.decode('utf-8')), house).encode('utf-8')
             info = zipfile.ZipInfo(item, date_time=(2026, 10, 20, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             out.writestr(info, data)
