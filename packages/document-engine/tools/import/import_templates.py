@@ -40,6 +40,8 @@ from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
+from decision_pages import decision_pages
+from signatures import signing_space
 from table_style import draws_house_tables, house_tables_part
 from word_layout import lays_out_as_word_2013, word_2013_part
 
@@ -2024,9 +2026,10 @@ def sweep(path, word_2013=None):
     no run of paragraphs kept with the next longer than `KEEP_CHAIN` unless its lines are
     short, and the branding line small and grey; and in the documents with contents, a table
     of contents over real headings (`TABLES_OF_CONTENTS`). In the occupational safety set,
-    Word 2013's layout with every table on the margins (`word_layout`) and the table house
-    style (`table_style`), which `word_2013` asks for or leaves to the file's place. Safe to
-    run again."""
+    Word 2013's layout with every table on the margins (`word_layout`), the table house
+    style (`table_style`), one signing space for every signature (`signatures`) and the
+    decisions' page numbers and running header (`decision_pages`), which `word_2013` asks for
+    or leaves to the file's place. Safe to run again."""
     if word_2013 is None:
         word_2013 = lays_out_as_word_2013(path)
     with zipfile.ZipFile(path) as archive:
@@ -2042,6 +2045,18 @@ def sweep(path, word_2013=None):
         if 'word/numbering.xml' in archive.namelist():
             labelled['word/document.xml'], labelled['word/numbering.xml'] = size_list_labels(
                 document, archive.read('word/numbering.xml').decode('utf8'), styles)
+        if word_2013:
+            texts = {item.filename: labelled.get(item.filename, data.decode('utf8')) for item, data in entries
+                     if re.search(r'\.(xml|rels)$', item.filename)}
+            paged = decision_pages(texts)
+            labelled.update({name: text for name, text in paged.items() if text != texts.get(name)})
+            known = {item.filename for item, _ in entries}
+            stamp = next(item for item, _ in entries if item.filename == 'word/document.xml').date_time
+            for name in paged:
+                if name not in known:
+                    entry = zipfile.ZipInfo(name, stamp)
+                    entry.compress_type = zipfile.ZIP_DEFLATED
+                    entries.append((entry, b''))
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
         for item, data in entries:
             if item.filename in labelled:
@@ -2061,6 +2076,8 @@ def sweep(path, word_2013=None):
                 # The API's PageNumberOffset does not let go of it.
                 xml = re.sub(r'(<w:pgNumType\b[^>]*?) w:start="\d+"', r'\1', xml)
                 if item.filename == 'word/document.xml':
+                    if word_2013:
+                        xml = signing_space(xml)
                     xml = cap_keep_chains(keep_lead_ins(xml, styles), styles)
                     xml = PAGE_BREAK_PARAGRAPH.sub(PAGE_BREAK, xml)
                 elif item.filename.startswith('word/footer'):

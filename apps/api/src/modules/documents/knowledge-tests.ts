@@ -7,11 +7,16 @@ import {
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 
+// `keyLabels`: the template prints the key as the options are labelled. The fire-safety tests
+// still print `key`; the field in their data would mark every one of their drafts as changed.
 export const knowledgeTestDocuments = {
-  test_hiring: { domain: 'ssm', test: 'hiring' },
-  fire_test_hiring: { domain: 'su', test: 'hiring' },
-  fire_test_annual: { domain: 'su', test: 'annual' },
-} as const satisfies Record<string, { domain: TrainingDomain; test: KnowledgeTest }>;
+  test_hiring: { domain: 'ssm', test: 'hiring', keyLabels: true },
+  fire_test_hiring: { domain: 'su', test: 'hiring', keyLabels: false },
+  fire_test_annual: { domain: 'su', test: 'annual', keyLabels: false },
+} as const satisfies Record<
+  string,
+  { domain: TrainingDomain; test: KnowledgeTest; keyLabels: boolean }
+>;
 
 export type KnowledgeTestTypeKey = keyof typeof knowledgeTestDocuments;
 
@@ -31,26 +36,31 @@ export type PrintedTest = {
     text: string;
     options: { letter: string; text: string }[];
     key: string;
+    keyLabels?: string;
   }[];
 };
 
 const letters = 'abcd';
 
 export function printedTest(typeKey: KnowledgeTestTypeKey, questions: BankQuestion[]): PrintedTest {
-  const { domain, test } = knowledgeTestDocuments[typeKey];
+  const { domain, test, keyLabels } = knowledgeTestDocuments[typeKey];
   return {
     test: { code: knowledgeTestCodeOf(domain, test), title: knowledgeTestTitleOf(domain, test) },
-    questions: questions.map((question, index) => ({
-      number: index + 1,
-      text: question.text.trim(),
-      options: question.options.map((option, at) => ({
-        letter: letters[at]!,
-        text: option.text.trim(),
-      })),
-      key: question.options
-        .flatMap((option, at) => (option.correct ? [letters[at]!.toUpperCase()] : []))
-        .join(', '),
-    })),
+    questions: questions.map((question, index) => {
+      const correct = question.options.flatMap((option, at) =>
+        option.correct ? [letters[at]!] : []
+      );
+      return {
+        number: index + 1,
+        text: question.text.trim(),
+        options: question.options.map((option, at) => ({
+          letter: letters[at]!,
+          text: option.text.trim(),
+        })),
+        key: correct.map((letter) => letter.toUpperCase()).join(', '),
+        ...(keyLabels && { keyLabels: correct.map((letter) => `${letter})`).join(', ') }),
+      };
+    }),
   };
 }
 

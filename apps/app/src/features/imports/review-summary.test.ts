@@ -253,7 +253,7 @@ describe('the summary of each section on the hub', () => {
   it('tells apart a management-only post and the equipment left out with it', () => {
     const proposal = managementPostProposal();
     expect(describeSection('job-positions', proposal)).toBe(
-      'un post. Postul «Administrator» se preia doar dacă e ocupat cu contract de muncă. Un alt post apare doar în pasaje copiate de la altă firmă și rămâne deoparte.'
+      'un post. Postul „Administrator” se preia doar dacă e ocupat cu contract de muncă. Un alt post apare doar în pasaje copiate de la altă firmă și rămâne deoparte.'
     );
     expect(describeSection('equipment', proposal)).toBe(
       'Un articol pentru un post. Un articol rămâne deoparte cu postul lui.'

@@ -3387,6 +3387,25 @@
     {
       "find": "Cond loc munca",
       "replace": "Cond. loc muncă"
+    },
+    {
+      "pattern": "«[ \\x{00A0}]*([^«»]*?)[ \\x{00A0}]*»",
+      "replace": "„$1”",
+      "groups": true
+    },
+    {
+      "pattern": "(?<!\\p{L})([sșşSȘŞ][iI])/[ \\x{00A0}]+([sS][aA][uU])(?!\\p{L})",
+      "replace": "$1/$2",
+      "groups": true
+    },
+    {
+      "pattern": "(„suplimentar sau accesoriu)[“\"]",
+      "replace": "$1”",
+      "groups": true
+    },
+    {
+      "pattern": "MARCAJ OCAZIONAT\\b",
+      "replace": "MARCAJ OCAZIONAL"
     }
   ],
   "context": [

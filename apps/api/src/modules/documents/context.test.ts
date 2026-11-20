@@ -609,6 +609,7 @@ describe('the merge context', () => {
         { letter: 'c', text: 'alt răspuns greșit.' },
       ],
       key: 'A, B',
+      keyLabels: 'a), b)',
     });
     expect(questions[0]!.key).toBe('A');
     expect(documentData(context, 'decision_training')).not.toHaveProperty('questions');

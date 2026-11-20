@@ -10,8 +10,10 @@
   "tests": [
     {
       "file": "5.1_test_hiring.docx",
-      "title": "TESTARE DE VERIFICARE A CUNOȘTINȚELOR PRIVIND SECURITATEA ȘI SĂNĂTATEA ÎN MUNCĂ (ANGAJARE / REINSTRUIRE)",
-      "keyTitle": "SPECIMEN CU RĂSPUNSURILE CORECTE"
+      "title": "TEST DE VERIFICARE A CUNOȘTINȚELOR LA ANGAJARE (TASSM)",
+      "specimen": "SPECIMEN CU RĂSPUNSURILE CORECTE",
+      "keyTitle": "RĂSPUNSURILE CORECTE",
+      "keyLabels": true
     },
     {
       "file": "fire/4.1_fire_test_hiring.docx",

@@ -398,12 +398,20 @@ describe('knowledge tests', () => {
     fireSafetyTechnician: { name: 'Radu STAN' },
   };
 
-  it.each(knowledgeTests)('%s asks for the questions besides its header', (_code, name) => {
+  it.each(knowledgeTests)('%s asks for the questions besides its header', (code, name) => {
     expect(
       templatePlaceholders(read(name)).filter(
         (each) => !each.includes('.') && !['branding', 'issueDate'].includes(each)
       )
-    ).toEqual(['$last', 'key', 'letter', 'number', 'options', 'questions', 'text']);
+    ).toEqual([
+      '$last',
+      code === 'TASSM' ? 'keyLabels' : 'key',
+      'letter',
+      'number',
+      'options',
+      'questions',
+      'text',
+    ]);
   });
 
   it.each(
@@ -417,7 +425,7 @@ describe('knowledge tests', () => {
       expect(text.match(/^\d+\. /gm)).toHaveLength(count * 2);
       expect(
         text.match(
-          /^TEST(ARE| ANUAL)? DE VERIFICARE .*\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
+          /^TEST( ANUAL)? DE VERIFICARE .*\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
         )
       ).toHaveLength(2);
       expect(text).toContain(
@@ -434,25 +442,54 @@ describe('knowledge tests', () => {
       const sheetStart = text.indexOf('Răspunsul dat');
       const sheet = text.slice(sheetStart, text.indexOf('\n1. ', sheetStart));
       expect(sheet.match(/^\d+$/gm)).toHaveLength(count);
-      const keyTitle =
-        code === 'TASSM' ? 'SPECIMEN CU RĂSPUNSURILE CORECTE' : 'RĂSPUNSURILE CORECTE';
-      const keyStart = text.indexOf(`\n${keyTitle}\nNr. întrebării\nRăspunsul corect\n`);
+      const keyStart = text.indexOf('\nRĂSPUNSURILE CORECTE\nNr. întrebării\nRăspunsul corect\n');
       expect(keyStart).toBeGreaterThan(sheetStart);
       const key = text.slice(keyStart);
-      expect(key.match(/^\d+\n[A-D](?:, [A-D])*$/gm)).toHaveLength(count);
+      // 5.1's key names the options as they are labelled; the fire-safety tests' are not reviewed yet.
+      const printed = (question: (typeof data.questions)[number]) =>
+        code === 'TASSM' ? question.keyLabels : question.key;
+      expect(
+        key.match(
+          code === 'TASSM' ? /^\d+\n[a-d]\)(?:, [a-d]\))*$/gm : /^\d+\n[A-D](?:, [A-D])*$/gm
+        )
+      ).toHaveLength(count);
       for (const question of data.questions) {
-        expect(key).toMatch(new RegExp(`^${question.number}\\n${question.key}$`, 'm'));
+        expect(key).toContain(`\n${question.number}\n${printed(question)}\n`);
+      }
+      if (code === 'TASSM') {
+        expect(
+          text.indexOf('\nSPECIMEN CU RĂSPUNSURILE CORECTE\nTEST DE VERIFICARE')
+        ).toBeGreaterThan(sheetStart);
       }
     }
   );
 
-  it.each(knowledgeTests)('%s opens the specimen on a page of its own', (_code, name) => {
-    const titles = (bodyOf(name).match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).filter((paragraph) =>
-      /^TEST(ARE| ANUAL)? DE VERIFICARE /.test(documentTextOf(paragraph))
+  it.each(knowledgeTests)('%s opens the specimen on a page of its own', (code, name) => {
+    const paragraphs: string[] = bodyOf(name).match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    const titles = paragraphs.filter((paragraph) =>
+      /^TEST( ANUAL)? DE VERIFICARE /.test(documentTextOf(paragraph))
     );
     expect(titles).toHaveLength(2);
     expect(titles[0]).toContain('<w:pageBreakBefore w:val="false"/>');
-    expect(titles[1]).toContain('<w:pageBreakBefore w:val="true"/>');
+    const opening =
+      code === 'TASSM' ? paragraphs[paragraphs.lastIndexOf(titles[1]!) - 1]! : titles[1]!;
+    expect(documentTextOf(opening)).toBe(
+      code === 'TASSM' ? 'SPECIMEN CU RĂSPUNSURILE CORECTE' : documentTextOf(titles[1]!)
+    );
+    expect(opening).toContain('<w:pageBreakBefore w:val="true"/>');
+  });
+
+  it('names the hiring test one way on its title and in its header box', () => {
+    const zip = new PizZip(read('5.1_test_hiring.docx'));
+    const titles = (bodyOf('5.1_test_hiring.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [])
+      .map(documentTextOf)
+      .filter((paragraph) => paragraph.startsWith('TEST '));
+    expect(titles).toEqual(Array(2).fill('TEST DE VERIFICARE A CUNOȘTINȚELOR LA ANGAJARE (TASSM)'));
+    for (const part of ['word/header1.xml', 'word/header2.xml', 'word/header3.xml']) {
+      expect(documentTextOf(zip.file(part)!.asText())).toContain(
+        'Test de verificare a cunoștințelor la angajare (TASSM)'
+      );
+    }
   });
 
   it('names the SU annual test annual, never periodic, in its titles and its header', () => {
@@ -518,11 +555,20 @@ describe('branding', () => {
       certificate: null,
     },
   };
+  // The branding is a footer's last line; a decision's footers open with the page number.
   const footerText = (file: Uint8Array) => {
     const zip = new PizZip(file);
     return Object.keys(zip.files)
       .filter((part) => /word\/footer\d*\.xml/.test(part))
-      .map((part) => documentTextOf(zip.file(part)!.asText()));
+      .map((part) =>
+        documentTextOf(
+          zip
+            .file(part)!
+            .asText()
+            .match(/<w:p[ >][\s\S]*?<\/w:p>/g)!
+            .at(-1)!
+        )
+      );
   };
 
   it('prints the line in the footer when the merge data asks for it', () => {

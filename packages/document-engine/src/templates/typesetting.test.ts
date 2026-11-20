@@ -125,9 +125,12 @@ describe('typesetting', () => {
     );
     expect([...fonts]).toEqual(['Arial']);
     // 10 pt body; 12 pt document titles; 14 and 16 pt on a cover page. Smaller only inside a
-    // table too wide for the body size, never for a heading over running text.
+    // table too wide for the body size and for the label of a signing space, never for a
+    // heading over running text.
     expect([...sizes].filter((size) => ![7, 8, 9, 10, 12, 14, 16].includes(size))).toEqual([]);
-    const outsideTables = xml.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '');
+    const outsideTables = xml
+      .replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '')
+      .replace(/<w:p\b(?:(?!<\/w:p>)[\s\S])*?>semnătura și ștampila<\/w:t><\/w:r><\/w:p>/g, '');
     expect(outsideTables).not.toMatch(
       /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:sz w:val="(14|16|18)"\/>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/
     );
@@ -235,7 +238,13 @@ describe('typesetting', () => {
       const headers = parts
         .filter((file) => /word\/header\d*\.xml/.test(file))
         .map((part) => documentTextOf(zip.file(part)!.asText()).trim());
-      if (headers.every((text) => text === '')) {
+      if (decisionFiles.includes(name)) {
+        expect(xml).toMatch(/<w:pgMar [^>]*w:top="1134"/);
+        expect(xml).toMatch(/<w:pgMar [^>]*w:header="680"/);
+        expect(headers.filter(Boolean)).toEqual([
+          'Decizia nr. {{decisionNumber}} SSM din {{issueDate}} · {{client.legalName}}Pag. 1 din 1',
+        ]);
+      } else if (headers.every((text) => text === '')) {
         expect(xml).toMatch(/<w:pgMar [^>]*w:top="1134"/);
       } else {
         expect(xml).toMatch(/<w:pgMar [^>]*w:header="680"/);
