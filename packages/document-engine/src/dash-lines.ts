@@ -69,7 +69,14 @@ function split(paragraph: string) {
 }
 
 function splitParagraph(paragraph: string) {
-  if (!paragraph.includes('<w:br/>')) return paragraph;
+  if (!paragraph.includes('<w:br/>')) {
+    if (!dashLine.test(textOf(paragraph))) return paragraph;
+    const opening = /^<w:p\b[^>]*>/.exec(paragraph)![0];
+    const properties = /^<w:pPr>[\s\S]*?<\/w:pPr>/.exec(paragraph.slice(opening.length))?.[0] ?? '';
+    return withHangingDash(
+      opening + hung(properties) + paragraph.slice(opening.length + properties.length)
+    );
+  }
   const lines = paragraph
     .split('<w:br/>')
     .map((piece) => textOf(piece).trim())

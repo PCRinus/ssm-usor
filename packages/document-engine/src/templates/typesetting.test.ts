@@ -474,6 +474,119 @@ describe('Word 2013 layout of the occupational safety set', () => {
     }
   });
 
+  const numberingOf = (bytes: Uint8Array) =>
+    new PizZip(bytes).file('word/numbering.xml')?.asText() ?? '';
+  const houseTablesOf = (bytes: Uint8Array) =>
+    (
+      new PizZip(bytes)
+        .file('word/document.xml')!
+        .asText()
+        .match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? []
+    ).filter((table) => table.includes('<w:tblStyle w:val="HouseTable"/>'));
+
+  it.each(ssmFiles)('%s marks every bullet with an en dash', (_, bytes) => {
+    const bullets = [...numberingOf(bytes).matchAll(/<w:lvl\b[^>]*>([\s\S]*?)<\/w:lvl>/g)]
+      .map((match) => match[1]!)
+      .filter((level) => level.includes('<w:numFmt w:val="bullet"/>'))
+      .map((level) => /<w:lvlText w:val="([^"]*)"/.exec(level)?.[1])
+      .filter((glyph) => glyph);
+    expect(new Set(bullets)).toEqual(new Set(bullets.length ? ['–'] : []));
+  });
+
+  // The sheets fit a training on one page in 7 and 9 pt.
+  it.each(ssmFiles.filter(([name]) => !name.startsWith('fisa_')))(
+    "%s sets its house tables at 10 or 8 pt, the registers' headers at 7",
+    (name, bytes) => {
+      for (const table of houseTablesOf(bytes)) {
+        const sizes = (row: string) =>
+          [
+            ...row.matchAll(
+              /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:sz w:val="(\d+)"\/>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/g
+            ),
+          ].map((match) => Number(match[1]));
+        const rows = table.match(/<w:tr\b[\s\S]*?<\/w:tr>/g)!;
+        const header = rows.filter((row) => row.includes('<w:tblHeader/>')).flatMap(sizes);
+        const body = rows.filter((row) => !row.includes('<w:tblHeader/>')).flatMap(sizes);
+        expect(body.filter((size) => size === 14 || size === 18)).toEqual([]);
+        if (name === '7.2_event_registers.docx') expect(new Set(header)).toEqual(new Set([14]));
+        else expect(header.filter((size) => size === 14 || size === 18)).toEqual([]);
+      }
+    }
+  );
+
+  it.each(ssmFiles)('%s hangs a dash item of a table cell from its dash', (_, bytes) => {
+    const typed = houseTablesOf(bytes).flatMap((table) =>
+      (table.match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g) ?? [])
+        .map(documentTextOf)
+        .filter((text) => /^\s*[–-]\s+\S/.test(text))
+    );
+    expect(typed).toEqual([]);
+  });
+
+  it.each(['1.1_decision_training.docx', '12_control_regulation.docx'])(
+    '%s starts the text after "Art. N." 1.27 cm in, as the decisions do',
+    (name) => {
+      const articles = [
+        ...numberingOf(read(name)).matchAll(/<w:lvl w:ilvl="0"[^>]*>([\s\S]*?)<\/w:lvl>/g),
+      ]
+        .map((match) => match[1]!)
+        .filter(
+          (level) => /<w:lvlText w:val="Art\. %1\."\/>/.test(level) && !level.includes('<w:suff ')
+        );
+      expect(articles.length).toBeGreaterThan(0);
+      for (const level of articles) expect(level).toContain('<w:tab w:val="num" w:pos="720"/>');
+    }
+  );
+
+  it('opens chapter I of 3.2 on the page after its contents', () => {
+    const body = bodyOf('3.2_own_instructions.docx');
+    const contentsEnd = body.indexOf('</w:sdt>', body.indexOf('Table of Contents'));
+    const chapter = paragraphsOf(body.slice(contentsEnd)).find((paragraph) =>
+      paragraph.includes('<w:pStyle w:val="Heading1"/>')
+    )!;
+    expect(chapter).toContain('<w:pageBreakBefore/>');
+  });
+
+  // A list sits 2 pt under its lead-in, its items 2 pt apart, sub-lists included; and its
+  // sub-lists hang one tier under the item that introduces them.
+  it.each([
+    '2.2_general_training_material.docx',
+    '3.2_own_instructions.docx',
+    '11_employer_briefing.docx',
+  ])('%s sets a list close under its lead-in and its sub-lists a tier deeper', (name) => {
+    const paragraphs = paragraphsOf(bodyOf(name)).filter(
+      (paragraph) => !/^\{\{[#/^][^}]*\}\}$/.test(documentTextOf(paragraph).trim())
+    );
+    const after = (paragraph: string) =>
+      Number(/<w:spacing\b[^>]*w:after="(\d+)"/.exec(paragraph)?.[1] ?? 0);
+    const numbering = numberingOf(read(name));
+    const articleLists = new Set(
+      [...numbering.matchAll(/<w:num w:numId="(\d+)"[^>]*>\s*<w:abstractNumId w:val="(\d+)"/g)]
+        .filter(([, , abstract]) =>
+          new RegExp(
+            `w:abstractNumId="${abstract}"[^>]*>(?:(?!</w:abstractNum>)[\\s\\S])*?<w:lvlText w:val="Art`
+          ).test(numbering)
+        )
+        .map(([, num]) => num)
+    );
+    const isItem = (paragraph: string) => {
+      const num = /<w:numId w:val="(\d+)"/.exec(paragraph)?.[1];
+      return num !== undefined && num !== '0' && !articleLists.has(num);
+    };
+    const loose = paragraphs.filter(
+      (paragraph, index) =>
+        documentTextOf(paragraph).trim().endsWith(':') &&
+        isItem(paragraphs[index + 1] ?? '') &&
+        after(paragraph) > 40
+    );
+    expect(loose.map(documentTextOf)).toEqual([]);
+    const evacuation = paragraphs.findIndex((paragraph) =>
+      documentTextOf(paragraph).includes('Menținerea în stare de utilizare a tuturor:')
+    );
+    if (evacuation >= 0)
+      expect(paragraphs[evacuation + 1]).toMatch(/<w:ind w:left="(1080|1800)" w:hanging="360"\/>/);
+  });
+
   it.each(files)('%s is laid out in compatibility mode 15', (_, bytes) => {
     const settings = new PizZip(bytes).file('word/settings.xml')!.asText();
     expect(settings.match(/<w:compatSetting w:name="compatibilityMode"[^>]*>/g)).toEqual([

@@ -112,8 +112,11 @@ const wordsOf = (line: string) =>
     .filter(Boolean);
 
 export interface ColumnText {
-  /** Each cell's paragraphs, each a list of lines, with the paragraph's size in half-points. */
-  cells: { lines: string[]; size: number }[][];
+  /**
+   * Each cell's paragraphs, each a list of lines, with the paragraph's size in half-points and,
+   * where it hangs from a dash, its text's indent in twips.
+   */
+  cells: { lines: string[]; size: number; indent?: number }[][];
 }
 
 export interface ColumnMeasure {
@@ -142,10 +145,10 @@ export function measureColumn(
       .trim();
     if (empty.has(text)) continue;
     amount += text.length;
-    for (const { lines, size } of cell)
+    for (const { lines, size, indent = 0 } of cell)
       for (const line of lines) {
-        oneLine = Math.max(oneLine, textWidth(line.trim(), size));
-        for (const word of wordsOf(line)) floor = Math.max(floor, textWidth(word, size));
+        oneLine = Math.max(oneLine, indent + textWidth(line.trim(), size));
+        for (const word of wordsOf(line)) floor = Math.max(floor, indent + textWidth(word, size));
       }
   }
   const room = padding + slack;
@@ -234,6 +237,7 @@ const cellText = (cell: string) =>
   [...cell.matchAll(paragraphPattern)].map(([paragraph]) => ({
     lines: linesOf(paragraph),
     size: paragraphSize(paragraph),
+    indent: Number(/<w:ind w:left="(\d+)"/.exec(paragraph)?.[1] ?? 0),
   }));
 
 function withGrid(table: string, widths: number[]) {

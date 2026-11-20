@@ -21,14 +21,18 @@ describe('hangDashLines', () => {
     expect(paragraphs[1]).toContain('>Instruirea lucrătorilor.</w:t>');
   });
 
-  it('leaves a cell of one line, lines without dashes and other tables as they are', () => {
+  it('hangs a cell of a single dash line too, once', () => {
     const single = '<w:p><w:r><w:t xml:space="preserve">– Verificarea periodică.</w:t></w:r></w:p>';
+    const hung = hangDashLines(table('HouseTable', single));
+    expect(hung).toContain(
+      '<w:pPr><w:ind w:left="170" w:hanging="170"/></w:pPr><w:r><w:t xml:space="preserve">–</w:t><w:tab/>'
+    );
+    expect(hangDashLines(hung)).toBe(hung);
+  });
+
+  it('leaves lines without dashes and other tables as they are', () => {
     const plain = '<w:p><w:r><w:t>Strada Mare 1</w:t><w:br/><w:t>Cluj-Napoca</w:t></w:r></w:p>';
-    for (const xml of [
-      table('HouseTable', single),
-      table('HouseTable', plain),
-      table('Other', merged),
-    ])
+    for (const xml of [table('HouseTable', plain), table('Other', merged)])
       expect(hangDashLines(xml)).toBe(xml);
   });
 });

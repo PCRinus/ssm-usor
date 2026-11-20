@@ -561,6 +561,10 @@ def lists(document, styles_xml, numbering_xml):
         xml = document[start:end]
         if is_loop_tags(xml):
             continue
+        # A spacer before a table or one set at 1 pt: it ends a list and keeps its own room.
+        if not text_of(xml).strip() and not re.search(r'<w:(drawing|object|pict)\b|<m:oMath', xml):
+            order.append(None)
+            continue
         order.append((start, end, xml, list_item(xml, styles, numbering)))
 
     stack, previous = [], None
