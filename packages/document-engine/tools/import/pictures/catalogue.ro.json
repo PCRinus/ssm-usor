@@ -1,0 +1,619 @@
+{
+  "2.2": [
+    {
+      "heading": "Panouri de interzicere",
+      "signs": [
+        {
+          "id": "22-30-11",
+          "name": "Fumatul interzis",
+          "meaning": null,
+          "pictures": ["P002"]
+        },
+        {
+          "id": "22-30-12",
+          "name": "Fumatul și focul deschis interzise",
+          "meaning": "Interzice fumatul, focul deschis și orice sursă de aprindere.",
+          "pictures": ["P003"]
+        },
+        {
+          "id": "22-30-13",
+          "name": "Interzis accesul pietonilor",
+          "meaning": null,
+          "pictures": ["P004"]
+        },
+        {
+          "id": "22-30-14",
+          "name": "Interzisă stingerea cu apă",
+          "meaning": null,
+          "pictures": ["P011"]
+        },
+        {
+          "id": "22-30-15",
+          "name": "Accesul interzis persoanelor neautorizate",
+          "meaning": null,
+          "pictures": ["P080"]
+        },
+        {
+          "id": "22-30-21",
+          "name": "Interzis vehiculelor de manipulat marfă",
+          "meaning": "Interzice accesul stivuitoarelor și al altor vehicule industriale.",
+          "pictures": ["P006"]
+        },
+        {
+          "id": "22-30-22",
+          "name": "Apă nepotabilă",
+          "meaning": "Apa de aici nu este bună de băut.",
+          "pictures": ["P005"]
+        },
+        {
+          "id": "22-30-23",
+          "name": "A nu se atinge",
+          "meaning": null,
+          "pictures": ["P010"]
+        },
+        {
+          "id": "22-30-24",
+          "name": "A nu se introduce mâna",
+          "meaning": "Interzice introducerea mâinii în interiorul echipamentului.",
+          "pictures": ["P015"]
+        },
+        {
+          "id": "22-30-25",
+          "name": "Depozitarea interzisă",
+          "meaning": "Interzice depozitarea de obiecte care blochează locul.",
+          "pictures": ["P023"]
+        },
+        {
+          "id": "22-30-31",
+          "name": "Accesul animalelor interzis",
+          "meaning": null,
+          "pictures": ["P021"]
+        },
+        {
+          "id": "22-30-33",
+          "name": "Interzisă utilizarea mănușilor",
+          "meaning": "Interzice purtarea mănușilor la acest echipament.",
+          "pictures": ["P028"]
+        },
+        {
+          "id": "22-30-34",
+          "name": "Interzis urcatul pe rafturi",
+          "meaning": "Interzice cățărarea pe rafturi sau pe alte structuri.",
+          "pictures": ["P009"]
+        },
+        {
+          "id": "22-30-35",
+          "name": "Interzisă staționarea sub sarcina ridicată",
+          "meaning": "Interzice staționarea sub sarcina ridicată de stivuitor.",
+          "pictures": ["P024"]
+        },
+        {
+          "id": "22-31-11",
+          "name": "Interzis transportul de persoane pe stivuitor",
+          "meaning": null,
+          "pictures": ["P001"]
+        },
+        {
+          "id": "22-31-12",
+          "name": "Interzisă urcarea pe transpaletă",
+          "meaning": null,
+          "pictures": ["P001"]
+        },
+        {
+          "id": "22-31-14",
+          "name": "Utilizarea telefonului mobil interzisă",
+          "meaning": null,
+          "pictures": ["P013"]
+        },
+        {
+          "id": "22-31-22",
+          "name": "Interzisă călcarea",
+          "meaning": "Interzice călcarea pe această suprafață.",
+          "pictures": ["P019"]
+        },
+        {
+          "id": "22-31-23",
+          "name": "Interzis consumul de alimente",
+          "meaning": "Interzice mâncatul și băutul în această zonă.",
+          "pictures": ["P022"]
+        },
+        {
+          "id": "22-31-24",
+          "name": "Interzis fotografiatul",
+          "meaning": null,
+          "pictures": ["P029"]
+        },
+        {
+          "id": "22-31-25",
+          "name": "Interzisă traversarea căii de rulare",
+          "meaning": null,
+          "pictures": ["P004"]
+        },
+        {
+          "id": "22-31-31",
+          "name": "Nu atinge! Pericol de electrocutare",
+          "meaning": "Interzice atingerea carcasei aflate sub tensiune.",
+          "pictures": ["P010", "W012"]
+        },
+        {
+          "id": "22-31-32",
+          "name": "Utilizarea ascensoarelor interzisă",
+          "meaning": "Interzice folosirea liftului pentru transportul persoanelor.",
+          "pictures": ["P027"]
+        },
+        {
+          "id": "22-31-33",
+          "name": "Pulverizarea cu apă interzisă",
+          "meaning": null,
+          "pictures": ["P016"]
+        }
+      ]
+    },
+    {
+      "heading": "Panouri de avertizare",
+      "signs": [
+        {
+          "id": "22-31-41",
+          "name": "Materiale inflamabile",
+          "meaning": null,
+          "pictures": ["W021"]
+        },
+        {
+          "id": "22-31-42",
+          "name": "Materiale explozive",
+          "meaning": null,
+          "pictures": ["W002"]
+        },
+        {
+          "id": "22-31-43",
+          "name": "Materiale toxice",
+          "meaning": null,
+          "pictures": ["W016"]
+        },
+        {
+          "id": "22-31-44",
+          "name": "Materiale corozive",
+          "meaning": null,
+          "pictures": ["W023"]
+        },
+        {
+          "id": "22-31-45",
+          "name": "Materiale radioactive",
+          "meaning": "Avertizează asupra materialelor radioactive sau radiațiilor ionizante.",
+          "pictures": ["W003"]
+        },
+        {
+          "id": "22-32-11",
+          "name": "Greutăți suspendate",
+          "meaning": null,
+          "pictures": ["W015"]
+        },
+        {
+          "id": "22-32-12",
+          "name": "Vehicule de manipulare",
+          "meaning": "Avertizează asupra stivuitoarelor și vehiculelor industriale.",
+          "pictures": ["W014"]
+        },
+        {
+          "id": "22-32-13",
+          "name": "Pericol electric",
+          "meaning": null,
+          "pictures": ["W012"]
+        },
+        {
+          "id": "22-32-14",
+          "name": "Pericol general*)",
+          "meaning": "Avertizare generală, folosită împreună cu un text explicativ.",
+          "pictures": ["W001"]
+        },
+        {
+          "id": "22-32-15",
+          "name": "Radiații laser",
+          "meaning": null,
+          "pictures": ["W004"]
+        },
+        {
+          "id": "22-32-21",
+          "name": "Pericol de împiedicare",
+          "meaning": "Avertizează asupra unui obstacol la nivelul solului.",
+          "pictures": ["W007"]
+        },
+        {
+          "id": "22-32-22",
+          "name": "Câmp magnetic puternic",
+          "meaning": null,
+          "pictures": ["W006"]
+        },
+        {
+          "id": "22-32-23",
+          "name": "Radiații neionizante",
+          "meaning": null,
+          "pictures": ["W005"]
+        },
+        {
+          "id": "22-32-24",
+          "name": "Materiale comburante sau oxidante",
+          "meaning": null,
+          "pictures": ["W028"]
+        },
+        {
+          "id": "22-32-25",
+          "name": "Atenție, scări",
+          "meaning": "Avertizează asupra pericolului de cădere pe scări sau denivelări.",
+          "pictures": ["W008"]
+        },
+        {
+          "id": "22-32-31",
+          "name": "Risc biologic",
+          "meaning": null,
+          "pictures": ["W009"]
+        },
+        {
+          "id": "22-32-32",
+          "name": "Cădere cu denivelare",
+          "meaning": null,
+          "pictures": ["W008"]
+        },
+        {
+          "id": "22-32-33",
+          "name": "Pericol de prindere a mâinii",
+          "meaning": "Avertizează asupra cilindrilor care se rotesc în sens opus.",
+          "pictures": ["W025"]
+        },
+        {
+          "id": "22-32-34",
+          "name": "Atenție! Baterii și acumulatori",
+          "meaning": "Avertizează asupra pericolului la încărcarea bateriilor.",
+          "pictures": ["W026"]
+        },
+        {
+          "id": "22-32-35",
+          "name": "Atenție, tuburi sub presiune",
+          "meaning": "Avertizează asupra buteliilor de gaz sub presiune.",
+          "pictures": ["W029"]
+        },
+        {
+          "id": "22-32-41",
+          "name": "Atenție! Pericol de prindere a mâinii",
+          "meaning": "Avertizează asupra pericolului de strivire a mâinii.",
+          "pictures": ["W024"]
+        },
+        {
+          "id": "22-32-42",
+          "name": "Temperaturi scăzute",
+          "meaning": null,
+          "pictures": ["W010"]
+        },
+        {
+          "id": "22-32-43",
+          "name": "Atenție, temperatură ridicată",
+          "meaning": "Avertizează asupra suprafețelor sau lichidelor fierbinți.",
+          "pictures": ["W017"]
+        },
+        {
+          "id": "22-32-52",
+          "name": "Atenție! Pericol de strivire",
+          "meaning": null,
+          "pictures": ["W019"]
+        },
+        {
+          "id": "22-32-53",
+          "name": "Atenție! Pericol de alunecare",
+          "meaning": null,
+          "pictures": ["W011"]
+        },
+        {
+          "id": "22-32-54",
+          "name": "Atenție! Pericol de cădere",
+          "meaning": null,
+          "pictures": ["W008"]
+        }
+      ]
+    },
+    {
+      "heading": "Panouri de obligativitate",
+      "signs": [
+        {
+          "id": "22-33-11",
+          "name": "Protecția vederii obligatorie",
+          "meaning": "Purtarea ochelarilor de protecție este obligatorie.",
+          "pictures": ["M004"]
+        },
+        {
+          "id": "22-33-12",
+          "name": "Protecția capului obligatorie",
+          "meaning": "Purtarea căștii de protecție este obligatorie.",
+          "pictures": ["M014"]
+        },
+        {
+          "id": "22-33-13",
+          "name": "Protecția auzului obligatorie",
+          "meaning": "Purtarea antifoanelor este obligatorie.",
+          "pictures": ["M003"]
+        },
+        {
+          "id": "22-33-14",
+          "name": "Protecția căilor respiratorii obligatorie",
+          "meaning": null,
+          "pictures": ["M017"]
+        },
+        {
+          "id": "22-33-15",
+          "name": "Protecția picioarelor obligatorie",
+          "meaning": "Purtarea încălțămintei de protecție este obligatorie.",
+          "pictures": ["M008"]
+        },
+        {
+          "id": "22-33-21",
+          "name": "Protecția mâinilor obligatorie",
+          "meaning": "Purtarea mănușilor de protecție este obligatorie.",
+          "pictures": ["M009"]
+        },
+        {
+          "id": "22-33-22",
+          "name": "Protecția corpului obligatorie",
+          "meaning": "Purtarea îmbrăcămintei de protecție este obligatorie.",
+          "pictures": ["M010"]
+        },
+        {
+          "id": "22-33-23",
+          "name": "Protecția feței obligatorie",
+          "meaning": "Purtarea vizierei de protecție este obligatorie.",
+          "pictures": ["M013"]
+        },
+        {
+          "id": "22-33-24",
+          "name": "Protecția individuală împotriva căderii obligatorie",
+          "meaning": "Purtarea hamului de siguranță este obligatorie.",
+          "pictures": ["M018"]
+        },
+        {
+          "id": "22-33-25",
+          "name": "Pasaj obligatoriu pentru pietoni",
+          "meaning": null,
+          "pictures": ["M024"]
+        },
+        {
+          "id": "22-33-31",
+          "name": "Obligație generală",
+          "meaning": "Obligație generală, folosită împreună cu un text explicativ.",
+          "pictures": ["M001"]
+        },
+        {
+          "id": "22-33-32",
+          "name": "Apă potabilă",
+          "meaning": "Indică apă bună de băut.",
+          "pictures": ["E015"]
+        },
+        {
+          "id": "22-33-33",
+          "name": "Obligatoriu încălțăminte",
+          "meaning": "Purtarea încălțămintei antistatice sau antiscânteie este obligatorie.",
+          "pictures": ["M032"]
+        },
+        {
+          "id": "22-33-35",
+          "name": "Loc pentru fumat",
+          "meaning": null,
+          "pictures": ["PF015"]
+        },
+        {
+          "id": "22-33-43",
+          "name": "Purtarea măștilor obligatorie",
+          "meaning": null,
+          "pictures": ["M016"]
+        },
+        {
+          "id": "22-33-44",
+          "name": "Spălarea mâinilor obligatorie",
+          "meaning": null,
+          "pictures": ["M011"]
+        },
+        {
+          "id": "22-34-11",
+          "name": "Purtarea bonetei obligatorie",
+          "meaning": null,
+          "pictures": ["M001"]
+        },
+        {
+          "id": "22-34-12",
+          "name": "Mănuși obligatorii",
+          "meaning": null,
+          "pictures": ["M009"]
+        },
+        {
+          "id": "22-34-13",
+          "name": "Purtarea centurilor obligatorie",
+          "meaning": "Purtarea centurii de siguranță este obligatorie.",
+          "pictures": ["M020"]
+        },
+        {
+          "id": "22-34-14",
+          "name": "Protecția împotriva căderii obligatorie",
+          "meaning": "Purtarea hamului de siguranță este obligatorie.",
+          "pictures": ["M018"]
+        },
+        {
+          "id": "22-34-15",
+          "name": "Asigurarea buteliilor obligatorie",
+          "meaning": "Buteliile de gaz trebuie asigurate împotriva căderii.",
+          "pictures": ["M046"]
+        },
+        {
+          "id": "22-34-21",
+          "name": "Obligație generală",
+          "meaning": "Folosirea mijloacelor de protecție indicate este obligatorie.",
+          "pictures": ["M001"]
+        },
+        {
+          "id": "22-34-22",
+          "name": "Folosiți calea pentru pietoni",
+          "meaning": null,
+          "pictures": ["M024"]
+        },
+        {
+          "id": "22-34-23",
+          "name": "Deconectare obligatorie înainte de întreținere",
+          "meaning": "Deconectați alimentarea înainte de întreținere sau reparații.",
+          "pictures": ["M021"]
+        },
+        {
+          "id": "22-34-24",
+          "name": "Folosirea pasarelei obligatorie",
+          "meaning": null,
+          "pictures": ["M023"]
+        }
+      ]
+    },
+    {
+      "heading": "Panouri de salvare și de prim ajutor",
+      "signs": [
+        {
+          "id": "22-34-31",
+          "name": "Direcție de urmat (evacuare)",
+          "meaning": "Indică direcția spre ieșire sau spre mijloacele de prim ajutor.",
+          "pictures": ["arrow-safe-condition"]
+        },
+        {
+          "id": "22-34-32",
+          "name": "Telefon pentru prim ajutor sau salvare",
+          "meaning": null,
+          "pictures": ["E004"]
+        },
+        {
+          "id": "22-34-34",
+          "name": "Brancardă",
+          "meaning": "Indică locul unde se află targa.",
+          "pictures": ["E013"]
+        },
+        {
+          "id": "22-34-35",
+          "name": "Punct medical",
+          "meaning": null,
+          "pictures": ["E009"]
+        },
+        {
+          "id": "22-34-36",
+          "name": "Duș de securitate",
+          "meaning": null,
+          "pictures": ["E012"]
+        },
+        {
+          "id": "22-34-41",
+          "name": "Loc de adunare în caz de evacuare",
+          "meaning": null,
+          "pictures": ["E007"]
+        },
+        {
+          "id": "22-34-42",
+          "name": "Curățirea ochilor",
+          "meaning": "Indică stația de spălare a ochilor.",
+          "pictures": ["E011"]
+        },
+        {
+          "id": "22-34-43",
+          "name": "Centru de prim ajutor",
+          "meaning": "Indică locul trusei sau al punctului de prim ajutor.",
+          "pictures": ["E003"]
+        },
+        {
+          "id": "22-35-11",
+          "name": "Mijloc de ajutor – scară",
+          "meaning": "Indică scara de salvare pentru evacuare.",
+          "pictures": ["E016"]
+        },
+        {
+          "id": "22-35-12",
+          "name": "Cale și acces de evacuare",
+          "meaning": null,
+          "pictures": ["E001"]
+        }
+      ]
+    },
+    {
+      "heading": "Panouri pentru prevenirea și stingerea incendiilor",
+      "signs": [
+        {
+          "id": "22-35-21",
+          "name": "Scară",
+          "meaning": "Indică scara pentru intervenție în caz de incendiu.",
+          "pictures": ["F003"]
+        },
+        {
+          "id": "22-35-22",
+          "name": "Hidrant interior",
+          "meaning": null,
+          "pictures": ["F002"]
+        },
+        {
+          "id": "22-35-23",
+          "name": "Stingător",
+          "meaning": null,
+          "pictures": ["F001"]
+        },
+        {
+          "id": "22-35-24",
+          "name": "Telefon incendiu",
+          "meaning": null,
+          "pictures": ["F006"]
+        },
+        {
+          "id": "22-35-25",
+          "name": "Echipamente de stingere a incendiilor",
+          "meaning": null,
+          "pictures": ["F004"]
+        },
+        {
+          "id": "22-35-31",
+          "name": "Direcție de urmat (incendiu)",
+          "meaning": "Indică direcția spre echipamentul de stingere a incendiilor.",
+          "pictures": ["arrow-fire"]
+        },
+        {
+          "id": "22-35-32",
+          "name": "Hidrant",
+          "meaning": null,
+          "pictures": ["H"]
+        }
+      ]
+    }
+  ],
+  "11": [
+    {
+      "id": "11-1",
+      "name": "Interzicere, pericol, PSI",
+      "meaning": "Interzice un comportament care ar putea atrage sau cauza un pericol.",
+      "pictures": ["P001"]
+    },
+    {
+      "id": "11-2",
+      "name": "Avertizare, atenționare",
+      "meaning": "Avertizează asupra unui risc sau unui pericol.",
+      "pictures": ["W001"]
+    },
+    {
+      "id": "11-3",
+      "name": "Obligativitate",
+      "meaning": "Indică un comportament obligatoriu, de exemplu purtarea echipamentului individual de protecție.",
+      "pictures": ["M001"]
+    },
+    {
+      "id": "11-4",
+      "name": "Salvare, prim ajutor",
+      "meaning": "Indică ieșirile de urgență ori mijloacele de prim ajutor sau de salvare.",
+      "pictures": ["E003"]
+    },
+    {
+      "id": "11-5",
+      "name": "Prevenirea și stingerea incendiilor",
+      "meaning": "Identifică și localizează materialele și echipamentele de stingere a incendiilor.",
+      "pictures": ["F001"]
+    },
+    {
+      "id": "11-6",
+      "name": "Benzi de marcaj ocazional",
+      "meaning": "Marchează temporar obstacolele și locurile periculoase, cu benzi galben-negre sau roșu-albe.",
+      "pictures": ["tape"]
+    }
+  ]
+}

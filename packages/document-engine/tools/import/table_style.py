@@ -12,8 +12,8 @@ A table drawn this way names the table style `HOUSE_TABLE`, which holds nothing:
 no other table.
 
 Left as they are: a table with no line or with lines on some sides only (the signature blocks,
-the covers' handover, the sheets' lines to write on), the safety-sign grids of 2.2, which have
-no header and are pictures with captions, and the scales of 9's method (Anexa 3 to 5), whose
+the covers' handover, the sheets' lines to write on, the sign catalogues of 2.2 and 11), and the
+scales of 9's method (Anexa 3 to 5), whose
 1.5 pt contours and grey levels say which class a cell belongs to. Their header fill turns to
 the house one, and their text reads on every grey (`readable_grid`). The consequence matrix
 (9's Anexa 2) takes the house style with an X for every consequence and nothing elsewhere
@@ -292,8 +292,6 @@ def kind_of(table):
     if re.search(r'<w:(?:top|left|bottom|right) w:val="single" w:sz="12"', table):
         return 'consequences' if first.startswith('Nr.crt.CONSECINȚE') else 'scale'
     if not fully_ruled(rows):
-        return None
-    if '<w:drawing' in table and not any(is_marked_header(row) for row in rows):
         return None
     return 'house'
 

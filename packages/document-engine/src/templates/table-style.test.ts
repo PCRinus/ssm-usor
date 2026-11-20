@@ -54,7 +54,7 @@ const houseTables = ssmFiles.flatMap((name) =>
 
 describe('the table house style of the occupational safety set', () => {
   // A table of lines on every side of a cell, not drawn in the house style, is one the style
-  // leaves alone on purpose: the sign grids of 2.2 and the scales of 9's method.
+  // leaves alone on purpose: the scales of 9's method.
   it.each(ssmFiles)('%s draws every ruled table in the house style but the named ones', (name) => {
     const left = tablesOf(name).filter(
       (table) =>
@@ -68,12 +68,8 @@ describe('the table house style of the occupational safety set', () => {
             ) && !cell.includes('<w:tcBorders></w:tcBorders>')
         )
     );
-    const signGrids = left.filter(
-      (table) => table.includes('<w:drawing') && !rowsOf(table).some(isHeader)
-    );
     const scales = left.filter((table) => /w:sz="12"/.test(table));
-    expect(left.length - signGrids.length - scales.length).toBe(0);
-    expect(signGrids.length).toBe(name === '2.2_general_training_material.docx' ? 9 : 0);
+    expect(left.length - scales.length).toBe(0);
     expect(scales.length).toBe(name === '9_risk_assessment.docx' ? 3 : 0);
   });
 
