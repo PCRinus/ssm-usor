@@ -10,7 +10,7 @@ the two spaces line up when one side's role wraps. Safe to run again.
 
 import re
 
-from table_style import P_PR_ORDER, PARAGRAPH, R_PR_ORDER, RUN, TC_PR_ORDER, element, put, text_of
+from table_style import LOOP_TAGS_ONLY, P_PR_ORDER, PARAGRAPH, R_PR_ORDER, RUN, TC_PR_ORDER, element, put, text_of
 
 SIGNING_ROOM = 1417  # twips, 25 mm
 LABEL = 'semnătura și ștampila'
@@ -112,9 +112,13 @@ def decision_blocks(xml):
         _, end, name = found[following]
         client = found[index - 1]
         block = spaced(role, after=0) + label(role) + spaced(name, NAME_ABOVE, keep=False)
-        if index > 1:
-            # The last article goes with the signature: a decision is not signed on a page of its own.
-            article = found[index - 2]
+        # The last article goes with the signature: a decision is not signed on a page of its own.
+        # A loop's tags leave nothing behind once merged, so the line they repeat is the one kept.
+        before = index - 2
+        while before >= 0 and LOOP_TAGS_ONLY.fullmatch(texts[before]):
+            before -= 1
+        if before >= 0:
+            article = found[before]
             edits.append((article[0], article[1], spaced(article[2])))
         edits.append((client[0], client[1], spaced(client[2])))
         edits.append((start, end, block))
@@ -189,7 +193,7 @@ def handover_table(table):
 
     lines, roles, signing, dates = [], [], [], []
     for side in found:
-        lines.append(''.join(spaced(line, 0, 0) for line in side['lines']) or spaced(side['role'], 0, 0))
+        lines.append(''.join(spaced(line, 0, 0) for line in side['lines']))
         roles.append(spaced(side['role'], ROLE_ABOVE, 0))
         signing.append(label(side['role'], padding) + spaced(side['name'], NAME_ABOVE, 0))
         date = side['date'] or with_text(plain(side['role']), DATE_LINE)

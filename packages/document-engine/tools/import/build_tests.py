@@ -7,9 +7,9 @@ is the same for every test but its title and the heading of its key: the title a
 saying that a question may have several correct answers, the questions, the table for the name,
 the date, the two signatures and the result, the empty answer sheet, then on a new page, under a
 framed heading where the spec names one (`specimen`), the same questions again and the key, in
-the options' own labels where the spec asks for them (`keyLabels`). Only `word/document.xml` is written, as plain OOXML: each file keeps
-its own package, the box of document details in its header and the branding footer included, and
-loses the pictures its original body held.
+the options' own labels where the spec asks for them (`keyLabels`). Only `word/document.xml` is
+written, as plain OOXML: each file keeps its own package, the box of document details in its
+header and the branding footer included, and loses the pictures its original body held.
 """
 
 import json

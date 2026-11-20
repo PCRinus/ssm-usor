@@ -241,8 +241,9 @@ describe('typesetting', () => {
       if (decisionFiles.includes(name)) {
         expect(xml).toMatch(/<w:pgMar [^>]*w:top="1134"/);
         expect(xml).toMatch(/<w:pgMar [^>]*w:header="680"/);
-        expect(headers.filter(Boolean)).toEqual([
+        expect([...headers].sort()).toEqual([
           'Decizia nr. {{decisionNumber}} SSM din {{issueDate}} · {{client.legalName}}Pag. 1 din 1',
+          'Pag. 1 din 1',
         ]);
       } else if (headers.every((text) => text === '')) {
         expect(xml).toMatch(/<w:pgMar [^>]*w:top="1134"/);

@@ -1,7 +1,11 @@
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
+import { previewDocuments } from '../../tools/preview-samples';
 import { signingTypeKeys } from '../signing';
+import { templatesUrl } from '../template-store';
+import { convert, converter } from '../test/converter';
 import { bodyOf, decisionFiles, documentTextOf, entries, read } from './read';
 
 // tools/import/signatures.py and tools/import/decision_pages.py say why.
@@ -81,41 +85,95 @@ describe('one signing space for every signature of the occupational safety set',
   });
 });
 
-describe("the decisions' page numbers and running header", () => {
-  it.each(decisionFiles)('%s numbers every page and names itself from the second', (name) => {
-    const zip = new PizZip(read(name));
-    const section = /<w:sectPr\b[\s\S]*?<\/w:sectPr>/.exec(bodyOf(name))![0];
-    expect(section).toContain('<w:titlePg/>');
-    const relationships = zip.file('word/_rels/document.xml.rels')!.asText();
-    const target = (type: string) => {
-      const id = new RegExp(`<w:headerReference w:type="${type}" r:id="([^"]+)"/>`).exec(
-        section
-      )![1];
-      const file = new RegExp(`Id="${id}"[^>]*Target="([^"]+)"`).exec(relationships)![1];
-      return zip.file(`word/${file}`)!.asText();
-    };
-    expect(documentTextOf(target('first'))).toBe('');
-    const header = target('default');
-    expect(documentTextOf(header)).toBe(
-      'Decizia nr. {{decisionNumber}} SSM din {{issueDate}} · {{client.legalName}}Pag. 1 din 1'
-    );
-    expect(header).toContain('<w:bottom w:val="single" w:sz="4" w:space="0" w:color="555555"/>');
-    expect(header).toContain('<w:tblInd w:w="0" w:type="dxa"/>');
-    const footers = Object.keys(zip.files).filter((part) => /^word\/footer\d*\.xml$/.test(part));
-    expect(footers.length).toBeGreaterThan(0);
-    for (const part of [...footers, 'header']) {
-      const xml = part === 'header' ? header : zip.file(part)!.asText();
-      const codes = [...xml.matchAll(/<w:instrText[^>]*>([^<]*)<\/w:instrText>/g)].map((match) =>
-        match[1]!.trim()
-      );
-      expect(codes, part).toEqual(['PAGE', 'NUMPAGES']);
+const mergedDecisions = previewDocuments(templatesUrl)
+  .documents.filter(({ name }) => decisionFiles.includes(name))
+  .map(({ name, label: sample, docx }) => ({ decision: `${name} (${sample})`, docx }));
+const wordsOf = (text: string) => text.toLowerCase().match(/\p{L}+|\p{N}+/gu) ?? [];
+
+// The line a decision signs under, once merged: a loop's tags are gone by then.
+function signedLine(docx: Uint8Array) {
+  const paragraphs = paragraphsOf(new PizZip(docx).file('word/document.xml')!.asText());
+  const at = paragraphs.findIndex((paragraph) => documentTextOf(paragraph) === label);
+  return { kept: paragraphs.slice(at - 3, at), line: documentTextOf(paragraphs[at - 3]!) };
+}
+
+async function pageTexts(pdf: Uint8Array) {
+  const loading = getDocument({ data: pdf.slice(), useSystemFonts: false });
+  const document = await loading.promise;
+  const pages: string[] = [];
+  try {
+    for (let number = 1; number <= document.numPages; number += 1) {
+      const content = await (await document.getPage(number)).getTextContent();
+      pages.push(content.items.map((item) => ('str' in item ? `${item.str} ` : '')).join(''));
     }
-    for (const part of footers) {
-      const first = paragraphsOf(zip.file(part)!.asText())[0]!;
-      expect(documentTextOf(first)).toBe('Pag. 1 din 1');
-      expect(first).toContain('<w:jc w:val="right"/>');
-    }
+  } finally {
+    await loading.destroy();
+  }
+  return pages;
+}
+
+describe('a decision is never signed on a page of its own', () => {
+  it.each(mergedDecisions)('$decision keeps its last line with the signature', ({ docx }) => {
+    const { kept, line } = signedLine(docx);
+    expect(line).not.toMatch(/\{\{/);
+    for (const paragraph of kept) expect(paragraph).toContain('<w:keepNext w:val="true"/>');
   });
+
+  it.skipIf(!converter).each(mergedDecisions)(
+    '$decision prints its last line on the page it is signed on',
+    async ({ docx }) => {
+      const pages = (await pageTexts(await convert(docx))).map(wordsOf);
+      const signed = pages.find((words) => words.join(' ').includes('semnătura și ștampila'))!;
+      const ending = wordsOf(signedLine(docx).line).slice(-4).join(' ');
+      expect(signed.join(' ')).toContain(ending);
+    },
+    60_000
+  );
+});
+
+describe("the decisions' page numbers and running header", () => {
+  it.each(decisionFiles)(
+    '%s numbers every page in its top corner and names itself from the second',
+    (name) => {
+      const zip = new PizZip(read(name));
+      const section = /<w:sectPr\b[\s\S]*?<\/w:sectPr>/.exec(bodyOf(name))![0];
+      expect(section).toContain('<w:titlePg/>');
+      const relationships = zip.file('word/_rels/document.xml.rels')!.asText();
+      const target = (type: string) => {
+        const id = new RegExp(`<w:headerReference w:type="${type}" r:id="([^"]+)"/>`).exec(
+          section
+        )![1];
+        const file = new RegExp(`Id="${id}"[^>]*Target="([^"]+)"`).exec(relationships)![1];
+        return zip.file(`word/${file}`)!.asText();
+      };
+      const first = target('first');
+      const running = target('default');
+      expect(documentTextOf(first)).toBe('Pag. 1 din 1');
+      expect(documentTextOf(running)).toBe(
+        'Decizia nr. {{decisionNumber}} SSM din {{issueDate}} · {{client.legalName}}Pag. 1 din 1'
+      );
+      const pageCell = (xml: string) => (xml.match(/<w:tc>[\s\S]*?<\/w:tc>/g) ?? []).at(-1)!;
+      expect(pageCell(first)).toBe(pageCell(running));
+      expect(first.replace(/<w:tc>[\s\S]*?<\/w:tc>/g, '')).toBe(
+        running
+          .replace(/<w:tc>[\s\S]*?<\/w:tc>/g, '')
+          .replace(/<w:tblBorders>[\s\S]*?<\/w:tblBorders>/, '')
+      );
+      expect(running).toContain('<w:bottom w:val="single" w:sz="4" w:space="0" w:color="555555"/>');
+      expect(running).toContain('<w:tblInd w:w="0" w:type="dxa"/>');
+      for (const xml of [first, running]) {
+        const codes = [...xml.matchAll(/<w:instrText[^>]*>([^<]*)<\/w:instrText>/g)].map((match) =>
+          match[1]!.trim()
+        );
+        expect(codes).toEqual(['PAGE', 'NUMPAGES']);
+      }
+      for (const part of Object.keys(zip.files).filter((file) =>
+        /^word\/footer\d*\.xml$/.test(file)
+      )) {
+        expect(zip.file(part)!.asText()).not.toContain('<w:instrText');
+      }
+    }
+  );
 });
 
 describe('Romanian quotation marks', () => {

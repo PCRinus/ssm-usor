@@ -555,20 +555,11 @@ describe('branding', () => {
       certificate: null,
     },
   };
-  // The branding is a footer's last line; a decision's footers open with the page number.
   const footerText = (file: Uint8Array) => {
     const zip = new PizZip(file);
     return Object.keys(zip.files)
       .filter((part) => /word\/footer\d*\.xml/.test(part))
-      .map((part) =>
-        documentTextOf(
-          zip
-            .file(part)!
-            .asText()
-            .match(/<w:p[ >][\s\S]*?<\/w:p>/g)!
-            .at(-1)!
-        )
-      );
+      .map((part) => documentTextOf(zip.file(part)!.asText()));
   };
 
   it('prints the line in the footer when the merge data asks for it', () => {

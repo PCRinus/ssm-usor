@@ -48,6 +48,15 @@ class SigningSpace(unittest.TestCase):
         self.assertEqual(once.count('<w:keepNext w:val="true"/>'), 4)
         self.assertEqual(signing_space(once), once)
 
+    def test_a_decision_keeps_the_line_a_loop_repeats_with_its_signature(self):
+        looped = DECISION.replace(paragraph('Art. 8. Prezenta decizie se comunică.'), ''.join([
+            paragraph('Art. 8. Prezenta decizie se comunică.'), paragraph('{{#workersRepresentatives}}'),
+            paragraph('{{name}}, având funcția de {{jobTitle}}.'), paragraph('{{/workersRepresentatives}}')]))
+        kept = [text for text, p in zip(texts(signing_space(looped)), re.findall(r'<w:p\b[^>]*>.*?</w:p>', signing_space(looped), re.S))
+                if '<w:keepNext w:val="true"/>' in p]
+        self.assertEqual(kept, ['{{name}}, având funcția de {{jobTitle}}.', '{{client.legalName}}',
+                                '{{client.representativeRole}}', LABEL])
+
     def test_a_handover_block_lines_up_its_sides_in_rows(self):
         once = signing_space(HANDOVER)
         rows = re.findall(r'<w:tr\b[^>]*>.*?</w:tr>', once, re.S)
@@ -76,13 +85,21 @@ class DecisionPages(unittest.TestCase):
         '[Content_Types].xml': '<Types></Types>',
     }
 
-    def test_a_decision_gets_a_header_from_its_second_page_and_numbers_in_every_footer(self):
+    def test_a_decision_numbers_its_pages_at_the_top_and_names_itself_from_the_second(self):
         once = decision_pages(self.PARTS)
-        self.assertIn('word/header1.xml', once)
+        self.assertEqual(texts(once['word/header1.xml']),
+                         ['Decizia nr. {{decisionNumber}} SSM din {{issueDate}} · {{client.legalName}}', 'Pag. 1 din 1', ''])
+        self.assertEqual(texts(once['word/header2.xml']), ['', 'Pag. 1 din 1', ''])
+        self.assertNotIn('<w:tblBorders>', once['word/header2.xml'])
         self.assertRegex(once['word/document.xml'], r'<w:formProt w:val="false"/><w:titlePg/><w:textDirection')
         self.assertIn('w:header="680"', once['word/document.xml'])
-        self.assertEqual(texts(once['word/footer1.xml']), ['Pag. 1 din 1', '{{#branding}}Document generat{{/branding}}'])
+        self.assertEqual(texts(once['word/footer1.xml']), ['{{#branding}}Document generat{{/branding}}'])
         self.assertEqual(decision_pages(once), once)
+
+    def test_a_page_number_left_in_a_footer_goes(self):
+        numbered = dict(self.PARTS, **{'word/footer1.xml': self.PARTS['word/footer1.xml'].replace(
+            '<w:p>', '<w:p><w:r><w:instrText> PAGE </w:instrText></w:r></w:p><w:p>', 1)})
+        self.assertEqual(decision_pages(numbered)['word/footer1.xml'], self.PARTS['word/footer1.xml'])
 
     def test_any_other_document_is_left_alone(self):
         other = dict(self.PARTS, **{'word/document.xml': self.PARTS['word/document.xml'].replace('SSM', 'SU')})

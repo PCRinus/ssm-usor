@@ -1,9 +1,10 @@
 """Page numbers and a running header for the occupational safety set's decisions, without an office.
 
-The first page keeps its own layout: "Pag. X din Y" stands right, over the branding line of
-every footer. From the second page a slim header names the decision and the client, with the
-page number on the right and a thin rule under it, so a page that comes loose still says what it
-belongs to. Safe to run again: each part is written whole, the same every time.
+"Pag. X din Y" stands in the top right corner of every page. The first page shows nothing else
+there: its title block names the decision. From the second page a slim header names the decision
+and the client beside the page number, with a thin rule under it, so a page that comes loose
+still says what it belongs to. Safe to run again: each part is written whole, the same every
+time.
 """
 
 import re
@@ -52,23 +53,28 @@ def paragraph(content, align, style, after=0):
             f'{content}</w:p>')
 
 
-# Word wants a paragraph after a table, here as small as it gets.
-CLOSING = ('<w:p><w:pPr><w:pStyle w:val="Header"/><w:spacing w:before="0" w:after="0" w:line="20" '
+# Word wants a paragraph after a table, here as small as it gets. The room under it keeps the
+# body off the rule when a long client name takes the header to two lines.
+CLOSING = ('<w:p><w:pPr><w:pStyle w:val="Header"/><w:spacing w:before="0" w:after="120" w:line="20" '
            'w:lineRule="exact"/><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr></w:pPr></w:p>')
 
 
-def header():
+def header(first=False):
+    """The running header from the second page, or the first page's: the page number alone, in
+    the same place, over the title block that names the decision."""
     # Two cells rather than a right tab: a long client name wraps inside its own cell instead of
     # pushing the page number onto a line of its own.
     widths = (TEXT_WIDTH - PAGE_COLUMN, PAGE_COLUMN)
+    contents = ('' if first else run(LINE), page_of_pages())
     cells = ''.join(
-        f'<w:tc><w:tcPr><w:tcW w:w="{width}" w:type="dxa"/><w:vAlign w:val="bottom"/></w:tcPr>'
+        f'<w:tc><w:tcPr><w:tcW w:w="{width}" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>'
         f'{paragraph(content, align, "Header")}</w:tc>'
-        for width, content, align in zip(widths, (run(LINE), page_of_pages()), ('left', 'right')))
+        for width, content, align in zip(widths, contents, ('left', 'right')))
+    rule = '' if first else (f'<w:tblBorders><w:bottom w:val="single" w:sz="4" w:space="0" '
+                             f'w:color="{GREY}"/></w:tblBorders>')
     table = (
         '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:jc w:val="left"/>'
-        '<w:tblInd w:w="0" w:type="dxa"/>'
-        f'<w:tblBorders><w:bottom w:val="single" w:sz="4" w:space="0" w:color="{GREY}"/></w:tblBorders>'
+        f'<w:tblInd w:w="0" w:type="dxa"/>{rule}'
         '<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/>'
         '<w:left w:w="0" w:type="dxa"/><w:bottom w:w="45" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>'
         '</w:tblCellMar></w:tblPr>'
@@ -77,20 +83,12 @@ def header():
     return f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:hdr {NAMESPACES}>{table}{CLOSING}</w:hdr>'
 
 
-def first_header():
-    return f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:hdr {NAMESPACES}>{CLOSING}</w:hdr>'
-
-
 PAGE_PARAGRAPH = re.compile(r'<w:p\b(?:(?!</w:p>).)*?<w:instrText[^>]*>\s*PAGE\s*</w:instrText>.*?</w:p>', re.S)
 
 
 def footer(xml):
-    """Every footer opens with the page number, right, over the branding line."""
-    numbered = paragraph(page_of_pages(), 'right', 'Footer')
-    if PAGE_PARAGRAPH.search(xml):
-        return PAGE_PARAGRAPH.sub(lambda _: numbered, xml, count=1)
-    body = re.search(r'<w:ftr\b[^>]*>', xml).end()
-    return xml[:body] + numbered + xml[body:]
+    """The footer holds the branding line alone: the page number is in the header."""
+    return PAGE_PARAGRAPH.sub('', xml)
 
 
 def relationships(xml):
@@ -135,7 +133,7 @@ def decision_pages(parts):
         return parts
     parts = dict(parts)
     parts[HEADER] = header()
-    parts[FIRST_HEADER] = first_header()
+    parts[FIRST_HEADER] = header(first=True)
     parts['word/_rels/document.xml.rels'] = relationships(parts['word/_rels/document.xml.rels'])
     parts['[Content_Types].xml'] = content_types(parts['[Content_Types].xml'])
     parts['word/document.xml'] = section(parts['word/document.xml'])
