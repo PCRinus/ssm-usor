@@ -449,7 +449,10 @@ export function SigningAgreementCard({
         <>
           <SummaryList className={values}>
             <SummaryRow label="Stare">
-              <StateBadge state={state} label={agreementStateLabels[state]} />
+              <StateBadge
+                state={state}
+                label={awaitsEmployer ? 'Semnat de lucrător' : agreementStateLabels[state]}
+              />
               {note && <Note testId="signing-agreement-detail">{note}</Note>}
             </SummaryRow>
             {stored && agreement && (
