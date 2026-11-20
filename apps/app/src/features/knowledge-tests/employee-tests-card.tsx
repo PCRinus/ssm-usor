@@ -194,7 +194,7 @@ function TestsBody({
         </SummaryRow>
         <SummaryRow label="Rezultate">
           {results.length === 0 ? (
-            <p data-testid="tests-results-empty" className="text-muted-foreground">
+            <p data-testid="tests-results-empty">
               Niciun test promovat încă. Un rezultat apare aici după promovarea în portal sau după
               ce îl înregistrezi de pe hârtie.
             </p>
@@ -260,9 +260,7 @@ function TestsBody({
         </SummaryRow>
         <SummaryRow label="Încercări în portal">
           {attempts.length === 0 ? (
-            <p data-testid="tests-attempts-empty" className="text-muted-foreground">
-              Nicio încercare în portal.
-            </p>
+            <p data-testid="tests-attempts-empty">Nicio încercare în portal.</p>
           ) : (
             <ul className="grid gap-2">
               {attempts.map((attempt) => (
