@@ -217,6 +217,12 @@ def size_of(xml):
     return int(match.group(1)) if match else None
 
 
+def paragraph_size(paragraph):
+    """In half-points: the first run's with text, else the paragraph mark's."""
+    runs = runs_with_text(paragraph)
+    return (size_of(element(runs[0], 'rPr')) if runs else None) or size_of(element(paragraph, 'pPr')) or 20
+
+
 def body_size(rows, header):
     sizes = Counter(size_of(element(run, 'rPr')) for row in rows[header:] for run in runs_with_text(row))
     sizes.pop(None, None)
@@ -415,7 +421,7 @@ def estimated_height(row, grid):
         rotated = '<w:textDirection' in cell_properties(cell)
         height = padding
         for paragraph in PARAGRAPH.findall(cell):
-            size = (size_of(element(paragraph, 'rPr') or '') or size_of(element(paragraph, 'pPr') or '') or 20) / 2
+            size = paragraph_size(paragraph) / 2
             pieces = re.split(r'<w:(?:br|cr)\b[^>]*/>', paragraph)
             lines = 1 if rotated else sum(
                 max(1, math.ceil(unescaped_length(text_of(piece)) * CHARACTER_WIDTH * size * 20 / width))
@@ -657,7 +663,7 @@ def cell_lines(cell, column, grid):
     for paragraph in PARAGRAPH.findall(cell):
         if not text_of(paragraph).strip():
             continue
-        size = (size_of(paragraph) or 20) / 2
+        size = paragraph_size(paragraph) / 2
         lines += sum(max(1, math.ceil(unescaped_length(text_of(piece)) * CHARACTER_WIDTH * size * 20 / width))
                      for piece in re.split(r'<w:(?:br|cr)\b[^>]*/>', paragraph))
     return lines

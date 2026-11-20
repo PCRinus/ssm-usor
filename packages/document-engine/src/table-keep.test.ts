@@ -105,6 +105,14 @@ describe('keeping the house tables together once merged', () => {
     expect(horizontal(rows[2]!)).toEqual(['left', 'center']);
   });
 
+  it('keeps the mark when the dash stands in a paragraph after an empty one', () => {
+    const dashed = `<w:tr><w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:rPr><w:sz w:val="16"/></w:rPr></w:pPr></w:p><w:p><w:r><w:t>-</w:t></w:r></w:p></w:tc>${cell('Anual')}</w:tr>`;
+    const rows = rowsOf(renderDocument(docx(table(house, header + dashed)), {}));
+    expect(rows[1]).toContain('<w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t>—</w:t></w:r>');
+    const first = /<w:tc>[\s\S]*?<\/w:tc>/.exec(rows[1]!)![0];
+    expect(first.match(/<w:p>/g)).toHaveLength(1);
+  });
+
   it('leaves the tables of other documents as they are', () => {
     const merged = renderDocument(docx(table('', header + loopRow)), { people: people(3) });
     const rows = rowsOf(merged);

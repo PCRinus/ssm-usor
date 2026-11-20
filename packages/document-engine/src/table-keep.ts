@@ -59,6 +59,16 @@ const continuesMerge = (cell: string) => {
 };
 const isHeader = (row: string) =>
   /<w:tblHeader(?: w:val="(?:true|1|on)")?\/>/.test(rowProperties(row));
+const runPattern = /<w:r\b[^>]*>[\s\S]*?<\/w:r>/g;
+
+/** In half-points: the first run's with text, else the paragraph mark's, as the import guesses. */
+function paragraphSize(paragraph: string) {
+  const run = [...paragraph.matchAll(runPattern)].find(([each]) => textOf(each).trim());
+  const runProperties = run && /<w:rPr>[\s\S]*?<\/w:rPr>/.exec(run[0])?.[0];
+  const mark = /<w:pPr>[\s\S]*?<\/w:pPr>/.exec(paragraph)?.[0];
+  return (runProperties && sizeOf(runProperties)) || (mark && sizeOf(mark)) || 20;
+}
+
 const sizeOf = (xml: string) => {
   const size = /<w:sz w:val="(\d+)"\/>/.exec(xml);
   return size ? Number(size[1]) : null;
@@ -91,7 +101,7 @@ function estimatedHeight(row: string, grid: number[]) {
     const rotated = cellProperties(cell).includes('<w:textDirection');
     let height = padding.vertical;
     for (const [paragraph] of cell.matchAll(paragraphPattern)) {
-      const size = (sizeOf(paragraph) ?? 20) / 2;
+      const size = paragraphSize(paragraph) / 2;
       const lines = rotated
         ? 1
         : paragraph
@@ -195,7 +205,7 @@ function cellWidth(cell: string, column: number, grid: number[]) {
 }
 
 function paragraphLines(paragraph: string, width: number) {
-  const size = (sizeOf(paragraph) ?? 20) / 2;
+  const size = paragraphSize(paragraph) / 2;
   return paragraph
     .split(/<w:(?:br|cr)\b[^>]*\/>/)
     .reduce(
@@ -301,13 +311,20 @@ function withEmptyMark(cell: string) {
     if (!first) return '';
     first = false;
     let marked = false;
-    return centred(
-      paragraph.replace(textPattern, (_, open: string, __, close: string) => {
-        const text = marked ? '' : emptyMark;
-        marked = true;
-        return `${open}${text}${close}`;
-      })
-    );
+    let laid = paragraph.replace(textPattern, (_, open: string, __, close: string) => {
+      const text = marked ? '' : emptyMark;
+      marked = true;
+      return `${open}${text}${close}`;
+    });
+    if (!marked) {
+      const mark =
+        /<w:pPr>[\s\S]*?(<w:rPr>[\s\S]*?<\/w:rPr>)[\s\S]*?<\/w:pPr>/.exec(laid)?.[1] ?? '';
+      const run = `<w:r>${mark}<w:t>${emptyMark}</w:t></w:r>`;
+      laid = laid.endsWith('/>')
+        ? `${laid.slice(0, -2)}>${run}</w:p>`
+        : laid.replace(/<\/w:p>$/, `${run}</w:p>`);
+    }
+    return centred(laid);
   });
 }
 
@@ -335,15 +352,18 @@ function laidOut(table: string) {
 
 export function keepTablesTogether(document: string): string {
   if (!document.includes(`<w:tblStyle w:val="${houseTable}"/>`)) return document;
-  let laid = document;
-  for (const [start, end] of topLevelTables(document).reverse()) {
-    const table = laid.slice(start, end);
+  const pieces: string[] = [];
+  let at = 0;
+  for (const [start, end] of topLevelTables(document)) {
+    const table = document.slice(start, end);
     if (
       !table.includes(`<w:tblStyle w:val="${houseTable}"/>`) ||
       table.slice(7).includes('<w:tbl>')
     )
       continue;
-    laid = laid.slice(0, start) + laidOut(table) + laid.slice(end);
+    pieces.push(document.slice(at, start), laidOut(table));
+    at = end;
   }
-  return laid;
+  pieces.push(document.slice(at));
+  return pieces.join('');
 }
