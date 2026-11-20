@@ -28,9 +28,9 @@ HEADINGS = {'Heading1': CHAPTER, 'Heading2': SUBCHAPTER}
 
 ITEM_GAP = 40  # twips: between list items, and under the line that introduces a list
 ROOM = 120  # twips: between paragraphs, and after a list
-# The house style's three list tiers (label, text), in twips from the margin: the third
-# stands further in than the second's text, as `LIST_TIERS` of the import sets it.
-TIERS = [(360, 720), (720, 1080), (1440, 1800)]
+# In twips: a sub-list's label stands one step in from its parent's, whatever kinds the two are,
+# and a label hangs as far as a step.
+STEP = 360
 HANG = 360
 # An item whose label stands this close to its parent's text, or further in, is nested already.
 NESTED = 120
@@ -585,10 +585,6 @@ def is_loop_tags(paragraph):
     return LOOP_TAGS_ONLY.fullmatch(text_of(paragraph).strip() or '-') is not None
 
 
-def next_tier(text):
-    return next((label for label, _ in TIERS if label >= text), text)
-
-
 def lists(document, styles_xml, numbering_xml):
     styles, numbering = Styles(styles_xml), Numbering(numbering_xml)
     blocks = [(kind, start, end) for kind, start, end in body_blocks(document)]
@@ -630,16 +626,17 @@ def lists(document, styles_xml, numbering_xml):
             level = stack[-1]
             if level['moved']:
                 edits[start] = ('indent', level['label'], level['label'] + level['hang'])
-        elif previous is not None and previous.endswith(':') and stack and item.label < stack[-1]['text'] - NESTED:
-            parent = stack[-1]
-            label = next_tier(parent['text'])
-            hang = max(item.text - item.label, HANG)
-            edits[start] = ('indent', label, label + hang)
-            stack.append({'kind': item.kind, 'was': item.label, 'label': label, 'text': label + hang,
-                          'hang': hang, 'moved': True})
-        elif stack and item.label >= stack[-1]['text'] - NESTED:
-            stack.append({'kind': item.kind, 'was': item.label, 'label': item.label, 'text': item.text,
-                          'hang': item.text - item.label, 'moved': False})
+        elif stack and (item.label >= stack[-1]['text'] - NESTED
+                        or previous is not None and previous.endswith(':')):
+            label = stack[-1]['label'] + STEP
+            if item.label == label:
+                stack.append({'kind': item.kind, 'was': item.label, 'label': item.label, 'text': item.text,
+                              'hang': item.text - item.label, 'moved': False})
+            else:
+                hang = max(item.text - item.label, HANG)
+                edits[start] = ('indent', label, label + hang)
+                stack.append({'kind': item.kind, 'was': item.label, 'label': label, 'text': label + hang,
+                              'hang': hang, 'moved': True})
         else:
             stack = [{'kind': item.kind, 'was': item.label, 'label': item.label, 'text': item.text,
                       'hang': item.text - item.label, 'moved': False}]

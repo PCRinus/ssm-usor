@@ -21,7 +21,7 @@
       "file": "1.1_decision_training.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. Scris „și/sau”. Notele „(Conf. …)” cursive, listele spațiate la fel; PDF-ul nu mai are semne de carte din corpul textului. Procesul-verbal are rânduri de 15 mm pentru semnătură."
+        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. Scris „și/sau”. Notele „(Conf. …)” cursive, listele spațiate la fel și în trepte egale; PDF-ul fără semne de carte din text. Procesul-verbal are rânduri de 15 mm pentru semnătură."
       }
     },
     {
@@ -93,7 +93,7 @@
       "file": "2.2_general_training_material.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Ghilimele „…” și „și/sau”. Semne standard în catalog, cu rostul lor, plus „Alte indicatoare”; desene noi. Articole neîngroșate, titluri mai mari, subliste mai înăuntru. Antetul nu mai rupe „introductiv-generală”; m¹) și liniuțele din anexe pe rânduri proprii. Trei preluări devin articole, cu renumerotare."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Ghilimele „…”, „și/sau”. Semne standard în catalog, cu rostul lor, plus „Alte indicatoare”; desene noi. Articole neîngroșate, titluri mărite, subliste în trepte egale. Antetul nu mai rupe „introductiv-generală”; m¹) și liniuțele din anexe pe rânduri proprii. Trei preluări devin articole, cu renumerotare."
       }
     },
     {
@@ -117,7 +117,7 @@
       "file": "3.2_own_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Ghilimele „…” și „și/sau”. Articolele nu mai sunt îngroșate, titlurile au o scară clară, subcapitolele apar în cuprins, sublistele stau mai înăuntru, iar anexele sunt aliniate la stânga ca restul textului. Titlurile lungi din cuprins nu mai ating numărul paginii; durata instruirii încape pe un rând."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Ghilimele „…” și „și/sau”. Articolele nu mai sunt îngroșate, titlurile au o scară clară, subcapitolele apar în cuprins, sublistele stau în trepte egale, iar anexele sunt aliniate la stânga ca restul textului. Titlurile lungi din cuprins nu mai ating numărul paginii; durata instruirii încape pe un rând."
       }
     },
     {
@@ -225,7 +225,7 @@
       "file": "9_risk_assessment.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Grilele metodei se citesc pe orice gri, consecințele marcate cu X; semnături pe 25 mm; „și/sau”; liste cu liniuțe. Fișa de evaluare unește celulele grupelor; paginile orizontale se leagă sus. Figuri și formule refăcute; o măsură pe rând. TOTAL arată 100 %; bibliografia pe pagina ei."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Grilele metodei se citesc pe orice gri, consecințele marcate cu X; semnături pe 25 mm; „și/sau”; liste cu liniuțe, în trepte egale. Fișa de evaluare unește celulele grupelor; paginile orizontale se leagă sus. Figuri și formule refăcute; o măsură pe rând. TOTAL arată 100 %; bibliografia pe pagina ei."
       }
     },
     {
@@ -261,7 +261,7 @@
       "file": "11_employer_briefing.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. 25 mm pentru semnătură și ștampilă. Ghilimele „…”, „și/sau”, „marcaj ocazional”; testul la angajare are numele nou. Actele și materialele informative sunt liste, nu tabele. Tipurile de semnalizare au panourile standard și rostul fiecăruia. Articolele nu mai sunt îngroșate. Cuprinsul nu atinge numerele."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. 25 mm pentru semnătură și ștampilă. Ghilimele „…”, „și/sau”, „marcaj ocazional”; testul la angajare are numele nou. Actele și materialele sunt liste, nu tabele. Semnalizările au panourile standard și rostul lor. Articole neîngroșate, subliste în trepte egale. Cuprinsul nu atinge numerele."
       }
     },
     {

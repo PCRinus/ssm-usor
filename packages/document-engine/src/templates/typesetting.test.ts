@@ -582,7 +582,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
       documentTextOf(paragraph).includes('Menținerea în stare de utilizare a tuturor:')
     );
     if (evacuation >= 0)
-      expect(paragraphs[evacuation + 1]).toMatch(/<w:ind w:left="(1080|1800)" w:hanging="360"\/>/);
+      expect(paragraphs[evacuation + 1]).toMatch(/<w:ind w:left="1440" w:hanging="360"\/>/);
   });
 
   it.each(files)('%s is laid out in compatibility mode 15', (_, bytes) => {

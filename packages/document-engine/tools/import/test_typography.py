@@ -90,6 +90,20 @@ class Lists(unittest.TestCase):
             self.assertIn('<w:ind w:left="1080" w:hanging="360"/>', item)
         self.assertNotIn('<w:ind', items[0] + items[3])
 
+    def test_steps_every_tier_in_as_far_as_the_one_before(self):
+        def indented(text, num, left):
+            return paragraph(text, num=num).replace('</w:pPr>', f'<w:ind w:left="{left}" w:hanging="360"/></w:pPr>')
+        document = body(indented('Instruirea:', 4, 720), indented('Instruirea se face:', 2, 1080),
+                        indented('la angajare;', 3, 1800), indented('la detașare.', 3, 1800),
+                        indented('Durata.', 2, 1080))
+        numbering = NUMBERING.replace('</w:numbering>', f'<w:abstractNum w:abstractNumId="4">{level(0, "decimal", "%1.", 720)}'
+                                      '</w:abstractNum><w:num w:numId="4"><w:abstractNumId w:val="4"/></w:num></w:numbering>')
+        laid, _ = lists(document, STYLES, numbering)
+        labels = [int(left) - int(hanging) for left, hanging in
+                  re.findall(r'<w:ind w:left="(\d+)" w:hanging="(\d+)"/>', laid)]
+        self.assertEqual(labels, [360, 720, 1080, 1080, 720])
+        self.assertEqual(lists(laid, STYLES, numbering)[0], laid)
+
     def test_bolds_a_letter_and_spaces_a_list_close_under_its_lead_in(self):
         document = body(paragraph('Angajatorul asigură:', after=120), paragraph('instruirea;', num=2, after=120),
                         paragraph('controlul.', num=2, after=40), paragraph('(2) Lucrătorii'))

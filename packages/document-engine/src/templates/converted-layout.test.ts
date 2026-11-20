@@ -1,12 +1,14 @@
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { describe, expect, it } from 'vitest';
 
+import { ssmAnnexData } from '../../tools/annex-samples';
 import { setSamples } from '../../tools/set-samples';
+import { renderAnnex } from '../annex';
 import { renderDocument } from '../render';
 import { convert, converter } from '../test/converter';
 import { read } from './read';
 
-type Line = { page: number; top: number; size: number; text: string };
+type Line = { page: number; top: number; left: number; size: number; text: string };
 
 async function linesOf(pdf: Uint8Array) {
   const loading = getDocument({ data: pdf.slice(), useSystemFonts: false });
@@ -20,7 +22,13 @@ async function linesOf(pdf: Uint8Array) {
         if (!('str' in item) || !item.str.trim()) continue;
         const size = Math.hypot(item.transform[2]!, item.transform[3]!);
         // The top of the line's em box, as pymupdf measured the covers.
-        lines.push({ page, top: height - item.transform[5]! - size * 0.905, size, text: item.str });
+        lines.push({
+          page,
+          top: height - item.transform[5]! - size * 0.905,
+          left: item.transform[4]!,
+          size,
+          text: item.str,
+        });
       }
     }
   } finally {
@@ -63,6 +71,60 @@ describe.skipIf(!converter)('the converted pages of the occupational safety set'
     },
     120_000
   );
+
+  // A table's row numbers hang their text too, but stand closer to the margin than the first tier.
+  const tierStep = 18;
+  async function listTiers(docx: Uint8Array) {
+    const { lines } = await linesOf(await convert(docx));
+    const rows = new Map<string, Line[]>();
+    for (const line of lines) {
+      const key = `${line.page}:${Math.round(line.top)}`;
+      rows.set(key, [...(rows.get(key) ?? []), line]);
+    }
+    const tiers = new Set<number>();
+    for (const row of rows.values()) {
+      const [label, text] = row.sort((a, b) => a.left - b.left);
+      if (!label || !text || !/^(\d{1,2}\.|[a-z]\)|–)$/.test(label.text.trim())) continue;
+      const hang = text.left - label.left;
+      if (hang < tierStep - 1 || hang > 24 || label.left < 70.87 + tierStep - 1) continue;
+      tiers.add(Math.round(((label.left - 70.87) / tierStep) * 10) / 10);
+    }
+    return [...tiers].sort((a, b) => a - b);
+  }
+
+  it.each([
+    ['1.1_decision_training.docx', [1, 2, 3]],
+    ['11_employer_briefing.docx', [1, 2, 3]],
+    ['12_control_regulation.docx', [1, 2]],
+  ])(
+    '%s steps each list tier 6.35 mm in from the one before, numbers, letters and dashes alike',
+    async (name, tiers) => {
+      expect(await listTiers(renderDocument(read(name), setSamples[0]!.data))).toEqual(tiers);
+    },
+    120_000
+  );
+
+  it('steps the tiers of an annex as the common part does', async () => {
+    const annex = renderAnnex(
+      'ssm',
+      {
+        blocks: [
+          {
+            kind: 'article',
+            paragraphs: [
+              'Instruirea cuprinde:',
+              '1. Instruirea introductiv-generală:',
+              'a) se face pentru:',
+              '– lucrătorii nou angajați;',
+              '– lucrătorii detașați.',
+            ],
+          },
+        ],
+      },
+      ssmAnnexData
+    );
+    expect(await listTiers(annex)).toEqual([1, 2, 3]);
+  }, 60_000);
 
   it('keeps the four registers on four pages for a client name of 130 characters', async () => {
     const { data } = setSamples.at(-1)!;
