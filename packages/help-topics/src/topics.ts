@@ -20,7 +20,7 @@ export const helpTopics = {
   },
   'angajati.act-aditional-revenire': {
     path: '/clienti/angajati/portal-si-act-aditional/',
-    anchor: 'revenirea-la-semnarea-olografă',
+    anchor: 'revenirea-la-semnarea-de-mână',
   },
   'angajati.act-aditional-stari': {
     path: '/clienti/angajati/portal-si-act-aditional/',
