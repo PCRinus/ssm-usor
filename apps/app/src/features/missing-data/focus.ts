@@ -80,7 +80,15 @@ export const authorizationsFocus = [
 
 export const profileFocus = ['full-name', 'professional-title'] as const;
 
-export const employeeFocus = ['commute-route', 'workplace'] as const;
+export const employeeFocus = [
+  'employment',
+  'identity',
+  'contact',
+  'sheet-data',
+  'notes',
+  'commute-route',
+  'workplace',
+] as const;
 
 export type LegalRepresentativeFocus = (typeof legalRepresentativeFocus)[number];
 export type CompanyFocus = (typeof companyFocus)[number];

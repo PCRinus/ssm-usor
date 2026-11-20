@@ -955,7 +955,8 @@ describe('the employment contract number', () => {
   const detailPath = `${employeesPath}/${sampleEmployee.id}`;
   const detailPage = `${employeesPage}/${sampleEmployee.id}`;
   const editPage = `${detailPage}/editare`;
-  const contractFact = () => screen.getByText('Nr. contract').nextElementSibling?.textContent;
+  const contractFact = () =>
+    screen.getByText('Nr. contract').closest('dt')?.nextElementSibling?.textContent;
 
   it('is sent with a new employee, trimmed', async () => {
     mockApi();
@@ -1253,43 +1254,30 @@ describe('training sheet fields on employees (ADR 021)', () => {
   it('shows the sheet fields on the employee page', async () => {
     mockApi({ detail: () => Response.json({ employee: withSheet }) });
     mountApp(authFixture(makeSession()).client, detailPage);
-    const section = (await screen.findByRole('heading', { name: 'Fișa de instruire' }))
-      .parentElement!;
+    const section = await screen.findByTestId('employee-sheet-data');
     const labels = [...section.querySelectorAll('dt')].map((term) => term.textContent);
-    expect(labels).toEqual([
-      'Punct de lucru',
-      'Data nașterii',
-      'Locul nașterii',
-      'Domiciliu',
-      'Adresa unde locuiește',
-      'Grupa sanguină',
-      'Calificarea',
-      'Studiile',
-      'Autorizații',
-      'Traseul de deplasare',
-      'Mijloace de transport',
-      'Durata deplasării (minute)',
-      'Observații',
-    ]);
-    expect(within(section).getByText('Atelier Str. Fabricii 3')).toBeTruthy();
+    expect(labels).toEqual(['Calificarea', 'Studiile', 'Autorizații', 'Traseul de deplasare']);
+    expect(
+      within(screen.getByTestId('employee-employment')).getByText('Atelier Str. Fabricii 3')
+    ).toBeTruthy();
     expect(within(section).getByText('Sudor autorizat')).toBeTruthy();
     expect(within(section).getByText('Școala profesională')).toBeTruthy();
     expect(within(section).getByText('ISCIR')).toBeTruthy();
-    expect(within(section).getByText('Str. Florilor 9, Timișoara')).toBeTruthy();
+    expect(screen.getByText('Str. Florilor 9, Timișoara')).toBeTruthy();
     expect(within(section).getByText('Pe jos, Transport public')).toBeTruthy();
     expect(
       within(section).getByText('Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24')
     ).toBeTruthy();
-    expect(within(section).getByText('35')).toBeTruthy();
+    expect(within(section).getByText('35 de minute')).toBeTruthy();
   });
 
   it('prints a dash for each empty sheet field', async () => {
     mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
     mountApp(authFixture(makeSession()).client, detailPage);
-    const section = (await screen.findByRole('heading', { name: 'Fișa de instruire' }))
-      .parentElement!;
+    await screen.findByTestId('employee-page');
     const value = (label: string) =>
-      within(section).getByText(label, { selector: 'dt' }).nextElementSibling?.textContent;
+      screen.getByText(label, { selector: 'dt span' }).closest('dt')?.nextElementSibling
+        ?.textContent;
     for (const label of [
       'Punct de lucru',
       'Adresa unde locuiește',
@@ -1297,8 +1285,6 @@ describe('training sheet fields on employees (ADR 021)', () => {
       'Studiile',
       'Autorizații',
       'Traseul de deplasare',
-      'Mijloace de transport',
-      'Durata deplasării (minute)',
     ]) {
       expect(value(label)).toBe('—');
     }
@@ -1776,7 +1762,7 @@ describe('employee detail', () => {
       expect(screen.getByTestId('employee-status').textContent).toBe('Fost lucrător')
     );
     expect(screen.getByText('10 sept. 2026')).toBeTruthy();
-    expect(screen.getByText('Vechime la plecare')).toBeTruthy();
+    expect(screen.getByText(/^vechime la plecare:/)).toBeTruthy();
     expect(screen.getByTestId('employee-status-action').textContent).toBe(
       'Anulează trecerea la foști…'
     );
@@ -2221,7 +2207,7 @@ describe('what a session replay of the employees shows', () => {
     expect(replayedText(screen.getByText('Atelier Str. Fabricii 3'))).toBe(
       'Atelier Str. Fabricii 3'
     );
-    expect(replayedText(screen.getByText('Post de lucru', { selector: 'dt' }))).toBe(
+    expect(replayedText(screen.getByText('Post de lucru', { selector: 'dt span' }))).toBe(
       'Post de lucru'
     );
   });

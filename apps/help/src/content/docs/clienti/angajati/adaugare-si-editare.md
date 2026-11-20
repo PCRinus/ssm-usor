@@ -14,6 +14,8 @@ topics:
     heading: CNP sau marcă folosite deja
   - id: angajati.marca
     heading: Marca
+  - id: angajati.angajare
+    heading: Angajare
   - id: angajati.post-de-lucru
     heading: Postul de lucru
   - id: angajati.functia-din-contract
@@ -69,6 +71,7 @@ sources:
   - apps/api/src/modules/trainings/sheet.ts
   - apps/api/src/modules/documents/site-sheet.ts
   - apps/app/src/features/employees/employee-form.tsx
+  - apps/app/src/features/employees/employee-page.tsx
   - apps/app/src/features/employees/employee-form-schema.ts
   - apps/app/src/features/employees/use-employee-form.ts
   - apps/app/src/features/employees/employee-job-position-dialog.tsx
@@ -111,7 +114,7 @@ CNP-ul e opțional. Are 13 cifre; poți lipi și un CNP scris cu spații, puncte
 
 Când ieși din câmp, un CNP valid completează **Data nașterii**, dacă e încă goală. Pentru cetățenii români, CNP-ul cuprinde data nașterii, așa că cele două trebuie să se potrivească (vezi [Data nașterii](#data-nașterii)).
 
-CNP-ul nu apare în listele de lucrători, în portal, pe fișele de instruire sau pe actul adițional. Pe pagina lucrătorului îl vezi ascuns, cu ultimele patru cifre, până alegi **Arată**.
+CNP-ul nu apare în listele de lucrători, în portal, pe fișele de instruire sau pe actul adițional. Pe pagina lucrătorului îl vezi ascuns, cu ultimele patru cifre. Ochiul de după el îl arată întreg; îl ascunzi din nou cu același buton, iar când pleci de pe pagină se ascunde singur.
 
 ### CNP invalid
 
@@ -134,6 +137,8 @@ De obicei înseamnă că persoana e deja în listă: caut-o printre lucrătorii 
 Numărul intern al lucrătorului la client, cel din evidența de personal, dacă clientul folosește așa ceva. Cel mult 40 de caractere. Marca apare sub nume în listă, pe fișele de instruire, și poți căuta după ea.
 
 ## Angajare
+
+Pe pagina lucrătorului, panoul **Angajare** arată postul, funcția din contract, punctul de lucru, data angajării, numărul contractului și marca. Sub data angajării vezi vechimea lucrătorului, socotită până azi. La un fost lucrător apare și **Data încetării**, cu vechimea la plecare sub ea. Numele postului te duce la pagina postului.
 
 ### Postul de lucru
 
@@ -182,6 +187,8 @@ Alegi țara din listă, România fiind prima, și scrii numărul. Merge și „0
 ## Datele pentru fișa de instruire
 
 Poți salva lucrătorul fără câmpurile din această secțiune; ele apar pe fișele individuale de instruire. Un câmp gol se tipărește gol, ca pe formularul pe hârtie, cu două excepții: traseul de deplasare pentru fișa SSM și punctul de lucru la un client cu mai multe puncte. Fără ele, fișa nu se poate întocmi (vezi [Ce lipsește pentru fișă](/clienti/angajati/instruire-si-teste/)).
+
+Pe pagina lucrătorului, un câmp de care o fișă are nevoie și care e gol apare cu galben, de exemplu „Lipsește pentru fișa SSM” sau „Lipsește pentru fișele SSM și SU”. **Adaugă** de pe același rând deschide formularul la acel câmp.
 
 ### Punctul de lucru
 
@@ -256,7 +263,7 @@ Notițele tale despre lucrător, cel mult 2000 de caractere. Nu apar pe fișe ș
 
 ## Modificarea datelor
 
-**Modifică** din pagina lucrătorului sau din meniul rândului deschide același formular, completat. După salvare revii pe pagina lucrătorului.
+Pe pagina lucrătorului, tabul **Date** are datele împărțite în panouri: **Angajare**, **Identitate**, **Contact și adrese**, **Pentru fișele de instruire** și **Observații**. **Modifică** de lângă titlul unui panou deschide formularul completat, la primul câmp al acelui panou. Același formular îl deschizi și cu **Modifică** din meniul rândului, în listă. După salvare revii pe pagina lucrătorului.
 
 Formularul corectează ce ai scris despre lucrător. Trecerea la foști nu se face de aici: are acțiunea ei, **Trece la foști lucrători…**.
 
@@ -264,7 +271,7 @@ Instruirile înregistrate nu se schimbă când modifici datele lucrătorului: fi
 
 ## Schimbarea postului
 
-Pentru un lucrător mutat pe alt post, folosește **Schimbă…** de lângă post, pe pagina lui. Noul post aduce alte riscuri, alt echipament și, poate, alt interval de instruire.
+Pentru un lucrător mutat pe alt post, folosește **Schimbă postul…** de pe rândul postului, în panoul **Angajare** de pe pagina lui. La un fost lucrător butonul nu apare. Noul post aduce alte riscuri, alt echipament și, poate, alt interval de instruire.
 
 Funcția din contract se schimbă odată cu postul doar dacă avea aceeași denumire ca postul vechi: o mutare nu înseamnă neapărat un contract nou. Dacă s-a schimbat și contractul, scrie noua funcție în același dialog.
 

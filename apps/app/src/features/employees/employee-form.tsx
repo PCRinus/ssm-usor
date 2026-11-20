@@ -29,6 +29,16 @@ import { type Employee, employeeErrorHelp, type EmployeeFormValues } from './emp
 import { EmployeeWorkplaceCombobox } from './employee-workplace-combobox';
 import { useEmployeeForm } from './use-employee-form';
 
+const focusedField: Record<EmployeeFocus, string> = {
+  employment: 'jobPosition',
+  identity: 'lastName',
+  contact: 'email',
+  'sheet-data': 'qualification',
+  notes: 'notes',
+  'commute-route': 'commuteRoute',
+  workplace: 'workplaceId',
+};
+
 // The employee form, for adding a person and for correcting what was entered about one. Whether
 // they still work there is not here: that is a status change, on their page.
 export function EmployeeForm({
@@ -53,7 +63,7 @@ export function EmployeeForm({
   // The workplace picker stays disabled, and so cannot take the focus, until its list loads.
   useFocusRequest(focus !== undefined, {
     ready: focus !== 'workplace' || workplaces !== undefined,
-    field: focus === 'workplace' ? 'workplaceId' : 'commuteRoute',
+    field: focus && focusedField[focus],
   });
   const {
     register,
