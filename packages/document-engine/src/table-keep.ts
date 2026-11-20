@@ -13,6 +13,12 @@ const padding = { vertical: 80, horizontal: 170 };
 const characterWidth = 0.55;
 const lineHeight = 1.15;
 const emptyMark = '—';
+// A column of these holds short values whatever they are; one of these, names and text.
+const valueColumn =
+  /^(nr\.?\s*(crt|întreb)|data\b|durata|nivel\b|nivelul|clas[ae]\b|cantitate|număr|nr\. bucăți|cod risc|termen|lunile|punctaj|răspunsul)/i;
+const textColumn = /^(nume|numele|denumire|persoan|semnătur|observa|cine)/i;
+const shortWords = 3;
+const shortText = 24;
 const dashes = new Set(['-', '--', '–', '—', '---']);
 
 const rowPattern = /<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g;
@@ -170,11 +176,121 @@ function withCantSplit(row: string, cantSplit: boolean) {
 const afterAlignment =
   /<w:(?:textDirection|textAlignment|textboxTightWrap|outlineLvl|divId|cnfStyle|rPr|sectPr|pPrChange)\b/;
 
-function centred(paragraph: string) {
+function aligned(paragraph: string, value: 'center' | 'left') {
   return editProperties(paragraph, 'pPr', (inner) => {
     const without = inner.replace(/<w:jc\b[^>]*\/>/g, '');
     const at = afterAlignment.exec(without)?.index ?? without.length;
-    return `${without.slice(0, at)}<w:jc w:val="center"/>${without.slice(at)}`;
+    return `${without.slice(0, at)}<w:jc w:val="${value}"/>${without.slice(at)}`;
+  });
+}
+
+const centred = (paragraph: string) => aligned(paragraph, 'center');
+
+function cellWidth(cell: string, column: number, grid: number[]) {
+  return Math.max(
+    grid.slice(column, column + spanOf(cell)).reduce((sum, each) => sum + each, 0) -
+      padding.horizontal,
+    200
+  );
+}
+
+function paragraphLines(paragraph: string, width: number) {
+  const size = (sizeOf(paragraph) ?? 20) / 2;
+  return paragraph
+    .split(/<w:(?:br|cr)\b[^>]*\/>/)
+    .reduce(
+      (sum, piece) =>
+        sum +
+        Math.max(1, Math.ceil((lengthOf(textOf(piece)) * characterWidth * size * 20) / width)),
+      0
+    );
+}
+
+/** The lines of text a cell holds, an empty paragraph none. */
+function cellLines(cell: string, column: number, grid: number[]) {
+  if (cellProperties(cell).includes('<w:textDirection')) return 1;
+  const width = cellWidth(cell, column, grid);
+  return [...cell.matchAll(paragraphPattern)]
+    .filter(([paragraph]) => textOf(paragraph).trim())
+    .reduce((sum, [paragraph]) => sum + paragraphLines(paragraph, width), 0);
+}
+
+const isShort = (text: string) =>
+  text === emptyMark ||
+  /^\d/.test(text) ||
+  /^[IVXL]+\.$/.test(text) ||
+  (text.split(/\s+/).length <= shortWords && text.length <= shortText);
+
+/** Per grid column, centred for short values and left for names and text; none where unknown. */
+function columnAlignments(rows: string[], header: number) {
+  const labels = new Map<number, string[]>();
+  for (const row of rows.slice(0, header)) {
+    for (const { column, cell } of columnsOf(row)) {
+      const label = textOf(cell)
+        .replace(/\u00ad/g, '')
+        .trim();
+      if (!label) continue;
+      for (let covered = column; covered < column + spanOf(cell); covered += 1)
+        labels.set(covered, [...(labels.get(covered) ?? []), label]);
+    }
+  }
+  const values = new Map<number, string[] | null>();
+  for (const row of rows.slice(header)) {
+    for (const { column, cell } of columnsOf(row)) {
+      if (spanOf(cell) > 1 || continuesMerge(cell) || values.get(column) === null) continue;
+      const text = textOf(cell).trim();
+      const said = [...cell.matchAll(paragraphPattern)].filter(([each]) => textOf(each).trim());
+      values.set(
+        column,
+        text.includes('{{')
+          ? null
+          : [...(values.get(column) ?? []), said.length > 1 ? `${text}\n` : text]
+      );
+    }
+  }
+  const alignments = new Map<number, 'center' | 'left'>();
+  for (const [column, said] of values) {
+    const named = labels.get(column) ?? [];
+    if (named.some((label) => valueColumn.test(label))) alignments.set(column, 'center');
+    else if (named.some((label) => textColumn.test(label))) alignments.set(column, 'left');
+    else if (said) {
+      const filled = said.filter((text) => text && text !== emptyMark);
+      if (filled.length)
+        alignments.set(
+          column,
+          filled.every((text) => !text.endsWith('\n') && isShort(text)) ? 'center' : 'left'
+        );
+    }
+  }
+  return alignments;
+}
+
+function withVerticalAlignment(cell: string, value: 'center' | 'top') {
+  return editProperties(cell, 'tcPr', (inner) => {
+    const without = inner.replace(/<w:vAlign\b[^>]*\/>/g, '');
+    const at = /<w:hideMark\b/.exec(without)?.index ?? without.length;
+    return `${without.slice(0, at)}<w:vAlign w:val="${value}"/>${without.slice(at)}`;
+  });
+}
+
+/** A row of single lines reads centred; a row with more lines anywhere reads from the top. */
+function alignedRow(row: string, grid: number[], alignments: Map<number, 'center' | 'left'>) {
+  const placed = columnsOf(row);
+  const single = placed.every(
+    ({ column, cell }) => continuesMerge(cell) || cellLines(cell, column, grid) <= 1
+  );
+  let index = 0;
+  return row.replace(cellPattern, (cell) => {
+    const { column } = placed[index]!;
+    index += 1;
+    let laid = withVerticalAlignment(cell, single ? 'center' : 'top');
+    const alignment = alignments.get(column);
+    if (alignment && spanOf(cell) === 1 && !continuesMerge(cell)) {
+      laid = laid.replace(paragraphPattern, (paragraph) =>
+        aligned(paragraph, textOf(paragraph).trim() === emptyMark ? 'center' : alignment)
+      );
+    }
+    return laid;
   });
 }
 
@@ -200,8 +316,12 @@ function laidOut(table: string) {
   let header = 0;
   while (header < rows.length && isHeader(rows[header]!)) header += 1;
   const grid = [...table.matchAll(/<w:gridCol w:w="(\d+)"/g)].map((match) => Number(match[1]));
-  const marked = rows.map((row, index) =>
+  const withMarks = rows.map((row, index) =>
     index < header ? row : row.replace(cellPattern, (cell) => withEmptyMark(cell))
+  );
+  const alignments = columnAlignments(withMarks, header);
+  const marked = withMarks.map((row, index) =>
+    index < header ? row : alignedRow(row, grid, alignments)
   );
   const { cantSplit, keeps } = keepTogether(marked, header, grid);
   let index = 0;

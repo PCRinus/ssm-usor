@@ -25,7 +25,7 @@ const cell = (text: string) =>
 const table = (style: string, rows: string) =>
   `<w:tbl><w:tblPr>${style}<w:tblW w:w="5000" w:type="pct"/></w:tblPr><w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="3000"/></w:tblGrid>${rows}</w:tbl>`;
 const house = '<w:tblStyle w:val="HouseTable"/>';
-const header = `<w:tr><w:trPr><w:tblHeader/></w:trPr>${cell('Nume')}${cell('Observații')}</w:tr>`;
+const header = `<w:tr><w:trPr><w:tblHeader/></w:trPr>${cell('Nume')}${cell('Periodicitate')}</w:tr>`;
 const loopRow = `<w:tr>${cell('{{#people}}{{name}}')}${cell('{{note}}{{/people}}')}</w:tr>`;
 const people = (count: number, note = '-') =>
   Array.from({ length: count }, (_, index) => ({ name: `Persoana ${index + 1}`, note }));
@@ -73,6 +73,36 @@ describe('keeping the house tables together once merged', () => {
     expect(rows[1]).toContain(
       '<w:jc w:val="center"/></w:pPr><w:r><w:t xml:space="preserve">—</w:t>'
     );
+  });
+
+  it('centres a row of single lines and reads a row with more lines from the top, every cell alike', () => {
+    const rows = rowsOf(
+      renderDocument(docx(table(house, header + loopRow)), {
+        people: [
+          { name: 'Ana Pop', note: 'Anual' },
+          { name: 'Ion Ionescu', note: 'cuvânt '.repeat(20) },
+        ],
+      })
+    );
+    const vertical = (row: string) =>
+      [...row.matchAll(/<w:vAlign w:val="(\w+)"\/>/g)].map((match) => match[1]);
+    expect(vertical(rows[1]!)).toEqual(['center', 'center']);
+    expect(vertical(rows[2]!)).toEqual(['top', 'top']);
+  });
+
+  it('centres a column of short values and starts one of names or text at the left', () => {
+    const rows = rowsOf(
+      renderDocument(docx(table(house, header + loopRow)), {
+        people: [
+          { name: 'Ana Pop', note: 'Anual' },
+          { name: 'Ion Ionescu', note: '20.11.2026' },
+        ],
+      })
+    );
+    const horizontal = (row: string) =>
+      [...row.matchAll(/<w:jc w:val="(\w+)"\/>/g)].map((match) => match[1]);
+    expect(horizontal(rows[1]!)).toEqual(['left', 'center']);
+    expect(horizontal(rows[2]!)).toEqual(['left', 'center']);
   });
 
   it('leaves the tables of other documents as they are', () => {

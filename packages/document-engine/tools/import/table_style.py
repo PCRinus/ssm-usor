@@ -2,9 +2,10 @@
 
 Black lines, the frame and the rule under the header 1 pt and every inside line 0.5 pt; a
 header that is bold, centred, filled with the app's table-header grey-green and repeated on
-every page; 1.5 mm of padding beside the text and 0.7 mm above and below it; body cells read
-from the top, numbers centred, row numbers regular; one mark, a centred dash, for a cell left
-empty in a table of data. Then the rule that keeps a table together (`keep_together`).
+every page; 1.5 mm of padding beside the text and 0.7 mm above and below it; a body row of
+single lines centred from top to bottom, one with more lines anywhere read from the top, never
+mixed; a column of short values centred, one of names or text from the left; row numbers
+regular; one mark, a centred dash, for a cell left empty in a table of data. Then the rule that keeps a table together (`keep_together`).
 
 A table drawn this way names the table style `HOUSE_TABLE`, which holds nothing: the merge
 (`src/table-keep.ts`) lays the rule over again once a loop has repeated the rows, and touches
@@ -35,9 +36,13 @@ HOUSE_TABLE_STYLE = (f'<w:style w:type="table" w:customStyle="1" w:styleId="{HOU
                      '<w:name w:val="Tabel SSM Ușor"/><w:uiPriority w:val="99"/></w:style>')
 EMPTY_MARK = '—'
 DASHES = ('-', '--', '–', '—', '---')
-NUMBER_COLUMN = re.compile(
+# A column of these holds short values whatever they are; one of these, names and text.
+VALUE_COLUMN = re.compile(
     r'^(nr\.?\s*(crt|întreb)|data\b|durata|nivel\b|nivelul|clas[ae]\b|cantitate|număr|nr\. bucăți|cod risc|'
     r'termen|lunile|punctaj|răspunsul)', re.I)
+TEXT_COLUMN = re.compile(r'^(nume|numele|denumire|persoan|semnătur|observa|cine)', re.I)
+SHORT_WORDS = 3
+SHORT_TEXT = 24
 ROW_NUMBER_COLUMN = re.compile(r'^nr\.?\s*crt', re.I)
 
 # Rule A of the keep-together decision. A table of up to `WHOLE_ROWS` body rows moves whole; a
@@ -478,7 +483,7 @@ def header_cell(size, last):
     return change
 
 
-def body_cell(numbers, row_numbers, empty_mark=True):
+def body_cell(row_numbers, empty_mark=True):
     def change(column, cell):
         def properties_change(inner):
             inner = without(inner, 'tcBorders')
@@ -487,10 +492,8 @@ def body_cell(numbers, row_numbers, empty_mark=True):
             fill = re.search(r'<w:shd\b[^>]*w:fill="(\w+)"', inner)
             if fill and neutral(fill.group(1)) and 'w:val="clear"' in fill.group(0):
                 inner = put(inner, 'shd', f'<w:shd w:val="clear" w:color="auto" w:fill="{HEADER_FILL}"/>', TC_PR_ORDER)
-            return put(inner, 'vAlign', '<w:vAlign w:val="top"/>', TC_PR_ORDER)
+            return inner
         cell = edit_cell(cell, properties_change)
-        if column in numbers:
-            cell = edit_paragraphs(cell, aligned('center'))
         if column in row_numbers:
             cell = edit_paragraphs(cell, lambda paragraph: edit_runs(paragraph, bold(False)))
         if empty_mark and not continues_merge(cell) and text_of(cell).strip() in DASHES:
@@ -620,7 +623,6 @@ def house_table(table, kind):
                        table, count=1, flags=re.S)
     room = kept_room(rows, old_padding(table))
     names = column_headers(rows, header)
-    numbers = {column for column, labels in names.items() if any(NUMBER_COLUMN.match(label) for label in labels)}
     row_numbers = {column for column, labels in names.items() if any(ROW_NUMBER_COLUMN.match(label) for label in labels)}
     styled = []
     for index, row in enumerate(rows):
@@ -629,7 +631,7 @@ def house_table(table, kind):
             row = with_cells(row, header_cell(size, index == header - 1))
         else:
             row = edit_row_properties(row, lambda inner: without(inner, 'tblHeader'))
-            row = with_cells(row, body_cell(numbers, row_numbers, kind != 'consequences'))
+            row = with_cells(row, body_cell(row_numbers, kind != 'consequences'))
             if kind == 'consequences':
                 row = with_cells(row, consequence_cell)
         if room[index]:
@@ -637,10 +639,74 @@ def house_table(table, kind):
         if regridded:
             row = with_cells(row, lambda column, cell: with_widths(cell, column, grid))
         styled.append(row)
+    alignments = column_alignments(styled, header)
+    styled = styled[:header] + [aligned_row(row, grid, alignments) for row in styled[header:]]
     cant_split, keeps = keep_together(styled, header, grid)
     styled = [apply_keep(row, cant, keep) for row, cant, keep in zip(styled, cant_split, keeps)]
     table = edit_properties(table, 'tblPr', house_table_properties(side_padding))
     return rebuilt(table, rows, styled)
+
+
+def cell_lines(cell, column, grid):
+    """The lines of text a cell holds, an empty paragraph none."""
+    if '<w:textDirection' in cell_properties(cell):
+        return 1
+    across = sum(width for side, width in PADDING if side in ('left', 'right'))
+    width = max(sum(grid[column:column + span(cell)]) - across, 200)
+    lines = 0
+    for paragraph in PARAGRAPH.findall(cell):
+        if not text_of(paragraph).strip():
+            continue
+        size = (size_of(paragraph) or 20) / 2
+        lines += sum(max(1, math.ceil(unescaped_length(text_of(piece)) * CHARACTER_WIDTH * size * 20 / width))
+                     for piece in re.split(r'<w:(?:br|cr)\b[^>]*/>', paragraph))
+    return lines
+
+
+def is_short(text):
+    return (text == EMPTY_MARK or re.match(r'\d', text) is not None or re.fullmatch(r'[IVXL]+\.', text) is not None
+            or (len(text.split()) <= SHORT_WORDS and len(text) <= SHORT_TEXT))
+
+
+def column_alignments(rows, header):
+    """Per grid column, centred for short values and left for names and text; none where the
+    values are unknown until the merge, which decides then."""
+    names = column_headers(rows, header)
+    values = {}
+    for row in rows[header:]:
+        for column, cell in columns_of(row):
+            if span(cell) > 1 or continues_merge(cell) or values.get(column, []) is None:
+                continue
+            text = text_of(cell).strip()
+            said = [paragraph for paragraph in PARAGRAPH.findall(cell) if text_of(paragraph).strip()]
+            values[column] = None if '{{' in text else values.get(column, []) + [text + '\n' if len(said) > 1 else text]
+    alignments = {}
+    for column, said in values.items():
+        labels = names.get(column, [])
+        if any(VALUE_COLUMN.match(label) for label in labels):
+            alignments[column] = 'center'
+        elif any(TEXT_COLUMN.match(label) for label in labels):
+            alignments[column] = 'left'
+        elif said:
+            filled = [text for text in said if text and text != EMPTY_MARK]
+            if filled:
+                alignments[column] = 'center' if all(not text.endswith('\n') and is_short(text) for text in filled) else 'left'
+    return alignments
+
+
+def aligned_row(row, grid, alignments):
+    """A row of single lines reads centred; a row with more lines anywhere reads from the top."""
+    single = all(continues_merge(cell) or cell_lines(cell, column, grid) <= 1 for column, cell in columns_of(row))
+
+    def change(column, cell):
+        cell = edit_cell(cell, lambda inner: put(
+            inner, 'vAlign', f'<w:vAlign w:val="{"center" if single else "top"}"/>', TC_PR_ORDER))
+        alignment = alignments.get(column)
+        if alignment and span(cell) == 1 and not continues_merge(cell):
+            cell = edit_paragraphs(cell, lambda paragraph: aligned(
+                'center' if text_of(paragraph).strip() == EMPTY_MARK else alignment)(paragraph))
+        return cell
+    return with_cells(row, change)
 
 
 def rebuilt(table, rows, styled):

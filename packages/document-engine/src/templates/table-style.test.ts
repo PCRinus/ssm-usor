@@ -117,6 +117,17 @@ describe('the table house style of the occupational safety set', () => {
     }
   );
 
+  it.each(houseTables)(
+    '%s, %s: a body row reads all centred or all from the top',
+    (...[, , table]) => {
+      for (const row of rowsOf(table).filter((each) => !isHeader(each))) {
+        const alignments = cellsOf(row).map((cell) => /<w:vAlign w:val="(\w+)"\/>/.exec(cell)?.[1]);
+        expect(new Set(alignments).size, documentTextOf(row).slice(0, 60)).toBe(1);
+        expect(['center', 'top']).toContain(alignments[0]);
+      }
+    }
+  );
+
   it.each(houseTables)('%s, %s: one centred mark for an empty cell', (...[, , table]) => {
     for (const cell of rowsOf(table)
       .filter((row) => !isHeader(row))
