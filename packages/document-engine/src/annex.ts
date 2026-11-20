@@ -15,6 +15,8 @@ export interface AnnexBody {
 interface AnnexItem {
   marker: string;
   text: string;
+  // A number or a letter prints bold, a bullet regular.
+  strong: boolean;
 }
 
 export interface AnnexParagraph {
@@ -75,7 +77,11 @@ export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
       const tier = Math.min(tiers.indexOf(kind) + 1, 3) as 1 | 2 | 3;
       paragraphs.push({
         ...empty,
-        [`item${tier}`]: { marker: match[1]!, text: text.slice(match[0].length) },
+        [`item${tier}`]: {
+          marker: match[1]!,
+          text: text.slice(match[0].length),
+          strong: kind !== 'bullet',
+        },
       });
     }
   }
@@ -86,7 +92,41 @@ export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
 // `branding`, and for `su` `fireSafetyTechnician`) with the annex's `number`, `title` and
 // `versionDate`.
 export function renderAnnex(domain: AnnexDomain, body: AnnexBody, data: TemplateData): Uint8Array {
-  return renderDocument(annexTemplate(domain), { ...data, paragraphs: annexParagraphs(body) });
+  const document = renderDocument(annexTemplate(domain), {
+    ...data,
+    paragraphs: annexParagraphs(body),
+  });
+  if (domain !== 'ssm') return document;
+  const zip = new PizZip(document);
+  const part = zip.file('word/document.xml')!;
+  zip.file(part.name, keptWithWhatFollows(part.asText()));
+  return zip.generate({ type: 'uint8array', compression: 'DEFLATE' });
+}
+
+const annexParagraph =
+  /<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?<w:pStyle w:val="(Annex\w+)"\/>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g;
+
+// What the body says is known only once merged: a line that ends with ":" keeps with the list it
+// introduces, and the last paragraph with the closing "Acte normative" line, which is otherwise
+// left alone on a page.
+function keptWithWhatFollows(xml: string) {
+  const paragraphs = [...xml.matchAll(annexParagraph)];
+  const acts = paragraphs.findIndex((match) => match[1] === 'AnnexActs');
+  let result = xml;
+  for (let index = paragraphs.length - 1; index >= 0; index -= 1) {
+    const match = paragraphs[index]!;
+    const text = [...match[0].matchAll(/<w:t\b[^>]*>([^<]*)<\/w:t>/g)]
+      .map((piece) => piece[1])
+      .join('')
+      .trim();
+    const keep =
+      (match[1] !== 'AnnexHeading' && match[1] !== 'AnnexActs' && text.endsWith(':')) ||
+      index === acts - 1;
+    if (!keep || /<w:keepNext\/>/.test(match[0])) continue;
+    const kept = match[0].replace(/(<w:pStyle w:val="Annex\w+"\/>)/, '$1<w:keepNext/>');
+    result = result.slice(0, match.index) + kept + result.slice(match.index + match[0].length);
+  }
+  return result;
 }
 
 const relationshipTypes = {

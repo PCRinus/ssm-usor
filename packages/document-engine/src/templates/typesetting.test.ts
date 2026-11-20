@@ -78,8 +78,8 @@ describe('typesetting', () => {
   // the originals set long runs of articles in the heading styles.
   it.each([
     ['11_employer_briefing.docx', 19],
-    ['2.2_general_training_material.docx', 17],
-    ['3.2_own_instructions.docx', 13],
+    ['2.2_general_training_material.docx', 19],
+    ['3.2_own_instructions.docx', 21],
     ['9_risk_assessment.docx', 20],
     ['fire/2.1_fire_own_instructions.docx', 25],
   ] as const)('%s has a table of contents, and its %i headings are its titles', (name, count) => {
@@ -125,10 +125,10 @@ describe('typesetting', () => {
       ].map((match) => match[1])
     );
     expect([...fonts]).toEqual(['Arial']);
-    // 10 pt body; 12 pt document titles; 14 and 16 pt on a cover page. Smaller only inside a
-    // table too wide for the body size and for the label of a signing space, never for a
-    // heading over running text.
-    expect([...sizes].filter((size) => ![7, 8, 9, 10, 12, 14, 16].includes(size))).toEqual([]);
+    // 10 pt body; 12 pt document titles and chapters, 11 pt subchapters; 14 and 16 pt on a
+    // cover page. Smaller only inside a table too wide for the body size and for the label of a
+    // signing space, never for a heading over running text.
+    expect([...sizes].filter((size) => ![7, 8, 9, 10, 11, 12, 14, 16].includes(size))).toEqual([]);
     const outsideTables = xml
       .replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '')
       .replace(/<w:p\b(?:(?!<\/w:p>)[\s\S])*?>semnătura și ștampila<\/w:t><\/w:r><\/w:p>/g, '');
@@ -416,6 +416,63 @@ describe('Word 2013 layout of the occupational safety set', () => {
       .map((entry): [string, Uint8Array] => [entry.path, read(entry.path)]),
     ['the annex template', annexTemplate('ssm')],
   ];
+
+  const paragraphsOf = (xml: string) => xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+  const ssmFiles = files.filter(([name]) => name.endsWith('.docx'));
+  const contents = [
+    '2.2_general_training_material.docx',
+    '3.2_own_instructions.docx',
+    '9_risk_assessment.docx',
+    '11_employer_briefing.docx',
+  ];
+
+  it.each(contents)(
+    '%s sets a chapter at 12 pt and a subchapter at 11 pt, both centred',
+    (name) => {
+      const headings = paragraphsOf(bodyOf(name)).filter((paragraph) =>
+        /<w:pStyle w:val="Heading[12]"\/>/.test(paragraph)
+      );
+      expect(headings.length).toBeGreaterThan(0);
+      for (const heading of headings) {
+        const size = /Heading1/.test(heading) ? 24 : 22;
+        expect(heading, documentTextOf(heading)).toContain('<w:jc w:val="center"/>');
+        const sizes = [...heading.matchAll(/<w:r>[\s\S]*?<w:sz w:val="(\d+)"\/>[\s\S]*?<\/w:r>/g)];
+        expect(new Set(sizes.map((match) => Number(match[1])))).toEqual(new Set([size]));
+      }
+    }
+  );
+
+  it.each(ssmFiles.map(([name]) => name).filter((name) => !contents.includes(name)))(
+    '%s gives none of its paragraphs an outline level, so its PDF has no bookmarks of body text',
+    (name) => {
+      expect(bodyOf(name)).not.toMatch(/<w:pStyle w:val="Heading\d"\/>|<w:outlineLvl/);
+    }
+  );
+
+  // The originals set their articles in a copy of a bold 16 pt heading style, which every
+  // paragraph that never switched bold off printed whole.
+  it.each([
+    '2.2_general_training_material.docx',
+    '3.2_own_instructions.docx',
+    '11_employer_briefing.docx',
+  ])('%s sets its articles in a regular style, the labels bold on their own', (name) => {
+    const styles = new PizZip(read(name)).file('word/styles.xml')!.asText();
+    const article = /<w:style\b[^>]*w:styleId="Paragraph1"[^>]*>[\s\S]*?<\/w:style>/.exec(
+      styles
+    )![0];
+    expect(article).not.toMatch(/<w:b\/>|<w:keepNext|<w:sz w:val="32"\/>/);
+  });
+
+  it.each(ssmFiles)('%s prints every "(Preluare din …)" note in italic, not bold', (_, bytes) => {
+    const body = new PizZip(bytes).file('word/document.xml')!.asText();
+    const notes = [
+      ...body.matchAll(/<w:r>(?:(?!<\/w:r>)[\s\S])*?\(Preluare din(?:(?!<\/w:r>)[\s\S])*?<\/w:r>/g),
+    ].map((match) => match[0]);
+    for (const note of notes) {
+      expect(note).toMatch(/<w:i\/>/);
+      expect(note).not.toMatch(/<w:b\/>/);
+    }
+  });
 
   it.each(files)('%s is laid out in compatibility mode 15', (_, bytes) => {
     const settings = new PizZip(bytes).file('word/settings.xml')!.asText();

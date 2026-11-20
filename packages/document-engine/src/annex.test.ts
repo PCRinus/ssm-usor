@@ -81,15 +81,15 @@ describe('annexParagraphs', () => {
               : ['paragraph', item.paragraph]
     );
     expect(tiers).toEqual([
-      [1, { marker: '1.', text: 'cablul;' }],
-      [2, { marker: 'a)', text: 'izolația;' }],
-      [2, { marker: 'b)', text: 'ștecherul;' }],
-      [1, { marker: '2.', text: 'apărătoarea;' }],
-      [3, { marker: '–', text: 'fixarea ei.' }],
+      [1, { marker: '1.', text: 'cablul;', strong: true }],
+      [2, { marker: 'a)', text: 'izolația;', strong: true }],
+      [2, { marker: 'b)', text: 'ștecherul;', strong: true }],
+      [1, { marker: '2.', text: 'apărătoarea;', strong: true }],
+      [3, { marker: '–', text: 'fixarea ei.', strong: false }],
       ['paragraph', 'Fără marcaj.'],
       ['article', 'Se interzice:'],
-      [1, { marker: 'a)', text: 'fumatul;' }],
-      [2, { marker: '•', text: 'focul deschis.' }],
+      [1, { marker: 'a)', text: 'fumatul;', strong: true }],
+      [2, { marker: '•', text: 'focul deschis.', strong: false }],
     ]);
   });
 
@@ -148,6 +148,7 @@ describe.each([
         'paragraphs',
         'provider.legalName',
         ...(domain === 'ssm' ? ['provider.representativeName', 'provider.representativeRole'] : []),
+        ...(domain === 'ssm' ? ['strong'] : []),
         'text',
         'title',
         'versionDate',
@@ -172,7 +173,7 @@ describe.each([
       `versiunea din ${data.versionDate}`,
     ]);
     expect(texts[4]).toBe('Domeniul de aplicare');
-    expect(texts[5]).toMatch(/^Art\. 1\. Prezenta instrucțiune se aplică /);
+    expect(texts[5]).toMatch(/^Art\. 1\.\s+Prezenta instrucțiune se aplică /);
     expect(texts.at(-1)).toMatch(
       domain === 'ssm'
         ? /^Acte normative avute în vedere: Legea nr\. 319\/2006 .* H\.G\. nr\. 1425\/2006\.$/
@@ -180,7 +181,7 @@ describe.each([
     );
     const articles = texts.filter((text) => /^Art\. \d+\./.test(text));
     expect(articles).toHaveLength(sample.blocks.filter((block) => block.kind === 'article').length);
-    expect(articles.at(-1)).toMatch(new RegExp(`^Art\\. ${articles.length}\\. `));
+    expect(articles.at(-1)).toMatch(new RegExp(`^Art\\. ${articles.length}\\.\\s`));
   });
 
   it('starts the text on a page of its own', () => {
@@ -193,12 +194,40 @@ describe.each([
   it('sets "Art. N." in bold and hangs a marked paragraph from its marker', () => {
     const xml = part(rendered, 'word/document.xml');
     expect(xml).toMatch(/<w:b\/><\/w:rPr><w:t[^>]*>Art\. 1\.<\/w:t>/);
-    expect(xml).toMatch(/<w:pStyle w:val="AnnexItem1"\/>[\s\S]*?<w:t[^>]*>a\)<\/w:t><w:tab\/>/);
-    const styles = part(rendered, 'word/styles.xml');
-    expect(styles).toMatch(
-      /w:styleId="AnnexItem1">[\s\S]*?<w:ind w:hanging="360" w:left="360"\/><w:jc w:val="both"\/>/
+    expect(xml).toMatch(
+      /<w:pStyle w:val="AnnexItem1"\/>[\s\S]*?<w:t[^>]*>a\)<\/w:t>(?:(?!<w:t[ >])[\s\S])*(?:<w:t\/>)?<w:tab\/>/
     );
-    expect(styles).toMatch(/w:styleId="AnnexArticle">[\s\S]*?<w:jc w:val="both"\/>/);
+    const styles = part(rendered, 'word/styles.xml');
+    const style = (id: string) =>
+      new RegExp(`w:styleId="${id}">[\\s\\S]*?</w:style>`).exec(styles)![0];
+    if (domain === 'su') {
+      expect(style('AnnexItem1')).toMatch(
+        /<w:ind w:hanging="360" w:left="360"\/><w:jc w:val="both"\/>/
+      );
+      expect(style('AnnexArticle')).toContain('<w:jc w:val="both"/>');
+      return;
+    }
+    // Left-aligned like the common part, the labels a tier in each and 8 mm from their text.
+    for (const id of ['AnnexArticle', 'AnnexParagraph', 'AnnexItem1', 'AnnexItem2', 'AnnexItem3'])
+      expect(style(id)).toContain('<w:jc w:val="left"/>');
+    expect(style('AnnexItem1')).toContain('<w:ind w:hanging="454" w:left="814"/>');
+    expect(style('AnnexItem2')).toContain('<w:ind w:hanging="454" w:left="1174"/>');
+    expect(style('AnnexArticle')).toMatch(/<w:tab w:val="left" w:pos="1080"[^>]*\/>/);
+    expect(xml).toMatch(/<w:b\/>(?:(?!<\/w:r>)[\s\S])*<w:t[^>]*>a\)<\/w:t>/);
+  });
+
+  it('keeps a line that ends with ":" and the last article with what follows them', () => {
+    if (domain === 'su') return;
+    const xml = part(rendered, 'word/document.xml');
+    const paragraphs = xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g)!;
+    const leadIns = paragraphs.filter(
+      (paragraph) =>
+        /:<\/w:t><\/w:r><\/w:p>$/.test(paragraph) && /Annex(Article|Paragraph|Item)/.test(paragraph)
+    );
+    expect(leadIns.length).toBeGreaterThan(0);
+    for (const paragraph of leadIns) expect(paragraph).toContain('<w:keepNext/>');
+    const acts = paragraphs.findIndex((paragraph) => paragraph.includes('AnnexActs'));
+    expect(paragraphs[acts - 1]).toContain('<w:keepNext/>');
   });
 
   it('names the annex in its header and counts its pages within it', () => {
@@ -236,7 +265,7 @@ describe.each([
       data
     );
     expect(paragraphTexts(part(typed, 'word/document.xml'))).toContain(
-      'Art. 1. Tensiune < 50 V & curent {{mic}}.'
+      `Art. 1.${domain === 'ssm' ? '\t' : ' '}Tensiune < 50 V & curent {{mic}}.`
     );
   });
 

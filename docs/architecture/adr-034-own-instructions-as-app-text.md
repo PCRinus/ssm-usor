@@ -162,6 +162,7 @@ Each annex is rendered from its version's body by an **annex template**, built i
   - "Art. N." in bold before an article's first paragraph;
   - the indented paragraphs hanging from their marker;
   - Arial 10 justified, the margins of every template, and the "Acte normative" line at the end.
+    Amended 2026-11-20 for the occupational safety (SSM) annexes: left-aligned, as the rest of the set (without hyphenation a justified line opened word gaps of up to 10 pt), and laid out as the common part of 3.2: a tab after "Art. N.", list labels one tier in per level and 8 mm from their text, numbers and letters bold, a line ending in ":" kept with its list and the last article with the "Acte normative" line. The fire-safety (SU) annexes keep this layout until their set is reviewed.
 - **The header of every page** is the document-details box of the house style:
   - row 1: the date, "Întocmit de" (the provider for SSM, the fire-safety technician for PSI), "Întocmit pentru" and "Cod document" (IPSSM or IPSU);
   - row 2 names the annex: "Anexa N la Instrucțiunile proprii în domeniul securității și sănătății în muncă:", then the bold "I.P.S.S.M. Title" and "versiunea din …";

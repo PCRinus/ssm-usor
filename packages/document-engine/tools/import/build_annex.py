@@ -6,8 +6,9 @@ instructions, from its body of headings and articles (ADR 034).
 An annex is a title page, then its text, under a box of document details that names the annex
 and counts its pages within it. The box is built by the import's own code, so it cannot drift
 from the common part's. The text is a loop the engine fills from the body: a paragraph style
-per kind of paragraph, so the sweep's left alignment of running text does not reach it and an
-annex appended to the common part brings its look along. The templates land in
+per kind of paragraph, so an annex appended to the common part brings its look along. The
+occupational safety annex is set as the common part of 3.2; the fire-safety one keeps its
+justified text until its set is reviewed. The templates land in
 `src/annex-template.ts`, base64, so the API needs no file and no registry entry for them.
 """
 
@@ -17,6 +18,8 @@ import sys
 
 import uno
 from com.sun.star.style.ParagraphAdjust import BLOCK, CENTER, LEFT
+from com.sun.star.style import TabStop
+from com.sun.star.style.TabAlign import LEFT as TAB_LEFT
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 
 sys.path.insert(0, '/work/tools/import')
@@ -34,11 +37,25 @@ STYLES = {
     'AnnexItem3': {'above': 2, 'left': 3 * HANG},
     'AnnexActs': {'above': 12, 'adjust': LEFT},
 }
+# The occupational safety annexes are set as the common part of 3.2: left-aligned, the text after
+# "Art. N." at the common part's article tab, a list label one tier in per level (6.35 mm, the
+# third at 25.4 mm) with 8 mm to its text, so "(24)" or "xvi." still leaves a gap.
+LABEL_TEXT = 800
+ARTICLE_TAB = 1905
+HOUSE_STYLES = {
+    'AnnexHeading': {'bold': True, 'above': 9, 'below': 3, 'keep': True},
+    'AnnexArticle': {'above': 6, 'tab': ARTICLE_TAB},
+    'AnnexParagraph': {'above': 2},
+    'AnnexItem1': {'above': 2, 'left': HANG + LABEL_TEXT, 'hang': LABEL_TEXT},
+    'AnnexItem2': {'above': 2, 'left': 2 * HANG + LABEL_TEXT, 'hang': LABEL_TEXT},
+    'AnnexItem3': {'above': 2, 'left': 4 * HANG + LABEL_TEXT, 'hang': LABEL_TEXT},
+    'AnnexActs': {'above': 12},
+}
 
 
-def add_styles(document):
+def add_styles(document, house):
     family = document.StyleFamilies.getByName('ParagraphStyles')
-    for name, spec in STYLES.items():
+    for name, spec in (HOUSE_STYLES if house else STYLES).items():
         style = document.createInstance('com.sun.star.style.ParagraphStyle')
         family.insertByName(name, style)
         style.CharFontName = FONT
@@ -47,12 +64,17 @@ def add_styles(document):
         style.CharHeight = BODY_SIZE
         style.CharWeight = 150 if spec.get('bold') else 100
         style.CharLocale = ROMANIAN
-        style.ParaAdjust = spec.get('adjust', BLOCK)
+        style.ParaAdjust = LEFT if house else spec.get('adjust', BLOCK)
         style.ParaLastLineAdjust = LEFT
         style.ParaTopMargin = round(spec['above'] * POINT)
         style.ParaBottomMargin = round(spec.get('below', 0) * POINT)
         style.ParaLeftMargin = spec.get('left', 0)
-        style.ParaFirstLineIndent = -HANG if 'left' in spec else 0
+        style.ParaFirstLineIndent = -spec.get('hang', HANG) if 'left' in spec else 0
+        if 'tab' in spec:
+            stop = TabStop()
+            stop.Position = spec['tab']
+            stop.Alignment = TAB_LEFT
+            style.ParaTabStops = (stop,)
         style.ParaKeepTogether = False
         style.ParaSplit = True
         if spec.get('keep'):
@@ -128,7 +150,7 @@ def build(desktop, definition, target, word_2013):
         closing.CharHeight = SMALL_PRINT
         add_branding(style)
 
-    add_styles(document)
+    add_styles(document, word_2013)
     text = document.Text
     cursor = text.createTextCursor()
     for index, line in enumerate(definition['lines']):
@@ -139,13 +161,17 @@ def build(desktop, definition, target, word_2013):
 
     tags = 'AnnexParagraph'
     styled(text, cursor, '{{#paragraphs}}', tags)
+    article = 'Art. {{number}}.\t{{text}}' if word_2013 else 'Art. {{number}}. {{text}}'
+    # A number or a letter bold, a dash regular, as in the common part.
+    label = '{{#strong}}{{marker}}{{/strong}}' if word_2013 else ''
+    item = f'{label}{{{{^strong}}}}{{{{marker}}}}{{{{/strong}}}}\t{{{{text}}}}' if word_2013 else '{{marker}}\t{{text}}'
     for key, style, content, bold in (
         ('heading', 'AnnexHeading', '{{heading}}', ''),
-        ('article', 'AnnexArticle', 'Art. {{number}}. {{text}}', 'Art. {{number}}.'),
+        ('article', 'AnnexArticle', article, 'Art. {{number}}.'),
         ('paragraph', 'AnnexParagraph', '{{paragraph}}', ''),
-        ('item1', 'AnnexItem1', '{{marker}}\t{{text}}', ''),
-        ('item2', 'AnnexItem2', '{{marker}}\t{{text}}', ''),
-        ('item3', 'AnnexItem3', '{{marker}}\t{{text}}', ''),
+        ('item1', 'AnnexItem1', item, label),
+        ('item2', 'AnnexItem2', item, label),
+        ('item3', 'AnnexItem3', item, label),
     ):
         styled(text, cursor, f'{{{{#{key}}}}}', tags)
         styled(text, cursor, content, style, bold)

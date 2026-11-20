@@ -1,0 +1,743 @@
+"""The occupational safety set's typography, over a template's saved XML, without an office.
+
+Only an article's labels are bold ("Art. N.", "(2)", "a)"), never its body: the originals set
+their articles in a copy of a bold 16 pt heading style, so every paragraph that never switched
+bold off printed bold. A "(Preluare din …)" note is italic. Headings follow one scale, a chapter
+12 pt and a subchapter 11 pt, both centred, and only real headings reach the outline. A
+sub-list hangs one tier deeper than the item that introduces it, a list's number or letter is
+bold and its bullet an en dash; a list sits 2 pt under its lead-in, its items 2 pt apart, and
+the room comes after its last item. Dash lines a table cell joined with line breaks become
+paragraphs that hang from the dash. Safe to run again.
+"""
+
+import re
+
+from table_style import (P_PR_ORDER, R_PR_ORDER, RUN, TEXT, edit_properties, element, put,
+                         without)
+
+LOOP_TAGS_ONLY = re.compile(r'(\{\{[#/^][^}]*\}\})+')
+BLOCK_TAG = re.compile(r'<(/?)w:(p|tbl|sdt)\b[^>]*?(/?)>')
+ON = r'(?: w:val="(?:true|1|on)")?'
+BOLD_ON = re.compile(rf'<w:b{ON}/>')
+BOLD = re.compile(r'<w:b(?: w:val="(\w+)")?/>')
+
+BODY = 20  # half-points
+CHAPTER = {'size': 24, 'before': 360, 'after': 120}
+SUBCHAPTER = {'size': 22, 'before': 240, 'after': 80}
+HEADINGS = {'Heading1': CHAPTER, 'Heading2': SUBCHAPTER}
+
+ITEM_GAP = 40  # twips: between list items, and under the line that introduces a list
+ROOM = 120  # twips: between paragraphs, and after a list
+# The house style's three list tiers (label, text), in twips from the margin: the third
+# stands further in than the second's text, as `LIST_TIERS` of the import sets it.
+TIERS = [(360, 720), (720, 1080), (1440, 1800)]
+HANG = 360
+# An item whose label stands this close to its parent's text, or further in, is nested already.
+NESTED = 120
+ARTICLE_TAB = 720
+CELL_HANG = 170  # 3 mm, a typed dash's hang from a table cell's edge
+DASH = '–'
+
+NOTE = re.compile(r'\((?:Preluare din|Conform\b|Conf\.)')
+ALINEAT = re.compile(r'^\(\d+\)')
+LABEL = re.compile(r'^(\(\d+\)|[a-z]\)|\d{1,2}\.(?!\d))')
+TYPED_ITEM = re.compile(r'^([a-z]\)|\d{1,2}[.)](?=\s)|[-–•»▪](?=\s))')
+LABEL_FORMATS = {'decimal': 'number', 'lowerLetter': 'letter', 'upperLetter': 'letter',
+                 'lowerRoman': 'roman', 'upperRoman': 'roman', 'bullet': 'bullet'}
+
+
+def body_blocks(xml):
+    """The top-level paragraphs, tables and content controls of the body, as (kind, start, end)."""
+    depth, start, kind = 0, 0, None
+    for match in BLOCK_TAG.finditer(xml):
+        closing, name, empty = match.groups()
+        if empty:
+            if depth == 0:
+                yield name, match.start(), match.end()
+        elif closing:
+            depth -= 1
+            if depth == 0:
+                yield kind, start, match.end()
+        else:
+            if depth == 0:
+                start, kind = match.start(), name
+            depth += 1
+
+
+def own_properties(paragraph):
+    match = re.match(r'<w:p\b[^>]*>\s*(<w:pPr>.*?</w:pPr>)', paragraph, flags=re.S)
+    return match.group(1) if match else ''
+
+
+def text_of(paragraph):
+    return ''.join(match.group(2) for match in TEXT.finditer(paragraph))
+
+
+def attribute(xml, name):
+    match = re.search(rf'\bw:{name}="([^"]*)"', xml or '')
+    return match.group(1) if match else None
+
+
+def number(xml, name):
+    value = attribute(xml, name)
+    return int(value) if value not in (None, '') else None
+
+
+class Styles:
+    """What a paragraph style says, through the styles it is based on."""
+
+    def __init__(self, styles):
+        self.xml = styles
+        self.definitions, self.default = {}, None
+        for match in re.finditer(r'<w:style\b([^>]*)>(.*?)</w:style>', styles, flags=re.S):
+            attributes, body = match.groups()
+            if 'w:type="paragraph"' not in attributes:
+                continue
+            name = attribute(attributes, 'styleId')
+            based_on = re.search(r'<w:basedOn w:val="([^"]+)"', body)
+            properties = re.search(r'<w:pPr>.*?</w:pPr>', body, flags=re.S)
+            self.definitions[name] = (based_on and based_on.group(1), properties.group(0) if properties else '')
+            if re.search(r'w:default="(1|true)"', attributes):
+                self.default = name
+
+    def lookup(self, name, find):
+        seen = set()
+        name = name or self.default
+        while name in self.definitions and name not in seen:
+            seen.add(name)
+            based_on, properties = self.definitions[name]
+            found = find(properties)
+            if found is not None:
+                return found
+            name = based_on
+        return None
+
+
+class Numbering:
+    """A list level's definition, through a num's override to its abstract list."""
+
+    def __init__(self, numbering):
+        self.xml = numbering or ''
+        self.abstracts = {match.group(1): match.group(0) for match in re.finditer(
+            r'<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>.*?</w:abstractNum>', self.xml, re.S)}
+        self.nums = {match.group(1): match.group(0) for match in re.finditer(
+            r'<w:num w:numId="(\d+)"[^>]*>.*?</w:num>', self.xml, re.S)}
+
+    def key(self, num_id, level):
+        num = self.nums.get(num_id)
+        if num is None:
+            return None
+        if re.search(rf'<w:lvlOverride w:ilvl="{level}">(?:(?!</w:lvlOverride>).)*?<w:lvl\b', num, re.S):
+            return ('num', num_id, level)
+        abstract = re.search(r'<w:abstractNumId w:val="(\d+)"', num)
+        return ('abstract', abstract.group(1), level) if abstract and abstract.group(1) in self.abstracts else None
+
+    def level(self, key):
+        if key is None:
+            return None
+        container = self.nums[key[1]] if key[0] == 'num' else self.abstracts[key[1]]
+        match = re.search(rf'<w:lvl w:ilvl="{key[2]}"[^>]*>.*?</w:lvl>', container, re.S)
+        return match.group(0) if match else None
+
+
+def numbering_of(properties, styles):
+    """(numId, ilvl) of a paragraph, its own or its style's; None outside a list."""
+    def find(xml):
+        num = re.search(r'<w:numPr>(.*?)</w:numPr>', xml, re.S)
+        if not num:
+            return None
+        num_id = re.search(r'<w:numId w:val="(\d+)"', num.group(1))
+        level = re.search(r'<w:ilvl w:val="(\d)"', num.group(1))
+        return (num_id.group(1) if num_id else None, level.group(1) if level else '0')
+    found = find(properties)
+    style = re.search(r'<w:pStyle w:val="([^"]+)"', properties)
+    from_style = styles.lookup(style.group(1) if style else None, find)
+    if found is None:
+        found = from_style
+    elif found[0] is None and from_style:
+        found = (from_style[0], found[1])
+    if not found or found[0] in (None, '0'):
+        return None
+    return found
+
+
+def indent_of(xml):
+    """(left, hanging) in twips from a `w:ind`, None for what it leaves out."""
+    ind = re.search(r'<w:ind\b[^>]*/>', xml or '')
+    if not ind:
+        return None, None
+    ind = ind.group(0)
+    left = number(ind, 'left')
+    left = number(ind, 'start') if left is None else left
+    hanging = number(ind, 'hanging')
+    first = number(ind, 'firstLine')
+    if hanging is None and first is not None:
+        hanging = -first
+    return left, hanging
+
+
+class Item:
+    """A list item of the body: its kind of label, and where its label and its text stand."""
+
+    def __init__(self, kind, label, text, typed, level_key):
+        self.kind, self.label, self.text, self.typed, self.level_key = kind, label, text, typed, level_key
+
+
+def list_item(paragraph, styles, numbering):
+    properties = own_properties(paragraph)
+    said = text_of(paragraph).strip()
+    found = numbering_of(properties, styles)
+    style = re.search(r'<w:pStyle w:val="([^"]+)"', properties)
+    style_left, style_hanging = styles.lookup(style.group(1) if style else None,
+                                              lambda xml: indent_of(xml) if '<w:ind' in xml else None) or (None, None)
+    own_left, own_hanging = indent_of(properties)
+    if found:
+        key = numbering.key(*found)
+        level = numbering.level(key)
+        if level is None or '<w:numFmt w:val="none"/>' in level or '<w:lvlText w:val=""/>' in level:
+            return None
+        text = attribute(re.search(r'<w:lvlText\b[^>]*/>', level).group(0), 'val') if '<w:lvlText' in level else ''
+        if text.startswith('Art'):
+            return None
+        kind = LABEL_FORMATS.get(attribute(re.search(r'<w:numFmt\b[^>]*/>', level).group(0), 'val')
+                                 if '<w:numFmt' in level else 'decimal', 'other')
+        if kind != 'bullet':
+            kind += re.sub(r'%\d', '%', text)
+        level_left, level_hanging = indent_of(level)
+        left = own_left if own_left is not None else level_left if level_left is not None else style_left or 0
+        hanging = own_hanging if own_hanging is not None else level_hanging if level_hanging is not None else style_hanging or 0
+        return Item(kind, left - hanging, left, False, key)
+    typed = TYPED_ITEM.match(said)
+    if not typed:
+        return None
+    mark = typed.group(1)
+    kind = 'bullet' if not mark[0].isalnum() else ('letter%' if mark[0].isalpha() else 'number%') + mark[-1]
+    left = own_left if own_left is not None else style_left or 0
+    hanging = own_hanging if own_hanging is not None else style_hanging or 0
+    return Item(kind, left - hanging, left, True, None)
+
+
+def spacing_of(paragraph, styles):
+    properties = own_properties(paragraph)
+    own = re.search(r'<w:spacing\b[^>]*/>', properties)
+    style = re.search(r'<w:pStyle w:val="([^"]+)"', properties)
+
+    def side(name):
+        if own and attribute(own.group(0), name) is not None:
+            return int(attribute(own.group(0), name))
+        found = styles.lookup(style.group(1) if style else None,
+                              lambda xml: number(re.search(r'<w:spacing\b[^>]*/>', xml).group(0), name)
+                              if re.search(rf'<w:spacing\b[^>]*w:{name}=', xml) else None)
+        return found or 0
+    return side('before'), side('after')
+
+
+def set_spacing(paragraph, before=None, after=None):
+    def change(inner):
+        current = element(inner, 'spacing') or '<w:spacing/>'
+        for name, value in (('before', before), ('after', after)):
+            if value is None:
+                continue
+            if re.search(rf'\bw:{name}="', current):
+                current = re.sub(rf'\bw:{name}="[^"]*"', f'w:{name}="{value}"', current)
+            else:
+                current = current.replace('<w:spacing', f'<w:spacing w:{name}="{value}"', 1)
+            # A paragraph's own number counts; Word's automatic spacing would override it.
+            current = re.sub(rf'\s*w:{name}Autospacing="[^"]*"', '', current)
+        return put(inner, 'spacing', current, P_PR_ORDER)
+    return edit_properties(paragraph, 'pPr', change)
+
+
+def set_indent(paragraph, left, hanging, tab=True):
+    def change(inner):
+        inner = put(inner, 'ind', f'<w:ind w:left="{left}" w:hanging="{hanging}"/>', P_PR_ORDER)
+        if tab:
+            # The label's tab goes to the text: a stop of the paragraph's own before it would
+            # catch it, and one of its list's may stand where the label now is.
+            inner = put(inner, 'tabs', f'<w:tabs><w:tab w:val="left" w:pos="{left}"/></w:tabs>', P_PR_ORDER)
+        return inner
+    return edit_properties(paragraph, 'pPr', change)
+
+
+def edit_run(run, change):
+    return edit_properties(run, 'rPr', change)
+
+
+def bold(on):
+    def change(inner):
+        for tag in ('b', 'bCs'):
+            inner = put(inner, tag, f'<w:{tag}/>' if on else f'<w:{tag} w:val="false"/>', R_PR_ORDER)
+        return inner
+    return change
+
+
+def italic(inner):
+    for tag in ('i', 'iCs'):
+        inner = put(inner, tag, f'<w:{tag}/>', R_PR_ORDER)
+    return bold(False)(inner)
+
+
+def sized(size):
+    def change(inner):
+        inner = put(inner, 'sz', f'<w:sz w:val="{size}"/>', R_PR_ORDER)
+        return put(inner, 'szCs', f'<w:szCs w:val="{size}"/>', R_PR_ORDER)
+    return change
+
+
+def text_runs(paragraph):
+    """The runs of a paragraph that hold one piece of text and nothing else, with where their
+    text starts within the paragraph's: only those can be cut in two."""
+    found, at = [], 0
+    for match in RUN.finditer(paragraph):
+        run = match.group(0)
+        pieces = TEXT.findall(run)
+        said = ''.join(piece[1] for piece in pieces)
+        simple = len(pieces) == 1 and not re.search(r'<w:(tab|br|cr|drawing|fldChar|instrText|sym|object)\b', run)
+        found.append((match.start(), match.end(), at, said, simple))
+        at += len(unescaped(said))
+    return found
+
+
+def unescaped(text):
+    return text.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&').replace('&quot;', '"').replace('&apos;', "'")
+
+
+def escaped(text):
+    return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+
+def cut_runs(paragraph, positions):
+    """The paragraph with its runs cut at these offsets of its text, where a run allows it."""
+    for start, end, at, said, simple in reversed(text_runs(paragraph)):
+        plain = unescaped(said)
+        inside = sorted({position - at for position in positions if at < position < at + len(plain)}, reverse=True)
+        if not inside or not simple:
+            continue
+        run = paragraph[start:end]
+        pieces, rest = [], plain
+        for cut in inside:
+            pieces.insert(0, rest[cut:])
+            rest = rest[:cut]
+        pieces.insert(0, rest)
+        text = TEXT.search(run)
+        opening = re.sub(r'\s*xml:space="preserve"', '', text.group(1)).replace('<w:t', '<w:t xml:space="preserve"', 1)
+        runs = ''.join(run[:text.start()] + opening + escaped(piece) + text.group(3) + run[text.end():] for piece in pieces)
+        paragraph = paragraph[:start] + runs + paragraph[end:]
+    return paragraph
+
+
+def edit_text_range(paragraph, start, end, change):
+    """Every run whose text lies within [start, end) of the paragraph's text passed through
+    `change`, cut at the two ends first."""
+    paragraph = cut_runs(paragraph, [start, end])
+    for run_start, run_end, at, said, _ in reversed(text_runs(paragraph)):
+        length = len(unescaped(said))
+        if said and at >= start and at + length <= end:
+            paragraph = paragraph[:run_start] + edit_run(paragraph[run_start:run_end], change) + paragraph[run_end:]
+    return paragraph
+
+
+def run_bold(run, styled_bold):
+    explicit = BOLD.search(element(run, 'rPr') or '')
+    if explicit is None:
+        return styled_bold
+    return explicit.group(1) not in ('false', '0', 'off')
+
+
+def balanced_end(text, start):
+    depth = 0
+    for index in range(start, len(text)):
+        if text[index] == '(':
+            depth += 1
+        elif text[index] == ')':
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    return None
+
+
+def note_span(text):
+    """Where a "(Preluare din …)" note stands at the head of a paragraph, after its label."""
+    head = re.match(r'\s*(?:\(\d+\)\s*)?', text).end()
+    if not NOTE.match(text, head):
+        return None
+    end = balanced_end(text, head)
+    return (head, end) if end else None
+
+
+def body_styles(document, styles_xml):
+    """The copies of the originals' heading styles that hold body text: bold, and never
+    centred. 9's "Paragraph 1" is its title's, centred, and stays."""
+    found = []
+    styles = Styles(styles_xml)
+    for name in sorted(set(re.findall(r'<w:pStyle w:val="(Paragraph\d)"/>', document))):
+        definition = re.search(rf'<w:style\b[^>]*w:styleId="{name}"[^>]*>.*?</w:style>', styles_xml, re.S)
+        if not definition or not re.search(r'<w:rPr>(?:(?!</w:rPr>).)*<w:b/>', definition.group(0), re.S):
+            continue
+        centred = False
+        for match in re.finditer(r'<w:p\b[^>]*>(?:(?!</w:p>).)*</w:p>', document, re.S):
+            properties = own_properties(match.group(0))
+            if f'<w:pStyle w:val="{name}"/>' not in properties:
+                continue
+            own = re.search(r'<w:jc w:val="(\w+)"/>', properties)
+            alignment = own.group(1) if own else styles.lookup(name, lambda xml: attribute(
+                re.search(r'<w:jc\b[^>]*/>', xml).group(0), 'val') if '<w:jc' in xml else None)
+            centred = centred or alignment == 'center'
+        if not centred:
+            found.append(name)
+    return found
+
+
+def plain_articles(document, styles_xml):
+    """Only an article's labels bold, never its body, and a note italic."""
+    names = body_styles(document, styles_xml)
+
+    def paragraph(match):
+        xml = match.group(0)
+        properties = own_properties(xml)
+        style = re.search(r'<w:pStyle w:val="(Paragraph\d)"/>', properties)
+        styled = style is not None and style.group(1) in names
+        said = unescaped(text_of(xml))
+        if styled:
+            label = LABEL.match(said)
+            if label:
+                runs = [run for run in text_runs(xml) if run[3]]
+                if runs and not BOLD.search(element(xml[runs[0][0]:runs[0][1]], 'rPr') or ''):
+                    xml = edit_text_range(cut_runs(xml, [label.end()]), 0, label.end(), bold(True))
+        span = note_span(said)
+        if span:
+            xml = edit_text_range(xml, span[0], span[1], italic)
+            if styled:
+                rest = said[span[1]:]
+                label = re.match(r'\s*(\(\d+\))?', rest)
+                after = span[1] + label.end()
+                if label.group(1):
+                    xml = edit_text_range(xml, span[1], after, bold(True))
+                xml = edit_text_range(xml, after, len(said), bold(False))
+        return xml
+
+    document = re.sub(r'<w:p\b[^>]*>(?:(?!</w:p>).)*</w:p>', paragraph, document, flags=re.S)
+    for name in names:
+        def plain(match):
+            definition = match.group(0)
+            definition = re.sub(r'<w:keepNext(?: w:val="\w+")?/>', '', definition)
+            definition = re.sub(r'<w:b(?:Cs)?/>', '', definition)
+            definition = re.sub(r'<w:sz w:val="\d+"/>', f'<w:sz w:val="{BODY}"/>', definition)
+            return re.sub(r'<w:szCs w:val="\d+"/>', f'<w:szCs w:val="{BODY}"/>', definition)
+        styles_xml = re.sub(rf'<w:style\b[^>]*w:styleId="{name}"[^>]*>.*?</w:style>', plain, styles_xml, flags=re.S)
+    return document, styles_xml
+
+
+def heading_scale(document):
+    """A chapter 12 pt and a subchapter 11 pt, bold and centred, more room above than below."""
+    def paragraph(match):
+        xml = match.group(0)
+        style = re.search(r'<w:pStyle w:val="(Heading[12])"/>', own_properties(xml))
+        if not style:
+            return xml
+        scale = HEADINGS[style.group(1)]
+        xml = set_spacing(xml, scale['before'], scale['after'])
+        xml = edit_properties(xml, 'pPr', lambda inner: put(without(inner, 'ind'), 'jc', '<w:jc w:val="center"/>', P_PR_ORDER))
+        xml = edit_properties(xml, 'pPr', lambda inner: without(inner, 'tabs'))
+        change = lambda inner: sized(scale['size'])(bold(True)(inner))  # noqa: E731
+        xml = edit_properties(xml, 'pPr', lambda inner: put(inner, 'rPr', f'<w:rPr>{change(rpr_inner(inner))}</w:rPr>', P_PR_ORDER))
+        return RUN.sub(lambda run: edit_run(run.group(0), change), xml)
+    return re.sub(r'<w:p\b[^>]*>(?:(?!</w:p>).)*</w:p>', paragraph, document, flags=re.S)
+
+
+def rpr_inner(inner):
+    mark = element(inner, 'rPr')
+    return mark[len('<w:rPr>'):-len('</w:rPr>')] if mark and mark != '<w:rPr/>' else ''
+
+
+def house_heading_style(level):
+    scale = HEADINGS[f'Heading{level}']
+    return (f'<w:style w:type="paragraph" w:styleId="Heading{level}"><w:name w:val="heading {level}"/>'
+            '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
+            f'<w:pPr><w:keepNext/><w:spacing w:before="{scale["before"]}" w:after="{scale["after"]}"/>'
+            f'<w:jc w:val="center"/><w:outlineLvl w:val="{level - 1}"/></w:pPr>'
+            f'<w:rPr><w:b/><w:bCs/><w:sz w:val="{scale["size"]}"/><w:szCs w:val="{scale["size"]}"/></w:rPr></w:style>')
+
+
+def out_of_the_outline(xml, styles):
+    """Body text the originals set in the heading styles moves to a copy of each under another
+    name, "Paragraph N", without an outline level: it keeps its look and leaves the outline and
+    the PDF's bookmarks."""
+    return paragraph_styles(without_headings(xml), styles)
+
+
+def without_headings(xml):
+    return re.sub(r'<w:outlineLvl w:val="\d"/>', '', re.sub(r'<w:pStyle w:val="Heading(\d)"/>', r'<w:pStyle w:val="Paragraph\1"/>', xml))
+
+
+def paragraph_styles(xml, styles):
+    for level in sorted(set(re.findall(r'<w:pStyle w:val="Paragraph(\d)"/>', xml))):
+        if re.search(rf'<w:style\b[^>]*w:styleId="Paragraph{level}"', styles):
+            continue
+        copy = re.search(rf'<w:style\b[^>]*w:styleId="Heading{level}"[^>]*>.*?</w:style>', styles, re.S).group(0)
+        copy = copy.replace(f'w:styleId="Heading{level}"', f'w:styleId="Paragraph{level}"')
+        copy = copy.replace(f'<w:name w:val="heading {level}"/>', f'<w:name w:val="Paragraph {level}"/>')
+        copy = re.sub(r'<w:outlineLvl w:val="\d"/>', '', re.sub(r'<w:link w:val="[^"]*"/>', '', copy))
+        styles = styles.replace('</w:styles>', f'{copy}</w:styles>')
+    return xml, styles
+
+
+def dash_bullets(numbering):
+    """Every bullet an en dash in Arial, regular."""
+    def level(match):
+        xml = match.group(0)
+        if '<w:numFmt w:val="bullet"/>' not in xml:
+            return xml
+        glyph = re.search(r'<w:lvlText w:val="([^"]*)"/>', xml)
+        if not glyph or glyph.group(1) == '':
+            return xml
+        xml = xml.replace(glyph.group(0), f'<w:lvlText w:val="{DASH}"/>')
+        properties = element(xml, 'rPr')
+        inner = properties[len('<w:rPr>'):-len('</w:rPr>')] if properties and properties != '<w:rPr/>' else ''
+        inner = put(inner, 'rFonts', '<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>', R_PR_ORDER)
+        inner = bold(False)(without(without(inner, 'i'), 'iCs'))
+        if properties:
+            return xml.replace(properties, f'<w:rPr>{inner}</w:rPr>', 1)
+        return xml.replace('</w:lvl>', f'<w:rPr>{inner}</w:rPr></w:lvl>')
+    return re.sub(r'<w:lvl w:ilvl="\d"[^>]*>.*?</w:lvl>', level, numbering, flags=re.S)
+
+
+def article_tabs(numbering):
+    """The text after "Art. N." 1.27 cm from the margin, as in the decisions. The long
+    documents, with articles past 99, keep their wider stop."""
+    def level(match):
+        xml = match.group(0)
+        if not re.search(r'<w:lvlText w:val="Art\.', xml) or '<w:suff w:val="space"/>' in xml:
+            return xml
+        return re.sub(r'(<w:tab w:val="num" w:pos=")\d+(")', rf'\g<1>{ARTICLE_TAB}\2', xml)
+    return re.sub(r'<w:lvl w:ilvl="0"[^>]*>.*?</w:lvl>', level, numbering, flags=re.S)
+
+
+def bold_level(numbering, key):
+    container_pattern = (rf'<w:num w:numId="{key[1]}"[^>]*>.*?</w:num>' if key[0] == 'num'
+                         else rf'<w:abstractNum\b[^>]*w:abstractNumId="{key[1]}"[^>]*>.*?</w:abstractNum>')
+
+    def container(match):
+        def level(found):
+            xml = found.group(0)
+            properties = element(xml, 'rPr')
+            inner = properties[len('<w:rPr>'):-len('</w:rPr>')] if properties and properties != '<w:rPr/>' else ''
+            inner = bold(True)(inner)
+            if properties:
+                return xml.replace(properties, f'<w:rPr>{inner}</w:rPr>', 1)
+            return xml.replace('</w:lvl>', f'<w:rPr>{inner}</w:rPr></w:lvl>')
+        return re.sub(rf'<w:lvl w:ilvl="{key[2]}"[^>]*>.*?</w:lvl>', level, match.group(0), count=1, flags=re.S)
+    return re.sub(container_pattern, container, numbering, count=1, flags=re.S)
+
+
+def is_loop_tags(paragraph):
+    return LOOP_TAGS_ONLY.fullmatch(text_of(paragraph).strip() or '-') is not None
+
+
+def next_tier(text):
+    """The label of the tier under an item whose text stands at `text`."""
+    return next((label for label, _ in TIERS if label >= text), text)
+
+
+def lists(document, styles_xml, numbering_xml):
+    """Sub-lists one tier deeper, labels bold, and a list's spacing."""
+    styles, numbering = Styles(styles_xml), Numbering(numbering_xml)
+    blocks = [(kind, start, end) for kind, start, end in body_blocks(document)]
+    paragraphs = [(start, end) for kind, start, end in blocks if kind == 'p']
+    in_cells = set()
+    for kind, start, end in blocks:
+        if kind == 'tbl':
+            for match in re.finditer(r'<w:p\b[^>]*>(?:(?!</w:p>).)*</w:p>', document[start:end], re.S):
+                found = numbering_of(own_properties(match.group(0)), styles)
+                if found:
+                    in_cells.add(numbering.key(*found))
+
+    edits = {}
+    order = []
+    for kind, start, end in blocks:
+        if kind != 'p':
+            order.append(None)
+            continue
+        xml = document[start:end]
+        if is_loop_tags(xml):
+            continue
+        order.append((start, end, xml, list_item(xml, styles, numbering)))
+
+    stack, previous = [], None
+    for entry in order:
+        if entry is None or entry[3] is None:
+            stack, previous = [], None
+            continue
+        start, end, xml, item = entry
+        said = text_of(xml).strip()
+        sibling = next((index for index in range(len(stack) - 1, -1, -1)
+                        if stack[index]['kind'] == item.kind and stack[index]['was'] == item.label), None)
+        if sibling is not None:
+            stack = stack[:sibling + 1]
+            level = stack[-1]
+            if level['moved']:
+                edits[start] = ('indent', level['label'], level['label'] + level['hang'])
+        elif previous is not None and previous.endswith(':') and stack and item.label < stack[-1]['text'] - NESTED:
+            parent = stack[-1]
+            label = next_tier(parent['text'])
+            hang = max(item.text - item.label, HANG)
+            edits[start] = ('indent', label, label + hang)
+            stack.append({'kind': item.kind, 'was': item.label, 'label': label, 'text': label + hang,
+                          'hang': hang, 'moved': True})
+        elif stack and item.label >= stack[-1]['text'] - NESTED:
+            stack.append({'kind': item.kind, 'was': item.label, 'label': item.label, 'text': item.text,
+                          'hang': item.text - item.label, 'moved': False})
+        else:
+            stack = [{'kind': item.kind, 'was': item.label, 'label': item.label, 'text': item.text,
+                      'hang': item.text - item.label, 'moved': False}]
+        previous = said
+
+    to_bold = set()
+    for entry in order:
+        if entry is None or entry[3] is None or entry[3].kind == 'bullet':
+            continue
+        start, end, xml, item = entry
+        if item.typed:
+            edits.setdefault(start, None)
+            edits[('label', start)] = True
+        elif item.level_key not in in_cells:
+            to_bold.add(item.level_key)
+    for key in to_bold:
+        level = numbering.level(key)
+        properties = element(level, 'rPr') or ''
+        if not BOLD_ON.search(properties):
+            numbering_xml = bold_level(numbering_xml, key)
+
+    spacing = {}
+    sequence = order
+    for index, entry in enumerate(sequence):
+        if entry is None:
+            continue
+        start, end, xml, item = entry
+        following = sequence[index + 1] if index + 1 < len(sequence) else None
+        if following is None:
+            continue
+        next_start, _, next_xml, next_item = following
+        before, after = spacing_of(xml, styles)
+        next_before, _ = spacing_of(next_xml, styles)
+        said = text_of(xml).strip()
+        if next_item is not None and (said.endswith(':') or item is not None):
+            if after > ITEM_GAP:
+                spacing.setdefault(start, {})['after'] = ITEM_GAP
+            if next_before > ITEM_GAP:
+                spacing.setdefault(next_start, {})['before'] = ITEM_GAP
+        elif item is not None and next_item is None:
+            continuation = numbering_of(own_properties(next_xml), styles) is None and \
+                (indent_of(own_properties(next_xml))[0] or 0) >= item.text
+            if not continuation and max(after, next_before) < ROOM:
+                spacing.setdefault(next_start, {})['before'] = ROOM
+        elif item is None and next_item is None and ALINEAT.match(text_of(next_xml).strip()) \
+                and not text_of(next_xml).strip().startswith('(1)') and max(after, next_before) < ROOM:
+            spacing.setdefault(next_start, {})['before'] = ROOM
+
+    for start, end in reversed(paragraphs):
+        xml = document[start:end]
+        changed = xml
+        edit = edits.get(start)
+        if edit and edit[0] == 'indent':
+            changed = set_indent(changed, edit[2], edit[2] - edit[1])
+        if edits.get(('label', start)):
+            said = unescaped(text_of(changed))
+            lead = len(said) - len(said.lstrip())
+            label = TYPED_ITEM.match(said.strip())
+            changed = edit_text_range(changed, lead, lead + len(label.group(1)), bold(True))
+        if start in spacing:
+            changed = set_spacing(changed, spacing[start].get('before'), spacing[start].get('after'))
+        if changed != xml:
+            document = document[:start] + changed + document[end:]
+    return document, numbering_xml
+
+
+def dash_lines_in_cells(document):
+    """Dash items a table cell joined with line breaks, each a paragraph of its own that hangs
+    from its dash, so a wrapped line runs under the text and not under the next dash."""
+    def paragraph(match):
+        xml = match.group(0)
+        if not re.search(r'<w:br/>', xml):
+            return hung_dash(xml)
+        lines = re.split(r'<w:br/>', xml)
+        said = [line for line in (unescaped(text_of(piece)).strip() for piece in lines) if line]
+        if len(said) < 2 or not all(re.match(r'[–-]\s', line) for line in said):
+            return xml
+        return split_at_breaks(xml)
+    def cell(match):
+        return re.sub(r'<w:p\b[^>]*>(?:(?!</w:p>).)*</w:p>', paragraph, match.group(0), flags=re.S)
+    return re.sub(r'<w:tc\b[^>]*>.*?</w:tc>', cell, document, flags=re.S)
+
+
+def hung_dash(paragraph):
+    said = unescaped(text_of(paragraph))
+    dash = re.match(r'\s*[–-][ \t]+(?=\w)', said)
+    if not dash:
+        return paragraph
+    paragraph = set_indent(paragraph, CELL_HANG, CELL_HANG, tab=False)
+    return replace_text_range(paragraph, 0, dash.end(), f'{DASH}\t')
+
+
+def split_at_breaks(paragraph):
+    opening = re.match(r'<w:p\b[^>]*>', paragraph).group(0)
+    properties = own_properties(paragraph)
+    body = paragraph[len(opening) + len(properties):-len('</w:p>')]
+    pieces, current = [], ''
+    for match in re.finditer(r'<w:r\b[^>]*>.*?</w:r>|<w:[^>]*/>|<w:(\w+)\b[^>]*>.*?</w:\1>', body, re.S):
+        run = match.group(0)
+        if '<w:br/>' in run and run.startswith('<w:r'):
+            parts = run.split('<w:br/>')
+            run_open = re.match(r'<w:r\b[^>]*>(<w:rPr>.*?</w:rPr>)?', run, re.S).group(0)
+            for index, part in enumerate(parts):
+                piece = part if index == 0 else run_open + part
+                if index > 0:
+                    pieces.append(current)
+                    current = ''
+                if TEXT.search(piece) or index == 0:
+                    current += piece if piece.endswith('</w:r>') else piece + '</w:r>'
+        else:
+            current += run
+    pieces.append(current)
+    hung = set_indent(f'{opening}{properties}</w:p>', CELL_HANG, CELL_HANG, tab=False)
+    hung_properties = own_properties(hung)
+    out = []
+    for piece in pieces:
+        if not TEXT.search(piece):
+            continue
+        out.append(hung_dash(f'{opening}{hung_properties}{piece}</w:p>'))
+    return ''.join(out)
+
+
+def replace_text_range(paragraph, start, end, replacement):
+    """The text in [start, end) replaced, in the first run's place; a tab as a tab."""
+    paragraph = cut_runs(paragraph, [start, end])
+    done = False
+    for run_start, run_end, at, said, _ in reversed(text_runs(paragraph)):
+        length = len(unescaped(said))
+        if said and at >= start and at + length <= end:
+            run = paragraph[run_start:run_end]
+            if at == start:
+                text = TEXT.search(run)
+                parts = replacement.split('\t')
+                inner = ''.join(
+                    (f'<w:t xml:space="preserve">{escaped(part)}</w:t>' if part else '') + ('<w:tab/>' if index < len(parts) - 1 else '')
+                    for index, part in enumerate(parts))
+                run = run[:text.start()] + inner + run[text.end():]
+                done = True
+            else:
+                run = ''
+            paragraph = paragraph[:run_start] + run + paragraph[run_end:]
+    return paragraph
+
+
+def typography(document, styles, numbering, contents):
+    if contents:
+        document = heading_scale(document)
+    else:
+        document, styles = out_of_the_outline(document, styles)
+    document, styles = plain_articles(document, styles)
+    if numbering is not None:
+        numbering = dash_bullets(numbering if contents else article_tabs(numbering))
+        document, numbering = lists(document, styles, numbering)
+    return dash_lines_in_cells(document), styles, numbering

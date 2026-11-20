@@ -30,6 +30,8 @@ HEADER_FILL = 'E3E8E0'
 # A row of one cell across the table in this fill names the group of rows under it (6's posts)
 # and keeps with the row after it, so a group never starts at a page's foot.
 GROUP_FILL = 'F1F4EF'
+# A table of more columns is set in the small print.
+WIDE_COLUMNS = 6
 PADDING = (('top', 40), ('left', 85), ('bottom', 40), ('right', 85))  # twips
 HOUSE_TABLE = 'HouseTable'
 HOUSE_TABLE_STYLE = (f'<w:style w:type="table" w:customStyle="1" w:styleId="{HOUSE_TABLE}">'
@@ -617,8 +619,30 @@ def at_least(height):
     return change
 
 
-def house_table(table, kind):
+def on_the_scale(size, wide):
+    """The house sizes: 10 pt, 8 pt in a table too wide for 10. 9 and 7 pt were neither."""
+    if size == 18:
+        return 16 if wide else 20
+    return 16 if size == 14 else size
+
+
+def snapped(row, wide):
+    def change(inner):
+        size = size_of(inner)
+        return sized(on_the_scale(size, wide))(inner) if size in (14, 18) else inner
+    return RUN.sub(lambda match: edit_properties(match.group(0), 'rPr', change), set_paragraphs_marks(row, change))
+
+
+def set_paragraphs_marks(row, change):
+    return edit_paragraphs(row, lambda paragraph: set_paragraph(paragraph, mark_properties(change)))
+
+
+def house_table(table, kind, header_size=None, snap=True):
     rows = ROW.findall(table)
+    if snap:
+        wide = len(grid_of(table)) > WIDE_COLUMNS
+        rows = [snapped(row, wide) for row in rows]
+        table = rebuilt(table, ROW.findall(table), rows)
     header = header_count(rows)
     size = body_size(rows, header)
     grid = grid_of(table)
@@ -638,7 +662,7 @@ def house_table(table, kind):
     for index, row in enumerate(rows):
         if index < header:
             row = edit_row_properties(row, lambda inner: put(inner, 'tblHeader', '<w:tblHeader/>', TR_PR_ORDER))
-            row = with_cells(row, header_cell(size, index == header - 1))
+            row = with_cells(row, header_cell(header_size or size, index == header - 1))
         else:
             row = edit_row_properties(row, lambda inner: without(inner, 'tblHeader'))
             row = with_cells(row, body_cell(row_numbers, kind != 'consequences'))
@@ -896,12 +920,14 @@ def around_tables(xml):
     return xml
 
 
-def house_tables(xml):
+def house_tables(xml, file_name=None):
+    header_size = SMALL_HEADERS.get(file_name)
+    snap = file_name is not None and file_name not in DENSE_FORMS
     for start, end in reversed(list(top_level_tables(xml))):
         table = xml[start:end]
         kind = kind_of(table)
         if kind in ('house', 'consequences'):
-            table = house_table(table, kind)
+            table = house_table(table, kind, header_size, snap)
         elif kind == 'scale':
             table = readable_grid(table)
         xml = xml[:start] + table + xml[end:]
@@ -912,6 +938,10 @@ def house_tables(xml):
 # (`src/content-widths.ts`), one set for the document: the prevention plan keeps the columns of
 # annex 7 to H.G. 1425/2006, whose kinds of measure are filled very unevenly from client to client.
 CONTENT_WIDTHS = 'ContentWidths'
+# The registers' headers name up to 18 columns: 7 pt, in all four, over an 8 pt body.
+SMALL_HEADERS = {'7.2_event_registers.docx': 14}
+# The sheets fit a training's rows and signatures on one page in 7 and 9 pt.
+DENSE_FORMS = ('fisa_instruire_ssm.docx', 'fisa_test.docx')
 CONTENT_WIDTH_TABLES = {'10_prevention_plan.docx': '{{#plan}}'}
 
 
@@ -938,10 +968,10 @@ def draws_house_tables(document):
     return any(kind_of(document[start:end]) in ('house', 'consequences') for start, end in top_level_tables(document))
 
 
-def house_tables_part(name, xml, house=True):
+def house_tables_part(name, xml, house=True, file_name=None):
     """`house` says whether the document draws a house table, which its styles then define."""
     if name == 'word/document.xml':
-        return house_tables(xml)
+        return house_tables(xml, file_name)
     if name == 'word/styles.xml' and house:
         return with_house_style(xml)
     return xml
