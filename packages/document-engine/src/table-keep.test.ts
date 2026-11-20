@@ -103,6 +103,54 @@ describe('keeping the house tables together once merged', () => {
     expect(vertical(rows[2]!)).toEqual(['top', 'top']);
   });
 
+  describe('a list signed by hand', () => {
+    const widths = [621, 3458, 2076, 1297, 1903];
+    const signedCell = (width: number, text: string) =>
+      `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">${text}</w:t></w:r></w:p></w:tc>`;
+    const signedRow = (texts: string[], properties = '') =>
+      `<w:tr>${properties}${texts.map((text, index) => signedCell(widths[index]!, text)).join('')}</w:tr>`;
+    const tall = '<w:trPr><w:trHeight w:val="850" w:hRule="atLeast"/></w:trPr>';
+    const signedList = `<w:tbl><w:tblPr>${house}</w:tblPr><w:tblGrid>${widths.map((width) => `<w:gridCol w:w="${width}"/>`).join('')}</w:tblGrid>${signedRow(
+      ['Nr. crt.', 'Numele și prenumele', 'Funcția', 'Data primirii', 'Semnătura de primire'],
+      '<w:trPr><w:tblHeader/></w:trPr>'
+    )}${signedRow(['1.', '{{#people}}{{name}}', '{{jobTitle}}', '{{date}}{{/people}}', ''], tall)}${signedRow(['2.', '', '', '', ''], tall)}${signedRow(['3.', '', '', '', ''], tall)}</w:tbl>`;
+    const vertical = (row: string) => [
+      ...new Set([...row.matchAll(/<w:vAlign w:val="(\w+)"\/>/g)].map((match) => match[1])),
+    ];
+
+    it('centres every row while each cell holds one line', () => {
+      const rows = rowsOf(
+        renderDocument(docx(signedList), {
+          people: [
+            {
+              name: 'Mureșanu Bogdan-Alexandru',
+              jobTitle: 'Manager restaurant',
+              date: '21.11.2026',
+            },
+            { name: 'Bălănescu Gheorghe', jobTitle: 'Bucătar-șef', date: '21.11.2026' },
+          ],
+        })
+      );
+      expect(rows.slice(1).map(vertical)).toEqual(Array(4).fill(['center']));
+    });
+
+    it('reads every row from the top once a cell of any row wraps', () => {
+      const rows = rowsOf(
+        renderDocument(docx(signedList), {
+          people: [
+            { name: 'Bălănescu Gheorghe', jobTitle: 'Bucătar-șef', date: '21.11.2026' },
+            {
+              name: 'Mihai Popescu',
+              jobTitle: 'Operator montaj linii automate',
+              date: '21.11.2026',
+            },
+          ],
+        })
+      );
+      expect(rows.slice(1).map(vertical)).toEqual(Array(4).fill(['top']));
+    });
+  });
+
   it('centres a column of short values and starts one of names or text at the left', () => {
     const rows = rowsOf(
       renderDocument(docx(table(house, header + loopRow)), {

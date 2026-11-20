@@ -3,6 +3,8 @@
 // loop is still one row (`tools/import/table_style.py`, which holds its reasons). Only the
 // tables it drew in the house style, which name the table style `HouseTable`, are touched.
 
+import { textWidth } from './content-widths';
+
 const houseTable = 'HouseTable';
 const wholeRows = 6;
 const tallRowText = 700;
@@ -17,6 +19,7 @@ const emptyMark = '—';
 const valueColumn =
   /^(nr\.?\s*(crt|întreb)|data\b|durata|nivel\b|nivelul|clas[ae]\b|cantitate|număr|nr\. bucăți|cod risc|termen|lunile|punctaj|răspunsul)/i;
 const textColumn = /^(nume|numele|denumire|persoan|semnătur|observa|cine)/i;
+const signatureColumn = /^semnătur/i;
 const shortWords = 3;
 const shortText = 24;
 const dashes = new Set(['-', '--', '–', '—', '---']);
@@ -276,6 +279,58 @@ function cellLines(cell: string, column: number, grid: number[]) {
     .reduce((sum, [paragraph]) => sum + paragraphLines(paragraph, width), 0);
 }
 
+const unescaped = (text: string) =>
+  text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+
+function wrappedLines(text: string, size: number, width: number) {
+  const space = textWidth(' ', size);
+  let lines = 1;
+  let used = 0;
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const wide = textWidth(word, size);
+    if (used > 0 && used + space + wide <= width) {
+      used += space + wide;
+      continue;
+    }
+    if (used > 0) lines += 1;
+    lines += Math.ceil(wide / width) - 1;
+    used = wide % width || width;
+  }
+  return lines;
+}
+
+/** As `cellLines`, wrapped word by word at Arial's advances instead of guessed from an average. */
+function measuredLines(cell: string, column: number, grid: number[]) {
+  if (cellProperties(cell).includes('<w:textDirection')) return 1;
+  const width = cellWidth(cell, column, grid);
+  return [...cell.matchAll(paragraphPattern)]
+    .filter(([paragraph]) => textOf(paragraph).trim())
+    .reduce(
+      (sum, [paragraph]) =>
+        sum +
+        paragraph
+          .split(/<w:(?:br|cr)\b[^>]*\/>/)
+          .reduce(
+            (lines, piece) =>
+              lines + wrappedLines(unescaped(textOf(piece)), paragraphSize(paragraph), width),
+            0
+          ),
+      0
+    );
+}
+
+/** A list people sign by hand, row by row: its header names a column for the signature. */
+function isSignedList(rows: string[], header: number) {
+  return rows
+    .slice(0, header)
+    .some((row) => columnsOf(row).some(({ cell }) => signatureColumn.test(textOf(cell).trim())));
+}
+
 const isShort = (text: string) =>
   text === emptyMark ||
   /^\d/.test(text) ||
@@ -342,12 +397,16 @@ function alignedRow(
   row: string,
   grid: number[],
   alignments: Map<number, 'center' | 'left'>,
-  mergedOn: ReadonlySet<number>
+  mergedOn: ReadonlySet<number>,
+  shared?: 'center' | 'top'
 ) {
   const placed = columnsOf(row);
-  const single =
-    mergedOn.size === 0 &&
-    placed.every(({ column, cell }) => continuesMerge(cell) || cellLines(cell, column, grid) <= 1);
+  const single = shared
+    ? shared === 'center'
+    : mergedOn.size === 0 &&
+      placed.every(
+        ({ column, cell }) => continuesMerge(cell) || cellLines(cell, column, grid) <= 1
+      );
   let index = 0;
   return row.replace(cellPattern, (cell) => {
     const { column } = placed[index]!;
@@ -453,8 +512,27 @@ function laidOut(table: string, closing = false) {
     index < header ? row : row.replace(cellPattern, (cell) => withEmptyMark(cell))
   );
   const alignments = columnAlignments(withMarks, header);
+  // The rows of a signed list are as tall as a signature needs, so a row centred beside one read
+  // from the top shows at once: they share one alignment, centred while every cell is one line,
+  // which only the merged rows tell.
+  const shared =
+    isSignedList(withMarks, header) && !withMarks.some((row) => textOf(row).includes('{{'))
+      ? withMarks
+          .slice(header)
+          .every(
+            (row, index) =>
+              mergedOnto(row, withMarks[header + index + 1]).size === 0 &&
+              columnsOf(row).every(
+                ({ column, cell }) => continuesMerge(cell) || measuredLines(cell, column, grid) <= 1
+              )
+          )
+        ? 'center'
+        : 'top'
+      : undefined;
   const marked = withMarks.map((row, index) =>
-    index < header ? row : alignedRow(row, grid, alignments, mergedOnto(row, withMarks[index + 1]))
+    index < header
+      ? row
+      : alignedRow(row, grid, alignments, mergedOnto(row, withMarks[index + 1]), shared)
   );
   const { cantSplit, keeps } = keepTogether(marked, header, grid);
   if (closing && keeps.slice(0, -1).every(Boolean)) keeps[keeps.length - 1] = true;
