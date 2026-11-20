@@ -71,24 +71,3 @@ export function romanianNoon(day: string) {
   const offsetHours = Number(romanianHourFormat.format(utcNoon)) - 12;
   return new Date(utcNoon.getTime() - offsetHours * 3_600_000);
 }
-
-const nbsp = ' ';
-
-/**
- * A Romanian phone number in its groups, joined by no-break spaces so it never splits across
- * lines: „0722 111 222”, „0256 123 456”, or „+40 722 111 222” when it was entered with the
- * country code. Dashes, dots, slashes, brackets and spaces typed in it go; a value that is not a
- * Romanian number prints as it was typed.
- */
-export function printedPhone(value: string) {
-  const typed = value.trim();
-  if (!/^\+?[\d\s.\-/()]+$/.test(typed)) return value;
-  const digits = typed.replace(/[^\d+]/g, '');
-  const international = /^(?:\+|00)40/.exec(digits);
-  const national = international ? `0${digits.slice(international[0].length)}` : digits;
-  if (!/^0[237]\d{8}$/.test(national)) return value;
-  const rest = national.slice(1);
-  return international
-    ? ['+40', rest.slice(0, 3), rest.slice(3, 6), rest.slice(6)].join(nbsp)
-    : [national.slice(0, 4), national.slice(4, 7), national.slice(7)].join(nbsp);
-}

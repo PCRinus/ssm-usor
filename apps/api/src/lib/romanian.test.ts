@@ -4,7 +4,6 @@ import {
   definiteRole,
   listed,
   printedDay,
-  printedPhone,
   romanianDay,
   romanianNoon,
   runOn,
@@ -96,33 +95,5 @@ describe('a day in Romania', () => {
       expect(printedDay(moment)).toBe(romanianLocale.format(new Date(moment)));
     }
     expect(printedDay(new Date('2026-10-17T22:30:00Z'))).toBe('18.10.2026');
-  });
-});
-
-describe('a phone number as printed', () => {
-  const grouped = (...groups: string[]) => groups.join('\u00a0');
-
-  it.each([
-    ['0722111222', grouped('0722', '111', '222')],
-    ['0722-111-222', grouped('0722', '111', '222')],
-    ['0722.111.222', grouped('0722', '111', '222')],
-    [' 0256 / 123 456 ', grouped('0256', '123', '456')],
-    ['(0356) 123-456', grouped('0356', '123', '456')],
-    ['+40722111222', grouped('+40', '722', '111', '222')],
-    ['+40 (722) 111 222', grouped('+40', '722', '111', '222')],
-    ['0040722111222', grouped('+40', '722', '111', '222')],
-  ])('groups %s', (typed, printed) => {
-    expect(printedPhone(typed)).toBe(printed);
-  });
-
-  it.each([
-    '072211122',
-    '07221112223',
-    '0122111222',
-    '+44 20 7946 0958',
-    'tel. 0722111222',
-    'interior 12',
-  ])('leaves %s as typed', (typed) => {
-    expect(printedPhone(typed)).toBe(typed);
   });
 });
