@@ -457,18 +457,18 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     noHeadings: 'Nu s-au găsit titluri. Adăugați titluri în document pentru a le vedea aici.',
   },
   navigation: {
-    ariaLabel: 'Navigare în document',
-    title: 'Navigare',
-    openAriaLabel: 'Deschide navigarea',
-    openTitle: 'Navigare',
-    closeAriaLabel: 'Închide navigarea',
-    closeTitle: 'Închide navigarea',
+    ariaLabel: 'Cuprins și căutare',
+    title: 'Cuprins și căutare',
+    openAriaLabel: 'Deschide cuprinsul și căutarea',
+    openTitle: 'Cuprins și căutare',
+    closeAriaLabel: 'Închide cuprinsul și căutarea',
+    closeTitle: 'Închide',
     tabs: {
-      headings: 'Titluri',
+      headings: 'Cuprins',
       find: 'Căutare',
     },
     headings: {
-      noHeadings: 'Nu s-au găsit titluri. Adăugați titluri în document pentru a le vedea aici.',
+      noHeadings: 'Documentul nu are titluri de capitol.',
     },
     find: {
       placeholder: 'Caută în document',

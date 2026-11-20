@@ -6,7 +6,9 @@ import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
 import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from 'react';
 
 import { editorStrings } from './editor-strings.ro';
+import { NavigationButton } from './navigation-button';
 import { UnfilledNavigator } from './unfilled-navigator';
+import { useDocumentNavigation } from './use-document-navigation';
 
 // The Word editor itself, in a module of its own so that its three megabytes are only
 // fetched when a document is opened. It takes bytes and gives bytes back (ADR 005), so
@@ -58,6 +60,7 @@ export default function DocumentEditor({
   // The revision of the document as loaded or as last saved. Opening a file also reports
   // changes, from laying it out, which are not the person's.
   const cleanRevision = useRef<number | null>(null);
+  const pane = useDocumentNavigation(ready);
 
   useImperativeHandle(handle, () => ({
     save: async () => {
@@ -97,7 +100,7 @@ export default function DocumentEditor({
       // Correcting a name or a sentence needs the toolbar and the page, not an office suite.
       menu={false}
       rulers={false}
-      navigation={false}
+      navigation={pane.navigation}
       locale="ro-RO"
       // A module constant: a catalogue with a new identity rebuilds the whole interface.
       i18n={editorStrings}
@@ -107,6 +110,7 @@ export default function DocumentEditor({
       renderTitleBarLeft={() => <span className="-mr-0.5 flex">{back}</span>}
       renderTitleBarRight={() => (
         <div data-editor-title-actions className="flex flex-wrap items-center gap-2">
+          <NavigationButton open={pane.open} onToggle={pane.toggle} />
           {editable && <UnfilledNavigator />}
           {actions}
         </div>

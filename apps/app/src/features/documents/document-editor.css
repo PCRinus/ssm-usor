@@ -10,3 +10,51 @@
     flex-basis: 100%;
   }
 }
+
+/* The editor declares the same colour names as the app (--primary, --input…) on its own root, in
+   another format, so inside it the app's colours are reached through names it does not use. */
+:root {
+  --app-primary: var(--primary);
+  --app-secondary: var(--secondary);
+  --app-foreground: var(--foreground);
+  --app-muted: var(--muted);
+  --app-muted-foreground: var(--muted-foreground);
+  --app-card: var(--card);
+  --app-input: var(--input);
+  --app-border: var(--border);
+}
+
+/* The chapter and search pane, in the app's type and colours. The editor's toolbar keeps its own. */
+.docx-editor .docx-nav {
+  --doc-primary: var(--app-primary);
+  --doc-primary-light: var(--app-secondary);
+  --doc-text: var(--app-foreground);
+  --doc-text-muted: var(--app-muted-foreground);
+  --doc-text-subtle: var(--app-muted-foreground);
+  --doc-text-placeholder: var(--app-muted-foreground);
+  --doc-bg-hover: var(--app-muted);
+  --doc-bg-input: var(--app-card);
+  --doc-border-input: var(--app-input);
+  --doc-border-light: var(--app-border);
+
+  font-family: var(--font-body);
+}
+
+/* On a phone the pane would leave a sliver of page beside it; it covers the page instead, and
+   closes when a chapter or a result is picked. */
+@media (width <= 40rem) {
+  .docx-editor .docx-nav {
+    width: 100%;
+  }
+
+  .docx-editor .docx-nav__panel-shell {
+    inset-inline: 0;
+    width: auto;
+    padding-inline: 0.75rem;
+  }
+}
+
+/* The outline's filter box reads like the search beside it, and twenty chapters need no filter. */
+.docx-editor #docx-nav-panel-headings .docx-nav__searchbox {
+  display: none;
+}
