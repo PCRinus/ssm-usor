@@ -56,9 +56,16 @@ if [ "$is_push" = true ] && has 'pr-screenshots' \
   deny "pr-screenshots is never force-pushed: it holds the screenshots of every open pull request."
 fi
 
-# The branch being committed or pushed, not the one the session happens to sit in.
-repo_dir=$(printf '%s' "$command" | sed -nE 's/.*git[[:space:]]+-C[[:space:]]+("([^"]+)"|'"'"'([^'"'"']+)'"'"'|([^[:space:]]+)).*/\2\3\4/p' | head -1)
-[ -n "$repo_dir" ] || repo_dir=$(printf '%s' "$command" | sed -nE 's/^[[:space:]]*cd[[:space:]]+("([^"]+)"|([^[:space:];&|]+)).*/\2\3/p' | head -1)
+# The branch being committed or pushed, not the one the session happens to sit in. Only a
+# `git -C` or `cd` in command position counts, so a commit message quoting one cannot steer the
+# check, and a path that is no repository falls back to the session's folder rather than to none.
+assignments='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*'
+path_arg='("([^"]+)"|'"'"'([^'"'"']+)'"'"'|([^[:space:];&|]+))'
+repo_dir=$(printf '%s' "$command" | sed -nE "s/^(.*[;&|(])?[[:space:]]*${assignments}git[[:space:]]+-C[[:space:]]+${path_arg}.*/\\4\\5\\6/p" | head -1)
+[ -n "$repo_dir" ] || repo_dir=$(printf '%s' "$command" | sed -nE "s/^[[:space:]]*cd[[:space:]]+${path_arg}.*/\\2\\3\\4/p" | head -1)
+if [ -n "$repo_dir" ] && ! git -C "$repo_dir" rev-parse --git-dir >/dev/null 2>&1; then
+  repo_dir=""
+fi
 in_repo() {
   if [ -n "$repo_dir" ]; then git -C "$repo_dir" "$@"; else git "$@"; fi
 }
