@@ -137,6 +137,35 @@ describe('the table house style of the occupational safety set', () => {
     expect(keepTablesTogether(body) === body).toBe(true);
   });
 
+  it('prints a table of up to six columns at 10 pt, but in the sheets', () => {
+    const sheets = ['fisa_instruire_ssm.docx', 'fisa_test.docx'];
+    const small = houseTables
+      .filter(
+        ([name, , table]) =>
+          !sheets.includes(name) && (table.match(/<w:gridCol\b/g) ?? []).length <= 6
+      )
+      .flatMap(([name, first, table]) =>
+        [...table.matchAll(/<w:sz w:val="(\d+)"\/>/g)]
+          .filter((size) => size[1] !== '20')
+          .map(() => `${name}: ${first}`)
+      );
+    expect([...new Set(small)]).toEqual([]);
+  });
+
+  it("keeps each of 6's risk groups with its first row", () => {
+    const groups = houseTables
+      .filter(
+        ([name, first]) =>
+          name === '6_protective_equipment_list.docx' && first.startsWith('Riscuri')
+      )
+      .flatMap(([, , table]) => rowsOf(table).filter((row) => cellsOf(row).length === 1));
+    expect(groups.length).toBe(11);
+    for (const row of groups) {
+      expect(row).toContain('<w:cantSplit/>');
+      expect(row).toContain('<w:keepNext/>');
+    }
+  });
+
   it('marks a consequence in 9 with an X and nothing elsewhere, the places in equal columns', () => {
     const [, , matrix] = houseTables.find(([, first]) => first.startsWith('Nr.crt.CONSECINȚE'))!;
     const marks = rowsOf(matrix)

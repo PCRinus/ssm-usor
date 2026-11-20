@@ -177,7 +177,7 @@
       "file": "6_protective_equipment_list.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă și linie pentru dată. Ghilimele „…”, „și/sau”. Echipamentul posturilor stă într-un singur tabel, grupat pe posturi. Liniuțele din celule au rândurile aliniate sub text. Categoria de personal încape pe un rând."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnături pe 25 mm, cu linie pentru dată. Ghilimele „…”, „și/sau”. Echipamentul stă într-un tabel, grupat pe posturi. Liniuțele din celule au rândurile aliniate sub text. Categoria de personal încape pe un rând. Anexa 3 e scrisă cu 10 pt; grupele de riscuri nu mai rămân la capăt de pagină."
       }
     },
     {
@@ -213,7 +213,7 @@
       "file": "8_control_report.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Rândul semnăturilor are 25 mm. Formularul are titlul „REFERAT DE CONTROL”."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Rândul semnăturilor are 25 mm. Formularul are titlul „REFERAT DE CONTROL”. Titlurile din tabel nu mai rămân singure la capăt de pagină."
       }
     },
     {

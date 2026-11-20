@@ -190,6 +190,17 @@ describe('keeping the house tables together once merged', () => {
     ]);
   });
 
+  it('keeps a group named in bold with its first row beside a row that may split', () => {
+    const boldGroup = `<w:tr><w:tc><w:tcPr><w:tcW w:w="6000" w:type="dxa"/><w:gridSpan w:val="2"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Fizice - termice</w:t></w:r></w:p></w:tc></w:tr>`;
+    const rows = rowsOf(
+      renderDocument(docx(table(house, header + boldGroup + loopRow)), {
+        people: [{ name: 'Arsuri', note: 'Lucrări '.repeat(150) }, ...people(2)],
+      })
+    );
+    expect(rows.map(keepsWithNext)).toEqual([false, true, false, false, false]);
+    expect(rows.map(staysWhole)).toEqual([true, true, false, true, true]);
+  });
+
   it("joins a marked cell the data left empty to the group's cell above, which reads from the top", () => {
     const marked = (text: string) =>
       `<w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/><w:vMerge w:val="restart"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">${text}</w:t></w:r></w:p></w:tc>`;

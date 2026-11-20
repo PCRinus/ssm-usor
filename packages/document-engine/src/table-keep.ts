@@ -126,15 +126,15 @@ function estimatedHeight(row: string, grid: number[]) {
 }
 
 // The fill of a row of one cell across the table that names the group of rows under it: 6's
-// post names.
+// post names. Its risk groups name theirs in bold.
 const groupFill = 'F1F4EF';
+const boldRun = /<w:rPr>(?:(?!<\/w:rPr>)[\s\S])*<w:b(?: w:val="(?:true|1|on)")?\/>/;
 const isGroupRow = (row: string, grid: number[]) => {
   const cells = columnsOf(row);
-  return (
-    cells.length === 1 &&
-    spanOf(cells[0]!.cell) === grid.length &&
-    cellProperties(cells[0]!.cell).includes(`w:fill="${groupFill}"`)
-  );
+  if (cells.length !== 1 || spanOf(cells[0]!.cell) !== grid.length) return false;
+  if (cellProperties(cells[0]!.cell).includes(`w:fill="${groupFill}"`)) return true;
+  const said = [...row.matchAll(runPattern)].filter(([run]) => textOf(run).trim());
+  return said.length > 0 && said.every(([run]) => boldRun.test(run));
 };
 
 function keepTogether(rows: string[], header: number, grid: number[]) {
@@ -142,8 +142,11 @@ function keepTogether(rows: string[], header: number, grid: number[]) {
   const tall = rows.map(
     (row, index) => lengthOf(textOf(row)) > tallRowText || heights[index]! > tallRowRoom
   );
+  const groups = rows.map(
+    (row, index) => index >= header && index < rows.length - 1 && isGroupRow(row, grid)
+  );
   if (tall.some(Boolean)) {
-    return { cantSplit: tall.map((each) => !each), keeps: rows.map(() => false) };
+    return { cantSplit: tall.map((each) => !each), keeps: groups };
   }
   const total = (count: number) => heights.slice(0, count).reduce((sum, each) => sum + each, 0);
   let chain: number;
@@ -159,10 +162,7 @@ function keepTogether(rows: string[], header: number, grid: number[]) {
   }
   return {
     cantSplit: rows.map(() => true),
-    keeps: rows.map(
-      (row, index) =>
-        index < chain || (index >= header && index < rows.length - 1 && isGroupRow(row, grid))
-    ),
+    keeps: rows.map((_, index) => index < chain || groups[index]!),
   };
 }
 

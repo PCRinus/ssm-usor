@@ -87,6 +87,7 @@ ROW = re.compile(r'<w:tr\b[^>]*>.*?</w:tr>', re.S)
 CELL = re.compile(r'<w:tc\b[^>]*>.*?</w:tc>', re.S)
 PARAGRAPH = re.compile(r'<w:p\b[^>]*/>|<w:p\b[^>]*>.*?</w:p>', re.S)
 RUN = re.compile(r'<w:r\b[^>]*>.*?</w:r>', re.S)
+BOLD_RUN = re.compile(r'<w:rPr>(?:(?!</w:rPr>).)*<w:b(?: w:val="(?:true|1|on)")?/>', re.S)
 TEXT = re.compile(r'(<w:t\b[^>]*>)([^<]*)(</w:t>)')
 LOOP_TAGS_ONLY = re.compile(r'(\{\{[#/^][^}]*\}\})+')
 ON = r'(?: w:val="(?:true|1|on)")?'
@@ -464,8 +465,10 @@ def keep_together(rows, header, grid, closing=False):
     heights = [estimated_height(row, grid) for row in rows]
     tall = [unescaped_length(text_of(row)) > TALL_ROW_TEXT or height > TALL_ROW_ROOM
             for row, height in zip(rows, heights)]
+    groups = [header <= index < len(rows) - 1 and is_group_row(row, grid) for index, row in enumerate(rows)]
     if any(tall):
-        return [not each for each in tall], [False] * len(rows)
+        # LibreOffice keeps a row with a next one that may split, so a group's name never ends a page.
+        return [not each for each in tall], groups
     keeps = [False] * len(rows)
     signed_by_hand = any('Semnătura' in text_of(row) for row in rows[:header])
     if not signed_by_hand and len(rows) - header <= WHOLE_ROWS and sum(heights) <= KEEP_ROOM:
@@ -477,17 +480,22 @@ def keep_together(rows, header, grid, closing=False):
             chain -= 1
     for index in range(chain):
         keeps[index] = True
-    for index in range(header, len(rows) - 1):
-        if is_group_row(rows[index], grid):
-            keeps[index] = True
+    keeps = [keep or group for keep, group in zip(keeps, groups)]
     if closing and all(keeps[:-1]):
         keeps[-1] = True
     return [True] * len(rows), keeps
 
 
 def is_group_row(row, grid):
+    """A row of one cell across the table that names the rows under it: on the group fill, or
+    in bold."""
     cells = CELL.findall(row)
-    return len(cells) == 1 and span(cells[0]) == len(grid) and f'w:fill="{GROUP_FILL}"' in cell_properties(cells[0])
+    if len(cells) != 1 or span(cells[0]) != len(grid):
+        return False
+    if f'w:fill="{GROUP_FILL}"' in cell_properties(cells[0]):
+        return True
+    said = [run for run in RUN.findall(row) if text_of(run).strip()]
+    return bool(said) and all(BOLD_RUN.search(run) for run in said)
 
 
 def apply_keep(row, cant_split, keeps):
@@ -568,9 +576,22 @@ BOLD_WIDTHS = dict(zip(
 BASE_LETTERS = str.maketrans('ăâîșțşţĂÂÎȘȚŞŢ', 'aaiststAAISTST')
 
 
+# Arial's, rounded up as `src/content-widths.ts` has them.
+REGULAR_WIDTHS = dict(zip(
+    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,:;-()/%',
+    [557, 557, 500, 557, 557, 278, 557, 557, 223, 223, 500, 223, 834, 557, 557, 557, 557, 334, 500, 278,
+     557, 500, 723, 500, 500, 500, 667, 667, 723, 723, 667, 611, 778, 723, 278, 500, 667, 557, 834, 723,
+     778, 667, 778, 723, 667, 611, 723, 667, 944, 667, 667, 611] + [557] * 10 + [278, 278, 278, 278, 334,
+                                                                              334, 334, 278, 890]))
+
+
 def bold_width(word, size):
     """In twips, at `size` half-points."""
     return sum(BOLD_WIDTHS.get(letter, 611) for letter in word.translate(BASE_LETTERS)) * size / 2 * 20 / 1000
+
+
+def regular_width(word, size):
+    return sum(REGULAR_WIDTHS.get(letter, 611) for letter in word.translate(BASE_LETTERS)) * size / 2 * 20 / 1000
 
 
 def header_floors(rows, header, size, side_padding):
@@ -587,6 +608,26 @@ def header_floors(rows, header, size, side_padding):
             need = max((bold_width(word, size) for word in words if word), default=0)
             if need:
                 floors[column] = max(floors.get(column, 0), math.ceil(need) + across + 20)
+    return floors
+
+
+def body_floors(rows, header, side_padding):
+    """As `header_floors`, for the words of the body that the template holds."""
+    across = 2 * side_padding
+    floors = {}
+    for row in rows[header:]:
+        for column, cell in columns_of(row):
+            if span(cell) > 1 or '<w:textDirection' in cell_properties(cell):
+                continue
+            for paragraph in PARAGRAPH.findall(cell):
+                said = re.sub(r'&\w+;', '_', text_of(paragraph))
+                if '{{' in said:
+                    continue
+                size = paragraph_size(paragraph)
+                left = re.search(r'<w:ind\b[^>]*w:left="(\d+)"', element(paragraph, 'pPr') or '')
+                need = max((regular_width(word, size) for word in re.split(r'[\s/]+|(?<=-)', said) if word), default=0)
+                if need:
+                    floors[column] = max(floors.get(column, 0), math.ceil(need) + across + 20 + int(left.group(1) if left else 0))
     return floors
 
 
@@ -651,16 +692,17 @@ def at_least(height):
 
 
 def on_the_scale(size, wide):
-    """The house sizes: 10 pt, 8 pt in a table too wide for 10. 9 and 7 pt were neither."""
-    if size == 18:
-        return 16 if wide else 20
-    return 16 if size == 14 else size
+    """The house sizes: 10 pt, 8 pt in a table too wide for 10. 9 and 7 pt were neither, and a
+    table narrow enough for 10 pt prints nothing smaller, whatever size its text came in."""
+    if not wide:
+        return 20
+    return 16 if size in (14, 18) else size
 
 
 def snapped(row, wide):
     def change(inner):
         size = size_of(inner)
-        return sized(on_the_scale(size, wide))(inner) if size in (14, 18) else inner
+        return sized(on_the_scale(size, wide))(inner) if size is not None and on_the_scale(size, wide) != size else inner
     return RUN.sub(lambda match: edit_properties(match.group(0), 'rPr', change), set_paragraphs_marks(row, change))
 
 
@@ -680,7 +722,11 @@ def house_table(table, kind, header_size=None, snap=True, closing=False):
     if kind == 'consequences':
         grid = even_locations(grid)
     side_padding = dict(PADDING)['left']
-    grid = fitted(grid, header_floors(rows, header, size, side_padding))
+    floors = header_floors(rows, header, size, side_padding)
+    if snap and not wide:
+        body = body_floors(rows, header, side_padding)
+        floors = {column: max(floors.get(column, 0), body.get(column, 0)) for column in floors.keys() | body.keys()}
+    grid = fitted(grid, floors)
     regridded = grid != grid_of(table)
     if regridded:
         table = re.sub(r'<w:tblGrid>.*?</w:tblGrid>',

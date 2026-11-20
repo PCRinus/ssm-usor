@@ -2,8 +2,8 @@ import unittest
 
 import decision_pages
 import landscape_binding
-from table_style import (closes_its_page, element, in_schema_order, in_schema_values, keep_together, kind_of,
-                         without)
+from table_style import (closes_its_page, element, house_table, in_schema_order, in_schema_values, keep_together,
+                         kind_of, without)
 
 ROW = '<w:tr><w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>{}</w:t></w:r></w:p></w:tc></w:tr>'
 def table(rows, properties=''):
@@ -80,6 +80,32 @@ class KeepTogether(unittest.TestCase):
         cant_split, keeps = keep_together(rows, 1, [4000])
         self.assertEqual(cant_split, [True, False])
         self.assertEqual(keeps, [False, False])
+
+    def test_a_group_named_in_bold_keeps_with_its_first_row_even_beside_a_very_long_row(self):
+        def row(*texts, before=''):
+            cells = ''.join(f'<w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>{text}</w:t></w:r></w:p></w:tc>'
+                            for text in texts)
+            return f'<w:tr>{before}{cells}</w:tr>'
+        group = ('<w:tr><w:tc><w:tcPr><w:tcW w:w="8000" w:type="dxa"/><w:gridSpan w:val="2"/></w:tcPr>'
+                 '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Fizice - termice</w:t></w:r></w:p></w:tc></w:tr>')
+        rows = [row('Riscuri', 'Exemple', before='<w:trPr><w:tblHeader/></w:trPr>'), group,
+                row('Arsuri', 'Lucrări ' * 300), row('Degerături', 'Lucrări în frig')]
+        cant_split, keeps = keep_together(rows, 1, [4000, 4000])
+        self.assertEqual(keeps, [False, True, False, False])
+        self.assertEqual(cant_split, [True, True, False, True])
+
+
+class Sizes(unittest.TestCase):
+    def test_a_table_narrow_enough_for_10_pt_prints_every_run_at_10_pt(self):
+        cell = '<w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/></w:tcPr><w:p><w:r><w:rPr><w:sz w:val="{}"/></w:rPr><w:t>{}</w:t></w:r></w:p></w:tc>'
+        def ruled(columns, size):
+            grid = ''.join('<w:gridCol w:w="2000"/>' for _ in range(columns))
+            row = '<w:tr>' + ''.join(cell.format(size, 'Lucrări') for _ in range(columns)) + '</w:tr>'
+            return f'<w:tbl><w:tblPr><w:tblBorders/></w:tblPr><w:tblGrid>{grid}</w:tblGrid>{row}{row}</w:tbl>'
+        self.assertNotIn('<w:sz w:val="16"/>', house_table(ruled(4, 16), 'house'))
+        self.assertIn('<w:sz w:val="20"/>', house_table(ruled(4, 16), 'house'))
+        self.assertIn('<w:sz w:val="16"/>', house_table(ruled(7, 16), 'house'))
+        self.assertIn('<w:sz w:val="16"/>', house_table(ruled(4, 16), 'house', snap=False))
 
 
 class SignedAndClosing(unittest.TestCase):
