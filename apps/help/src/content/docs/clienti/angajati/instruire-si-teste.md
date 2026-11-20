@@ -74,14 +74,14 @@ Pe pagina unui lucrător, **Instruire SSM** și **Instruire SU** adună tot ce �
 
 ## Taburile de instruire
 
-Cele două taburi arată la fel. Sus ai **Descarcă fișa SSM** (sau **SU**), **Previzualizează** și **Înregistrează o instruire**; cât timp angajatul nu are nicio instruire în acel domeniu, **Înregistrează o instruire** e în lista goală de jos. Dedesubt:
+Cele două taburi arată la fel. Sus ai **Descarcă fișa SSM** (sau **SU**), **Previzualizează** și **Înregistrează o instruire**; cât timp angajatul nu are nicio instruire în acel domeniu, **Înregistrează o instruire** e în panoul **Instruiri**, gol încă. Pe telefon, butoanele stau unul sub altul, cu **Înregistrează o instruire** primul. Dedesubt:
 
 - **Starea instruirii**: Neinstruit, La zi, Scadentă sau Depășită (vezi [Starea instruirii](/clienti/angajati/));
 - **Următoarea instruire**: termenul, sau de ce nu există încă unul;
 - **Intervalul de instruire**: la câte luni se repetă instruirea periodică și de unde vine intervalul;
 - **Ultima instruire periodică**;
 - **Testare**: starea testării, rezultatele și încercările din portal;
-- tabelul instruirilor lucrătorului în acel domeniu.
+- **Instruiri**: tabelul instruirilor lucrătorului în acel domeniu.
 
 Tabelul are o instruire pe rând, cea mai nouă sus: ziua, tipul instruirii, durata, cine a instruit și **Semnătura** lucrătorului: **De semnat**, **Semnată**, cu un lacăt, când a semnat-o în aplicație sau în portal, sau **Semnată de mână**. Sub tip scrie **Transcrisă de pe fișă** pentru o instruire de pe fișa pe hârtie, iar la o instruire cu mai mulți participanți, **Instruire de grup** cu numărul lor: linkul te duce la ea în tabul **Instruiri ținute** al clientului, cu rândul ei deschis. Poți ordona după zi sau durată, apăsând pe titlul coloanei.
 
@@ -173,7 +173,7 @@ O instruire de pe fișa pe hârtie nu are semnături electronice de anulat. La p
 
 ## Testarea
 
-Cardul **Testare** arată starea testării, ce urmează, rezultatele și încercările din portal. Stările sunt explicate în [Starea testării](/clienti/angajati/). Întrebările testelor, aceleași pentru toți clienții, le alegi și le scrii pe pagina [Teste](/teste/).
+Panoul **Testare** arată starea testării, ce urmează, rezultatele și încercările din portal. Stările sunt explicate în [Starea testării](/clienti/angajati/). Întrebările testelor, aceleași pentru toți clienții, le alegi și le scrii pe pagina [Teste](/teste/).
 
 ### Când îl așteaptă un test
 

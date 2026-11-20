@@ -684,6 +684,7 @@ describe('the files of an employee', () => {
     const card = await screen.findByTestId('employee-files-card');
     const [row] = await within(card).findAllByTestId('client-file-row');
     expect(within(card).queryByRole('heading', { name: 'Documente' })).toBeNull();
+    expect(card.closest('[data-slot="card"]')).toBeNull();
     expect(
       within(card)
         .getByRole('link', { name: 'Ajutor: Documentele lucrătorului' })

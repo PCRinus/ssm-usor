@@ -12,6 +12,7 @@ import { Notice } from '@ssm-usor/ui/components/notice';
 import { useState } from 'react';
 
 import { openedFromRecord, openedHere } from '@/app/opener';
+import { TodoLine } from '@/components/todo-line';
 import { useAuth } from '@/features/auth/auth-context';
 import { MissingDataList } from '@/features/missing-data/missing-data-list';
 import {
@@ -50,14 +51,13 @@ export function TrainingSheetReadiness({
   const groups = trainingSheetMissingGroups({ missing: sheet.missing, clientId, employeeId });
   return (
     <>
-      <Notice
-        variant="warning"
+      <TodoLine
         data-testid={`training-sheet-${domain}-missing`}
         action={
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
-            className="w-fit"
+            className="max-sm:w-full"
             data-testid={`training-sheet-${domain}-missing-open`}
             onClick={() => setOpen(true)}
           >
@@ -66,7 +66,7 @@ export function TrainingSheetReadiness({
         }
       >
         Fișa {label} nu se poate întocmi încă: {missingCountLabel(sheet.missing.length)}.
-      </Notice>
+      </TodoLine>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent data-testid="training-sheet-missing-dialog" className="sm:max-w-lg">
           <DialogHeader>

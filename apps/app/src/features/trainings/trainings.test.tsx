@@ -354,9 +354,12 @@ describe("an employee's training tabs", () => {
     expect(source.getAttribute('href')).toBe(
       `/clienti/${clientId}/instruire?focus=training-schedule`
     );
+    const actions = screen.getByTestId('training-tab-actions');
+    expect(within(actions).getByTestId('training-sheet-ssm')).toBeTruthy();
+    expect(actions.firstElementChild).toBe(screen.getByTestId('training-record'));
     expect(
-      within(screen.getByTestId('training-tab-actions')).getByTestId('training-sheet-ssm')
-    ).toBeTruthy();
+      screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+    ).toEqual(['Testare', 'Instruiri']);
 
     const periodic = within(items[0]!);
     expect(periodic.getByText('Periodică')).toBeTruthy();
@@ -472,7 +475,7 @@ describe("an employee's training tabs", () => {
     expect(set.getAttribute('href')).toBe(`/clienti/${clientId}/instruire?focus=training-schedule`);
   });
 
-  it('keeps the header to its buttons and says what the sheet lacks on a row of its own', async () => {
+  it('keeps the action bar to its buttons and says what the sheet lacks on a row of its own', async () => {
     mockApi({
       [`GET ${employeePath}/training-sheets`]: () =>
         Response.json({
@@ -488,8 +491,8 @@ describe("an employee's training tabs", () => {
     });
     mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const notice = await screen.findByTestId('training-sheet-ssm-missing');
-    const header = screen.getByRole('heading', { name: 'Instruire SSM' }).parentElement!;
-    expect(header.contains(notice)).toBe(false);
+    expect(screen.queryByRole('heading', { name: 'Instruire SSM' })).toBeNull();
+    expect(screen.getByTestId('training-tab-actions').contains(notice)).toBe(false);
     expect(screen.getByTestId('employee-training-tab').contains(notice)).toBe(true);
     expect(
       notice.compareDocumentPosition(screen.getByTestId('training-status')) &

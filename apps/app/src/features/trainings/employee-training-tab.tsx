@@ -11,7 +11,7 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { getRouteApi, Link } from '@tanstack/react-router';
 import { ClipboardCheck, Plus, SearchX, Signature } from 'lucide-react';
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useId, useMemo, useState } from 'react';
 import type { z } from 'zod';
 
 import {
@@ -24,12 +24,14 @@ import { openedHere } from '@/app/opener';
 import { createDataTableColumns, type DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
+import { HelpLink } from '@/components/help-link';
 import { ListCardHeader, ListCount } from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch, periodSearch, periodValue } from '@/components/list-filters/url';
 import { useAuth } from '@/features/auth/auth-context';
+import { SummaryNote, summaryQuiet } from '@/features/clients/details/summary-list';
 import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
 import { WorkersListError } from '@/features/employees/workers-list';
@@ -77,14 +79,15 @@ function nextPhase(records: EmployeeTrainingRecord[]): TrainingPhase {
 
 function StatusFact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid gap-1">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-sm font-medium">{children}</dd>
+    <div className="grid content-start gap-1">
+      <dt className={summaryQuiet}>{label}</dt>
+      <dd className="font-medium">{children}</dd>
     </div>
   );
 }
 
 const sourceLinkClass = 'underline underline-offset-4 hover:text-foreground';
+const todoValue = 'font-medium text-warning-foreground';
 
 const programmeFocus = {
   ssm: 'training-schedule',
@@ -108,26 +111,28 @@ function IntervalFact({
   const search = { focus: programmeFocus[domain] };
   if (status.intervalMonths === null) {
     return (
-      <span data-testid="training-interval" className="grid gap-0.5">
-        <span className="font-normal text-muted-foreground">Nestabilit</span>
+      <span data-testid="training-interval" className="block">
+        <span className={readOnly ? undefined : todoValue}>Nestabilit</span>
         {!readOnly && (
-          <Link
-            {...programme}
-            search={search}
-            data-testid="training-interval-set"
-            title={domain === 'ssm' ? 'Postul își poate avea și propriul interval' : undefined}
-            className={`text-xs font-normal text-muted-foreground ${sourceLinkClass}`}
-          >
-            Stabilește intervalul
-          </Link>
+          <SummaryNote className="font-normal">
+            <Link
+              {...programme}
+              search={search}
+              data-testid="training-interval-set"
+              title={domain === 'ssm' ? 'Postul își poate avea și propriul interval' : undefined}
+              className={sourceLinkClass}
+            >
+              Stabilește intervalul
+            </Link>
+          </SummaryNote>
         )}
       </span>
     );
   }
   return (
-    <span data-testid="training-interval" className="grid gap-0.5">
+    <span data-testid="training-interval" className="block">
       <span>{capitalized(trainingIntervalLabel(status.intervalMonths))}</span>
-      <span className="text-xs font-normal text-muted-foreground">
+      <SummaryNote className="font-normal">
         {status.intervalSource === 'position' ? (
           <Link
             to="/clienti/$clientId/posturi/$jobPositionId"
@@ -150,7 +155,7 @@ function IntervalFact({
               : 'din datele de instruire SU ale clientului'}
           </Link>
         )}
-      </span>
+      </SummaryNote>
     </span>
   );
 }
@@ -216,6 +221,7 @@ export function EmployeeTrainingTab({
   const [target, setTarget] = useState<TrainingDialogTarget | null>(null);
   const [deleting, setDeleting] = useState<TrainingToDelete | null>(null);
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
+  const recordsHeadingId = useId();
   const listFilters = listFilterSearch({
     keys: ownTrainingFilterKeys,
     facets: ownTrainingFacets,
@@ -251,7 +257,12 @@ export function EmployeeTrainingTab({
   const all = items ?? [];
   const record = () => setTarget({ kind: 'new', domain, phase: nextPhase(all) });
   const recordButton = !readOnly && (
-    <Button data-testid="training-record" disabled={!records.data} onClick={record}>
+    <Button
+      data-testid="training-record"
+      className="sm:order-last"
+      disabled={!records.data}
+      onClick={record}
+    >
       <Plus aria-hidden="true" />
       Înregistrează o instruire
     </Button>
@@ -267,27 +278,27 @@ export function EmployeeTrainingTab({
   const total = shown?.length ?? 0;
 
   return (
-    <div data-testid="employee-training-tab" data-domain={domain} className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">Instruire {label}</h2>
-        <div className="flex flex-wrap gap-2">
-          <div data-testid="training-tab-actions" className="flex flex-wrap gap-2">
-            <TrainingSheetDownload clientId={clientId} employeeId={employeeId} domain={domain} />
-          </div>
-          {!isEmptyOrLoading(records.status, all.length) && recordButton}
-        </div>
+    <div data-testid="employee-training-tab" data-domain={domain} className="grid gap-4">
+      <div
+        data-testid="training-tab-actions"
+        className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end"
+      >
+        {!isEmptyOrLoading(records.status, all.length) && recordButton}
+        <TrainingSheetDownload clientId={clientId} employeeId={employeeId} domain={domain} />
       </div>
       <TrainingSheetReadiness clientId={clientId} employeeId={employeeId} domain={domain} />
 
       <dl
         data-testid="training-status"
-        className="grid gap-4 rounded-lg border bg-card px-5 py-4 sm:grid-cols-2 lg:grid-cols-4"
+        data-sheet-panel
+        aria-label="Starea instruirii"
+        className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border bg-card p-6 text-sm lg:grid-cols-4"
       >
         <StatusFact label="Starea instruirii">
           {status.state ? (
             <TrainingStateBadge state={status.state} testId="training-state" />
           ) : (
-            <span className="font-normal text-muted-foreground" data-testid="training-state">
+            <span className="font-normal" data-testid="training-state">
               Fără termen: nu mai lucrează la client
             </span>
           )}
@@ -295,15 +306,13 @@ export function EmployeeTrainingTab({
         <StatusFact label="Următoarea instruire">
           <span data-testid="training-due-on">
             {status.dueOn ? (
-              formatDate(status.dueOn)
+              <span className="tabular-nums">{formatDate(status.dueOn)}</span>
+            ) : status.state === 'untrained' ? (
+              <span className="font-normal">După instruirea la angajare</span>
+            ) : status.state ? (
+              <span className="font-normal">Intervalul de instruire nu este stabilit</span>
             ) : (
-              <span className="font-normal text-muted-foreground">
-                {status.state === 'untrained'
-                  ? 'După instruirea la angajare'
-                  : status.state
-                    ? 'Intervalul de instruire nu este stabilit'
-                    : '—'}
-              </span>
+              <span className="font-normal text-muted-foreground">—</span>
             )}
           </span>
         </StatusFact>
@@ -317,7 +326,7 @@ export function EmployeeTrainingTab({
           />
         </StatusFact>
         <StatusFact label="Ultima instruire periodică">
-          <span data-testid="training-last-periodic">
+          <span data-testid="training-last-periodic" className="tabular-nums">
             {status.lastPeriodicOn ? (
               formatDate(status.lastPeriodicOn)
             ) : (
@@ -334,121 +343,134 @@ export function EmployeeTrainingTab({
         readOnly={readOnly}
       />
 
-      {records.isSuccess && all.length === 0 ? (
-        <ListEmpty className="rounded-lg border bg-card">
-          <EmptyState
-            icon={ClipboardCheck}
-            data-testid="training-records-empty"
-            actions={recordButton}
-          >
-            Nicio instruire înregistrată încă. Fiecare instruire {label} a lucrătorului apare aici
-            și în fișa lui individuală.
-          </EmptyState>
-        </ListEmpty>
-      ) : (
-        <div className="overflow-hidden rounded-lg border bg-card">
-          {records.isSuccess && (
-            <>
-              <ListCardHeader>
-                <ListFilters
+      <section
+        data-testid="training-records"
+        data-sheet-panel
+        aria-labelledby={recordsHeadingId}
+        className="overflow-hidden rounded-xl border bg-card pt-6"
+      >
+        <div className="flex min-h-8 items-center px-6 pb-4 text-xl leading-7">
+          <h2 id={recordsHeadingId} className="inline font-semibold tracking-[-0.01em]">
+            Instruiri
+          </h2>
+          <HelpLink topic="angajati.instruire" label="Ajutor: Instruiri" className="ml-1" />
+        </div>
+        {records.isSuccess && all.length === 0 ? (
+          <ListEmpty className="pt-2">
+            <EmptyState
+              icon={ClipboardCheck}
+              data-testid="training-records-empty"
+              actions={recordButton}
+            >
+              Nicio instruire înregistrată încă. Fiecare instruire {label} a lucrătorului apare aici
+              și în fișa lui individuală.
+            </EmptyState>
+          </ListEmpty>
+        ) : (
+          <>
+            {records.isSuccess && (
+              <>
+                <ListCardHeader className="px-4 pt-0 pb-4 sm:px-6">
+                  <ListFilters
+                    facets={ownTrainingFacets}
+                    values={listFilters.values}
+                    onChange={changeFilters}
+                    total={total}
+                    applyLabel={(pending) =>
+                      `Arată ${trainingNoun(shownRecords(all, { ...search, ...toSearch(pending) }).length)}`
+                    }
+                    countLabel={trainingNoun}
+                    testId="training-records-filters"
+                    align="start"
+                  />
+                  <ListCount testId="training-records-count">
+                    {filtered ? (
+                      <>
+                        <b className="font-semibold text-foreground">{total}</b> din{' '}
+                        {trainingNoun(all.length)}
+                      </>
+                    ) : (
+                      trainingNoun(all.length)
+                    )}
+                  </ListCount>
+                </ListCardHeader>
+                <AppliedFilters
                   facets={ownTrainingFacets}
                   values={listFilters.values}
                   onChange={changeFilters}
-                  total={total}
-                  applyLabel={(pending) =>
-                    `Arată ${trainingNoun(shownRecords(all, { ...search, ...toSearch(pending) }).length)}`
+                  testId="training-records-applied-filters"
+                />
+              </>
+            )}
+            <DataTable
+              testId="training-records-table"
+              rowTestId="training-record-item"
+              label={`Instruirile ${label}`}
+              columns={columns}
+              data={shown}
+              rowKey={rowKey}
+              onRowClick={toggle}
+              expansion={{
+                isOpen: (row) => opened.has(row.id),
+                onToggle: toggle,
+                label: (row) => `Detaliile instruirii ${trainingLabel(row.training)}`,
+                testId: 'training-record-open',
+                render: (row) => (
+                  <RecordDetails
+                    clientId={clientId}
+                    employeeName={formatEmployeeName(employee)}
+                    record={row}
+                    readOnly={readOnly}
+                  />
+                ),
+              }}
+              meta={{ page: 1, pageSize: Math.max(total, 1), total }}
+              noun={['instruire', 'instruiri']}
+              status={records.status}
+              isFetching={records.isFetching}
+              sort={{
+                sort: search.sort ?? defaultSort.sort,
+                order: search.order ?? defaultSort.order,
+              }}
+              onSortChange={(next) =>
+                onSearch({
+                  sort: next.sort === defaultSort.sort ? undefined : (next.sort as OwnSortKey),
+                  order: next.order === defaultSort.order ? undefined : next.order,
+                })
+              }
+              onPageChange={() => undefined}
+              error={
+                <WorkersListError
+                  error={records.error}
+                  testId="training-records"
+                  onRetry={() => void records.refetch()}
+                  retrying={records.isFetching}
+                  message="Nu am putut încărca instruirile. Încearcă din nou."
+                />
+              }
+              empty={
+                <EmptyState
+                  icon={SearchX}
+                  title="Nicio instruire nu se potrivește"
+                  data-testid="training-records-empty-filtered"
+                  actions={
+                    <Button
+                      variant="secondary"
+                      data-testid="training-records-empty-filtered-clear"
+                      onClick={() => changeFilters({})}
+                    >
+                      Șterge filtrele
+                    </Button>
                   }
-                  countLabel={trainingNoun}
-                  testId="training-records-filters"
-                  align="start"
-                />
-                <ListCount testId="training-records-count">
-                  {filtered ? (
-                    <>
-                      <b className="font-semibold text-foreground">{total}</b> din{' '}
-                      {trainingNoun(all.length)}
-                    </>
-                  ) : (
-                    trainingNoun(all.length)
-                  )}
-                </ListCount>
-              </ListCardHeader>
-              <AppliedFilters
-                facets={ownTrainingFacets}
-                values={listFilters.values}
-                onChange={changeFilters}
-                testId="training-records-applied-filters"
-              />
-            </>
-          )}
-          <DataTable
-            testId="training-records-table"
-            rowTestId="training-record-item"
-            label={`Instruirile ${label}`}
-            columns={columns}
-            data={shown}
-            rowKey={rowKey}
-            onRowClick={toggle}
-            expansion={{
-              isOpen: (row) => opened.has(row.id),
-              onToggle: toggle,
-              label: (row) => `Detaliile instruirii ${trainingLabel(row.training)}`,
-              testId: 'training-record-open',
-              render: (row) => (
-                <RecordDetails
-                  clientId={clientId}
-                  employeeName={formatEmployeeName(employee)}
-                  record={row}
-                  readOnly={readOnly}
-                />
-              ),
-            }}
-            meta={{ page: 1, pageSize: Math.max(total, 1), total }}
-            noun={['instruire', 'instruiri']}
-            status={records.status}
-            isFetching={records.isFetching}
-            sort={{
-              sort: search.sort ?? defaultSort.sort,
-              order: search.order ?? defaultSort.order,
-            }}
-            onSortChange={(next) =>
-              onSearch({
-                sort: next.sort === defaultSort.sort ? undefined : (next.sort as OwnSortKey),
-                order: next.order === defaultSort.order ? undefined : next.order,
-              })
-            }
-            onPageChange={() => undefined}
-            error={
-              <WorkersListError
-                error={records.error}
-                testId="training-records"
-                onRetry={() => void records.refetch()}
-                retrying={records.isFetching}
-                message="Nu am putut încărca instruirile. Încearcă din nou."
-              />
-            }
-            empty={
-              <EmptyState
-                icon={SearchX}
-                title="Nicio instruire nu se potrivește"
-                data-testid="training-records-empty-filtered"
-                actions={
-                  <Button
-                    variant="outline"
-                    data-testid="training-records-empty-filtered-clear"
-                    onClick={() => changeFilters({})}
-                  >
-                    Șterge filtrele
-                  </Button>
-                }
-              >
-                Nicio instruire {label} a lucrătorului nu se potrivește filtrelor alese. Scoate unul
-                dintre filtrele de mai sus sau pornește din nou de la toate instruirile.
-              </EmptyState>
-            }
-          />
-        </div>
-      )}
+                >
+                  Nicio instruire {label} a lucrătorului nu se potrivește filtrelor alese. Scoate
+                  unul dintre filtrele de mai sus sau pornește din nou de la toate instruirile.
+                </EmptyState>
+              }
+            />
+          </>
+        )}
+      </section>
 
       <TrainingDialog
         clientId={clientId}
