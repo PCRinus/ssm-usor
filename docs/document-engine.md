@@ -248,9 +248,16 @@ pass over the templates that exist, covers included, without originals or an off
 
 Then **read the result**. `preview` renders every template twice, with one person and short
 names and with three people and names long enough to test the layout, converts to PDF, and
-prints the page counts. No check replaces reading the pages. The two samples of the SSM and SU
-sets are in `tools/set-samples.ts`, and `src/templates/set-samples.test.ts` fails when a
-template of either set asks for a field they do not give.
+prints the page counts and every word of a .docx its PDF lacks (`src/test/pdf-words.ts`):
+LibreOffice was seen to leave a whole table out of a PDF without an error, when rows that
+cannot split and are taller than a page sat in a run of paragraphs kept with the next. Words a
+PDF holds more often (headers, page numbers, list labels, repeated header rows, contents) do
+not matter, and a word hyphenated or broken at the end of a line counts whole.
+`src/templates/converted-words.test.ts` checks the same on every sample and on the annexes
+through the converter when `GOTENBERG_URL` is set, as CI's flows job does. No check replaces
+reading the pages. The two samples of the SSM and SU sets are in `tools/set-samples.ts`, and
+`src/templates/set-samples.test.ts` fails when a template of either set asks for a field they
+do not give.
 
 `src/test/editor-layout.ts`, run by the four `src/editor-layout.*.test.ts` files that share the
 templates between them, opens every template in the layout engine of the in-app editor, at

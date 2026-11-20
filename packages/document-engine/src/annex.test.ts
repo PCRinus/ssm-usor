@@ -7,6 +7,7 @@ import { ssmAnnexData, ssmAnnexSample, suAnnexData, suAnnexSample } from '../too
 import { annexParagraphs, appendAnnexes, renderAnnex } from './annex';
 import { annexTemplate } from './annex-template';
 import { TemplateError, templatePlaceholders } from './render';
+import { convert, converter } from './test/converter';
 
 const templatesUrl = new URL('../templates/', import.meta.url);
 const read = (name: string) => new Uint8Array(readFileSync(new URL(name, templatesUrl)));
@@ -327,21 +328,8 @@ describe('appendAnnexes', () => {
   });
 });
 
-const converter = process.env.GOTENBERG_URL;
 const pageCount = (pdf: Uint8Array) =>
   new TextDecoder('latin1').decode(pdf).match(/\/Type\s*\/Page\b/g)?.length ?? 0;
-async function convert(docx: Uint8Array) {
-  const form = new FormData();
-  form.append('files', new Blob([new Uint8Array(docx)]), 'document.docx');
-  // LibreOffice adds an empty page before a section that restarts at 1 on an even page.
-  form.append('skipEmptyPages', 'true');
-  const response = await fetch(`${converter}/forms/libreoffice/convert`, {
-    method: 'POST',
-    body: form,
-  });
-  expect(response.ok).toBe(true);
-  return new Uint8Array(await response.arrayBuffer());
-}
 
 describe.skipIf(!converter)('the converter', () => {
   it('prints the sample annexes on their pages: a title page, then the text', async () => {

@@ -59,6 +59,7 @@
     "@docx-editor.dev/core": "catalog:",
     "@docx-editor.dev/fonts": "catalog:",
     "@types/node": "^24.19.2",
+    "pdfjs-dist": "^6.4.299",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
