@@ -58,7 +58,7 @@ const employee = employeeRecord({
   firstName: 'Ion',
   employeeNumber: 'A-17',
   jobTitle: 'Sudor',
-  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor' },
+  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor', archived: false },
   hiredAt: '2020-03-01',
   workplace: null,
 });

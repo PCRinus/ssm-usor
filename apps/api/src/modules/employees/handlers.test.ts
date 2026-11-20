@@ -36,7 +36,11 @@ const employeeRow = {
   phone: '+40721000000',
   job_title: 'Sudor',
   contract_number: null,
-  job_positions: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor autorizat' },
+  job_positions: {
+    id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+    name: 'Sudor autorizat',
+    archived_at: null,
+  },
   hired_at: '2020-03-01',
   status: 'active',
   terminated_at: null,
@@ -929,12 +933,34 @@ describe('GET /clients/{clientId}/employees/{employeeId}', () => {
       residenceAddress: 'Str. Florilor 9, Florești',
       rhFactor: '+',
       archivedAt: null,
+      jobPosition: { id: positionId, name: 'Sudor autorizat', archived: false },
     });
     const { url } = callsTo('/rest/v1/employees')[0]!;
     const query = url.searchParams;
     expect(query.get('id')).toBe(`eq.${employeeRow.id}`);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('select')).toContain('cnp');
+  });
+
+  it('says when the post the person fills is archived', async () => {
+    mockUpstream({
+      employees: () =>
+        Response.json([
+          {
+            ...employeeRow,
+            job_positions: {
+              ...employeeRow.job_positions,
+              archived_at: '2026-11-01T10:00:00+00:00',
+            },
+          },
+        ]),
+    });
+
+    const { employee } = employeeResponseSchema.parse(await (await request(employeePath)).json());
+
+    expect(employee.jobPosition.archived).toBe(true);
+    const select = callsTo('/rest/v1/employees')[0]!.url.searchParams.get('select');
+    expect(select).toContain('job_positions(id,name,archived_at)');
   });
 
   it('answers 404 when the employee is not under this client', async () => {

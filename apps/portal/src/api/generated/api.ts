@@ -1619,7 +1619,10 @@ export const PortalSigningAgreementsResponseItemsItemAgreementAwaiting = {
  * @nullable
  */
 export type PortalSigningAgreementsResponseItemsItemAgreementWithdrawal = {
-  requestedOn: string;
+  /** @nullable */
+  recordedAt: string | null;
+  /** @nullable */
+  requestedOn: string | null;
   /** @nullable */
   fileId: string | null;
 } | null;
@@ -1678,7 +1681,10 @@ export const SigningAgreementResponseAgreementAwaiting = {
  * @nullable
  */
 export type SigningAgreementResponseAgreementWithdrawal = {
-  requestedOn: string;
+  /** @nullable */
+  recordedAt: string | null;
+  /** @nullable */
+  requestedOn: string | null;
   /** @nullable */
   fileId: string | null;
 } | null;

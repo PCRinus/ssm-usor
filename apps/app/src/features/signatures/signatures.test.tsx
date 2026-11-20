@@ -52,7 +52,7 @@ const employeeFields = {
   firstName: 'Ion',
   email: 'ion.popescu@example.com',
   jobTitle: 'Sudor',
-  jobPosition: { id: welderId, name: 'Sudor' },
+  jobPosition: { id: welderId, name: 'Sudor', archived: false },
   hiredAt: '2020-03-01',
   workplace: null,
 };

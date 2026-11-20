@@ -65,7 +65,7 @@ type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
 // The job position rides along by its foreign key: every employee has exactly one.
 const employeeColumnsWithoutStatus =
-  'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name)';
+  'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name, archived_at), workplace_id, client_workplaces!employees_workplace_in_client(id, name)';
 
 export const employeeListColumns =
   `${employeeColumnsWithoutStatus}, ${trainingStatusColumns}, ${testStatusColumns}` as const;
@@ -91,7 +91,7 @@ type EmployeeListRow = Pick<
   | 'updated_at'
   | 'workplace_id'
 > & {
-  job_positions: { id: string; name: string };
+  job_positions: { id: string; name: string; archived_at?: string | null };
   client_workplaces: { id: string; name: string } | null;
   training_status: TrainingStatusRow | null;
   test_status: TestStatusRow | null;
@@ -107,7 +107,7 @@ function toEmployeeListItem(row: EmployeeListRow): Omit<EmployeeListItem, 'signa
     email: row.email,
     phone: row.phone,
     jobTitle: row.job_title,
-    jobPosition: row.job_positions,
+    jobPosition: { id: row.job_positions.id, name: row.job_positions.name },
     hiredAt: row.hired_at,
     status: row.status,
     terminatedAt: row.terminated_at,
@@ -134,6 +134,11 @@ export function toEmployee(
 ): Employee {
   return {
     ...toEmployeeListItem(row),
+    jobPosition: {
+      id: row.job_positions.id,
+      name: row.job_positions.name,
+      archived: Boolean(row.job_positions.archived_at),
+    },
     cnp: row.cnp,
     residenceAddress: row.residence_address,
     notes: row.notes,

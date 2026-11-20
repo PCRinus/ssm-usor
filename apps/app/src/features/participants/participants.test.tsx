@@ -53,7 +53,7 @@ const sampleEmployee = employeeRecord({
   email: 'ion.popescu@example.com',
   phone: '+40721000000',
   jobTitle: 'Barista',
-  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Barista' },
+  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Barista', archived: false },
   hiredAt: '2020-03-01',
   workplace: null,
 });

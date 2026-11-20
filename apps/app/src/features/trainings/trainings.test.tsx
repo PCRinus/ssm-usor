@@ -94,7 +94,7 @@ const employeeDetail = employeeRecord({
   lastName: popescu.lastName,
   firstName: popescu.firstName,
   jobTitle: popescu.jobTitle,
-  jobPosition: popescu.jobPosition,
+  jobPosition: { ...popescu.jobPosition, archived: false },
   hiredAt: popescu.hiredAt,
   workplace: null,
   training: popescuTraining,
