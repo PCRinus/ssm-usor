@@ -612,7 +612,17 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
       : fromDatabaseError(error, 'create employee');
   }
   noticeEmployeesOverStepLater(c);
-  return c.json({ employee: toEmployee(data) }, 201);
+  // A position the database creates for the insert is not yet visible to the insert's own
+  // returned embed, so the employee is read again once the insert has committed.
+  if (data.job_positions) return c.json({ employee: toEmployee(data) }, 201);
+  const created = await db
+    .from('employees')
+    .select(employeeColumns)
+    .eq('id', data.id)
+    .eq('client_id', clientId)
+    .single();
+  if (created.error) throw fromDatabaseError(created.error, 'read created employee');
+  return c.json({ employee: toEmployee(created.data) }, 201);
 };
 
 export const getEmployee: RouteHandler<typeof getEmployeeRoute, ApiEnv> = async (c) => {

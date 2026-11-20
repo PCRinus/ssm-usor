@@ -765,6 +765,40 @@ describe('POST /clients/{clientId}/employees', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('employees_over_step');
   });
 
+  it('answers the post with whether it is archived', async () => {
+    mockUpstream({ employees: () => Response.json(employeeRow, { status: 201 }) });
+    const response = await postEmployee(validBody);
+    expect(response.status).toBe(201);
+    const { employee } = employeeResponseSchema.parse(await response.json());
+    expect(employee.jobPosition).toEqual({
+      id: positionId,
+      name: 'Sudor autorizat',
+      archived: false,
+    });
+    expect(callsTo('/rest/v1/employees')).toHaveLength(1);
+  });
+
+  it('reads the employee again when the post the database created is missing from the insert', async () => {
+    mockUpstream({
+      employees: (init) =>
+        init?.method === 'POST'
+          ? Response.json({ ...employeeRow, job_positions: null }, { status: 201 })
+          : Response.json(employeeRow),
+    });
+    const response = await postEmployee(validBody);
+    expect(response.status).toBe(201);
+    const { employee } = employeeResponseSchema.parse(await response.json());
+    expect(employee.jobPosition).toEqual({
+      id: positionId,
+      name: 'Sudor autorizat',
+      archived: false,
+    });
+    const [, read] = callsTo('/rest/v1/employees');
+    expect(read!.init?.method ?? 'GET').toBe('GET');
+    expect(read!.url.searchParams.get('id')).toBe(`eq.${employeeRow.id}`);
+    expect(read!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+  });
+
   it('stores the digits-only CNP, lowercases the email, writes the phone in E.164, and scopes to the membership', async () => {
     mockUpstream({ employees: () => Response.json(employeeRow, { status: 201 }) });
     const response = await postEmployee(validBody);
