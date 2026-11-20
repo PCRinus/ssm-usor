@@ -31,9 +31,6 @@ HEADER_FILL = 'E3E8E0'
 # and keeps with the row after it, so a group never starts at a page's foot.
 GROUP_FILL = 'F1F4EF'
 PADDING = (('top', 40), ('left', 85), ('bottom', 40), ('right', 85))  # twips
-# Beside the text of a table too dense for the house padding, where a header's words would
-# break inside the word.
-DENSE_SIDE_PADDING = 55
 HOUSE_TABLE = 'HouseTable'
 HOUSE_TABLE_STYLE = (f'<w:style w:type="table" w:customStyle="1" w:styleId="{HOUSE_TABLE}">'
                      '<w:name w:val="Tabel SSM Ușor"/><w:uiPriority w:val="99"/></w:style>')
@@ -630,8 +627,6 @@ def house_table(table, kind):
     if kind == 'consequences':
         grid = even_locations(grid)
     side_padding = dict(PADDING)['left']
-    if not fits(grid, header_floors(rows, header, size, side_padding)):
-        side_padding = DENSE_SIDE_PADDING
     grid = fitted(grid, header_floors(rows, header, size, side_padding))
     regridded = grid != grid_of(table)
     if regridded:

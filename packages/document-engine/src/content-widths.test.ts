@@ -73,6 +73,13 @@ describe('measuring a column', () => {
     expect(held.floor).toBe(Math.ceil(textWidth('25\u00a0kg', size)) + 20);
   });
 
+  it('never breaks after a hyphen before a digit, in a date or a phone number', () => {
+    for (const whole of ['31-12-2026', '0722-123-456']) {
+      const measured = measureColumn([], { cells: [lines(`la ${whole}`)] }, 0);
+      expect(measured.floor).toBe(Math.ceil(textWidth(whole, size)) + 20);
+    }
+  });
+
   it('keeps the dash that opens a list item with its first word', () => {
     const measured = measureColumn([], { cells: [lines('– Planificarea deplasărilor')] }, 0);
     expect(measured.floor).toBe(Math.ceil(textWidth('–\u00a0Planificarea', size)) + 20);
@@ -116,7 +123,7 @@ describe('sharing the width by content', () => {
     expect(widths).toEqual([7800, 1200]);
   });
 
-  it('lets a long unbreakable word take more than the cap', () => {
+  it('gives a word wider than the cap the cap as its floor, the room past it once no other column needs it', () => {
     const widths = contentWidths([column(4000, 4000, 10), column(500, 9000, 10)], total)!;
     expect(widths[0]).toBe(4000);
     expect(widths[1]).toBe(5000);
@@ -128,7 +135,8 @@ describe('sharing the width by content', () => {
   });
 
   it('keeps the template when the floors do not fit or nothing is written', () => {
-    expect(contentWidths([column(5000, 5000, 10), column(5000, 5000, 10)], total)).toBeUndefined();
+    const header = () => column(2800, 2800, 10);
+    expect(contentWidths([header(), header(), header(), header()], total)).toBeUndefined();
     expect(contentWidths([column(500, 500, 0), column(500, 500, 0)], total)).toBeUndefined();
   });
 
@@ -151,7 +159,7 @@ describe('fitting marked tables to their content', () => {
 
   it('leaves an empty plan as the template drew it', () => {
     const body = table(header);
-    expect(fitted(body)).toBe(`<w:body>${body}</w:body>`);
+    expect(gridsOf(fitted(body))).toEqual([[3000, 3000, 3000]]);
   });
 
   it('fits one row, its grid and its cells', () => {
@@ -172,9 +180,28 @@ describe('fitting marked tables to their content', () => {
     expect(grids[0]).toEqual(gridsOf(fitted(second + first))[0]);
   });
 
-  it('keeps the template widths when an unbreakable word leaves no room', () => {
-    const body = table(header + bodyRow('F1.', 'W'.repeat(80), 'W'.repeat(80)));
-    expect(gridsOf(fitted(body))[0]).toEqual([3000, 3000, 3000]);
+  it('lets an address break rather than widen its column for every table', () => {
+    const address = 'https://www.inspectiamuncii.ro/documents/66402/instructiuni-ssm';
+    const risk = 'F1. Cădere de la înălțime pe scările exterioare, ude sau înghețate. '.repeat(4);
+    const [grid] = gridsOf(fitted(table(header + bodyRow(risk, address, '—'))));
+    expect(grid![1]).toBeLessThan(textWidth(address, size));
+    expect(grid![0]).toBeGreaterThan(grid![1]!);
+  });
+
+  it('still fits the table when two columns each hold such a word', () => {
+    const long = 'W'.repeat(80);
+    const risk = 'F1. Cădere de la înălțime pe scările exterioare, ude sau înghețate. '.repeat(4);
+    const [grid] = gridsOf(fitted(table(header + bodyRow(risk, long, long))));
+    expect(grid).not.toEqual([3000, 3000, 3000]);
+    expect(grid![1]).toBeLessThan(textWidth(long, size));
+    expect(grid![2]).toBeLessThan(textWidth(long, size));
+  });
+
+  it('takes the caption off, which Word would show as the alternative text', () => {
+    const xml = fitted(
+      table(header + bodyRow('F1. Cădere', 'Montarea balustradelor', '—')) + table(header)
+    );
+    expect(xml).not.toContain('tblCaption');
   });
 
   it('gives the same widths for the same data', () => {

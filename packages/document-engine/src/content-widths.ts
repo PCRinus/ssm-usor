@@ -1,11 +1,8 @@
 import { columnsOf, isHeader, paragraphSize, spanOf, topLevelTables } from './table-keep';
 import { decode } from './text';
 
-// Tables the template marks share their width among their columns by what the merged data puts
-// in them, one set of widths for all the tables of a kind in the document, so they line up from
-// page to page. The prevention plan keeps the columns of annex 7 to H.G. 1425/2006, and a client
-// fills its kinds of measure very unevenly: equal columns wrap the full ones to five or six lines
-// beside empty ones. The import marks the tables (`tools/import/table_style.py`).
+// The prevention plan keeps the columns of annex 7 to H.G. 1425/2006, which a client fills very
+// unevenly: equal columns wrap the full ones to five or six lines beside empty ones.
 
 const marker = '<w:tblCaption w:val="ContentWidths"/>';
 const share = 0.85;
@@ -16,7 +13,7 @@ const defaultPadding = 170;
 const empty = new Set(['', '-', '--', '–', '—', '---']);
 
 // Liberation Sans, which the converter draws Arial with and which has Arial's advances, in
-// thousandths of the size, rounded up. A character missing here counts as the widest.
+// thousandths of the size, rounded up. A character missing here counts as the font's widest glyph.
 const advances = (groups: [number, string][]) =>
   new Map(groups.flatMap(([width, characters]) => [...characters].map((each) => [each, width])));
 const regular = advances([
@@ -80,7 +77,7 @@ const bold = advances([
   [976, '@'],
   [1000, 'Æ—…‰™'],
 ]);
-const widest = 1016;
+const widest = 1338;
 
 /** In twips, at `size` half-points. */
 export function textWidth(text: string, size: number, isBold = false) {
@@ -104,13 +101,14 @@ function linesOf(paragraph: string) {
   return lines;
 }
 
-// A line breaks at a space or after a hyphen; a no-break space holds. The dash that opens an item
-// of a list counts with the word after it: alone at the end of a line it reads as a stray mark.
+// A line breaks at a space or after a hyphen, but not after one before a digit, as in a date or a
+// phone number; a no-break space holds. The dash that opens an item of a list counts with the
+// word after it: alone at the end of a line it reads as a stray mark.
 const wordsOf = (line: string) =>
   line
     .replace(/\u00ad/g, '')
     .replace(/^\s*([–—•-])[ \t]+/, '$1\u00a0')
-    .split(/[ \t]+|(?<=[^\s\u00a0]-)/)
+    .split(/[ \t]+|(?<=[^\s\u00a0]-)(?!\d)/)
     .filter(Boolean);
 
 export interface ColumnText {
@@ -181,21 +179,18 @@ function grown(widths: number[], caps: number[], weights: number[], total: numbe
 }
 
 /**
- * The width of each column, `total` twips in all: every column gets its floor, then the rest is
- * shared by how much text each holds, damped, so that a full column does not starve the others.
- * A column takes no more than `widestShare` of the table, so one long text cannot take it over,
- * unless its floor is wider; past what the others can use, it may. No column takes more than its
- * longest line needs; what is left after that goes to all in proportion. Undefined when the
- * floors do not fit, or when no column holds anything: the template's widths stand.
+ * Undefined when the floors do not fit, or when no column holds anything: the template's widths
+ * stand. The text's share is damped so that a full column does not starve the others, and capped
+ * so that one long text, or one long word such as an address, cannot take the table over; the
+ * converter breaks such a word.
  */
 export function contentWidths(columns: ColumnMeasure[], total: number): number[] | undefined {
-  const floors = columns.map(({ floor }) => floor);
+  const cap = Math.floor(total * widestShare);
+  const floors = columns.map(({ floor }) => Math.min(floor, cap));
   const weights = columns.map(({ amount }) => amount ** share);
   if (sumOf(floors) > total || weights.every((weight) => weight === 0)) return undefined;
-  const oneLine = columns.map(({ floor, oneLine: line }) => Math.max(floor, line));
-  const capped = oneLine.map((line, index) =>
-    Math.max(floors[index]!, Math.min(Math.floor(total * widestShare), line))
-  );
+  const oneLine = columns.map(({ oneLine: line }, index) => Math.max(floors[index]!, line));
+  const capped = oneLine.map((line, index) => Math.max(floors[index]!, Math.min(cap, line)));
   const widths = grown(grown([...floors], capped, weights, total), oneLine, weights, total);
   const left = total - sumOf(widths);
   const sum = sumOf(widths);
@@ -205,7 +200,6 @@ export function contentWidths(columns: ColumnMeasure[], total: number): number[]
   );
 }
 
-/** Whole twips adding up to `total`: the fractions left over go to the largest, the first of equals first. */
 function rounded(widths: number[], total: number) {
   const whole = widths.map(Math.floor);
   const order = widths
@@ -324,5 +318,6 @@ export function fitColumnsToContent(document: string): string {
     at = end;
   }
   pieces.push(document.slice(at));
-  return pieces.join('');
+  // Word shows the caption as the table's alternative text; the merge never runs on its output.
+  return pieces.join('').replaceAll(marker, '');
 }

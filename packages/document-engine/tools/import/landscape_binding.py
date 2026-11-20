@@ -1,14 +1,6 @@
-"""A landscape page of the occupational safety set is bound on its top edge, without an office.
-
-The set is filed in a portrait binder, so a landscape page goes in turned, its top edge on the
-holes: the 25 mm left for binding moves from the left edge to the top. The left margin becomes
-20 mm like the others and the top margin, with the header in it, grows by 5 mm. The text column
-is 5 mm wider, and every table that filled it, the header's box of document details included,
-widens with it.
-
-The rule acts on a landscape section still bound on the left, so a second sweep leaves it as
-the first left it.
-"""
+"""The occupational safety set is filed in a portrait binder, so a landscape page goes in turned,
+its top edge on the holes: its 25 mm binding margin belongs at the top, not on the left. Only a
+section still bound on the left changes, so a second sweep changes nothing."""
 
 import re
 
@@ -60,8 +52,6 @@ def text_width(section):
 
 
 def scaled(grid, width):
-    """`grid` stretched to `width` exactly, the twips rounding leaves going to the columns that
-    lost most, the first of equals first."""
     total = sum(grid)
     exact = [column * width / total for column in grid]
     widths = [int(value) for value in exact]
