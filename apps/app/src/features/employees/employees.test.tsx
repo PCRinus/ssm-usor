@@ -2323,6 +2323,22 @@ describe("the worker page's header and tabs", () => {
     expect(screen.queryByTestId('employee-client-archived')).toBeNull();
   });
 
+  it('names an archived post without a link', async () => {
+    await openWorker({
+      detail: () =>
+        Response.json({
+          employee: {
+            ...createdEmployee,
+            jobPosition: { ...createdEmployee.jobPosition, archived: true },
+          },
+        }),
+    });
+    const position = screen.getByTestId('employee-header-position');
+    expect(position.textContent).toBe('Sudor');
+    expect(position.tagName).toBe('SPAN');
+    expect(position.querySelector('svg')).toBeNull();
+  });
+
   it('shows a former worker neutral, with the move undone from a grey button', async () => {
     await openWorker({ detail: () => Response.json({ employee: formerEmployee }) });
     const status = screen.getByTestId('employee-status');
@@ -2387,7 +2403,7 @@ describe("the worker page's header and tabs", () => {
       ),
     });
     const flag = await screen.findByTestId('employee-agreement-flag');
-    expect(flag.textContent).toBe('Act adițional: așteaptă angajatorul');
+    expect(flag.textContent).toBe('Act adițional așteaptă angajatorul');
     expect(within(portalTab()).getByTestId('employee-portal-flag').textContent).toBe(
       ', actul adițional așteaptă semnătura angajatorului'
     );
@@ -2413,18 +2429,47 @@ describe("the worker page's header and tabs", () => {
     expect(screen.queryByTestId('employee-portal-flag')).toBeNull();
   });
 
+  it.each([
+    [
+      'access',
+      () => Response.json({ error: 'internal_error', message: 'boom' }, { status: 500 }),
+      agreementState(null),
+    ],
+    [
+      'agreement',
+      access({ invitation }),
+      () => Response.json({ error: 'internal_error', message: 'boom' }, { status: 500 }),
+    ],
+  ])(
+    'raises no flag and keeps the page when the %s read fails',
+    async (_, participantRoute, agreementRoute) => {
+      const runtime = await openWorker({
+        participant: participantRoute,
+        agreement: agreementRoute,
+      });
+      await waitFor(() => expect(requestsTo(participantPath)).toHaveLength(1));
+      await waitFor(() => expect(runtime.queryClient.isFetching()).toBe(0));
+      expect(screen.queryByTestId('employee-agreement-flag')).toBeNull();
+      expect(screen.queryByTestId('employee-portal-flag')).toBeNull();
+      expect(screen.getByTestId('employee-status').textContent).toBe('Lucrător actual');
+      expect(screen.getAllByTestId('employee-section')).toHaveLength(5);
+      expect(screen.getByTestId('employee-header-position').textContent).toBe('Sudor');
+    }
+  );
+
   it('asks nothing about the agreement for a former worker', async () => {
-    await openWorker({
+    const runtime = await openWorker({
       detail: () => Response.json({ employee: formerEmployee }),
       participant: access({ invitation }),
       agreement: agreementState(null),
     });
+    await waitFor(() => expect(runtime.queryClient.isFetching()).toBe(0));
     expect(requestsTo(participantPath)).toHaveLength(0);
     expect(screen.queryByTestId('employee-agreement-flag')).toBeNull();
   });
 
   it("says an archived client's worker is only read, with no status action or flag", async () => {
-    await openWorker({
+    const runtime = await openWorker({
       client: () => Response.json({ client: archivedClient }),
       participant: access({ invitation }),
       agreement: agreementState(null),
@@ -2436,6 +2481,7 @@ describe("the worker page's header and tabs", () => {
     );
     expect(screen.getByTestId('employee-status').textContent).toBe('Lucrător actual');
     expect(screen.queryByTestId('employee-status-action')).toBeNull();
+    await waitFor(() => expect(runtime.queryClient.isFetching()).toBe(0));
     expect(requestsTo(participantPath)).toHaveLength(0);
     expect(screen.queryByTestId('employee-agreement-flag')).toBeNull();
   });

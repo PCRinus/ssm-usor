@@ -9,7 +9,7 @@ import {
   Outlet,
   useMatches,
 } from '@tanstack/react-router';
-import { Check, ChevronRight, TriangleAlert, Undo2, UserRoundMinus } from 'lucide-react';
+import { Check, TriangleAlert, Undo2, UserRoundMinus } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import {
@@ -31,6 +31,7 @@ import { agreementAwaitsEmployer, agreementSigned } from '@/features/signatures/
 import { EmployeePending } from './employee-pending';
 import { employeeSections } from './employee-sections';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
+import { LinkText } from './link-text';
 import { useEmployee } from './use-employee';
 
 const employeeRoute = getRouteApi('/_authenticated/clienti/$clientId/angajati/$employeeId');
@@ -43,7 +44,7 @@ type AgreementFlag = 'unsigned' | 'awaits-employer';
 const flagLabels: Record<AgreementFlag, { header: string; tab: string }> = {
   unsigned: { header: 'Act adițional nesemnat', tab: 'actul adițional nu e semnat' },
   'awaits-employer': {
-    header: 'Act adițional: așteaptă angajatorul',
+    header: 'Act adițional așteaptă angajatorul',
     tab: 'actul adițional așteaptă semnătura angajatorului',
   },
 };
@@ -76,24 +77,6 @@ function useAgreementFlag(
   const current = agreement.data.agreement;
   if (agreementSigned(current?.state) || current?.state === 'withdrawn') return null;
   return agreementAwaitsEmployer(current) ? 'awaits-employer' : 'unsigned';
-}
-
-// The last word stays with the chevron, so a wrapped name never leaves it alone on a line.
-function LinkText({ children }: { children: string }) {
-  const text = children.trim();
-  const split = text.lastIndexOf(' ') + 1;
-  return (
-    <>
-      {text.slice(0, split)}
-      <span className="whitespace-nowrap">
-        {text.slice(split)}
-        <ChevronRight
-          aria-hidden="true"
-          className="ml-0.5 inline size-3.5 align-[-2px] text-section-tab-foreground"
-        />
-      </span>
-    </>
-  );
 }
 
 const factLink = 'underline-offset-[3px] hover:underline';
@@ -137,15 +120,19 @@ export function EmployeeLayout() {
           facts={
             <>
               <Fact label="Post">
-                <Link
-                  to="/clienti/$clientId/posturi/$jobPositionId"
-                  params={{ clientId, jobPositionId: employee.jobPosition.id }}
-                  state={openedHere}
-                  data-testid="employee-header-position"
-                  className={factLink}
-                >
-                  <LinkText>{employee.jobPosition.name}</LinkText>
-                </Link>
+                {employee.jobPosition.archived ? (
+                  <span data-testid="employee-header-position">{employee.jobPosition.name}</span>
+                ) : (
+                  <Link
+                    to="/clienti/$clientId/posturi/$jobPositionId"
+                    params={{ clientId, jobPositionId: employee.jobPosition.id }}
+                    state={openedHere}
+                    data-testid="employee-header-position"
+                    className={factLink}
+                  >
+                    <LinkText>{employee.jobPosition.name}</LinkText>
+                  </Link>
+                )}
               </Fact>
               <Fact label="Client">
                 <Link
