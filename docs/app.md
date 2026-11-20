@@ -632,9 +632,9 @@ their tab bars read.
   ("Caută după nume sau marcă", `?q=`) keeps across the two groups. The
   CNP is never part of the list. The client itself comes from `GET /clients/{clientId}`; a
   404 shows the not-found screen.
-  Each row has an actions menu: **Marchează plecarea…** opens a dialog asking for the leave
+  Each row has an actions menu: **Trece la foști lucrători…** opens a dialog asking for the end
   date (today by default, not before the hire date) and calls `PATCH …/status`; on the former
-  employees tab **Reactivează…** clears it, for undoing a mistake, since a rehire after a gap
+  employees tab **Anulează trecerea la foști…** clears it, for undoing a mistake, since a rehire after a gap
   is a new employee. The list is invalidated so the row moves between the two tabs.
 - `/angajati`, "Angajați" in the sidebar for every member: the organization's employees from
   `GET /employees`, every active client's in one table with the name and employee number

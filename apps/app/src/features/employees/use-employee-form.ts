@@ -55,7 +55,7 @@ const issueTargets: Partial<Record<string, IssueTarget<EmployeeFormValues>>> = {
     field: 'jobPosition',
     message: 'Postul ales nu mai există la acest client. Alege altul.',
   },
-  hiredAt: { field: 'hiredAt', message: 'Data angajării nu poate fi după data plecării.' },
+  hiredAt: { field: 'hiredAt', message: 'Data angajării nu poate fi după data încetării.' },
   workplaceId: {
     field: 'workplaceId',
     message: 'Punctul de lucru ales nu mai este activ la acest client. Alege altul.',

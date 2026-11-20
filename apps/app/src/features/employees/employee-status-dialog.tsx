@@ -63,10 +63,10 @@ function conflictMessage(body: Partial<ApiErrorResponse> | undefined) {
     return 'Clientul este arhivat; situația lucrătorilor nu se mai schimbă.';
   }
   if (body?.reason === employeeConflictReasons.cnpTaken) {
-    return 'Nu poate fi reactivat: un lucrător actual al clientului are același CNP, de obicei rândul adăugat la reangajare.';
+    return 'Trecerea la foști nu poate fi anulată: un lucrător actual al clientului are același CNP, de obicei rândul adăugat la reangajare.';
   }
   if (body?.reason === employeeConflictReasons.numberTaken) {
-    return 'Nu poate fi reactivat: un lucrător actual al clientului are aceeași marcă, de obicei rândul adăugat la reangajare.';
+    return 'Trecerea la foști nu poate fi anulată: un lucrător actual al clientului are aceeași marcă, de obicei rândul adăugat la reangajare.';
   }
   return 'Situația lucrătorului nu a putut fi schimbată. Reîncarcă pagina și încearcă din nou.';
 }
@@ -116,9 +116,9 @@ function StatusForm({
     setDateError(null);
     setError(null);
     if (action === 'terminate') {
-      if (!terminatedAt) return setDateError('Alege data plecării.');
+      if (!terminatedAt) return setDateError('Alege data încetării.');
       if (terminatedAt < employee.hiredAt) {
-        return setDateError('Data plecării nu poate fi înaintea datei angajării.');
+        return setDateError('Data încetării nu poate fi înaintea datei angajării.');
       }
     }
     try {
@@ -131,14 +131,14 @@ function StatusForm({
       await refreshWorkforce(queryClient, clientId, { employeeId: employee.id });
       toast.success(
         action === 'terminate'
-          ? maskPeople`${name} a fost trecut la foști lucrători.`
+          ? maskPeople`${name} a trecut la foști lucrători.`
           : maskPeople`${name} este din nou lucrător actual.`
       );
       onClose();
     } catch (cause) {
       const body = apiErrorBody(cause);
       const issue = body?.issues?.find((item) => item.path === 'terminatedAt');
-      if (issue) setDateError('Data plecării nu poate fi înaintea datei angajării.');
+      if (issue) setDateError('Data încetării nu poate fi înaintea datei angajării.');
       else setError(serverMessage(cause));
     }
   }
@@ -152,7 +152,7 @@ function StatusForm({
       <form onSubmit={(event) => void submit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
-            {action === 'terminate' ? 'Marchează plecarea' : 'Reactivează lucrătorul'}
+            {action === 'terminate' ? 'Trece la foști lucrători' : 'Anulezi trecerea la foști?'}
           </DialogTitle>
           <DialogDescription>
             {action === 'terminate' ? (
@@ -160,16 +160,18 @@ function StatusForm({
                 <span className="font-medium text-foreground" {...replayMask}>
                   {name}
                 </span>{' '}
-                trece la foști lucrători. Dovezile instruirilor rămân la dosar.
+                trece la foști lucrători din ziua încetării. Instruirile, fișele și fișierele rămân
+                la dosar.
               </>
             ) : (
               <>
                 <span className="font-medium text-foreground" {...replayMask}>
                   {name}
                 </span>{' '}
-                revine printre lucrătorii actuali. Folosește acțiunea doar pentru a corecta o
-                greșeală; o reangajare după o pauză se înregistrează ca lucrător nou.{' '}
-                <HelpLink topic="angajati.reactivare">Află mai mult</HelpLink>
+                redevine lucrător actual și data încetării
+                {employee.terminatedAt && `, ${formatDate(employee.terminatedAt)},`} se șterge.
+                Folosește asta doar ca să corectezi o greșeală; cine revine după o pauză se adaugă
+                ca lucrător nou. <HelpLink topic="angajati.reactivare">Află mai mult</HelpLink>
               </>
             )}
           </DialogDescription>
@@ -177,7 +179,7 @@ function StatusForm({
         {action === 'terminate' && (
           <Field
             id="terminatedAt"
-            label="Data plecării"
+            label="Data încetării"
             hint={`Angajat din ${formatDate(employee.hiredAt)}.`}
             help="angajati.data-plecarii"
             error={dateError ? { type: 'manual', message: dateError } : undefined}
@@ -205,8 +207,17 @@ function StatusForm({
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
             Renunță
           </Button>
-          <Button type="submit" data-testid="employee-status-confirm" disabled={busy}>
-            {busy ? 'Se salvează…' : action === 'terminate' ? 'Confirmă plecarea' : 'Reactivează'}
+          <Button
+            type="submit"
+            variant={action === 'terminate' ? 'destructive-soft' : 'default'}
+            data-testid="employee-status-confirm"
+            disabled={busy}
+          >
+            {busy
+              ? 'Se salvează…'
+              : action === 'terminate'
+                ? 'Trece la foști'
+                : 'Anulează trecerea'}
           </Button>
         </DialogFooter>
       </form>

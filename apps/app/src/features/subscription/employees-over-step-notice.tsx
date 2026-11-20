@@ -47,7 +47,7 @@ export function EmployeesOverStepNotice({
       >
         De mai bine de o lună ai mai mulți lucrători activi decât treapta abonamentului. Ca să
         adaugi lucrători, treci pe o treaptă mai mare sau arhivează clienții cu care nu mai lucrezi
-        ori marchează plecarea lucrătorilor care nu mai lucrează la clienți.
+        ori trece-i la foști pe lucrătorii care nu mai lucrează la clienți.
         {whoChanges} Restul merge ca până acum: editezi, arhivezi, emiți documente, instruiești și
         semnezi.
         {afterBlock[context] && ` ${afterBlock[context]}`}

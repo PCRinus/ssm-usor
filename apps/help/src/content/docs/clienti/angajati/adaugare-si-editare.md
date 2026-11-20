@@ -163,7 +163,7 @@ Numărul contractului individual de muncă, opțional, cel mult 50 de caractere.
 
 Ziua din contract. Până se înregistrează o instruire la locul de muncă, de la data angajării se socotește termenul următoarei instruiri.
 
-La un fost lucrător, data angajării nu poate fi după data plecării; altfel vezi sub câmp „Data angajării nu poate fi după data plecării.” Dacă te-ai înșelat la data plecării, corecteaz-o întâi: reactivează lucrătorul și marchează din nou plecarea, cu data bună.
+La un fost lucrător, data angajării nu poate fi după data încetării; altfel vezi sub câmp „Data angajării nu poate fi după data încetării.” Dacă te-ai înșelat la data încetării, corecteaz-o întâi: anulează trecerea la foști și trece-l din nou, cu data bună.
 
 ## Contactul
 
@@ -258,7 +258,7 @@ Notițele tale despre lucrător, cel mult 2000 de caractere. Nu apar pe fișe ș
 
 **Modifică** din pagina lucrătorului sau din meniul rândului deschide același formular, completat. După salvare revii pe pagina lucrătorului.
 
-Formularul corectează ce ai scris despre lucrător. Plecarea nu se marchează de aici: are acțiunea ei, **Marchează plecarea…**.
+Formularul corectează ce ai scris despre lucrător. Trecerea la foști nu se face de aici: are acțiunea ei, **Trece la foști lucrători…**.
 
 Instruirile înregistrate nu se schimbă când modifici datele lucrătorului: fiecare păstrează postul pe care îl avea lucrătorul în ziua ei. Fișa nesemnată se reface din datele de azi de fiecare dată când o deschizi.
 
@@ -275,7 +275,7 @@ Funcția din contract se schimbă odată cu postul doar dacă avea aceeași denu
 Când un câmp nu e bun, mesajul apare sub el și pagina te duce la primul câmp greșit. Celelalte mesaje apar sub formular:
 
 - „Clientul este arhivat; nu mai pot fi adăugați lucrători.” sau, când modifici un lucrător, „Clientul este arhivat; lucrătorii lui nu se mai schimbă.”: clientul a fost arhivat între timp.
-- „Nu mai poți adăuga lucrători noi: de mai bine de o lună ai mai mulți lucrători activi decât treapta abonamentului.”: organizația a trecut de treapta abonamentului de mai bine de o lună. Adăugarea revine când treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți (vezi [Abonamentul](/organizatie/abonament/#cât-folosești)). Același lucru îl spune și caseta de deasupra listei, iar butonul **Adaugă manual** e inactiv până atunci.
+- „Nu mai poți adăuga lucrători noi: de mai bine de o lună ai mai mulți lucrători activi decât treapta abonamentului.”: organizația a trecut de treapta abonamentului de mai bine de o lună. Adăugarea revine când treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori îi treci la foști pe lucrătorii care nu mai lucrează la clienți (vezi [Abonamentul](/organizatie/abonament/#cât-folosești)). Același lucru îl spune și caseta de deasupra listei, iar butonul **Adaugă manual** e inactiv până atunci.
 - „Datele intră în conflict cu alt lucrător al clientului.”: rar, când datele s-au schimbat între timp; reîncarcă pagina și încearcă din nou. Un CNP sau o marcă pe care le are deja alt lucrător se arată sub câmpul lor (vezi [CNP sau marcă folosite deja](#cnp-sau-marcă-folosite-deja)).
 - „Lucrătorul nu mai există la acest client.” sau „Clientul nu mai există în organizația ta.”: reîncarcă lista.
 - „Nu am putut salva lucrătorul. Verifică conexiunea și încearcă din nou.”: salvarea nu a ajuns la aplicație; ce ai scris rămâne în formular, încearcă din nou.

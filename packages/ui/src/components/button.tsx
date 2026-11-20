@@ -15,6 +15,8 @@ const buttonVariants = cva(
           'bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40',
         'destructive-outline':
           'border border-destructive-border bg-background text-destructive-foreground shadow-xs hover:bg-destructive-soft focus-visible:border-destructive-border focus-visible:ring-destructive/20',
+        'destructive-soft':
+          'border border-destructive-border bg-destructive-soft text-destructive-foreground hover:bg-[color-mix(in_oklab,var(--destructive-soft)_85%,var(--destructive-border))] focus-visible:border-destructive-border focus-visible:ring-destructive/20 [&_svg]:text-destructive',
         outline:
           'border bg-background shadow-xs hover:bg-[color-mix(in_oklab,var(--muted)_90%,var(--foreground))] hover:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50',
         secondary:
