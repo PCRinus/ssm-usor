@@ -88,18 +88,6 @@
           "pictures": ["P024"]
         },
         {
-          "id": "22-31-11",
-          "name": "Interzis transportul de persoane pe stivuitor",
-          "meaning": null,
-          "pictures": ["P001"]
-        },
-        {
-          "id": "22-31-12",
-          "name": "Interzisă urcarea pe transpaletă",
-          "meaning": null,
-          "pictures": ["P001"]
-        },
-        {
           "id": "22-31-14",
           "name": "Utilizarea telefonului mobil interzisă",
           "meaning": null,
@@ -398,12 +386,6 @@
           "pictures": ["M011"]
         },
         {
-          "id": "22-34-11",
-          "name": "Purtarea bonetei obligatorie",
-          "meaning": null,
-          "pictures": ["M001"]
-        },
-        {
           "id": "22-34-13",
           "name": "Purtarea centurilor obligatorie",
           "meaning": "Purtarea centurii de siguranță este obligatorie.",
@@ -414,12 +396,6 @@
           "name": "Asigurarea buteliilor obligatorie",
           "meaning": "Buteliile de gaz trebuie asigurate împotriva căderii.",
           "pictures": ["M046"]
-        },
-        {
-          "id": "22-34-21",
-          "name": "Folosiți mijloacele de protecție",
-          "meaning": null,
-          "pictures": ["M001"]
         },
         {
           "id": "22-34-23",
