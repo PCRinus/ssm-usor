@@ -1875,6 +1875,7 @@ def size_list_labels(xml, numbering, styles):
 
 TEXT_WIDTH = round((21000 - MARGINS['LeftMargin'] - MARGINS['RightMargin']) * 1440 / 2540)  # twips
 TOC_HANG = 1134  # twips: a wrapped entry's lines run 2 cm in, clear of its "Capitolul IV." label
+TOC_NUMBER_ROOM = 567  # twips
 TOC_INSTRUCTION = r' TOC \o "1-2" \h \z \u '
 TOC_PLACEHOLDER = (
     '<w:sdt><w:sdtPr><w:docPartObj><w:docPartGallery w:val="Table of Contents"/><w:docPartUnique/>'
@@ -1948,12 +1949,14 @@ def heading_style(level):
             f'<w:pPr><w:keepNext/><w:outlineLvl w:val="{level - 1}"/></w:pPr><w:rPr><w:b/><w:bCs/></w:rPr></w:style>')
 
 
-def contents_entry_style(level):
+def contents_entry_style(level, word_2013=False):
     left = (level - 1) * 567 + TOC_HANG
+    # An entry's words stop short of the page numbers, or a long one runs into its number.
+    right = f' w:right="{TOC_NUMBER_ROOM}"' if word_2013 else ''
     return (f'<w:style w:type="paragraph" w:styleId="TOC{level}"><w:name w:val="toc {level}"/>'
             '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:pPr>'
             f'<w:tabs><w:tab w:val="right" w:leader="dot" w:pos="{TEXT_WIDTH}"/></w:tabs>'
-            f'<w:spacing w:before="0" w:after="40"/><w:ind w:left="{left}" w:hanging="{TOC_HANG}"/><w:jc w:val="left"/>'
+            f'<w:spacing w:before="0" w:after="40"/><w:ind w:left="{left}"{right} w:hanging="{TOC_HANG}"/><w:jc w:val="left"/>'
             f'</w:pPr><w:rPr><w:rFonts w:ascii="{FONT}" w:hAnsi="{FONT}" w:cs="{FONT}"/>'
             f'<w:sz w:val="{round(BODY_SIZE * 2)}"/><w:szCs w:val="{round(BODY_SIZE * 2)}"/></w:rPr></w:style>')
 
@@ -1998,7 +2001,7 @@ def table_of_contents(xml, styles, spec, word_2013=False):
 
     heading = house_heading_style if word_2013 else heading_style
     for style_id, definition in [('Heading1', heading(1)), ('Heading2', heading(2)),
-                                 ('TOC1', contents_entry_style(1)), ('TOC2', contents_entry_style(2))]:
+                                 ('TOC1', contents_entry_style(1, word_2013)), ('TOC2', contents_entry_style(2, word_2013))]:
         existing = style_definition(styles, style_id)
         styles = styles.replace(existing.group(0), definition) if existing \
             else styles.replace('</w:styles>', f'{definition}</w:styles>')

@@ -28,7 +28,9 @@ export function docxWords(docx: Uint8Array): WordCounts {
     .asText()
     .replace(/<mc:Fallback>[\s\S]*?<\/mc:Fallback>/g, '')
     .replace(/<m:oMath(Para)?[ >][\s\S]*?<\/m:oMath\1>/g, '');
-  const text = [...xml.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>|<\/w:p>|<w:(?:tab|br|cr)\/>/g)]
+  const text = [
+    ...xml.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>|<\/w:p>|<w:(?:tab|br|cr|noBreakHyphen)\/>/g),
+  ]
     .map((match) => match[1] ?? ' ')
     .join('')
     .replace(/&(amp|lt|gt|quot|apos);/g, (_, name: string) => entities[name]!);

@@ -9,7 +9,7 @@
       "file": "1.0_cover_decisions.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; lista are rândurile aliniate."
       }
     },
     {
@@ -81,7 +81,7 @@
       "file": "2.1_cover_general_training_material.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; „introductiv-generală” nu se mai desparte."
       }
     },
     {
@@ -93,7 +93,7 @@
       "file": "2.2_general_training_material.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Ghilimele „…” și „și/sau”. Semnele de siguranță sunt panourile standard, într-un catalog cu numele și, unde ajută, rostul fiecăruia; desene noi la primul ajutor, incendii și marcaje. Articolele nu mai sunt îngroșate; titluri mai mari, subliste mai înăuntru."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Ghilimele „…” și „și/sau”. Semnele de siguranță: panourile standard, în catalog, cu numele și rostul lor; desene noi. Articolele nu mai sunt îngroșate; titluri mai mari, subliste mai înăuntru. Antetul nu mai desparte „introductiv-generală”; m¹) și liniuțele din anexe stau pe rânduri proprii."
       }
     },
     {
@@ -105,7 +105,7 @@
       "file": "3.1_cover_own_instructions.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile."
       }
     },
     {
@@ -117,7 +117,7 @@
       "file": "3.2_own_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Ghilimele „…” și „și/sau”. Articolele nu mai sunt îngroșate, titlurile au o scară clară, subcapitolele apar în cuprins, sublistele stau mai înăuntru, iar anexele sunt aliniate la stânga ca restul textului."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Ghilimele „…” și „și/sau”. Articolele nu mai sunt îngroșate, titlurile au o scară clară, subcapitolele apar în cuprins, sublistele stau mai înăuntru, iar anexele sunt aliniate la stânga ca restul textului. Titlurile lungi din cuprins nu mai ating numărul paginii; durata instruirii încape pe un rând."
       }
     },
     {
@@ -129,7 +129,7 @@
       "file": "4.1_cover_training_themes.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile."
       }
     },
     {
@@ -141,7 +141,7 @@
       "file": "4.2_training_themes.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Scris „și/sau”. Fiecare post începe cu numele lui, iar datele lui stau într-un bloc pe două coloane."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Scris „și/sau”. Fiecare post începe cu numele lui, iar datele lui stau într-un bloc pe două coloane. Lista instrucțiunilor specifice ocupă toată lățimea tabelului."
       }
     },
     {
@@ -153,7 +153,7 @@
       "file": "5.0_cover_tests.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul: „Test de verificare a cunoștințelor la angajare (TASSM)”."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul: „Test de verificare a cunoștințelor la angajare (TASSM)”. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile."
       }
     },
     {
@@ -177,7 +177,7 @@
       "file": "6_protective_equipment_list.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă și linie pentru dată. Ghilimele „…”, „și/sau”. Echipamentul posturilor stă într-un singur tabel, grupat pe posturi. Liniuțele din celule au rândurile aliniate sub text."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă și linie pentru dată. Ghilimele „…”, „și/sau”. Echipamentul posturilor stă într-un singur tabel, grupat pe posturi. Liniuțele din celule au rândurile aliniate sub text. Categoria de personal încape pe un rând."
       }
     },
     {
@@ -189,7 +189,7 @@
       "file": "7.1_cover_event_registers.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; lista are rândurile aliniate."
       }
     },
     {
@@ -201,7 +201,7 @@
       "file": "7.2_event_registers.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Paginile, așezate orizontal, se leagă pe latura de sus. Capetele de tabel ale celor patru registre au aceeași mărime."
+        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Paginile, așezate orizontal, se leagă pe latura de sus. Capetele de tabel ale celor patru registre au aceeași mărime. Clientul stă sub titlu; rânduri de aceeași înălțime, până la capătul paginii."
       }
     },
     {
@@ -213,7 +213,7 @@
       "file": "8_control_report.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Rândul semnăturilor are 25 mm."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Rândul semnăturilor are 25 mm. Formularul are titlul „REFERAT DE CONTROL”."
       }
     },
     {
@@ -225,7 +225,7 @@
       "file": "9_risk_assessment.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Grilele metodei se citesc pe orice gri, consecințele marcate cu X; semnături pe rânduri de 25 mm. Scris „și/sau”; marcajele listelor sunt liniuțe. Fișa de evaluare unește celulele grupelor. Paginile așezate orizontal se leagă pe latura de sus. Figurile și formulele metodei, refăcute. O măsură pe rând."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Grilele metodei se citesc pe orice gri, consecințele marcate cu X; semnături pe 25 mm; „și/sau”; liste cu liniuțe. Fișa de evaluare unește celulele grupelor; paginile orizontale se leagă sus. Figuri și formule refăcute; o măsură pe rând. TOTAL arată 100 %; bibliografia pe pagina ei."
       }
     },
     {
@@ -249,7 +249,7 @@
       "file": "11.1_cover_employer_briefing.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile."
       }
     },
     {
@@ -261,7 +261,7 @@
       "file": "11_employer_briefing.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. 25 mm pentru semnătură și ștampilă. Ghilimele „…”, „și/sau”, „marcaj ocazional”; testul la angajare are numele nou. Actele și materialele informative sunt liste, nu tabele. Tipurile de semnalizare au panourile standard și rostul fiecăruia. Articolele nu mai sunt îngroșate."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. 25 mm pentru semnătură și ștampilă. Ghilimele „…”, „și/sau”, „marcaj ocazional”; testul la angajare are numele nou. Actele și materialele informative sunt liste, nu tabele. Tipurile de semnalizare au panourile standard și rostul fiecăruia. Articolele nu mai sunt îngroșate. Cuprinsul nu atinge numerele."
       }
     },
     {
@@ -273,7 +273,7 @@
       "file": "12_control_regulation.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Predarea-primirea are titlul și formulările de pe coperți și 25 mm pentru semnătură și ștampilă. Scris „și/sau”. Textul articolelor începe ca în decizii."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Predarea-primirea are titlul și formulările de pe coperți și 25 mm pentru semnătură și ștampilă. Scris „și/sau”. Textul articolelor începe ca în decizii. Titlul se rupe după sens; graficul are legendă."
       }
     },
     {
