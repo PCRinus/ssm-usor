@@ -9,7 +9,7 @@ import {
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
+import { useIsPhone } from '@ssm-usor/ui/hooks/use-mobile';
 import { FilePen, Pencil } from 'lucide-react';
 import { useState } from 'react';
 
@@ -97,14 +97,14 @@ export function EmployeeTestsCard({
     },
   });
   const [target, setTarget] = useState<TestResultTarget>(null);
-  const phone = useIsMobile();
+  const phone = useIsPhone();
   const domainTests = tests.data?.[domain];
   const recordable = domainTests ? recordableTests(domain, domainTests.status) : [];
   const recordPaper = !readOnly && recordable.length > 0 && (
     <Button
       variant="secondary"
       size="sm"
-      className="max-md:w-full"
+      className="max-sm:w-full"
       data-testid="tests-record-paper"
       onClick={() => setTarget({ kind: 'paper', tests: recordable })}
     >
