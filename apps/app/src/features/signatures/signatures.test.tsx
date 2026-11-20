@@ -1617,6 +1617,26 @@ describe("the employee's signing agreement", () => {
     expect(requests('PUT', `${agreementPath}/state`)).toHaveLength(0);
   });
 
+  it('says why a download is refused even while the access panel asks for an email or a phone', async () => {
+    mockApi({
+      [`GET ${employeePath}`]: () =>
+        Response.json({ employee: { ...employee, email: null, phone: null } }),
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: null,
+          unavailable: { reason: 'employee_has_no_address', missing: [] },
+        }),
+      [`GET ${agreementPath}`]: () => conflict('employee_has_no_address'),
+    });
+    const user = userEvent.setup();
+    mount(`${employeePage}/portal`);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await screen.findByTestId('participant-no-contact');
+    expect(within(card).queryByTestId('signing-agreement-no-address')).toBeNull();
+    await user.click(within(card).getByTestId('signing-agreement-download'));
+    expect(await within(card).findByTestId('signing-agreement-no-address')).toBeTruthy();
+  });
+
   it('says an agreement the employee signed waits for the administrator, and offers no paper record', async () => {
     mockApi({
       [`GET ${agreementPath}/state`]: () =>
@@ -1698,7 +1718,7 @@ describe("the employee's signing agreement", () => {
       )
     );
     expect(within(card).getByTestId('signing-agreement-detail').textContent).toBe(
-      'Semnează fișele de mână. Actul și semnăturile de până atunci rămân la dosar.'
+      'Semnează fișele de mână; actul și semnăturile dinaintea revenirii rămân la dosar.'
     );
     const request = within(card).getByTestId('signing-agreement-request');
     expect(request.textContent).toContain(formatDate(requestedOn));

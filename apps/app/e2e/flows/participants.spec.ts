@@ -37,7 +37,8 @@ test('a member invites an employee to the portal by email and revokes the invita
 
   await signIn(page, owner.email, `/clienti/${clientId}/angajati/${employee.id}/portal`);
   const card = page.getByTestId('employee-portal-card');
-  await expect(card.getByTestId('participant-none')).toContainText(email);
+  await expect(card.getByTestId('participant-none')).toBeVisible();
+  await expect(card.getByTestId('participant-code')).toHaveText(`Email · ${email}`);
 
   await card.getByTestId('participant-invite').click();
   const dialog = page.getByTestId('participant-invite-dialog');
@@ -45,9 +46,9 @@ test('a member invites an employee to the portal by email and revokes the invita
   await expect(dialog.getByRole('radio')).toBeChecked();
   await dialog.getByTestId('participant-invite-submit').click();
   await expect(dialog).toBeHidden();
-  await expect(card.getByTestId('participant-invitation-text')).toContainText(
-    `Invitat pe ${email} prin email la`
-  );
+  await expect(card.getByTestId('portal-access-state')).toHaveText('Invitat');
+  await expect(card.getByTestId('participant-invitation-text')).toContainText('expiră pe');
+  await expect(card.getByTestId('participant-code')).toHaveText(`Email · ${email}`);
   await expect(card.getByTestId('participant-invitation-resend')).toBeDisabled();
   await expect(card.getByTestId('participant-invitation-hint')).toContainText(
     'Poți retrimite după ora'

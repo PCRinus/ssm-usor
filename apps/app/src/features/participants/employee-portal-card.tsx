@@ -1,4 +1,5 @@
 import type { ParticipantChannel, PortalLanguage } from '@ssm-usor/contracts';
+import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
@@ -141,8 +142,24 @@ const targetOf = (person: ActiveParticipant | PendingInvitation): AccessTarget =
   employeeId: person.employeeId,
 });
 
-function AccessLine({ children }: { children: ReactNode }) {
-  return <span className="flex flex-wrap items-center gap-x-2 gap-y-1">{children}</span>;
+// The worker may also be the client's administrator, whose access this is as well.
+function AccessLine({
+  person,
+  children,
+}: {
+  person: ActiveParticipant | PendingInvitation;
+  children: ReactNode;
+}) {
+  return (
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      {children}
+      {person.kind === 'client_administrator' && (
+        <Badge variant="outline" data-testid="participant-administrator">
+          Administratorul clientului
+        </Badge>
+      )}
+    </span>
+  );
 }
 
 // On a phone a row's buttons go under its value, full width, rather than beside its label.
@@ -194,7 +211,7 @@ function ActiveRow({
         </div>
       }
     >
-      <AccessLine>
+      <AccessLine person={participant}>
         <PortalAccessBadge state="active" />
         <span data-testid="participant-active-text" className="tabular-nums">
           {accessDateLine({
@@ -265,7 +282,7 @@ function InvitationRow({
         </div>
       }
     >
-      <AccessLine>
+      <AccessLine person={invitation}>
         <PortalAccessBadge state={state} archived={readOnly} />
         <span data-testid="participant-invitation-text" className="tabular-nums">
           {accessDateLine({

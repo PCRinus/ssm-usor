@@ -464,6 +464,21 @@ describe("the employee's portal access", () => {
     expect(within(card).queryByTestId('portal-access-menu')).toBeNull();
   });
 
+  it("marks the access of a worker who is also the client's administrator", async () => {
+    mockApi({
+      state: () =>
+        Response.json({
+          participant: participant({ kind: 'client_administrator' }),
+          invitation: null,
+        }),
+    });
+    mountEmployee();
+    const card = await portalCard();
+    expect((await within(card).findByTestId('participant-administrator')).textContent).toBe(
+      'Administratorul clientului'
+    );
+  });
+
   it('names the language a participant uses the portal in', async () => {
     mockApi({
       state: () =>

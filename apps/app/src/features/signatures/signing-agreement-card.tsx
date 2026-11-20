@@ -130,7 +130,7 @@ function stateNote(agreement: Agreement | null, readOnly: boolean, unsigned: boo
       return 'Clauza e în contractul de muncă, deci actul adițional nu mai e necesar.';
     case 'withdrawn':
       // The response holds no moment for the withdrawal itself, which took effect when recorded.
-      return 'Semnează fișele de mână. Actul și semnăturile de până atunci rămân la dosar.';
+      return 'Semnează fișele de mână; actul și semnăturile dinaintea revenirii rămân la dosar.';
     default:
       return null;
   }
@@ -353,8 +353,7 @@ export function SigningAgreementCard({
   const todos: ReactNode[] = [];
   if (
     !readOnly &&
-    !contactAsked &&
-    (noAddress || unavailable?.reason === 'employee_has_no_address')
+    (noAddress || (!contactAsked && unavailable?.reason === 'employee_has_no_address'))
   ) {
     todos.push(
       <TodoLine
