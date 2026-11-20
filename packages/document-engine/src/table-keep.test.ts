@@ -113,6 +113,60 @@ describe('keeping the house tables together once merged', () => {
     expect(first.match(/<w:p>/g)).toHaveLength(1);
   });
 
+  it('keeps a row naming a group with the first row of the group', () => {
+    const groupRow = `<w:tr><w:tc><w:tcPr><w:tcW w:w="6000" w:type="dxa"/><w:gridSpan w:val="2"/><w:shd w:val="clear" w:color="auto" w:fill="F1F4EF"/></w:tcPr><w:p><w:r><w:t>{{#groups}}{{title}}</w:t></w:r></w:p></w:tc></w:tr>`;
+    const itemRow = `<w:tr>${cell('{{#people}}{{name}}')}${cell('{{note}}{{/people}}{{/groups}}')}</w:tr>`;
+    const rows = rowsOf(
+      renderDocument(docx(table(house, header + groupRow + itemRow)), {
+        groups: ['Bucătar', 'Ospătar', 'Sudor'].map((title) => ({ title, people: people(3) })),
+      })
+    );
+    expect(rows).toHaveLength(13);
+    expect(rows.map(keepsWithNext)).toEqual([
+      ...[true, true, false, false, false],
+      ...[true, false, false, false],
+      ...[true, false, false, false],
+    ]);
+  });
+
+  it("joins a marked cell the data left empty to the group's cell above, which reads from the top", () => {
+    const marked = (text: string) =>
+      `<w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/><w:vMerge w:val="restart"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">${text}</w:t></w:r></w:p></w:tc>`;
+    const row = `<w:tr>${marked('{{#rows}}{{group}}')}${cell('{{name}}{{/rows}}')}</w:tr>`;
+    const rows = rowsOf(
+      renderDocument(docx(table(house, header + row)), {
+        rows: [
+          { group: 'Mecanic', name: 'F1' },
+          { group: '', name: 'F2' },
+          { group: 'Electric', name: 'F3' },
+          { group: '', name: 'F4' },
+          { group: '', name: 'F5' },
+        ],
+      })
+    );
+    const merge = (each: string) => /<w:vMerge(?: w:val="(\w+)")?\/>/.exec(each)?.[1] ?? 'continue';
+    expect(rows.slice(1).map(merge)).toEqual([
+      'restart',
+      'continue',
+      'restart',
+      'continue',
+      'continue',
+    ]);
+    expect(rows[1]).toMatch(/<w:vAlign w:val="top"\/>[\s\S]*<w:vAlign w:val="center"\/>/);
+  });
+
+  it('leaves an empty cell of a table without the mark as it is', () => {
+    const rows = rowsOf(
+      renderDocument(docx(table(house, header + loopRow)), {
+        people: [
+          { name: 'Ana Pop', note: 'Anual' },
+          { name: '', note: 'Anual' },
+        ],
+      })
+    );
+    expect(rows.some((row) => row.includes('<w:vMerge'))).toBe(false);
+  });
+
   it('leaves the tables of other documents as they are', () => {
     const merged = renderDocument(docx(table('', header + loopRow)), { people: people(3) });
     const rows = rowsOf(merged);

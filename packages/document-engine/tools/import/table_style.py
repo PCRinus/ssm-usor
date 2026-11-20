@@ -27,6 +27,9 @@ from collections import Counter
 FRAME = 8  # eighths of a point
 INSIDE = 4
 HEADER_FILL = 'E3E8E0'
+# A row of one cell across the table in this fill names the group of rows under it (6's posts)
+# and keeps with the row after it, so a group never starts at a page's foot.
+GROUP_FILL = 'F1F4EF'
 PADDING = (('top', 40), ('left', 85), ('bottom', 40), ('right', 85))  # twips
 # Beside the text of a register too dense for the house padding, where a header's words would
 # break inside the word: 7.2's registers of 12 to 18 columns, as they had it.
@@ -448,7 +451,15 @@ def keep_together(rows, header, grid):
             chain -= 1
     for index in range(chain):
         keeps[index] = True
+    for index in range(header, len(rows) - 1):
+        if is_group_row(rows[index], grid):
+            keeps[index] = True
     return [True] * len(rows), keeps
+
+
+def is_group_row(row, grid):
+    cells = CELL.findall(row)
+    return len(cells) == 1 and span(cells[0]) == len(grid) and f'w:fill="{GROUP_FILL}"' in cell_properties(cells[0])
 
 
 def apply_keep(row, cant_split, keeps):
