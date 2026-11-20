@@ -134,7 +134,7 @@ describe('keeping the house tables together once merged', () => {
       expect(rows.slice(1).map(vertical)).toEqual(Array(4).fill(['center']));
     });
 
-    it('reads every row from the top once a cell of any row wraps', () => {
+    it('centres every row even when a cell wraps', () => {
       const rows = rowsOf(
         renderDocument(docx(signedList), {
           people: [
@@ -147,7 +147,7 @@ describe('keeping the house tables together once merged', () => {
           ],
         })
       );
-      expect(rows.slice(1).map(vertical)).toEqual(Array(4).fill(['top']));
+      expect(rows.slice(1).map(vertical)).toEqual(Array(4).fill(['center']));
     });
   });
 

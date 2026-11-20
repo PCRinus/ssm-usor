@@ -152,6 +152,24 @@ describe('the table house style of the occupational safety set', () => {
     expect([...new Set(small)]).toEqual([]);
   });
 
+  it('centres every row of a list signed by hand', () => {
+    const signed = houseTables.filter(([, , table]) =>
+      rowsOf(table)
+        .filter(isHeader)
+        .some((row) => cellsOf(row).some((cell) => /^Semnătur/i.test(documentTextOf(cell).trim())))
+    );
+    expect(signed.map(([name]) => name)).toEqual(
+      expect.arrayContaining(['1.1_decision_training.docx', '9_risk_assessment.docx'])
+    );
+    for (const [, , table] of signed) {
+      for (const row of rowsOf(table).filter((each) => !isHeader(each))) {
+        expect(new Set(row.match(/<w:vAlign w:val="\w+"\/>/g))).toEqual(
+          new Set(['<w:vAlign w:val="center"/>'])
+        );
+      }
+    }
+  });
+
   it("keeps each of 6's risk groups with its first row", () => {
     const groups = houseTables
       .filter(

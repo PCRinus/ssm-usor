@@ -87,6 +87,7 @@ ROW = re.compile(r'<w:tr\b[^>]*>.*?</w:tr>', re.S)
 CELL = re.compile(r'<w:tc\b[^>]*>.*?</w:tc>', re.S)
 PARAGRAPH = re.compile(r'<w:p\b[^>]*/>|<w:p\b[^>]*>.*?</w:p>', re.S)
 RUN = re.compile(r'<w:r\b[^>]*>.*?</w:r>', re.S)
+SIGNATURE_COLUMN = re.compile(r'semnătur', re.I)
 BOLD_RUN = re.compile(r'<w:rPr>(?:(?!</w:rPr>).)*<w:b(?: w:val="(?:true|1|on)")?/>', re.S)
 TEXT = re.compile(r'(<w:t\b[^>]*>)([^<]*)(</w:t>)')
 LOOP_TAGS_ONLY = re.compile(r'(\{\{[#/^][^}]*\}\})+')
@@ -751,7 +752,9 @@ def house_table(table, kind, header_size=None, snap=True, closing=False):
             row = with_cells(row, lambda column, cell: with_widths(cell, column, grid))
         styled.append(row)
     alignments = column_alignments(styled, header)
-    styled = styled[:header] + [aligned_row(row, grid, alignments, merged_onto(row, styled[index + 1] if index + 1 < len(styled) else ''))
+    signed = any(SIGNATURE_COLUMN.match(label) for labels in names.values() for label in labels)
+    styled = styled[:header] + [aligned_row(row, grid, alignments, merged_onto(row, styled[index + 1] if index + 1 < len(styled) else ''),
+                                            signed)
                                 for index, row in enumerate(styled) if index >= header]
     cant_split, keeps = keep_together(styled, header, grid, closing)
     styled = [apply_keep(row, cant, keep) for row, cant, keep in zip(styled, cant_split, keeps)]
@@ -812,10 +815,13 @@ def merged_onto(row, following):
     return {column for column, cell in columns_of(row) if column in continued and not continues_merge(cell)}
 
 
-def aligned_row(row, grid, alignments, merged_on=frozenset()):
+def aligned_row(row, grid, alignments, merged_on=frozenset(), signed=False):
     """A row of single lines reads centred; a row with more lines anywhere, or with a cell merged
-    down over the next row, reads from the top, so a group's name stands beside its first row."""
-    single = not merged_on and all(continues_merge(cell) or cell_lines(cell, column, grid) <= 1 for column, cell in columns_of(row))
+    down over the next row, reads from the top, so a group's name stands beside its first row. The
+    rows of a list signed by hand are as tall as a signature needs, and a row read from the top
+    beside a centred one shows at once: every one is centred."""
+    single = signed or not merged_on and all(continues_merge(cell) or cell_lines(cell, column, grid) <= 1
+                                             for column, cell in columns_of(row))
 
     def change(column, cell):
         cell = edit_cell(cell, lambda inner: put(

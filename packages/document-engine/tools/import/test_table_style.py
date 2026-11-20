@@ -1,3 +1,4 @@
+import re
 import unittest
 
 import decision_pages
@@ -109,6 +110,15 @@ class Sizes(unittest.TestCase):
 
 
 class SignedAndClosing(unittest.TestCase):
+    def test_every_row_of_a_list_signed_by_hand_is_centred_whatever_wraps(self):
+        cell = '<w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>{}</w:t></w:r></w:p></w:tc>'
+        header = '<w:tr><w:trPr><w:tblHeader/></w:trPr>' + cell.format('Numele') + cell.format('Semnătura') + '</w:tr>'
+        rows = ['<w:tr>' + cell.format(name) + cell.format('') + '</w:tr>' for name in ('Ana Pop', 'Lucrări ' * 20, '')]
+        grid = '<w:tblGrid><w:gridCol w:w="2000"/><w:gridCol w:w="2000"/></w:tblGrid>'
+        table = f'<w:tbl><w:tblPr><w:tblBorders/></w:tblPr>{grid}{header}{"".join(rows)}</w:tbl>'
+        laid = house_table(table, 'house')
+        self.assertEqual(set(re.findall(r'<w:vAlign w:val="(\w+)"/>', laid)), {'center'})
+
     def test_a_list_signed_by_hand_keeps_only_its_head(self):
         rows = [ROW.format('Semnătura de primire'), ROW.format('1.'), ROW.format('2.'), ROW.format('3.')]
         _, keeps = keep_together(rows, 1, [4000])
