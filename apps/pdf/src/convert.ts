@@ -66,6 +66,9 @@ function converting(files: ArrayBuffer[], archival: boolean): FormData {
   // Gotenberg's default, said out loud: a document's table of contents leaves the merge
   // without page numbers, and LibreOffice writes them in while it lays the pages out.
   form.append('updateIndexes', 'true');
+  // LibreOffice adds a blank page, without even a header, before a section that restarts its
+  // numbers at 1 on an even page: an appended annex after one of an odd number of pages.
+  form.append('skipEmptyPages', 'true');
   // The archival flavour: fonts embedded, nothing fetched from outside when it is opened,
   // which is what a copy kept as evidence, and later signed, should be.
   if (archival) form.append('pdfa', 'PDF/A-2b');

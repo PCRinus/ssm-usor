@@ -35,7 +35,7 @@ either set's own instructions, 3.2 or 2.1, the files are the common part, then p
 module's file: `[common part, title page 1, module 1, title page 2, module 2, …]`, 1 + 2n
 files, which four digits number up to 9,999. Every LibreOffice conversion sends `updateIndexes=true`, Gotenberg's
 default said out loud: a table of contents leaves the merge without page numbers, and
-LibreOffice writes them in as it lays the pages out ([the engine](document-engine.md)). The
+LibreOffice writes them in as it lays the pages out ([the engine](document-engine.md)). It also sends `skipEmptyPages=true`: LibreOffice adds a blank page, without a header, before a section that restarts its numbers at 1 on an even page, as an appended annex does after one of an odd number of pages. The
 occupational safety set's contents reach it already written, their page numbers as `PAGEREF`
 fields: the API sends every file as the engine's `printableDocx` writes it, since the rebuild
 would drop their bold labels.
