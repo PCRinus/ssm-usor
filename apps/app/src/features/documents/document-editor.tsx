@@ -92,6 +92,33 @@ export default function DocumentEditor({
     };
   }, [onFailed]);
 
+  // In view mode the editor cancels every selectstart on the pages, so nothing could be copied;
+  // a capture listener on the document runs before the editor's own. A native select all would
+  // also take the toolbar and the pane.
+  useEffect(() => {
+    if (editable) return;
+    const inPages = (node: Node | null) =>
+      (node instanceof Element ? node : node?.parentElement)?.closest('.docx-pages');
+    const allow = (event: Event) => {
+      if (inPages(event.target as Node)) event.stopPropagation();
+    };
+    const selectAll = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'a' || !(event.metaKey || event.ctrlKey) || event.altKey)
+        return;
+      const selection = window.getSelection();
+      const pages = inPages(selection?.anchorNode ?? null);
+      if (!selection || !pages) return;
+      event.preventDefault();
+      selection.selectAllChildren(pages);
+    };
+    document.addEventListener('selectstart', allow, true);
+    document.addEventListener('keydown', selectAll, true);
+    return () => {
+      document.removeEventListener('selectstart', allow, true);
+      document.removeEventListener('keydown', selectAll, true);
+    };
+  }, [editable]);
+
   return (
     <DocxEditor
       ref={editor}
