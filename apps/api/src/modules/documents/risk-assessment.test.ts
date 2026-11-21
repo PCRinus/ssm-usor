@@ -330,6 +330,17 @@ describe('an evaluation of the risk assessment', () => {
     });
   });
 
+  it('splits the sheet by component, each with its rows, for the row across the table that names it', () => {
+    expect(
+      sudor!.sheetComponents.map(({ label, rows }) => [label, rows.map((row) => row.code)])
+    ).toEqual([
+      ['MIJLOACE DE PRODUCȚIE', ['F1', 'F2', 'F3', 'F4']],
+      ['MEDIUL DE MUNCĂ', ['F5', 'F6', 'F7']],
+      ['EXECUTANT', ['F8', 'F9', 'F10']],
+      ['SARCINA DE MUNCĂ', ['F11', 'F12']],
+    ]);
+  });
+
   it('lists the factors by component and group, with every component and its share', () => {
     expect(
       sudor!.components.map((component) => [

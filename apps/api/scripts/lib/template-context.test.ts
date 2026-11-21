@@ -808,7 +808,7 @@ describe('the risk assessment', () => {
       'Activitatea principală (clasa CAEN): 2562 – Fabricarea articolelor de feronerie'
     );
     expect(text).toContain(
-      'Sediu social și puncte de lucru:\nSediu social: București, Sector 1, Calea Victoriei 122A\nPunct de lucru „Atelier Ghiroda”: Ghiroda, județul Timiș, Str. Industriilor 4'
+      'Sediu social și puncte de lucru:\n– Sediu social: București, Sector 1, Calea Victoriei 122A\n– Punct de lucru „Atelier Ghiroda”: Ghiroda, județul Timiș, Str. Industriilor 4'
     );
     for (const evaluation of context.riskAssessment.evaluations) {
       expect(text).toContain(

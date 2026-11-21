@@ -300,44 +300,6 @@ def employer_briefing(package, data):
                     catalogue(package, data['11'], indent))
 
 
-MATH_RUN = '<w:rPr><w:rFonts w:ascii="Cambria Math" w:hAnsi="Cambria Math"/></w:rPr>'
-
-
-def m(text, plain=False):
-    literal = '<m:rPr><m:lit/><m:nor/></m:rPr>' if plain else ''
-    return f'<m:r>{literal}{MATH_RUN}<m:t xml:space="preserve">{escape(text)}</m:t></m:r>'
-
-
-def fraction(numerator, denominator):
-    return f'<m:f><m:num>{numerator}</m:num><m:den>{denominator}</m:den></m:f>'
-
-
-def bars(rows):
-    matrix = ''.join('<m:mr>' + ''.join(f'<m:e>{m("(")}{m(cell, plain=True)}{m(")")}</m:e>' for cell in row) + '</m:mr>'
-                     for row in rows)
-    return f'<m:d><m:dPr><m:begChr m:val="‖"/><m:endChr m:val="‖"/></m:dPr><m:e><m:m>{matrix}</m:m></m:e></m:d>'
-
-
-def submatrix(upper, lower, index, rows):
-    """M with the bounds of its index above and below it, as 9's other submatrices are written."""
-    return (f'<m:sSub><m:e><m:limLow><m:e><m:limUpp><m:e>{m("M")}</m:e><m:lim>{m(upper)}</m:lim></m:limUpp></m:e>'
-            f'<m:lim>{m(lower)}</m:lim></m:limLow></m:e><m:sub>{m(index, plain=True)}</m:sub></m:sSub>'
-            f'{m("=")}{bars(rows)}')
-
-
-def brace(content):
-    return f'<m:d><m:dPr><m:begChr m:val="{{"/><m:endChr m:val=""/></m:dPr><m:e>{content}</m:e></m:d>'
-
-
-def omath(content):
-    return f'<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">{content}</m:oMath>'
-
-
-def paragraph_content(paragraph_xml, content):
-    properties = re.match(r'<w:p\b[^>]*>(<w:pPr>.*?</w:pPr>)?', paragraph_xml, re.S)
-    return properties.group(0) + content + '</w:p>'
-
-
 FIGURES = [('1.1', None), ('1.2', None), ('1.3', None), ('1.4', None), ('1.5. a', '1.5a'), ('1.5. b', '1.5b')]
 
 
@@ -355,37 +317,6 @@ def risk_assessment(package):
         # The Body Text style draws a box around its paragraph, which no other figure has.
         figure = figure.replace('<w:pStyle w:val="BodyText"/>', '<w:pStyle w:val="Normal"/>', 1)
         xml = xml[:begin] + figure + xml[end:]
-    elements = body_elements(xml)
-    figure = find(elements, xml, r'^Fig\. 1\.1\.')
-    while '<w:drawing' not in xml[elements[figure][1]:elements[figure][2]]:
-        figure -= 1
-    _, begin, end = elements[figure - 1]
-    assert re.search(r'<w:object\b|<m:oMath\b', xml[begin:end]), 'no formula before Fig. 1.1'
-    limit = omath(m('y') + m('=') + fraction(m('1'), m('0')) + m('→+∞'))
-    zero = omath(m('y') + m('=') + fraction(m('1'), m('+∞')) + m('→0'))
-    xml = xml[:begin] + paragraph_content(xml[begin:end], limit + run(';   ') + zero + run('.')) + xml[end:]
-    elements = body_elements(xml)
-    first = find(elements, xml, r'^- nivelul 4:\s*$') + 1
-    last = find(elements, xml, r'^- nivelul 5:', first)
-    for _, begin, end in elements[first:last]:
-        assert re.search(r'<w:object\b|<m:oMath\b', xml[begin:end]), xml[begin:end][:200]
-    _, begin, _ = elements[first]
-    end = elements[last - 1][2]
-    rows = [submatrix('6', 'p=5', '3,p', [['3,5', '3,6']]), submatrix('4', 'p=3', '4,p', [['4,3', '4,4']]),
-            submatrix('3', 'p=2', '5,p', [['5,2', '5,3']]), submatrix('7', 'g=6', 'g,2', [['6,2'], ['7,2']]) + m(';')]
-    # One paragraph per submatrix, each in its brace as the other levels write them: LibreOffice
-    # centres the rows of a stack in a formula, which set the shorter rows in.
-    template = xml[begin:elements[first][2]]
-    lines = ''
-    for index, row in enumerate(rows):
-        after = 120 if index == len(rows) - 1 else 40
-        lines += re.sub(r'w:after="\d+"', f'w:after="{after}"', paragraph_content(template, omath(brace(row))), count=1)
-    xml = xml[:begin] + lines + xml[end:]
-    elements = body_elements(xml)
-    _, begin, end = elements[find(elements, xml, r'și elementul \(2,1\)\.\s*$')]
-    assert re.search(r'<w:object\b|<m:oMath\b', xml[begin:end]), 'no formula for level 1'
-    first_level = submatrix('6', 'p=1', '1,p', [['1,1', '1,2', '1,3', '1,4', '1,5', '1,6']])
-    xml = xml[:begin] + paragraph_content(xml[begin:end], omath(first_level) + run(' și elementul (2,1).')) + xml[end:]
     package.document = xml
 
 

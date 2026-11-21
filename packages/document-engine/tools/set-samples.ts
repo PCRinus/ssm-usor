@@ -48,6 +48,15 @@ function evaluation(
       other: '—',
     }));
   const unacceptable = measured.filter((factor) => factor.level > 3);
+  const sheet = factors.map((factor, index) => ({
+    ...factor,
+    component:
+      factors[index - 1]?.component === factor.component ? '' : labels[factor.component]![0],
+    group: factors[index - 1]?.component === factor.component ? '' : 'Factori de risc mecanic',
+    consequence: factor.level > 3 ? 'Invaliditate gradul II' : 'ITM 3–45 zile',
+    gravityClass: factor.level > 3 ? 5 : 2,
+    probabilityClass: 3,
+  }));
   return {
     roman,
     name,
@@ -78,15 +87,13 @@ function evaluation(
         groups: own.length ? [{ letter: 'a', name: 'Factori de risc mecanic', factors: own }] : [],
       };
     }),
-    sheet: factors.map((factor, index) => ({
-      ...factor,
-      component:
-        factors[index - 1]?.component === factor.component ? '' : labels[factor.component]![0],
-      group: factors[index - 1]?.component === factor.component ? '' : 'Factori de risc mecanic',
-      consequence: factor.level > 3 ? 'Invaliditate gradul II' : 'ITM 3–45 zile',
-      gravityClass: factor.level > 3 ? 5 : 2,
-      probabilityClass: 3,
-    })),
+    sheet,
+    sheetComponents: labels
+      .map(([label], component) => ({
+        label,
+        rows: sheet.filter((_, index) => factors[index]!.component === component),
+      }))
+      .filter(({ rows }) => rows.length > 0),
     ranked: [...factors].sort((a, b) => b.level - a.level),
     globalLevel: '2,75',
     verdict:
