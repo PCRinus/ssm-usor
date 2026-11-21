@@ -1,4 +1,5 @@
 import { pdfConversionFailed } from '@ssm-usor/contracts';
+import { printableDocx } from '@ssm-usor/document-engine';
 import type { Context } from 'hono';
 
 import type { ApiEnv } from './env';
@@ -13,6 +14,10 @@ export const isPdf = (bytes: Uint8Array) =>
 // not part of `pnpm dev` (it needs Docker). `GOTENBERG_URL` points at a Gotenberg started by
 // hand instead, for local development and the flow tests. With neither, there is no
 // converter, and documents are issued without a PDF rather than not at all.
+//
+// Either way a file goes out as `printableDocx` writes it: a contents with a label column is
+// printed with its page numbers as references, which LibreOffice's rebuild of the contents
+// would otherwise reduce to plain text (docs/document-engine.md, Contents).
 
 export type PdfConverter = {
   convertDocx: (docx: Uint8Array) => Promise<Uint8Array>;
@@ -64,8 +69,9 @@ export function createPdfConverter(c: Context<ApiEnv>): PdfConverter | null {
   const { GOTENBERG_URL } = c.env;
   const PDF = c.env.PDF_CONVERSION === 'service' ? c.env.PDF : undefined;
   if (!PDF && !GOTENBERG_URL) return null;
-  async function convert(files: Uint8Array[], conversion: Conversion = 'archival') {
+  async function convert(given: Uint8Array[], conversion: Conversion = 'archival') {
     try {
+      const files = conversion === 'merge' ? given : given.map(printableDocx);
       // Copies with a plain ArrayBuffer behind them, which is what crosses the binding.
       const buffers = files.map((file) => new Uint8Array(file).buffer);
       const pdf = GOTENBERG_URL

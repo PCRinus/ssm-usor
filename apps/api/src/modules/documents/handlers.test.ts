@@ -86,6 +86,7 @@ vi.mock('@ssm-usor/document-engine', () => {
         })
       ),
     documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
+    printableDocx: (bytes: Uint8Array) => bytes,
     renderTemplate: (template: Uint8Array, data: Record<string, unknown>) => {
       const typeKey = new TextDecoder().decode(template);
       const printed = [

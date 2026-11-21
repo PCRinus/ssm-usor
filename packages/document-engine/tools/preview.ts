@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { printableDocx } from '../src/printable';
 import { wordsMissingFromPdf } from '../src/test/pdf-words';
 import { previewDocuments } from './preview-samples';
 
@@ -18,7 +19,8 @@ mkdirSync(output, { recursive: true });
 const { documents, skipped } = previewDocuments(pathToFileURL(`${root}${templatesArgument}/`));
 for (const reason of skipped) console.warn(`skipped ${reason}`);
 for (const { name, label, docx } of documents) {
-  writeFileSync(`${output}${name.replace(/\.docx$/, '')}.${label}.docx`, docx);
+  // As the API sends it to the converter (`apps/api/src/lib/pdf.ts`).
+  writeFileSync(`${output}${name.replace(/\.docx$/, '')}.${label}.docx`, printableDocx(docx));
 }
 
 execFileSync(

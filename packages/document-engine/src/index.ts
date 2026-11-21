@@ -19,6 +19,7 @@ export {
   type TemplateSet,
   type TemplateSource,
 } from './citations';
+export { printableDocx } from './printable';
 export * from './render';
 export {
   buildSigningAgreementData,

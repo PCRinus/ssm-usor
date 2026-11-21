@@ -5,7 +5,8 @@
 // break differently. Where the template has a "Contents labels N" style (the occupational
 // safety set, tools/import/contents.py), an entry of level N prints its label bold, a tab, and
 // its title, with that style's tab stop and hang. LibreOffice's recomputed table, written from
-// the headings' plain text in the "toc N" styles, has neither.
+// the headings' plain text in the "toc N" styles, has neither, so the PDF is made from
+// `printedContents` (src/printable.ts).
 
 import { textWidth } from './content-widths';
 
@@ -114,14 +115,22 @@ function withBookmark(paragraph: string, name: string, id: number) {
 const fieldRun = (type: 'begin' | 'separate' | 'end') =>
   `<w:r><w:fldChar w:fldCharType="${type}"/></w:r>`;
 
-export function fillTableOfContents(document: string, styles: string): string {
+type Contents = {
+  control: RegExpExecArray;
+  instruction: RegExpExecArray;
+  before: string;
+  marked: string;
+  entries: { level: number; text: string; bookmark: string }[];
+};
+
+/** The headings the contents list, each given a bookmark at its start to link to. */
+function contentsOf(document: string, styles: string): Contents | null {
   const control = contentsControl.exec(document);
-  if (!control) return document;
+  if (!control) return null;
   const instruction = /<w:instrText[^>]*>([^<]*\bTOC\b[^<]*)<\/w:instrText>/.exec(control[0]);
-  if (!instruction) return document;
+  if (!instruction) return null;
 
   const levelOf = headingLevels(styles);
-  const columns = labelColumns(styles);
   const { from, to } = outlineRange(instruction[1]!);
   const takenNames = new Set(
     [...document.matchAll(/<w:bookmarkStart\b[^>]*w:name="([^"]+)"/g)].map((match) => match[1])
@@ -143,7 +152,7 @@ export function fillTableOfContents(document: string, styles: string): string {
 
   const before = document.slice(0, control.index);
   const after = document.slice(control.index + control[0].length);
-  const entries: { level: number; text: string; bookmark: string }[] = [];
+  const entries: Contents['entries'] = [];
   const marked = after.replace(paragraphPattern, (paragraph) => {
     const properties = /^<w:p\b[^>]*>\s*<w:pPr>([\s\S]*?)<\/w:pPr>/.exec(paragraph)?.[1] ?? '';
     const style = /<w:pStyle w:val="([^"]+)"\/>/.exec(properties)?.[1];
@@ -156,8 +165,14 @@ export function fillTableOfContents(document: string, styles: string): string {
     entries.push({ level, text, bookmark });
     return withBookmark(paragraph, bookmark, nextId++);
   });
-  if (entries.length === 0) return document;
+  return entries.length === 0 ? null : { control, instruction, before, marked, entries };
+}
 
+export function fillTableOfContents(document: string, styles: string): string {
+  const contents = contentsOf(document, styles);
+  if (!contents) return document;
+  const { control, instruction, before, marked, entries } = contents;
+  const columns = labelColumns(styles);
   const rows = entries.map(({ level, text, bookmark }, index) => {
     const opening =
       index === 0 ? `${fieldRun('begin')}<w:r>${instruction[0]}</w:r>${fieldRun('separate')}` : '';
@@ -174,4 +189,31 @@ export function fillTableOfContents(document: string, styles: string): string {
     `<w:sdtContent>${rows.join('')}</w:sdtContent>`
   );
   return before + filled + marked;
+}
+
+/**
+ * The contents as the PDF prints them, where the template sets a label column: plain
+ * paragraphs written from the headings again, each ending in a PAGEREF field to its heading.
+ * LibreOffice's rebuild of a contents field writes the headings' plain text and drops the bold
+ * labels and their column, and it leaves a PAGEREF inside such a field at its cached result;
+ * outside one, it lays the reference out with the page it points to. Each reference's bookmark
+ * is set with its entry: one that could not be resolved would print an error in its place.
+ */
+export function printedContents(document: string, styles: string): string {
+  const columns = labelColumns(styles);
+  if (columns.size === 0) return document;
+  const contents = contentsOf(document, styles);
+  if (!contents) return document;
+  const { before, marked, entries } = contents;
+  const rows = entries.map(({ level, text, bookmark }) => {
+    const { properties, runs } = entry(level, text, columns.get(level));
+    return (
+      `<w:p><w:pPr>${properties}</w:pPr>` +
+      `<w:hyperlink w:anchor="${bookmark}" w:history="1">${runs}</w:hyperlink>` +
+      `<w:r><w:tab/></w:r>${fieldRun('begin')}` +
+      `<w:r><w:instrText xml:space="preserve"> PAGEREF ${bookmark} \\h </w:instrText></w:r>` +
+      `${fieldRun('separate')}${fieldRun('end')}</w:p>`
+    );
+  });
+  return before + rows.join('') + marked;
 }

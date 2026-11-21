@@ -6,9 +6,9 @@ title of the level starts on one line.
 
 The merge writes the entries (`src/toc.ts`) and sets each labelled one's tab and hang from a
 style of its own, "Contents labels N", which nothing else uses. The entry styles "toc N" keep
-the plain hang: the PDF conversion writes the entries again from the headings' plain text, in
-those styles, and a label column there would send a title without a label, or a label without
-its tab, to the column, and the page number of "BIBLIOGRAFIE" with it.
+the plain hang: Word, the in-app editor and LibreOffice rebuild a contents from the headings'
+plain text in those styles, and a label column there would send a title without a label, or
+a label without its tab, to the column, and the page number of "BIBLIOGRAFIE" with it.
 """
 
 import math
