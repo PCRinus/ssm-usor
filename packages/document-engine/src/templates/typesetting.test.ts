@@ -560,12 +560,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
     const chapters = paragraphs.filter((paragraph) => paragraph.includes('w:val="Heading1"'));
     expect(chapters.length).toBeGreaterThan(5);
     for (const chapter of chapters) expect(chapter, documentTextOf(chapter)).toMatch(pageBreak);
-    // 9 opened each post's evaluation and the workers' consultation on a page before chapters did.
-    const ownPage = /^Subcapitolul (V\.\{\{roman\}\}|VI\.III)\./;
-    const subchapters = paragraphs.filter(
-      (paragraph) =>
-        paragraph.includes('w:val="Heading2"') && !ownPage.test(documentTextOf(paragraph))
-    );
+    const subchapters = paragraphs.filter((paragraph) => paragraph.includes('w:val="Heading2"'));
     expect(subchapters.length).toBeGreaterThan(1);
     for (const subchapter of subchapters) {
       expect(subchapter, documentTextOf(subchapter)).not.toMatch(pageBreak);
