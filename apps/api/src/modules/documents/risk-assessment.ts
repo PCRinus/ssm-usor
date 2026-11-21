@@ -117,7 +117,7 @@ const actionLines = (actions: string | null) =>
   measureLines(
     (actions ?? '')
       .split(/\r?\n/)
-      .map((line) => line.replace(/^\s*[–-]\s+/u, '').trim())
+      .map((line) => line.replace(/^(?:\s*(?:[–—•*]\s*|-(?:\s+|$)))+/u, '').trim())
       .filter(Boolean)
   );
 

@@ -10,7 +10,7 @@ const measuresColumn = /^(?:Măsur[ai]|Acțiuni)\b/iu;
 // 3 mm, in twips.
 const cellHang = 170;
 // A dash before a digit is a minus sign ("- 5 °C"), not an item's.
-const dashLine = /^\s*[–-]\s+(?![\s\d])/u;
+const dashLine = /^\s*(?:–\s+|-\s+(?![\s\d]))/u;
 
 const rowPattern = /<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g;
 const paragraphPattern = /<w:p(?:\s[^>]*)?\/>|<w:p(?:\s[^>]*[^/])?>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g;

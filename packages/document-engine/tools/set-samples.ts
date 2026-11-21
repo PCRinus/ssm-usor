@@ -41,8 +41,9 @@ function evaluation(
       level: factor.level,
       measures:
         '– Verificarea periodică a echipamentelor.\n– Instruirea lucrătorilor la locul de muncă, la angajare și periodic, cu demonstrații practice.',
-      technical: '– Verificarea periodică a echipamentelor.',
-      organizational: '– Instruirea lucrătorilor la locul de muncă.',
+      technical: 'Verificarea periodică a echipamentelor.',
+      organizational:
+        '– Instruirea lucrătorilor la locul de muncă.\n– Afișarea instrucțiunilor la locul de muncă.',
       hygienicSanitary: '—',
       other: '—',
     }));
@@ -99,9 +100,12 @@ function evaluation(
       : '',
     irreversible:
       'Niciunul dintre factorii de risc identificați nu poate avea consecințe ireversibile.',
-    plan: measured.map((factor) => ({
+    plan: measured.map((factor, index) => ({
       ...factor,
-      actions: 'Verificare la începutul fiecărui schimb.',
+      actions:
+        index === 0
+          ? '– Verificare la începutul fiecărui schimb.\n– Raportarea defecțiunilor.'
+          : 'Verificare la începutul fiecărui schimb.',
       deadline: 'Permanent',
       responsiblePerson: 'Conducătorul locului de muncă',
       observations: '—',
@@ -1296,7 +1300,7 @@ function setSample(
         },
         {
           risk: 'Electrocutare prin atingere directă sau indirectă.',
-          measure: '– Verificări PRAM anuale și verificarea vizuală a integrității cablurilor.',
+          measure: 'Verificări PRAM anuale și verificarea vizuală a integrității cablurilor.',
         },
       ],
       followingYear: '2027',

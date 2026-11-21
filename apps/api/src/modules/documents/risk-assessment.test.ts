@@ -530,6 +530,16 @@ describe('an evaluation of the risk assessment', () => {
     expect(sudor!.plan[0]).toMatchObject({
       actions: 'Verificarea apărătorilor la începutul fiecărui schimb.',
     });
+    const planned = (actions: string) =>
+      only([factor(7, 1, { measures: [{ kind: 'technical', description: 'Măsură.' }], actions })]);
+    for (const [typed, printed] of [
+      ['-\n– A\n–\nB', '– A\n– B'],
+      ['– • A\n* B', '– A\n– B'],
+      ['— A', 'A'],
+      ['-A', '-A'],
+    ] as const) {
+      expect(planned(typed).plan[0]!.actions).toBe(printed);
+    }
     expect(only([factor(2, 2)])).toMatchObject({ plan: [], hasPlan: false, noPlan: true });
   });
 });
