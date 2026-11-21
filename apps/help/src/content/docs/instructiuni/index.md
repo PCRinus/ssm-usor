@@ -108,7 +108,7 @@ Un post fără instrucțiuni SSM oprește generarea instrucțiunilor proprii ale
 
 ## Unde se tipărește
 
-Fiecare instrucțiune aplicată la un post al clientului devine o anexă a instrucțiunilor proprii ale lui: IPSSM în Documente SSM, IPSU în Documente SU.
+Fiecare instrucțiune aplicată la un post al clientului devine o anexă a instrucțiunilor proprii ale lui: IPSSM în Documentație SSM, IPSU în Documentație SU.
 
 - **Pagina de titlu.** Anexa începe cu o pagină de titlu: „ANEXA N”, instrucțiunile cărora le aparține, titlul și data versiunii.
 - **Textul.** Pe paginile următoare, articolele cu „Art. N.” îngroșat, titlurile de secțiune și actele normative la sfârșit.
@@ -121,7 +121,7 @@ Tematica de instruire citează fiecare anexă cu articolele ei, „Art. 1–N”
 
 Fiecare salvare care schimbă textul face o versiune nouă, chiar dacă schimbă doar o diacritică, o literă mare sau un semn, ca „< 50 V” în loc de „> 50 V”; cele vechi rămân, ca documentele emise să-și păstreze anexele. O salvare care schimbă doar spațiile dintre cuvinte nu face o versiune nouă.
 
-Un document emis cu o versiune mai veche rămâne în urmă: în Documente SSM sau Documente SU apare „Instrucțiuni actualizate”, cu instrucțiunea care s-a schimbat. Îl generezi din nou ca să ia versiunea nouă.
+Un document emis cu o versiune mai veche rămâne în urmă: în Documentație SSM sau Documentație SU apare „Instrucțiuni actualizate”, cu instrucțiunea care s-a schimbat. Îl generezi din nou ca să ia versiunea nouă.
 
 ## Instrucțiunile din documentația importată
 

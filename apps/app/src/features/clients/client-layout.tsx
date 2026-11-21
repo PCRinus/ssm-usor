@@ -54,7 +54,7 @@ const sections = [
     icon: BriefcaseBusiness,
     ownerOnly: false,
   },
-  // Documente SU already shows the extinguisher.
+  // Documentație SU already shows the extinguisher.
   {
     to: '/clienti/$clientId/mijloace-de-aparare',
     label: 'Mijloace de apărare',
@@ -75,13 +75,13 @@ const sections = [
   },
   {
     to: '/clienti/$clientId/documente-ssm',
-    label: 'Documente SSM',
+    label: 'Documentație SSM',
     icon: FileText,
     ownerOnly: false,
   },
   {
     to: '/clienti/$clientId/documente-su',
-    label: 'Documente SU',
+    label: 'Documentație SU',
     icon: FireExtinguisher,
     ownerOnly: false,
   },

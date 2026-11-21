@@ -239,9 +239,9 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clienti/$clientId/mijloace-de-aparare.tsx`                     | `/clienti/:id/mijloace-de-aparare`                     | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, their other periodic checks, the building of each fixed space, and the dangerous substances.             |
 | `routes/_authenticated/clienti/$clientId/instruire.tsx`                               | `/clienti/:id/instruire`                               | "Instruire și responsabili": the two training schedules and the responsible persons the generated documents print.                                                                                         |
 | `routes/_authenticated/clienti/$clientId/instruiri-tinute.tsx`                        | `/clienti/:id/instruiri-tinute`                        | "Instruiri ținute" (ADR 021), the tab after "Instruire și responsabili": the client's trainings held, 25 to a page, with the domain, search, filters, sort, page and opened row kept in its search params. |
-| `routes/_authenticated/clienti/$clientId/documente-ssm/index.tsx`                     | `/clienti/:id/documente-ssm`                           | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                 |
+| `routes/_authenticated/clienti/$clientId/documente-ssm/index.tsx`                     | `/clienti/:id/documente-ssm`                           | "Documentație SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                              |
 | `routes/_authenticated/clienti/$clientId/documente-ssm/$documentId.tsx`               | `/clienti/:id/documente-ssm/:documentId`               | One document in the in-app Word editor; a full page.                                                                                                                                                       |
-| `routes/_authenticated/clienti/$clientId/documente-su/index.tsx`                      | `/clienti/:id/documente-su`                            | "Documente PSI", the client's fire-safety set (ADR 016): the same card, sections and actions as "Documente SSM".                                                                                           |
+| `routes/_authenticated/clienti/$clientId/documente-su/index.tsx`                      | `/clienti/:id/documente-su`                            | "Documentație SU", the client's fire-safety set (ADR 016): the same card, sections and actions as "Documentație SSM".                                                                                      |
 | `routes/_authenticated/clienti/$clientId/documente-su/$documentId.tsx`                | `/clienti/:id/documente-su/:documentId`                | One fire-safety document in the in-app Word editor; a full page.                                                                                                                                           |
 | `routes/_authenticated/clienti/$clientId/angajati/$employeeId.tsx`                    | `/clienti/:id/angajati/:employeeId`                    | Employee layout: loads the employee, names the browser tab, and shows the header and the tabs "Date", "Instruire SSM" and "Instruire PSI".                                                                 |
 | `routes/_authenticated/clienti/$clientId/angajati/$employeeId/index.tsx`              | `/clienti/:id/angajati/:employeeId`                    | "Date": the employee record and files, the only page that can reveal the CNP.                                                                                                                              |
@@ -947,7 +947,7 @@ their tab bars read.
   notice says so; it is one notice with one button throughout, so the focus stays on it. Every
   reading invalidates the `me` query, so the balance is fresh for the next one. The quantity and the storage place are never filled. The name field keeps
   the dialog's first focus.
-- `/clienti/:clientId/documente-ssm`: the "Documente SSM" section of a client (ADR 005), in
+- `/clienti/:clientId/documente-ssm`: the "Documentație SSM" section of a client (ADR 005), in
   `src/features/documents/`. The card is the whole pack (`buildPack` in `pack-status.ts`): every
   document of the set once, in the binder's sections (`documentSections`), under its most
   pressing state: "de actualizat" (its draft's data changed, or it is behind its template or its
@@ -1060,7 +1060,7 @@ their tab bars read.
   opens for reading with "Modifică" in the title bar, which starts the same draft in place:
   the page loads the new revision and becomes editable.
 
-- `/clienti/:clientId/documente-su`: the "Documente PSI" section, right after "Documente
+- `/clienti/:clientId/documente-su`: the "Documentație SU" section, right after "Documentație
   SSM", for every client ([ADR 016](architecture/adr-016-fire-safety-documents.md)). It is the
   same `DocumentsCard`, editor page and generation dialog, given the set: `document-sets.ts`
   holds each set's copy and routes, and `setParams` leaves the occupational safety set's

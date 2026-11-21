@@ -36,7 +36,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
   });
   await completeFireSafetyData(organizationId, clientId);
   await signIn(page, owner.email, `/clienti/${clientId}`);
-  await page.getByRole('link', { name: 'Documente SU' }).click();
+  await page.getByRole('link', { name: 'Documentație SU' }).click();
   await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-su$`));
 
   await expect(page.getByTestId('documents-hint')).toBeVisible();
@@ -153,7 +153,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
     'Raportul anual de evaluare a capacității de apărare împotriva incendiilor 2025 - rev. 1.docx'
   );
 
-  await page.getByRole('link', { name: 'Documente SSM' }).click();
+  await page.getByRole('link', { name: 'Documentație SSM' }).click();
   await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-ssm$`));
   await expect(page.getByTestId('documents-empty')).toBeVisible();
 });

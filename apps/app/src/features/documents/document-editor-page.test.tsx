@@ -165,7 +165,7 @@ describe('the document editor page', () => {
     expect(screen.queryByTestId('client-section')).toBeNull();
     expect(screen.queryByText(/© \d{4} SSM Ușor/)).toBeNull();
     const back = within(editor).getByTestId('editor-back');
-    expect(back.getAttribute('aria-label')).toBe('Înapoi la documentele SSM');
+    expect(back.getAttribute('aria-label')).toBe('Înapoi la documentația SSM');
     expect(back.textContent).toBe('');
     expect(screen.getByRole('main').className).toContain('overflow-hidden');
   });

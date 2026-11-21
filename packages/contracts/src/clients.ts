@@ -116,8 +116,8 @@ export type DocumentationState = (typeof documentationStates)[number];
 export const clientDocumentationSchema = z.object({
   state: z.enum(documentationStates),
   issuedCount: z.int().min(0),
-  // The documents of the set that apply to the client, as its tab ("Documente SSM" or
-  // "Documente SU") lists them.
+  // The documents of the set that apply to the client, as its tab ("Documentație SSM" or
+  // "Documentație SU") lists them.
   totalCount: z.int().min(0),
   lastGeneratedAt: z.iso.datetime({ offset: true }).nullable(),
 });

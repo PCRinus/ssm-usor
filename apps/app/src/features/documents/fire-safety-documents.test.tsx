@@ -292,8 +292,8 @@ describe('client fire-safety documents', () => {
     const tab = await waitFor(() => {
       const tabs = screen.getAllByTestId('client-section');
       const labels = tabs.map((link) => link.textContent);
-      expect(labels[labels.indexOf('Documente SSM') + 1]).toBe('Documente SU');
-      return tabs[labels.indexOf('Documente SU')]!;
+      expect(labels[labels.indexOf('Documentație SSM') + 1]).toBe('Documentație SU');
+      return tabs[labels.indexOf('Documentație SU')]!;
     });
     expect(tab.getAttribute('aria-current')).toBe('page');
     expect(tab.querySelector('svg')!.getAttribute('class')).toContain('lucide-fire-extinguisher');
@@ -784,7 +784,7 @@ describe('client fire-safety documents', () => {
       requests('/documents').every(({ url }) => url.searchParams.get('set') === 'fire_safety')
     ).toBe(true);
     const back = screen.getByTestId('editor-back');
-    expect(back.getAttribute('aria-label')).toBe('Înapoi la documentele SU');
+    expect(back.getAttribute('aria-label')).toBe('Înapoi la documentația SU');
     await user.click(back);
     await screen.findAllByTestId('document-row');
     expect(runtime.router.history.location.pathname).toBe(firePath);

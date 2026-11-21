@@ -355,7 +355,7 @@ test('an owner sends the issued contract of a lead, takes the signed copy back, 
   await expect(page.getByTestId('contract-issued')).toHaveText('Emis · rev. 1');
   await expect(page.getByTestId('contract-signed')).toBeVisible();
   // The documentation set does not list it.
-  await page.getByRole('link', { name: 'Documente SSM' }).click();
+  await page.getByRole('link', { name: 'Documentație SSM' }).click();
   await expect(page.getByTestId('documents-empty')).toBeVisible();
 
   await signOut(page);

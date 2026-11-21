@@ -64,18 +64,18 @@ export const setParams = (set: DocumentSet) =>
 
 export const documentSetCopy = {
   occupational_safety: {
-    tab: 'Documente SSM',
+    tab: 'Documentație SSM',
     heading: 'Documentația SSM',
-    backLabel: 'Înapoi la documentele SSM',
+    backLabel: 'Înapoi la documentația SSM',
     name: 'SSM',
     emptyHint:
       'Generează documentația ca să obții deciziile, materialele de instruire, testele, registrele și celelalte documente, completate cu datele clientului.',
     templatesUnavailable: undefined,
   },
   fire_safety: {
-    tab: 'Documente SU',
+    tab: 'Documentație SU',
     heading: 'Documentația SU',
-    backLabel: 'Înapoi la documentele SU',
+    backLabel: 'Înapoi la documentația SU',
     name: 'SU',
     emptyHint:
       'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente SU, completate cu datele clientului.',

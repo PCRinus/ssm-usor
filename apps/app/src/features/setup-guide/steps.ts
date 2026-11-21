@@ -103,8 +103,8 @@ const onClient = (clientId: string | null, target: (clientId: string) => StepTar
   clientId ? target(clientId) : to.clients();
 
 const documentsActions = ({ clientId }: StepContext): StepAction[] => [
-  { label: 'Documente SSM', kind: 'open', target: onClient(clientId, to.documents) },
-  { label: 'Documente SU', kind: 'open', target: onClient(clientId, to.fireSafetyDocuments) },
+  { label: 'Documentație SSM', kind: 'open', target: onClient(clientId, to.documents) },
+  { label: 'Documentație SU', kind: 'open', target: onClient(clientId, to.fireSafetyDocuments) },
 ];
 
 export const stepCopy: Record<SetupStepId, StepCopy> = {

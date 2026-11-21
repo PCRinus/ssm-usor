@@ -588,8 +588,8 @@ describe('the steps', () => {
     expect(card.dataset.state).toBe('next');
     const actions = within(card).getAllByRole('link');
     expect(actions.map((action) => [action.textContent, action.getAttribute('href')])).toEqual([
-      ['Documente SSM', `/clienti/${clientId}/documente-ssm`],
-      ['Documente SU', `/clienti/${clientId}/documente-su`],
+      ['Documentație SSM', `/clienti/${clientId}/documente-ssm`],
+      ['Documentație SU', `/clienti/${clientId}/documente-su`],
     ]);
   });
 
