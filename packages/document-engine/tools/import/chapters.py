@@ -2,9 +2,15 @@
 annex title typed in capitals ("CAPITOLUL II. PREZENTAREA METODEI") reads in sentence case
 ("Capitolul II. Prezentarea metodei"), as 2.2's, 3.2's and 11's always did; the contents are
 written from the headings, so they read the same way. Every contents is headed "Cuprins".
+Every chapter, annex and bibliography starts a page, the first after the contents too; a
+subchapter stays in the flow. In a document without contents the first chapter stays under the
+document's title.
 """
 
 import re
+
+from table_style import P_PR_ORDER, edit_properties, put
+from typography import body_blocks
 
 LABEL = re.compile(r'^((?:SUB)?CAPITOLUL [IVXLC]+\.(?:(?:[IVXLC]+|\{\{roman\}\})\.)?|Anexa Nr\. \d+\.)')
 TAG = re.compile(r'\{\{[^}]*\}\}')
@@ -89,3 +95,29 @@ def titled_contents(paragraph):
     for run in reversed(runs[1:]):
         paragraph = paragraph[:run.start()] + paragraph[run.end():]
     return paragraph[:runs[0].start()] + first + paragraph[runs[0].end():]
+
+
+TYPED_CHAPTER = re.compile(r'^(?i:capitolul) [IVXLC]+\.\s')
+HEADING_1 = '<w:pStyle w:val="Heading1"/>'
+
+
+def text_of(paragraph):
+    return ''.join(unescaped(match.group(2)) for match in TEXT.finditer(paragraph))
+
+
+def on_a_new_page(paragraph):
+    return edit_properties(paragraph, 'pPr', lambda inner: put(inner, 'pageBreakBefore', '<w:pageBreakBefore/>', P_PR_ORDER))
+
+
+def chapters_on_new_pages(xml):
+    """Each chapter on a page of its own: in a document with contents its "heading 1"
+    paragraphs, in one without the paragraphs that open with "Capitolul N.", but the first."""
+    contents = xml.find('docPartGallery w:val="Table of Contents"')
+    paragraphs = [(start, end) for kind, start, end in body_blocks(xml) if kind == 'p' and start > contents]
+    if contents >= 0:
+        chapters = [(start, end) for start, end in paragraphs if HEADING_1 in xml[start:end]]
+    else:
+        chapters = [(start, end) for start, end in paragraphs if TYPED_CHAPTER.match(text_of(xml[start:end]))][1:]
+    for start, end in reversed(chapters):
+        xml = xml[:start] + on_a_new_page(xml[start:end]) + xml[end:]
+    return xml

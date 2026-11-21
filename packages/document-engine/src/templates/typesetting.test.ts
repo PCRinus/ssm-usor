@@ -552,6 +552,40 @@ describe('Word 2013 layout of the occupational safety set', () => {
   it.each([
     '2.2_general_training_material.docx',
     '3.2_own_instructions.docx',
+    '9_risk_assessment.docx',
+    '11_employer_briefing.docx',
+  ])('%s starts every chapter, annex and bibliography on a page, and no subchapter', (name) => {
+    const paragraphs = paragraphsOf(bodyOf(name));
+    const pageBreak = /<w:pageBreakBefore(?: w:val="(?:true|1|on)")?\/>/;
+    const chapters = paragraphs.filter((paragraph) => paragraph.includes('w:val="Heading1"'));
+    expect(chapters.length).toBeGreaterThan(5);
+    for (const chapter of chapters) expect(chapter, documentTextOf(chapter)).toMatch(pageBreak);
+    // 9 opened each post's evaluation and the workers' consultation on a page before chapters did.
+    const ownPage = /^Subcapitolul (V\.\{\{roman\}\}|VI\.III)\./;
+    const subchapters = paragraphs.filter(
+      (paragraph) =>
+        paragraph.includes('w:val="Heading2"') && !ownPage.test(documentTextOf(paragraph))
+    );
+    expect(subchapters.length).toBeGreaterThan(1);
+    for (const subchapter of subchapters) {
+      expect(subchapter, documentTextOf(subchapter)).not.toMatch(pageBreak);
+    }
+  });
+
+  it("starts 4.2's chapters II and III on a page, chapter I under the document's title", () => {
+    const chapters = paragraphsOf(bodyOf('4.2_training_themes.docx')).filter((paragraph) =>
+      /^CAPITOLUL [IVX]+\. /i.test(documentTextOf(paragraph))
+    );
+    expect(chapters.map((chapter) => chapter.includes('<w:pageBreakBefore/>'))).toEqual([
+      false,
+      true,
+      true,
+    ]);
+  });
+
+  it.each([
+    '2.2_general_training_material.docx',
+    '3.2_own_instructions.docx',
     '11_employer_briefing.docx',
   ])('%s sets a list close under its lead-in and its sub-lists a tier deeper', (name) => {
     const paragraphs = paragraphsOf(bodyOf(name)).filter(

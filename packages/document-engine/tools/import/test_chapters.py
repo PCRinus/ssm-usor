@@ -1,6 +1,6 @@
 import unittest
 
-from chapters import in_sentence_case, sentence_case, titled_contents
+from chapters import chapters_on_new_pages, in_sentence_case, sentence_case, titled_contents
 
 
 class SentenceCase(unittest.TestCase):
@@ -41,6 +41,29 @@ class Paragraphs(unittest.TestCase):
                      '<w:r><w:rPr><w:rStyle w:val="tpt1"/><w:b/></w:rPr><w:t xml:space="preserve"> – {{client.legalName}}</w:t></w:r></w:p>')
         self.assertEqual(titled_contents(paragraph),
                          '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Cuprins</w:t></w:r></w:p>')
+
+
+def paragraph(text, style=None):
+    properties = f'<w:pPr><w:pStyle w:val="{style}"/></w:pPr>' if style else ''
+    return f'<w:p>{properties}<w:r><w:t>{text}</w:t></w:r></w:p>'
+
+
+class Pages(unittest.TestCase):
+    def test_a_chapter_after_the_contents_starts_a_page_and_a_subchapter_does_not(self):
+        contents = '<w:sdt><w:sdtPr><w:docPartObj><w:docPartGallery w:val="Table of Contents"/></w:docPartObj></w:sdtPr><w:sdtContent><w:p/></w:sdtContent></w:sdt>'
+        xml = chapters_on_new_pages(paragraph('Cuprins') + contents + paragraph('Capitolul I. A', 'Heading1')
+                                    + paragraph('Subcapitolul I.I. B', 'Heading2') + paragraph('Bibliografie', 'Heading1'))
+        self.assertEqual(xml.count('<w:pageBreakBefore/>'), 2)
+        self.assertNotIn('<w:pageBreakBefore/></w:pPr><w:r><w:t>Subcapitolul', xml)
+
+    def test_without_contents_the_first_typed_chapter_stays_under_the_title(self):
+        xml = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('text') + paragraph('CAPITOLUL II. B'))
+        self.assertEqual(xml.count('<w:pageBreakBefore/>'), 1)
+        self.assertIn('<w:pageBreakBefore/></w:pPr><w:r><w:t>CAPITOLUL II.', xml)
+
+    def test_runs_again_without_a_second_break(self):
+        once = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('CAPITOLUL II. B'))
+        self.assertEqual(chapters_on_new_pages(once), once)
 
 
 if __name__ == '__main__':

@@ -40,7 +40,7 @@ from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
-from chapters import in_sentence_case, titled_contents
+from chapters import chapters_on_new_pages, in_sentence_case, titled_contents
 from citation_notes import citation_notes
 from contents import column_style, column_style_id, label_columns
 from decision_pages import decision_pages
@@ -2114,7 +2114,7 @@ def sweep(path, word_2013=None):
             document, styles, numbering = typography(
                 labelled.get('word/document.xml', document), styles, labelled.get('word/numbering.xml'),
                 contents is not None, os.path.basename(path))
-            document = citation_notes(document)
+            document = chapters_on_new_pages(citation_notes(document))
             labelled['word/document.xml'], labelled['word/styles.xml'] = document, styles
             if numbering is not None:
                 labelled['word/numbering.xml'] = numbering
