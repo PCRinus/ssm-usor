@@ -2012,7 +2012,6 @@ def table_of_contents(xml, styles, spec, word_2013=False):
 
 
 def contents_labels(xml, contents_end):
-    """(level, text) of every heading the table lists and of the annex lines typed under it."""
     labelled = []
     for kind, start, end in body_blocks(xml):
         if kind != 'p' or start < contents_end:
@@ -2056,7 +2055,6 @@ def contents_page(xml, contents_end, column=None):
 
 
 def bold_label(paragraph):
-    """The runs before the paragraph's first tab in bold."""
     tab = paragraph.find('<w:tab/>')
     head = paragraph[:tab]
     for run in re.findall(r'<w:r>(?:(?!</w:r>).)*?<w:t\b.*?</w:r>', head, re.S):

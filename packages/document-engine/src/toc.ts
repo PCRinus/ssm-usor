@@ -13,6 +13,10 @@ import { textWidth } from './content-widths';
 const contentsControl =
   /<w:sdt>(?:(?!<\/w:sdt>)[\s\S])*?<w:docPartGallery w:val="Table of Contents"\/>[\s\S]*?<\/w:sdt>/;
 const paragraphPattern = /<w:p[ >][\s\S]*?<\/w:p>/g;
+// A text box holds paragraphs of its own, and Word saves it twice, the second copy for readers
+// that know no modern shapes, which LibreOffice skips: a bookmark there is never laid out.
+export const boxPattern =
+  /<mc:AlternateContent>[\s\S]*?<\/mc:AlternateContent>|<w:txbxContent>[\s\S]*?<\/w:txbxContent>/g;
 const styleDefinition = /<w:style\b([^>]*)>([\s\S]*?)<\/w:style>/g;
 
 const decode = (text: string) =>
@@ -61,7 +65,8 @@ function labelColumns(styles: string) {
     if (!level) continue;
     const tabs = /<w:tabs>[\s\S]*?<\/w:tabs>/.exec(body!)?.[0];
     const indent = /<w:ind\b[^>]*\/>/.exec(body!)?.[0];
-    const title = tabs && /<w:tab w:val="left" w:pos="(\d+)"\/>/.exec(tabs)?.[1];
+    // Attributes in either order: the in-app editor writes the position first when it saves.
+    const title = tabs && /<w:tab\b(?=[^>]*w:val="left")[^>]*w:pos="(\d+)"/.exec(tabs)?.[1];
     if (!indent || !title) continue;
     const left = Number(/w:left="(\d+)"/.exec(indent)?.[1] ?? 0);
     const hanging = Number(/w:hanging="(\d+)"/.exec(indent)?.[1] ?? 0);
@@ -91,7 +96,7 @@ function entry(level: number, text: string, column: LabelColumn | undefined) {
 }
 
 function outlineRange(instruction: string) {
-  const range = /\\o\s+"(\d)-(\d)"/.exec(instruction);
+  const range = /\\o\s+"(\d)-(\d)"/.exec(decode(instruction));
   return range ? { from: Number(range[1]), to: Number(range[2]) } : { from: 1, to: 9 };
 }
 
@@ -123,7 +128,6 @@ type Contents = {
   entries: { level: number; text: string; bookmark: string }[];
 };
 
-/** The headings the contents list, each given a bookmark at its start to link to. */
 function contentsOf(document: string, styles: string): Contents | null {
   const control = contentsControl.exec(document);
   if (!control) return null;
@@ -152,8 +156,10 @@ function contentsOf(document: string, styles: string): Contents | null {
 
   const before = document.slice(0, control.index);
   const after = document.slice(control.index + control[0].length);
+  const boxes: string[] = [];
+  const masked = after.replace(boxPattern, (box) => `\uE000${boxes.push(box) - 1}\uE000`);
   const entries: Contents['entries'] = [];
-  const marked = after.replace(paragraphPattern, (paragraph) => {
+  const marked = masked.replace(paragraphPattern, (paragraph) => {
     const properties = /^<w:p\b[^>]*>\s*<w:pPr>([\s\S]*?)<\/w:pPr>/.exec(paragraph)?.[1] ?? '';
     const style = /<w:pStyle w:val="([^"]+)"\/>/.exec(properties)?.[1];
     const direct = /<w:outlineLvl w:val="(\d)"\/>/.exec(properties)?.[1];
@@ -165,7 +171,11 @@ function contentsOf(document: string, styles: string): Contents | null {
     entries.push({ level, text, bookmark });
     return withBookmark(paragraph, bookmark, nextId++);
   });
-  return entries.length === 0 ? null : { control, instruction, before, marked, entries };
+  const unmasked = marked.replace(
+    /\uE000(\d+)\uE000/g,
+    (_, index: string) => boxes[Number(index)]!
+  );
+  return entries.length === 0 ? null : { control, instruction, before, marked: unmasked, entries };
 }
 
 export function fillTableOfContents(document: string, styles: string): string {
@@ -192,12 +202,8 @@ export function fillTableOfContents(document: string, styles: string): string {
 }
 
 /**
- * The contents as the PDF prints them, where the template sets a label column: plain
- * paragraphs written from the headings again, each ending in a PAGEREF field to its heading.
- * LibreOffice's rebuild of a contents field writes the headings' plain text and drops the bold
- * labels and their column, and it leaves a PAGEREF inside such a field at its cached result;
- * outside one, it lays the reference out with the page it points to. Each reference's bookmark
- * is set with its entry: one that could not be resolved would print an error in its place.
+ * The contents for the PDF: entries without the field, each ending in a PAGEREF to its
+ * heading, which LibreOffice lays out where it would keep a field's entries plain.
  */
 export function printedContents(document: string, styles: string): string {
   const columns = labelColumns(styles);

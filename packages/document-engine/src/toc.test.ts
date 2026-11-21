@@ -205,3 +205,20 @@ describe('an entry of a level with a label column', () => {
     );
   });
 });
+
+describe('a contents field as the in-app editor saves it', () => {
+  it('reads its outline levels from a field code with its quotes escaped', () => {
+    const escaped = placeholder.replace('\\o "1-2"', '\\o &quot;1-2&quot;');
+    const entries = contents(
+      fillTableOfContents(
+        document(
+          escaped +
+            styled('Heading1', text('Capitolul I. Prevederi generale')) +
+            styled('Heading3', text('Prea adânc pentru cuprins'))
+        ),
+        styles
+      )
+    );
+    expect(entries.map(entryText)).toEqual(['Capitolul I. Prevederi generale']);
+  });
+});
