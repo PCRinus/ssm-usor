@@ -8,7 +8,7 @@ import { renderDocument } from '../render';
 import { convert, converter } from '../test/converter';
 import { read } from './read';
 
-type Piece = { text: string; bold: boolean };
+type Piece = { text: string; bold: boolean; page: number };
 
 async function contentsAndOutline(pdf: Uint8Array) {
   const loading = getDocument({
@@ -19,11 +19,17 @@ async function contentsAndOutline(pdf: Uint8Array) {
   const document = await loading.promise;
   try {
     const outline: number[] = [];
+    const chapters: { page: number; fromTop: number }[] = [];
     const walk = async (items: Awaited<ReturnType<typeof document.getOutline>>, depth: number) => {
       for (const item of items ?? []) {
         const destination =
           typeof item.dest === 'string' ? await document.getDestination(item.dest) : item.dest;
-        outline.push((await document.getPageIndex(destination![0])) + 1);
+        const page = (await document.getPageIndex(destination![0])) + 1;
+        outline.push(page);
+        if (depth === 1) {
+          const [, , , height] = (await document.getPage(page)).view;
+          chapters.push({ page, fromTop: height! - Number(destination![3]) });
+        }
         if (depth < 2) await walk(item.items, depth + 1);
       }
     };
@@ -39,10 +45,11 @@ async function contentsAndOutline(pdf: Uint8Array) {
         pieces.push({
           text: item.str + (item.hasEOL ? '\n' : ''),
           bold: /bold/i.test(font.name ?? ''),
+          page: number,
         });
       }
     }
-    return { pieces, outline };
+    return { pieces, outline, chapters };
   } finally {
     await loading.destroy();
   }
@@ -119,6 +126,23 @@ describe.skipIf(!converter)('the contents of the occupational safety set, in the
       );
       expect(labels.length).toBeGreaterThan(5);
       for (const label of labels) expect(label.bold, label.text).toBe(true);
+    },
+    60_000
+  );
+
+  it.each(cases)(
+    '$name ($label) starts every chapter on a page of its own, after the contents',
+    async ({ docx }) => {
+      const { pieces, chapters } = await contentsAndOutline(await convert(docx()));
+      const contentsPages = new Set(
+        pieces.filter((piece) => /^\.{3,}$/.test(piece.text.trim())).map((piece) => piece.page)
+      );
+      expect(chapters.length).toBeGreaterThan(5);
+      for (const { page, fromTop } of chapters) {
+        expect(contentsPages.has(page), String(page)).toBe(false);
+        // Under the header box, the first line of its page.
+        expect(fromTop, String(page)).toBeLessThan(200);
+      }
     },
     60_000
   );

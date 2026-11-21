@@ -461,8 +461,6 @@ describe.skipIf(!converter)('the converter', () => {
     const common = read('3.2_own_instructions.docx');
     const annex = renderAnnex('ssm', ssmAnnexSample, ssmAnnexData);
     const pages = pageCount(await convert(common));
-    expect(
-      pageCount(await convert(appendAnnexes(common, [annex, annex]), { skipEmptyPages: true }))
-    ).toBe(pages + 6);
+    expect(pageCount(await convert(appendAnnexes(common, [annex, annex])))).toBe(pages + 6);
   }, 120_000);
 });

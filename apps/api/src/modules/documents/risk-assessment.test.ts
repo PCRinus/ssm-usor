@@ -237,6 +237,7 @@ describe('an evaluation of the risk assessment', () => {
       roman: 'I',
       name: 'Contabil',
       heading: 'LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL',
+      subject: 'locul de muncă: Birou, postul de lucru: Contabil',
       title: 'Contabil',
       workZone: 'Birou',
       workZoneOrDash: 'Birou',
@@ -252,6 +253,7 @@ describe('an evaluation of the risk assessment', () => {
     expect(sudor).toMatchObject({
       roman: 'II',
       heading: 'POSTUL DE LUCRU: SUDOR',
+      subject: 'postul de lucru: Sudor',
       title: 'Sudor',
       workZone: null,
       workZoneOrDash: '—',
@@ -266,6 +268,8 @@ describe('an evaluation of the risk assessment', () => {
       name: 'Grupuri sensibile la riscuri specifice',
       heading:
         'GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI GRAVIDE, LĂUZE SAU FEMEI CARE ALĂPTEAZĂ, TINERI, PERSOANE CU DIZABILITĂȚI)',
+      subject:
+        'grupuri sensibile la riscuri specifice (femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități)',
       title:
         'Grupuri sensibile la riscuri specifice (femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități)',
       workZone: null,
@@ -277,6 +281,7 @@ describe('an evaluation of the risk assessment', () => {
     ]).evaluations;
     expect(visitors).toMatchObject({
       heading: 'VIZITATORI',
+      subject: 'vizitatori',
       title: 'Vizitatori',
       workSystem: { executant: 'Vizitatori', workTask: 'Vizitarea atelierului însoțit.' },
       exposedPersons: '—',

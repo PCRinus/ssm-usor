@@ -20,6 +20,7 @@ describe('convertDocx', () => {
     const form = await request.formData();
     expect(form.get('pdfa')).toBe('PDF/A-2b');
     expect(form.get('updateIndexes')).toBe('true');
+    expect(form.get('skipEmptyPages')).toBe('true');
     const file = form.get('files') as File;
     expect(file.name).toBe('0001.docx');
     expect(file.size).toBe(docx.byteLength);

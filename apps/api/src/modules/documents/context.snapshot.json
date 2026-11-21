@@ -729,6 +729,7 @@
             "probabilityClass": 4
           }
         ],
+        "subject": "locul de muncă: Birou, postul de lucru: Contabil",
         "title": "Contabil",
         "unacceptable": [
           {
@@ -1186,6 +1187,7 @@
             "probabilityClass": 2
           }
         ],
+        "subject": "postul de lucru: Sudor",
         "title": "Sudor",
         "unacceptable": [
           {
@@ -1504,6 +1506,7 @@
             "probabilityClass": 3
           }
         ],
+        "subject": "grupuri sensibile la riscuri specifice (femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități)",
         "title": "Grupuri sensibile la riscuri specifice (femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități)",
         "unacceptable": [
           {

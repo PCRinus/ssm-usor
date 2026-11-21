@@ -812,7 +812,7 @@ describe('the risk assessment', () => {
     );
     for (const evaluation of context.riskAssessment.evaluations) {
       expect(text).toContain(
-        `SUBCAPITOLUL V.${evaluation.roman}. EVALUAREA RISCURILOR DE ACCIDENTARE ȘI ÎMBOLNĂVIRE PROFESIONALĂ PENTRU ${evaluation.heading}`
+        `Subcapitolul V.${evaluation.roman}. Evaluarea riscurilor de accidentare și îmbolnăvire profesională pentru ${evaluation.subject}`
       );
       expect(text).toContain(`este egal cu ${evaluation.globalLevel}, ${evaluation.verdict}.`);
       for (const row of evaluation.sheet) expect(text).toContain(`${row.code}. ${row.description}`);
@@ -877,7 +877,7 @@ describe('the risk assessment', () => {
         },
       ],
     });
-    expect(text).toContain('PENTRU VIZITATORI');
+    expect(text).toContain('profesională pentru vizitatori');
     expect(text).toContain(
       'Nu au fost stabilite măsuri de prevenire: niciun factor de risc identificat nu depășește nivelul de risc\u00a03.'
     );

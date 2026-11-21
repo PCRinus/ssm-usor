@@ -91,7 +91,9 @@ describe('typesetting', () => {
     expect(headings).toHaveLength(count);
     for (const heading of headings) {
       expect(heading).toMatch(
-        /^((Sub)?[Cc]apitolul|(SUB)?CAPITOLUL) [IVXLC]+\.|^Anexa Nr\. \d\.|^BIBLIOGRAFIE$/
+        name.startsWith('fire/')
+          ? /^Capitolul [IVXLC]+\.|^BIBLIOGRAFIE$/
+          : /^(Subc|C)apitolul [IVXLC]+\.[IVXLC.{}a-z]* \p{Lu}|^Anexa Nr\. \d\.|^Bibliografie$/u
       );
     }
     expect(body).not.toContain('<w:outlineLvl');
@@ -321,7 +323,9 @@ describe('typesetting', () => {
     (propertiesOf(block).includes('<w:numPr>') ||
       /^([a-z]\)|\d{1,2}[.)]\s|[-–•]\s)/.test(documentTextOf(block).trim()));
   const blocksOf = (name: string) =>
-    bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    bodyOf(name).match(
+      /<w:sdt>[\s\S]*?<\/w:sdt>|<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g
+    ) ?? [];
 
   // A heading, the paragraph that introduces a table, and a loop tag between them, or more lines
   // as short as a staff category's heading and the lines naming its place, posts and trainer. A
@@ -545,6 +549,94 @@ describe('Word 2013 layout of the occupational safety set', () => {
       paragraph.includes('<w:pStyle w:val="Heading1"/>')
     )!;
     expect(chapter).toContain('<w:pageBreakBefore/>');
+  });
+
+  it.each([
+    '2.2_general_training_material.docx',
+    '3.2_own_instructions.docx',
+    '9_risk_assessment.docx',
+    '11_employer_briefing.docx',
+  ])('%s starts every chapter, annex and bibliography on a page, and no subchapter', (name) => {
+    const paragraphs = paragraphsOf(bodyOf(name));
+    const pageBreak = /<w:pageBreakBefore(?: w:val="(?:true|1|on)")?\/>/;
+    const chapters = paragraphs.filter((paragraph) => paragraph.includes('w:val="Heading1"'));
+    expect(chapters.length).toBeGreaterThan(5);
+    for (const chapter of chapters) expect(chapter, documentTextOf(chapter)).toMatch(pageBreak);
+    const subchapters = paragraphs.filter((paragraph) => paragraph.includes('w:val="Heading2"'));
+    expect(subchapters.length).toBeGreaterThan(1);
+    for (const subchapter of subchapters) {
+      expect(subchapter, documentTextOf(subchapter)).not.toMatch(pageBreak);
+    }
+  });
+
+  it.each([
+    '2.2_general_training_material.docx',
+    '9_risk_assessment.docx',
+    '11_employer_briefing.docx',
+  ])("%s never leaves a chapter's last short line alone on the page before the next", (name) => {
+    const blocks = (
+      bodyOf(name).match(
+        /<w:sdt>[\s\S]*?<\/w:sdt>|<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g
+      ) ?? []
+    ).filter(
+      (block) =>
+        block.startsWith('<w:sdt') || !/^(\{\{[#/^][^}]*\}\})*$/.test(documentTextOf(block).trim())
+    );
+    const keeps = /<w:keepNext(?: w:val="(?:true|1|on)")?\/>/;
+    let checked = 0;
+    blocks.forEach((block, index) => {
+      const opensPage =
+        block.includes('<w:pageBreakBefore/>') &&
+        (block.includes('w:val="Heading1"') || documentTextOf(block) === 'Cuprins');
+      if (!opensPage || index < 2) return;
+      const [before, last] = [blocks[index - 2]!, blocks[index - 1]!];
+      if (
+        !before.startsWith('<w:p') ||
+        !last.startsWith('<w:p') ||
+        documentTextOf(last).length > 90
+      )
+        return;
+      if (last.includes('<w:sectPr') || before.includes('<w:sectPr')) return;
+      checked += 1;
+      expect(before, documentTextOf(last)).toMatch(keeps);
+    });
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it.each([
+    '2.2_general_training_material.docx',
+    '3.2_own_instructions.docx',
+    '4.2_training_themes.docx',
+    '9_risk_assessment.docx',
+    '11_employer_briefing.docx',
+  ])('%s has no empty paragraph right before a chapter that starts a page', (name) => {
+    const blocks =
+      bodyOf(name).match(
+        /<w:sdt>[\s\S]*?<\/w:sdt>|<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>|<w:p\/>/g
+      ) ?? [];
+    const empty = (block: string) =>
+      block.startsWith('<w:p') &&
+      !/<w:(?:t|drawing|pict|object|sectPr|bookmarkStart|fldChar|instrText|br)\b|<m:oMath/.test(
+        block
+      );
+    let chapters = 0;
+    blocks.forEach((block, index) => {
+      if (!block.includes('<w:pageBreakBefore/>')) return;
+      chapters += 1;
+      expect(empty(blocks[index - 1]!), documentTextOf(block)).toBe(false);
+    });
+    expect(chapters).toBeGreaterThan(1);
+  });
+
+  it("starts 4.2's chapters II and III on a page, chapter I under the document's title", () => {
+    const chapters = paragraphsOf(bodyOf('4.2_training_themes.docx')).filter((paragraph) =>
+      /^Capitolul [IVX]+\. [A-ZĂÎȘȚÂ][a-zăîșțâ]/.test(documentTextOf(paragraph))
+    );
+    expect(chapters.map((chapter) => chapter.includes('<w:pageBreakBefore/>'))).toEqual([
+      false,
+      true,
+      true,
+    ]);
   });
 
   it.each([

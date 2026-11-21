@@ -40,6 +40,8 @@ from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
+from chapters import (articles_from_chapter_one, chapters_on_new_pages, contents_on_its_own_page, in_sentence_case,
+                      titled_contents)
 from citation_notes import citation_notes
 from contents import column_style, column_style_id, label_columns
 from decision_pages import decision_pages
@@ -1907,8 +1909,8 @@ TABLES_OF_CONTENTS = {
     '9_risk_assessment': {
         'title': r'^Cuprins$',
         'end': r'^CAPITOLUL I\. ',
-        'headings': [(1, r'^CAPITOLUL [IVXLC]+\. '), (2, r'^SUBCAPITOLUL [IVXLC]+\.([IVXLC]+|\{\{roman\}\})\. '),
-                     (1, r'^Anexa Nr\. \d\. '), (1, r'^BIBLIOGRAFIE$')],
+        'headings': [(1, r'^(?i:capitolul) [IVXLC]+\. '), (2, r'^(?i:subcapitolul) [IVXLC]+\.([IVXLC]+|\{\{roman\}\})\. '),
+                     (1, r'^Anexa Nr\. \d\. '), (1, r'^(?i:bibliografie)$')],
         'joined': r'^Anexa Nr\. \d\.$',
     },
     '2.1_fire_own_instructions': {
@@ -1994,7 +1996,14 @@ def table_of_contents(xml, styles, spec, word_2013=False):
             text = spoken_text(xml[start:end])
             level = next((level for level, pattern in spec['headings'] if re.search(pattern, text)), None)
             if level:
-                xml = xml[:start] + with_style(xml[start:end], f'Heading{level}') + xml[end:]
+                heading = with_style(xml[start:end], f'Heading{level}')
+                xml = xml[:start] + (in_sentence_case(heading) if word_2013 else heading) + xml[end:]
+    if word_2013:
+        control = xml.rindex('<w:sdt>', 0, xml.index('docPartGallery w:val="Table of Contents"'))
+        title_start, title_end = [(start, end) for kind, start, end in body_blocks(xml)
+                                  if kind == 'p' and end <= control][-1]
+        xml = xml[:title_start] + titled_contents(xml[title_start:title_end]) + xml[title_end:]
+        contents_end = xml.index('</w:sdt>', xml.index('docPartGallery w:val="Table of Contents"'))
     xml, styles = paragraph_styles(xml, styles)
     columns = label_columns(contents_labels(xml, contents_end)) if word_2013 else {}
     if spec.get('pageAfter'):
@@ -2102,11 +2111,14 @@ def sweep(path, word_2013=None):
         if 'word/numbering.xml' in archive.namelist():
             labelled['word/document.xml'], labelled['word/numbering.xml'] = size_list_labels(
                 document, archive.read('word/numbering.xml').decode('utf8'), styles)
+        if word_2013 and contents and 'word/numbering.xml' in labelled:
+            labelled['word/document.xml'] = articles_from_chapter_one(labelled['word/document.xml'],
+                                                                      labelled['word/numbering.xml'])
         if word_2013:
             document, styles, numbering = typography(
                 labelled.get('word/document.xml', document), styles, labelled.get('word/numbering.xml'),
                 contents is not None, os.path.basename(path))
-            document = citation_notes(document)
+            document = contents_on_its_own_page(chapters_on_new_pages(citation_notes(document)))
             labelled['word/document.xml'], labelled['word/styles.xml'] = document, styles
             if numbering is not None:
                 labelled['word/numbering.xml'] = numbering
