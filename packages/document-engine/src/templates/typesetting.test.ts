@@ -662,9 +662,26 @@ describe('Word 2013 layout of the occupational safety set', () => {
     expect(loose).toEqual([]);
   });
 
+  it("numbers 6's copy of annex 2 to H.G. 1048/2006 and letters what each item protects against", () => {
+    const body = bodyOf('6_protective_equipment_list.docx');
+    const numbering = numberingOf(read('6_protective_equipment_list.docx'));
+    const formatOf = (text: string) => {
+      const paragraph = paragraphsOf(body).find((each) => documentTextOf(each).trim() === text)!;
+      const num = /<w:numId w:val="(\d+)"\/>/.exec(paragraph)![1];
+      const ilvl = /<w:ilvl w:val="(\d)"\/>/.exec(paragraph)?.[1] ?? '0';
+      const abstract = new RegExp(
+        `<w:num w:numId="${num}"[^>]*>\\s*<w:abstractNumId w:val="(\\d+)"`
+      ).exec(numbering)![1];
+      return new RegExp(
+        `<w:abstractNum\\b[^>]*w:abstractNumId="${abstract}"[^>]*>(?:(?!</w:abstractNum>)[\\s\\S])*?<w:lvl w:ilvl="${ilvl}"[^>]*>(?:(?!</w:lvl>)[\\s\\S])*?<w:lvlText w:val="([^"]*)"`
+      ).exec(numbering)![1];
+    };
+    expect(formatOf('Dispozitive de filtrare împotriva:')).toBe('%1.');
+    expect(formatOf('gazelor;')).toBe('%2)');
+  });
+
   // 1., a), – from the outside in (tools/import/typography.py, house_order): a letter's list
-  // never holds numbers. The dashes of H.G. 1048/2006's annex 2 in 6 and the method's
-  // nomenclature in 9 are reproduced as their sources print them.
+  // never holds numbers. The method's nomenclature in 9 keeps the dashes it prints.
   it.each(ssmFiles)('%s never numbers a list under a letter', (name, bytes) => {
     const numbering = numberingOf(bytes);
     const levelOf = (paragraph: string) => {

@@ -806,10 +806,23 @@ def typed_hyphens(document):
     return document
 
 
-def house_order(document, styles_xml, numbering_xml):
+def house_order(document, styles_xml, numbering_xml, name=None):
     styles, numbering = Styles(styles_xml), Numbering(numbering_xml)
     groups = [group for group in list_groups(document, styles, numbering) if out_of_order(group)]
+    if name == '6_protective_equipment_list.docx':
+        groups += annex_two_lists(document, styles, numbering)
     return relabelled(document, numbering_xml, groups)
+
+
+def annex_two_lists(document, styles, numbering):
+    """6's copy of annex 2 to H.G. 1048/2006 numbers its equipment and letters what each
+    protects against, though the act prints both as dashes (Mircea's call, 2026-11-21)."""
+    said = [(start, unescaped(text_of(document[start:end]))) for kind, start, end in body_blocks(document) if kind == 'p']
+    begin = next((start for start, text in said if text.startswith('Anexa nr. 2 la H.G. 1048/2006')), None)
+    end = next((start for start, text in said if text.startswith('Anexa nr. 3 la H.G. 1048/2006')), None)
+    if begin is None or end is None:
+        return []
+    return list_groups(document, styles, numbering, begin, end)
 
 
 def bold_level(numbering, key):
@@ -1041,7 +1054,7 @@ def typography(document, styles, numbering, contents, name=None):
         document = article_labels(document, styles)
     document = typed_hyphens(document)
     if numbering is not None:
-        document, numbering = house_order(document, styles, numbering)
+        document, numbering = house_order(document, styles, numbering, name)
         numbering = article_levels(dash_bullets(numbering), wide=articles(document, styles, numbering) > 99)
         document, numbering = lists(document, styles, numbering)
     return dash_lines_in_cells(document), styles, numbering
