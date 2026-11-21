@@ -181,8 +181,10 @@ describe('an entry of a level with a label column', () => {
     );
   });
 
-  it('leaves an entry without a label whole, in its style alone', () => {
-    expect(entries[1]).toContain('<w:pPr><w:pStyle w:val="TOC1"/></w:pPr>');
+  it("leaves an entry without a label whole, at the labels' start, without the hang", () => {
+    expect(entries[1]).toContain(
+      '<w:pPr><w:pStyle w:val="TOC1"/><w:ind w:left="0" w:right="567" w:hanging="0"/></w:pPr>'
+    );
     expect(entries[1]).toContain(
       '<w:hyperlink w:anchor="_Toc000000002" w:history="1"><w:r><w:t xml:space="preserve">BIBLIOGRAFIE</w:t></w:r></w:hyperlink>'
     );

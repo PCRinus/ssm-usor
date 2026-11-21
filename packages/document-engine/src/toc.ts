@@ -55,7 +55,7 @@ function headingLevels(styles: string) {
 
 const entryLabel = /^((?:sub)?capitolul [IVXLC]+\.(?:[IVXLC]+\.)?|anexa(?: nr\.)? \d+\.) (.+)$/i;
 
-type LabelColumn = { start: number; title: number; properties: string };
+type LabelColumn = { start: number; title: number; right: number; properties: string };
 
 /** Per level, where its labels start, where its titles start, and the tab and indent to set. */
 function labelColumns(styles: string) {
@@ -73,6 +73,7 @@ function labelColumns(styles: string) {
     columns.set(Number(level), {
       start: left - hanging,
       title: Number(title),
+      right: Number(/w:right="(\d+)"/.exec(indent)?.[1] ?? 0),
       properties: tabs + indent,
     });
   }
@@ -84,13 +85,19 @@ const run = (text: string, bold = false) =>
 
 function entry(level: number, text: string, column: LabelColumn | undefined) {
   const style = `<w:pStyle w:val="TOC${level}"/>`;
-  const parts = column ? entryLabel.exec(text) : null;
-  if (!parts) return { properties: style, runs: run(text) };
+  if (!column) return { properties: style, runs: run(text) };
+  const parts = entryLabel.exec(text);
+  // A title shorter than the style's hang ("Bibliografie") would tab to the hang, not to its page
+  // number.
+  if (!parts) {
+    const flush = `<w:ind w:left="${column.start}" w:right="${column.right}" w:hanging="0"/>`;
+    return { properties: style + flush, runs: run(text) };
+  }
   const [, label, title] = parts;
   // A label wider than its column would tab on to the page numbers' stop.
-  const fits = column!.start + textWidth(label!, 20, true) + 57 <= column!.title;
+  const fits = column.start + textWidth(label!, 20, true) + 57 <= column.title;
   return {
-    properties: style + column!.properties,
+    properties: style + column.properties,
     runs: run(label!, true) + (fits ? '<w:r><w:tab/></w:r>' : run(' ')) + run(title!),
   };
 }

@@ -16,7 +16,7 @@ export const described = (people: { name: string; jobTitle: string }[]) => {
 function evaluation(
   roman: string,
   name: string,
-  heading: string,
+  subject: string,
   count: number,
   workZone: string | null = null
 ) {
@@ -51,7 +51,8 @@ function evaluation(
   return {
     roman,
     name,
-    heading,
+    heading: subject.toLocaleUpperCase('ro'),
+    subject,
     title: name,
     workZone,
     workZoneOrDash: workZone ?? '—',
@@ -1415,15 +1416,15 @@ function setSample(
           evaluation(
             'I',
             'Manager magazin',
-            'LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: MANAGER MAGAZIN',
+            'locul de muncă: Birou, postul de lucru: Manager magazin',
             9,
             'Birou'
           ),
-          evaluation('II', 'Sudor', 'POSTUL DE LUCRU: SUDOR', 40),
+          evaluation('II', 'Sudor', 'postul de lucru: Sudor', 40),
           evaluation(
             'III',
             'Grupuri sensibile la riscuri specifice',
-            'GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI GRAVIDE, LĂUZE SAU FEMEI CARE ALĂPTEAZĂ, TINERI, PERSOANE CU DIZABILITĂȚI)',
+            'grupuri sensibile la riscuri specifice (femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități)',
             3
           ),
         ],

@@ -91,7 +91,9 @@ describe('typesetting', () => {
     expect(headings).toHaveLength(count);
     for (const heading of headings) {
       expect(heading).toMatch(
-        /^((Sub)?[Cc]apitolul|(SUB)?CAPITOLUL) [IVXLC]+\.|^Anexa Nr\. \d\.|^BIBLIOGRAFIE$/
+        name.startsWith('fire/')
+          ? /^Capitolul [IVXLC]+\.|^BIBLIOGRAFIE$/
+          : /^(Subc|C)apitolul [IVXLC]+\.[IVXLC.{}a-z]* \p{Lu}|^Anexa Nr\. \d\.|^Bibliografie$/u
       );
     }
     expect(body).not.toContain('<w:outlineLvl');

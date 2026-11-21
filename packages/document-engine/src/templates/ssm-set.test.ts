@@ -786,7 +786,7 @@ describe('risk_assessment', () => {
     );
     expect(text).toContain('{{#sheet}}{{component}}');
     expect(text).toContain('Conducerea locurilor de muncă: {{workplaceManagersList}}');
-    expect(text).toContain('SUBCAPITOLUL V.{{roman}}.');
+    expect(text).toContain('Subcapitolul V.{{roman}}. Evaluarea riscurilor');
     expect(text).not.toMatch(/\d+ – \d+\s*(I|II|III|IV|V|VI)\b/);
   });
 

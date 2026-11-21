@@ -34,6 +34,16 @@ describe.each([
     return { start: left - hanging, title: left, tab };
   };
 
+  it('is headed „Cuprins”, as every contents of the set is', () => {
+    const body = partOf(read(name), 'word/document.xml');
+    const control = body.lastIndexOf('<w:sdt>', body.indexOf('Table of Contents'));
+    const title = body
+      .slice(0, control)
+      .match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g)!
+      .at(-1)!;
+    expect(documentTextOf(title)).toBe('Cuprins');
+  });
+
   it('wraps an entry under its title, a subchapter one tier in', () => {
     const chapter = geometry(1);
     const subchapter = geometry(2);
@@ -68,7 +78,7 @@ describe.each([
         entry.replace(/<w:r><w:fldChar[^>]*\/><\/w:r>|<w:r><w:instrText[\s\S]*?<\/w:r>/g, '')
       );
       const text = documentTextOf(entry);
-      if (/^BIBLIOGRAFIE$/.test(text)) continue;
+      if (text === 'Bibliografie') continue;
       expect(runs, text).toHaveLength(3);
       const [bold, tab, title] = runs as [string, string, string];
       expect(documentTextOf(bold)).toMatch(label);
@@ -86,6 +96,38 @@ describe.each([
       const { start, title } = geometry(level);
       expect(start + textWidth(documentTextOf(bold), 20, true)).toBeLessThan(title);
     }
+  });
+});
+
+describe('the headings of 9', () => {
+  it("read in sentence case, as 2.2's, and so do its contents", () => {
+    const headings = (
+      partOf(read('9_risk_assessment.docx'), 'word/document.xml').match(
+        /<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?<w:pStyle w:val="Heading[12]"\/>[\s\S]*?<\/w:p>/g
+      ) ?? []
+    ).map(documentTextOf);
+    expect(headings).toEqual([
+      'Capitolul I. Introducere în sistemul de evaluare d.p.d.v. al securității și sănătății în muncă',
+      'Capitolul II. Prezentarea metodei elaborate de I.N.C.D.P.M. București pentru evaluarea riscurilor de accidentare și îmbolnăvire profesională',
+      'Subcapitolul II.I. Premise teoretice',
+      'Subcapitolul II.II. Descrierea metodei',
+      'Subcapitolul II.III. Aplicarea metodei',
+      'Capitolul III. Prezentarea unității',
+      'Capitolul IV. Formarea echipelor (colectivului) de evaluare a riscurilor de accidentare și/sau îmbolnăvire profesională pentru {{client.legalName}}',
+      'Anexa Nr. 1.Lista de identificare a factorilor de risc',
+      'Anexa Nr. 2.Lista de consecințe posibile ale acțiunii factorilor de risc asupra organismului uman',
+      'Anexa Nr. 3.Scala de cotare a gravității și probabilității consecințelor acțiunii factorilor de risc asupra organismului uman',
+      'Anexa Nr. 4.Grila de evaluare a riscurilor (combinație între gravitatea consecințelor și probabilitatea producerii lor)',
+      'Anexa Nr. 5.Scala de încadrare a nivelurilor de risc/ securitate',
+      'Anexa Nr. 6.Ordinea ierarhică a măsurilor de prevenire',
+      'Bibliografie',
+      'Capitolul V. Utilizarea metodei elaborate de I.N.C.D.P.M. București pentru evaluarea riscurilor de accidentare și îmbolnăvire profesională la {{client.legalName}}',
+      'Subcapitolul V.{{roman}}. Evaluarea riscurilor de accidentare și îmbolnăvire profesională pentru {{subject}}',
+      'Capitolul VI. Concluzii generale',
+      'Subcapitolul VI.I. Concluziile evaluării',
+      'Subcapitolul VI.II. Recomandări',
+      'Subcapitolul VI.III. Consultarea lucrătorilor și revizuirea evaluării',
+    ]);
   });
 });
 

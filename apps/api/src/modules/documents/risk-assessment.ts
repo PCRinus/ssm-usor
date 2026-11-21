@@ -19,7 +19,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { listed } from '../../lib/romanian';
+import { listed, runOn } from '../../lib/romanian';
 
 export type RiskFactorFacts = {
   component: WorkSystemComponent;
@@ -284,8 +284,13 @@ export type RiskAssessmentEvaluation = {
   /** The subchapter's numeral in chapter V: "I", "II". */
   roman: string;
   name: string;
-  /** "LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL", for every heading of the subchapter. */
+  /**
+   * "LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL". Template versions registered before the
+   * headings were set in sentence case still print it; `subject` replaced it.
+   */
   heading: string;
+  /** What the subchapter's heading names after „pentru”: "locul de muncă: Birou, postul de lucru: Contabil". */
+  subject: string;
   /** The prevention plan's heading: the post as the app spells it, the work zone beside it. */
   title: string;
   workZone: string | null;
@@ -451,6 +456,14 @@ function evaluationContext(
         : workZone
           ? `LOCUL DE MUNCĂ: ${upper(workZone)}, POSTUL DE LUCRU: ${upper(name)}`
           : `POSTUL DE LUCRU: ${upper(name)}`;
+  const subject =
+    evaluation.kind === 'sensitive_groups'
+      ? runOn(sensitiveGroupsTitle)
+      : evaluation.kind === 'other'
+        ? name
+        : workZone
+          ? `locul de muncă: ${workZone}, postul de lucru: ${name}`
+          : `postul de lucru: ${name}`;
 
   // Numbered F1…Fn down the sheet: by component, then by group in the order the evaluator
   // first used it, then in the evaluator's order.
@@ -504,6 +517,7 @@ function evaluationContext(
     roman: roman(index + 1),
     name,
     heading,
+    subject,
     title: evaluation.kind === 'sensitive_groups' ? sensitiveGroupsTitle : name,
     workZone,
     workZoneOrDash: workZone ?? dash,
