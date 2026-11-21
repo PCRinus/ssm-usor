@@ -34,6 +34,17 @@ describe('hangDashLines', () => {
     }
   });
 
+  it("hangs the items of the plan's actions column as it does the measures", () => {
+    const merged = paragraph(
+      '<w:r><w:t xml:space="preserve">– Contractarea verificării.</w:t><w:br/><w:t xml:space="preserve">– Instruirea.</w:t></w:r>'
+    );
+    expect(
+      paragraphsOf(
+        hangDashLines(table(merged, { header: 'Acțiuni în scopul realizării măsurii' }))
+      ).map(textOf)
+    ).toEqual(['–⇥Contractarea verificării.', '–⇥Instruirea.']);
+  });
+
   it('hangs a single measure once, and a dash in a run of its own', () => {
     const single = paragraph('<w:r><w:t xml:space="preserve">– Verificarea periodică.</w:t></w:r>');
     const hung = hangDashLines(table(single));

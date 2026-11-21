@@ -483,10 +483,10 @@
             "level": 4,
             "measures": "– Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).\n– Anunțarea imediată a conducătorului locului de muncă la orice defect electric.",
             "observations": "—",
-            "organizational": "– Anunțarea imediată a conducătorului locului de muncă la orice defect electric.",
+            "organizational": "Anunțarea imediată a conducătorului locului de muncă la orice defect electric.",
             "other": "—",
             "responsiblePerson": "Administratorul",
-            "technical": "– Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM)."
+            "technical": "Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM)."
           },
           {
             "actions": "—",
@@ -497,8 +497,8 @@
             "level": 4,
             "measures": "– Instruirea lucrătorilor privind circulația pe drumurile publice.\n– Planificarea deplasărilor de serviciu astfel încât să nu fie făcute în grabă.",
             "observations": "Se reia la instruirea periodică.",
-            "organizational": "– Instruirea lucrătorilor privind circulația pe drumurile publice.",
-            "other": "– Planificarea deplasărilor de serviciu astfel încât să nu fie făcute în grabă.",
+            "organizational": "Instruirea lucrătorilor privind circulația pe drumurile publice.",
+            "other": "Planificarea deplasărilor de serviciu astfel încât să nu fie făcute în grabă.",
             "responsiblePerson": "Conducătorul locului de muncă",
             "technical": "—"
           },
@@ -511,10 +511,10 @@
             "level": 3,
             "measures": "– Verificarea periodică a instalației electrice de către un electrician autorizat.\n– Interzicerea intervențiilor la instalația electrică de către persoane neautorizate.",
             "observations": "—",
-            "organizational": "– Interzicerea intervențiilor la instalația electrică de către persoane neautorizate.",
+            "organizational": "Interzicerea intervențiilor la instalația electrică de către persoane neautorizate.",
             "other": "—",
             "responsiblePerson": "Administratorul",
-            "technical": "– Verificarea periodică a instalației electrice de către un electrician autorizat."
+            "technical": "Verificarea periodică a instalației electrice de către un electrician autorizat."
           },
           {
             "actions": "—",
@@ -523,9 +523,9 @@
             "description": "Cădere la același nivel prin împiedicare de cablurile lăsate pe pardoseală.",
             "hygienicSanitary": "—",
             "level": 3,
-            "measures": "– Fixarea cablurilor de-a lungul pereților, în afara căilor de trecere.",
+            "measures": "Fixarea cablurilor de-a lungul pereților, în afara căilor de trecere.",
             "observations": "—",
-            "organizational": "– Fixarea cablurilor de-a lungul pereților, în afara căilor de trecere.",
+            "organizational": "Fixarea cablurilor de-a lungul pereților, în afara căilor de trecere.",
             "other": "—",
             "responsiblePerson": "Conducătorul locului de muncă",
             "technical": "—"
@@ -535,14 +535,14 @@
             "code": "F10",
             "deadline": "Permanent",
             "description": "Poziție șezând prelungită la calculator, cu dureri de spate și ale încheieturilor.",
-            "hygienicSanitary": "– Pauze de 10 minute la fiecare două ore de lucru la calculator.",
+            "hygienicSanitary": "Pauze de 10 minute la fiecare două ore de lucru la calculator.",
             "level": 3,
             "measures": "– Scaune reglabile pe înălțime, cu spătar.\n– Pauze de 10 minute la fiecare două ore de lucru la calculator.",
             "observations": "—",
             "organizational": "—",
             "other": "—",
             "responsiblePerson": "Conducătorul locului de muncă",
-            "technical": "– Scaune reglabile pe înălțime, cu spătar."
+            "technical": "Scaune reglabile pe înălțime, cu spătar."
           },
           {
             "actions": "—",
@@ -551,12 +551,12 @@
             "description": "Iluminat insuficient sau reflexii pe ecran, care obosesc vederea.",
             "hygienicSanitary": "—",
             "level": 2,
-            "measures": "– Așezarea monitoarelor perpendicular pe ferestre și folosirea jaluzelelor.",
+            "measures": "Așezarea monitoarelor perpendicular pe ferestre și folosirea jaluzelelor.",
             "observations": "—",
             "organizational": "—",
             "other": "—",
             "responsiblePerson": "Conducătorul locului de muncă",
-            "technical": "– Așezarea monitoarelor perpendicular pe ferestre și folosirea jaluzelelor."
+            "technical": "Așezarea monitoarelor perpendicular pe ferestre și folosirea jaluzelelor."
           }
         ],
         "ranked": [
@@ -911,10 +911,10 @@
             "level": 4,
             "measures": "– Montarea și păstrarea apărătorilor la toate elementele în mișcare.\n– Interzicerea îmbrăcămintei largi și a bijuteriilor lângă mașini.",
             "observations": "—",
-            "organizational": "– Interzicerea îmbrăcămintei largi și a bijuteriilor lângă mașini.",
+            "organizational": "Interzicerea îmbrăcămintei largi și a bijuteriilor lângă mașini.",
             "other": "—",
             "responsiblePerson": "Șeful de echipă",
-            "technical": "– Montarea și păstrarea apărătorilor la toate elementele în mișcare."
+            "technical": "Montarea și păstrarea apărătorilor la toate elementele în mișcare."
           },
           {
             "actions": "—",
@@ -925,7 +925,7 @@
             "level": 4,
             "measures": "– Folosirea polizorului numai cu apărătoarea discului montată.\n– Ochelari de protecție.\n– Instruirea pentru alegerea și schimbarea discurilor.",
             "observations": "Discurile se păstrează ferite de umezeală.",
-            "organizational": "– Instruirea pentru alegerea și schimbarea discurilor.",
+            "organizational": "Instruirea pentru alegerea și schimbarea discurilor.",
             "other": "—",
             "responsiblePerson": "Șeful de echipă",
             "technical": "– Folosirea polizorului numai cu apărătoarea discului montată.\n– Ochelari de protecție."
@@ -939,10 +939,10 @@
             "level": 4,
             "measures": "– Verificarea sculelor electrice portabile înainte de fiecare folosire.\n– Scoaterea din uz a sculelor cu cablul sau carcasa deteriorată.",
             "observations": "—",
-            "organizational": "– Scoaterea din uz a sculelor cu cablul sau carcasa deteriorată.",
+            "organizational": "Scoaterea din uz a sculelor cu cablul sau carcasa deteriorată.",
             "other": "—",
             "responsiblePerson": "Electricianul autorizat",
-            "technical": "– Verificarea sculelor electrice portabile înainte de fiecare folosire."
+            "technical": "Verificarea sculelor electrice portabile înainte de fiecare folosire."
           },
           {
             "actions": "—",
@@ -953,10 +953,10 @@
             "level": 4,
             "measures": "– Manipularea sarcinilor de peste 25 kg de către două persoane.\n– Cărucioare pentru transportul pieselor.",
             "observations": "—",
-            "organizational": "– Manipularea sarcinilor de peste 25 kg de către două persoane.",
+            "organizational": "Manipularea sarcinilor de peste 25 kg de către două persoane.",
             "other": "—",
             "responsiblePerson": "Șeful de echipă",
-            "technical": "– Cărucioare pentru transportul pieselor."
+            "technical": "Cărucioare pentru transportul pieselor."
           },
           {
             "actions": "—",
@@ -965,26 +965,26 @@
             "description": "Tăiere sau înțepare cu sculele de mână ori cu muchiile pieselor.",
             "hygienicSanitary": "—",
             "level": 3,
-            "measures": "– Mănuși de protecție mecanică.",
+            "measures": "Mănuși de protecție mecanică.",
             "observations": "—",
             "organizational": "—",
             "other": "—",
             "responsiblePerson": "Șeful de echipă",
-            "technical": "– Mănuși de protecție mecanică."
+            "technical": "Mănuși de protecție mecanică."
           },
           {
             "actions": "—",
             "code": "F5",
             "deadline": "Anual",
             "description": "Zgomot peste valorile de expunere, în timpul funcționării mașinilor.",
-            "hygienicSanitary": "– Audiogramă la examenul medical periodic.",
+            "hygienicSanitary": "Audiogramă la examenul medical periodic.",
             "level": 3,
             "measures": "– Antifoane pentru lucrul lângă mașinile zgomotoase.\n– Audiogramă la examenul medical periodic.",
             "observations": "—",
             "organizational": "—",
             "other": "—",
             "responsiblePerson": "Administratorul",
-            "technical": "– Antifoane pentru lucrul lângă mașinile zgomotoase."
+            "technical": "Antifoane pentru lucrul lângă mașinile zgomotoase."
           },
           {
             "actions": "—",
@@ -993,9 +993,9 @@
             "description": "Nepurtarea echipamentului individual de protecție primit.",
             "hygienicSanitary": "—",
             "level": 3,
-            "measures": "– Controlul purtării echipamentului la începutul schimbului.",
+            "measures": "Controlul purtării echipamentului la începutul schimbului.",
             "observations": "—",
-            "organizational": "– Controlul purtării echipamentului la începutul schimbului.",
+            "organizational": "Controlul purtării echipamentului la începutul schimbului.",
             "other": "—",
             "responsiblePerson": "Șeful de echipă",
             "technical": "—"
@@ -1356,11 +1356,11 @@
             "code": "F5",
             "deadline": "La anunțarea sarcinii",
             "description": "Ridicarea și transportul de greutăți de către lucrătoarea gravidă.",
-            "hygienicSanitary": "– Evaluarea aptitudinii de către medicul de medicina muncii după anunțarea sarcinii.",
+            "hygienicSanitary": "Evaluarea aptitudinii de către medicul de medicina muncii după anunțarea sarcinii.",
             "level": 4,
             "measures": "– Repartizarea lucrătoarei gravide la activități fără manipularea de greutăți.\n– Evaluarea aptitudinii de către medicul de medicina muncii după anunțarea sarcinii.",
             "observations": "—",
-            "organizational": "– Repartizarea lucrătoarei gravide la activități fără manipularea de greutăți.",
+            "organizational": "Repartizarea lucrătoarei gravide la activități fără manipularea de greutăți.",
             "other": "—",
             "responsiblePerson": "Administratorul",
             "technical": "—"
@@ -1372,12 +1372,12 @@
             "description": "Accidentarea persoanelor cu dizabilități pe căile de acces neadaptate (praguri, trepte).",
             "hygienicSanitary": "—",
             "level": 3,
-            "measures": "– Semnalizarea pragurilor și a treptelor.",
+            "measures": "Semnalizarea pragurilor și a treptelor.",
             "observations": "—",
             "organizational": "—",
             "other": "—",
             "responsiblePerson": "Administratorul",
-            "technical": "– Semnalizarea pragurilor și a treptelor."
+            "technical": "Semnalizarea pragurilor și a treptelor."
           },
           {
             "actions": "—",
@@ -1386,9 +1386,9 @@
             "description": "Muncă de noapte sau program prelungit pentru tineri și lucrătoare gravide.",
             "hygienicSanitary": "—",
             "level": 3,
-            "measures": "– Interzicerea muncii de noapte pentru tineri și pentru lucrătoarele gravide.",
+            "measures": "Interzicerea muncii de noapte pentru tineri și pentru lucrătoarele gravide.",
             "observations": "—",
-            "organizational": "– Interzicerea muncii de noapte pentru tineri și pentru lucrătoarele gravide.",
+            "organizational": "Interzicerea muncii de noapte pentru tineri și pentru lucrătoarele gravide.",
             "other": "—",
             "responsiblePerson": "Administratorul",
             "technical": "—"

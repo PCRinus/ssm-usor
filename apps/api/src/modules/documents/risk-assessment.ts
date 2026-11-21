@@ -106,9 +106,20 @@ const measureKinds = {
 
 type MeasuresByKind = Record<keyof typeof measureKinds, string>;
 
-// One cell holds several measures, and a wrapped line would read as the start of the next.
+// Several items get a dash each, so a wrapped line does not read as the start of the next; a
+// single one is plain text.
 const measureLines = (measures: readonly string[]) =>
-  orDash(measures.map((measure) => `– ${measure}`).join('\n'));
+  orDash(
+    measures.length === 1 ? measures[0] : measures.map((measure) => `– ${measure}`).join('\n')
+  );
+
+const actionLines = (actions: string | null) =>
+  measureLines(
+    (actions ?? '')
+      .split(/\r?\n/)
+      .map((line) => line.replace(/^\s*[–-]\s+/u, '').trim())
+      .filter(Boolean)
+  );
 
 function measuresByKind(measures: RiskFactorFacts['measures']): MeasuresByKind {
   return Object.fromEntries(
@@ -552,7 +563,7 @@ function evaluationContext(
         ...sheetFactor(entry),
         ...measuresByKind(entry.factor.measures),
         measures: measureLines(entry.factor.measures.map((measure) => measure.description.trim())),
-        actions: orDash(entry.factor.actions),
+        actions: actionLines(entry.factor.actions),
         deadline: orDash(entry.factor.deadline),
         responsiblePerson: orDash(entry.factor.responsiblePerson),
         observations: orDash(entry.factor.observations),

@@ -517,9 +517,9 @@ describe('an evaluation of the risk assessment', () => {
       level: 3,
       measures:
         '– Antifoane pentru lucrul lângă mașinile zgomotoase.\n– Audiogramă la examenul medical periodic.',
-      technical: '– Antifoane pentru lucrul lângă mașinile zgomotoase.',
+      technical: 'Antifoane pentru lucrul lângă mașinile zgomotoase.',
       organizational: '—',
-      hygienicSanitary: '– Audiogramă la examenul medical periodic.',
+      hygienicSanitary: 'Audiogramă la examenul medical periodic.',
       other: '—',
       actions: '—',
       deadline: 'Anual',
@@ -527,6 +527,9 @@ describe('an evaluation of the risk assessment', () => {
       observations: '—',
     });
     expect([sudor!.hasPlan, sudor!.noPlan]).toEqual([true, false]);
+    expect(sudor!.plan[0]).toMatchObject({
+      actions: 'Verificarea apărătorilor la începutul fiecărui schimb.',
+    });
     expect(only([factor(2, 2)])).toMatchObject({ plan: [], hasPlan: false, noPlan: true });
   });
 });
