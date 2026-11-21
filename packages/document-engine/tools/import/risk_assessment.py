@@ -126,36 +126,43 @@ def display(content):
     return paragraph(display_math(content), before=ROOM, after=ROOM, jc='center')
 
 
-def numbered_display(content, number):
+def numbered_display(content, number, entries):
     """A formula centred on the text column with its number at the right margin, in a row of
-    three cells without lines."""
+    three cells without lines, and its legend in the rows under it. LibreOffice does not carry a
+    table's keep-with-next to the paragraph after it, so a legend of paragraphs could open the
+    next page under a formula left at the foot of this one."""
     middle = TEXT_COLUMN - 2 * FORMULA_SIDE
 
     def cell(width, body, jc):
-        return (f'<w:tc><w:tcPr><w:tcW w:w="{width}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>'
+        return (f'<w:tc><w:tcPr><w:tcW w:w="{width}" w:type="dxa"/><w:tcMar><w:top w:w="{ROOM}" w:type="dxa"/>'
+                f'<w:bottom w:w="{ROOM}" w:type="dxa"/></w:tcMar><w:vAlign w:val="center"/></w:tcPr>'
                 f'{paragraph(body, after=0, jc=jc, keep=True)}</w:tc>')
+
+    def across(line):
+        return (f'<w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:w="{TEXT_COLUMN}" w:type="dxa"/>'
+                f'<w:gridSpan w:val="3"/></w:tcPr>{line}</w:tc></w:tr>')
     return (f'<w:tbl><w:tblPr><w:tblW w:w="{TEXT_COLUMN}" w:type="dxa"/><w:jc w:val="left"/>'
             f'<w:tblInd w:w="0" w:type="dxa"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/>'
             f'<w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/>'
-            f'</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="{ROOM}" w:type="dxa"/>'
-            f'<w:left w:w="0" w:type="dxa"/><w:bottom w:w="{ROOM}" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>'
+            f'</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/>'
+            f'<w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>'
             f'</w:tblCellMar><w:tblLook w:val="0000"/></w:tblPr><w:tblGrid><w:gridCol w:w="{FORMULA_SIDE}"/>'
             f'<w:gridCol w:w="{middle}"/><w:gridCol w:w="{FORMULA_SIDE}"/></w:tblGrid>'
             f'<w:tr><w:trPr><w:cantSplit/></w:trPr>{cell(FORMULA_SIDE, "", "left")}'
             f'{cell(middle, display_math(content), "center")}{cell(FORMULA_SIDE, run(f"({number})"), "right")}'
-            f'</w:tr></w:tbl>')
+            f'</w:tr>{"".join(across(line) for line in legend(entries))}</w:tbl>')
 
 
 def legend(entries):
     """"unde:", then the symbols one tier in, their dashes and meanings in two columns."""
     dash_at = 3 * TIER
     text_at = dash_at + 227
-    lines = paragraph(run('unde:'), after=GAP, keep=True)
+    lines = [paragraph(run('unde:'), after=GAP, keep=True)]
     for index, ((base, index_text), meaning) in enumerate(entries):
         last = index == len(entries) - 1
-        lines += paragraph(symbol(base, index_text) + TAB + run(DASH) + TAB + run(meaning),
-                           left=text_at, hanging=text_at - TIER, after=ROOM if last else GAP, keep=not last,
-                           tabs=(TIER, dash_at, text_at))
+        lines.append(paragraph(symbol(base, index_text) + TAB + run(DASH) + TAB + run(meaning),
+                               left=text_at, hanging=text_at - TIER, after=0 if last else GAP, keep=not last,
+                               tabs=(TIER, dash_at, text_at)))
     return lines
 
 
@@ -271,12 +278,14 @@ def formulas(document):
     document = set_gap(document, at, after=GAP, keep=True)
     at = find(document, r'^Formula de calcul al nivelului de risc global este următoarea:')
     end = find(document, r'^Nivelul de securitate \(NS\) pe loc de muncă')
-    document = replace_blocks(document, at + 1, end - 1, numbered_display(N_R, 1) + legend(NR_LEGEND))
+    document = replace_blocks(document, at + 1, end - 1, numbered_display(N_R, 1, NR_LEGEND))
     document = set_gap(document, at, after=0, keep=True)
+    document = set_gap(document, find(document, r'^Nivelul de securitate \(NS\) pe loc'), before=ROOM)
     at = find(document, r'întreprinderea investigată – N')
     end = find(document, r'^E\. Stabilirea măsurilor de prevenire:')
-    document = replace_blocks(document, at + 1, end - 1, numbered_display(N_G, 2) + legend(NG_LEGEND))
+    document = replace_blocks(document, at + 1, end - 1, numbered_display(N_G, 2, NG_LEGEND))
     document = set_gap(document, at, after=0, keep=True)
+    document = set_gap(document, find(document, r'^E\. Stabilirea măsurilor de prevenire:'), before=ROOM)
     return document
 
 
