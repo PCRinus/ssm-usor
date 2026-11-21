@@ -92,9 +92,10 @@ export default function DocumentEditor({
     };
   }, [onFailed]);
 
-  // In view mode the editor cancels every selectstart on the pages, so nothing could be copied;
-  // a capture listener on the document runs before the editor's own. A native select all would
-  // also take the toolbar and the pane.
+  // In view mode the editor cancels every selectstart on the pages and copies its own selection,
+  // which does not follow the browser's (after a search it is the match), so nothing could be
+  // copied; capture listeners on the document run before the editor's own. A native select all
+  // would also take the toolbar and the pane.
   useEffect(() => {
     if (editable) return;
     const inPages = (node: Node | null) =>
@@ -103,7 +104,14 @@ export default function DocumentEditor({
       if (inPages(event.target as Node)) event.stopPropagation();
     };
     const selectAll = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== 'a' || !(event.metaKey || event.ctrlKey) || event.altKey)
+      const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+      const command = mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+      if (event.key.toLowerCase() !== 'a' || !command || event.altKey) return;
+      if (
+        (event.target as Element | null)?.closest?.(
+          'input, textarea, select, [contenteditable="true"]'
+        )
+      )
         return;
       const selection = window.getSelection();
       const pages = inPages(selection?.anchorNode ?? null);
@@ -112,9 +120,11 @@ export default function DocumentEditor({
       selection.selectAllChildren(pages);
     };
     document.addEventListener('selectstart', allow, true);
+    document.addEventListener('copy', allow, true);
     document.addEventListener('keydown', selectAll, true);
     return () => {
       document.removeEventListener('selectstart', allow, true);
+      document.removeEventListener('copy', allow, true);
       document.removeEventListener('keydown', selectAll, true);
     };
   }, [editable]);
