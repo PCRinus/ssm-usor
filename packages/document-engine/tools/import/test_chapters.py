@@ -60,7 +60,26 @@ class Pages(unittest.TestCase):
     def test_without_contents_the_first_typed_chapter_stays_under_the_title(self):
         xml = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('text') + paragraph('CAPITOLUL II. B'))
         self.assertEqual(xml.count('<w:pageBreakBefore/>'), 1)
-        self.assertIn('<w:pageBreakBefore/></w:pPr><w:r><w:t>CAPITOLUL II.', xml)
+        self.assertIn('<w:pageBreakBefore/></w:pPr><w:r><w:t>Capitolul II. B', xml)
+
+    def test_a_typed_subchapter_reads_in_sentence_case_its_label_closed_by_a_dot(self):
+        xml = chapters_on_new_pages(paragraph('SUBCAPITOLUL I.I PLANUL INSTRUIRII / 4 ORE'))
+        self.assertIn('<w:t>Subcapitolul I.I. Planul instruirii / 4 ore</w:t>', xml)
+
+    def test_the_last_lines_before_a_chapter_keep_together(self):
+        xml = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('x' * 300) + paragraph('Agenți chimici:')
+                                    + paragraph('– plumbul')
+                                    + paragraph('2. Condiții de muncă') + paragraph('Activități subterane miniere.')
+                                    + paragraph('CAPITOLUL II. B'))
+        self.assertEqual(xml.count('<w:keepNext/>'), 3)
+        self.assertIn('<w:keepNext/></w:pPr><w:r><w:t>Agenți chimici:', xml)
+        self.assertIn('<w:keepNext/></w:pPr><w:r><w:t>– plumbul', xml)
+        self.assertIn('<w:keepNext/></w:pPr><w:r><w:t>2. Condiții', xml)
+
+    def test_a_long_last_paragraph_keeps_its_lines_by_itself(self):
+        xml = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('scurt') + paragraph('x' * 300)
+                                    + paragraph('CAPITOLUL II. B'))
+        self.assertNotIn('<w:keepNext/>', xml)
 
     def test_runs_again_without_a_second_break(self):
         once = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('CAPITOLUL II. B'))

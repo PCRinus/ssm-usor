@@ -100,6 +100,14 @@ def titled_contents(paragraph):
 
 
 TYPED_CHAPTER = re.compile(r'^(?i:capitolul) [IVXLC]+\.\s')
+TYPED_HEADING = re.compile(r'^(?i:(?:sub)?capitolul) [IVXLC]+\.')
+UNDOTTED_SUBCHAPTER = re.compile(r'(>(?i:subcapitolul) [IVXLC]+\.[IVXLC]+)(?= )')
+
+
+def typed_heading(paragraph):
+    """A chapter or subchapter typed as text ("SUBCAPITOLUL I.I PLANUL") in sentence case, its
+    label closed by a dot as the contents' labels are."""
+    return in_sentence_case(UNDOTTED_SUBCHAPTER.sub(r'\1.', paragraph, count=1))
 HEADING_1 = '<w:pStyle w:val="Heading1"/>'
 
 
@@ -120,9 +128,59 @@ def chapters_on_new_pages(xml):
         chapters = [(start, end) for start, end in paragraphs if HEADING_1 in xml[start:end]]
     else:
         chapters = [(start, end) for start, end in paragraphs if TYPED_CHAPTER.match(text_of(xml[start:end]))][1:]
-    for start, end in reversed(chapters):
-        xml = xml[:start] + on_a_new_page(xml[start:end]) + xml[end:]
+    edits = {}
+    if contents < 0:
+        for start, end in paragraphs:
+            if TYPED_HEADING.match(text_of(xml[start:end])):
+                edits[(start, end)] = [typed_heading]
+    for start, end in chapters:
+        edits.setdefault((start, end), []).append(on_a_new_page)
+        for kept in before_the_last_lines(xml, start):
+            edits.setdefault(kept, []).append(kept_with_next)
+    for (start, end), changes in sorted(edits.items(), reverse=True):
+        paragraph = xml[start:end]
+        for change in changes:
+            paragraph = change(paragraph)
+        xml = xml[:start] + paragraph + xml[end:]
     return xml
+
+
+LOOP_TAGS_ONLY = re.compile(r'(\{\{[#/^][^}]*\}\})*')
+
+
+def before_the_last_lines(xml, chapter):
+    """The paragraphs that keep with the last one ahead of `chapter`, until the page before the
+    chapter ends on three lines at least: widow control holds the lines of one paragraph
+    together, and a last paragraph of one line ("Activități subterane miniere.") would otherwise
+    stand alone on the page before the next chapter."""
+    said = [(kind, start, end) for kind, start, end in body_blocks(xml[:chapter])
+            if kind != 'p' or not LOOP_TAGS_ONLY.fullmatch(text_of(xml[start:end]).strip())
+            or '<w:drawing' in xml[start:end] or '<m:oMath' in xml[start:end]]
+    if not said or said[-1][0] != 'p' or '<w:sectPr' in xml[said[-1][1]:said[-1][2]]:
+        return []
+    lines = estimated_lines(xml[said[-1][1]:said[-1][2]])
+    kept = []
+    for kind, start, end in reversed(said[:-1]):
+        if kind != 'p' or '<w:sectPr' in xml[start:end]:
+            break
+        # A line that introduces what follows ("Agenți chimici:") goes with it.
+        if (lines >= TAIL_LINES or len(kept) == TAIL_LINES) and not text_of(xml[start:end]).rstrip().endswith(':'):
+            break
+        kept.append((start, end))
+        lines += estimated_lines(xml[start:end])
+    return kept
+
+
+TAIL_LINES = 3
+LINE_CHARACTERS = 95  # a body line of 10 pt Arial across the text column
+
+
+def estimated_lines(paragraph):
+    return max(1, -(-len(text_of(paragraph)) // LINE_CHARACTERS))
+
+
+def kept_with_next(paragraph):
+    return edit_properties(paragraph, 'pPr', lambda inner: put(inner, 'keepNext', '<w:keepNext/>', P_PR_ORDER))
 
 
 def article_lists(numbering):
@@ -156,4 +214,7 @@ def contents_on_its_own_page(xml):
     if len(before) < 2 or not any(kind == 'tbl' or text_of(xml[start:end]).strip() for kind, start, end in before[:-1]):
         return xml
     _, start, end = before[-1]
-    return xml[:start] + on_a_new_page(xml[start:end]) + xml[end:]
+    xml = xml[:start] + on_a_new_page(xml[start:end]) + xml[end:]
+    for kept_start, kept_end in before_the_last_lines(xml, start):
+        xml = xml[:kept_start] + kept_with_next(xml[kept_start:kept_end]) + xml[kept_end:]
+    return xml

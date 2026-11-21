@@ -323,7 +323,9 @@ describe('typesetting', () => {
     (propertiesOf(block).includes('<w:numPr>') ||
       /^([a-z]\)|\d{1,2}[.)]\s|[-–•]\s)/.test(documentTextOf(block).trim()));
   const blocksOf = (name: string) =>
-    bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    bodyOf(name).match(
+      /<w:sdt>[\s\S]*?<\/w:sdt>|<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g
+    ) ?? [];
 
   // A heading, the paragraph that introduces a table, and a loop tag between them, or more lines
   // as short as a staff category's heading and the lines naming its place, posts and trainer. A
@@ -567,9 +569,43 @@ describe('Word 2013 layout of the occupational safety set', () => {
     }
   });
 
+  it.each([
+    '2.2_general_training_material.docx',
+    '9_risk_assessment.docx',
+    '11_employer_briefing.docx',
+  ])("%s never leaves a chapter's last short line alone on the page before the next", (name) => {
+    const blocks = (
+      bodyOf(name).match(
+        /<w:sdt>[\s\S]*?<\/w:sdt>|<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g
+      ) ?? []
+    ).filter(
+      (block) =>
+        block.startsWith('<w:sdt') || !/^(\{\{[#/^][^}]*\}\})*$/.test(documentTextOf(block).trim())
+    );
+    const keeps = /<w:keepNext(?: w:val="(?:true|1|on)")?\/>/;
+    let checked = 0;
+    blocks.forEach((block, index) => {
+      const opensPage =
+        block.includes('<w:pageBreakBefore/>') &&
+        (block.includes('w:val="Heading1"') || documentTextOf(block) === 'Cuprins');
+      if (!opensPage || index < 2) return;
+      const [before, last] = [blocks[index - 2]!, blocks[index - 1]!];
+      if (
+        !before.startsWith('<w:p') ||
+        !last.startsWith('<w:p') ||
+        documentTextOf(last).length > 90
+      )
+        return;
+      if (last.includes('<w:sectPr') || before.includes('<w:sectPr')) return;
+      checked += 1;
+      expect(before, documentTextOf(last)).toMatch(keeps);
+    });
+    expect(checked).toBeGreaterThan(0);
+  });
+
   it("starts 4.2's chapters II and III on a page, chapter I under the document's title", () => {
     const chapters = paragraphsOf(bodyOf('4.2_training_themes.docx')).filter((paragraph) =>
-      /^CAPITOLUL [IVX]+\. /i.test(documentTextOf(paragraph))
+      /^Capitolul [IVX]+\. [A-ZĂÎȘȚÂ][a-zăîșțâ]/.test(documentTextOf(paragraph))
     );
     expect(chapters.map((chapter) => chapter.includes('<w:pageBreakBefore/>'))).toEqual([
       false,
