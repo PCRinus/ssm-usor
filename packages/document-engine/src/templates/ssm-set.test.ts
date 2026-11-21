@@ -406,6 +406,26 @@ describe('employer_briefing', () => {
       'oferă informații concrete, aplicabile în funcție de domeniile în care unitatea își desfășoară activitatea, astfel:'
     );
   });
+
+  it('hands its documents over without an article number, the contents on a page of their own, Art. 1 opening chapter I', () => {
+    const body = bodyOf('11_employer_briefing.docx');
+    const paragraphs = body.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    const contents = body.indexOf('<w:docPartGallery w:val="Table of Contents"/>');
+    const before = paragraphs.filter((paragraph) => body.indexOf(paragraph) < contents);
+    const handOver = before.find((paragraph) =>
+      documentTextOf(paragraph).startsWith('Odată cu prezentul material informativ')
+    )!;
+    expect(handOver).not.toContain('<w:numPr>');
+    expect(documentTextOf(before.at(-1)!)).toBe('Cuprins');
+    expect(before.at(-1)).toContain('<w:pageBreakBefore/>');
+
+    const articles = /<w:numId w:val="9"\/>/;
+    expect(before.some((paragraph) => articles.test(paragraph))).toBe(false);
+    const chapterOne = paragraphs.findIndex((paragraph) =>
+      documentTextOf(paragraph).startsWith('Capitolul I. ')
+    );
+    expect(paragraphs[chapterOne + 1]).toMatch(articles);
+  });
 });
 
 // ADR 024: the questions come from the organization's question bank, printed on the test and

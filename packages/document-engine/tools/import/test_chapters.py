@@ -1,6 +1,7 @@
 import unittest
 
-from chapters import chapters_on_new_pages, in_sentence_case, sentence_case, titled_contents
+from chapters import (articles_from_chapter_one, chapters_on_new_pages, contents_on_its_own_page, in_sentence_case,
+                      sentence_case, titled_contents)
 
 
 class SentenceCase(unittest.TestCase):
@@ -64,6 +65,32 @@ class Pages(unittest.TestCase):
     def test_runs_again_without_a_second_break(self):
         once = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('CAPITOLUL II. B'))
         self.assertEqual(chapters_on_new_pages(once), once)
+
+
+CONTENTS = ('<w:sdt><w:sdtPr><w:docPartObj><w:docPartGallery w:val="Table of Contents"/></w:docPartObj></w:sdtPr>'
+            '<w:sdtContent><w:p/></w:sdtContent></w:sdt>')
+ARTICLES = ('<w:abstractNum w:abstractNumId="4"><w:lvl w:ilvl="0"><w:lvlText w:val="Art. %1."/></w:lvl></w:abstractNum>'
+            '<w:abstractNum w:abstractNumId="5"><w:lvl w:ilvl="0"><w:lvlText w:val="%1."/></w:lvl></w:abstractNum>'
+            '<w:num w:numId="9"><w:abstractNumId w:val="4"/></w:num><w:num w:numId="10"><w:abstractNumId w:val="5"/></w:num>')
+
+
+def numbered(text, list_id):
+    return (f'<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="{list_id}"/></w:numPr></w:pPr>'
+            f'<w:r><w:t>{text}</w:t></w:r></w:p>')
+
+
+class OpeningPages(unittest.TestCase):
+    def test_an_article_before_the_contents_loses_its_number_and_a_list_keeps_its_own(self):
+        xml = articles_from_chapter_one(numbered('Odată cu…:', 9) + numbered('Decizia', 10) + CONTENTS
+                                        + numbered('În sensul…', 9), ARTICLES)
+        self.assertEqual(xml.count('<w:numId w:val="9"/>'), 1)
+        self.assertEqual(xml.count('<w:numId w:val="10"/>'), 1)
+        self.assertTrue(xml.index('<w:numId w:val="9"/>') > xml.index('Table of Contents'))
+
+    def test_contents_after_text_start_a_page_and_at_the_top_do_not(self):
+        after = contents_on_its_own_page(paragraph('Titlu') + paragraph('Cuprins') + CONTENTS)
+        self.assertIn('<w:pageBreakBefore/></w:pPr><w:r><w:t>Cuprins', after)
+        self.assertNotIn('pageBreakBefore', contents_on_its_own_page(paragraph('Cuprins') + CONTENTS))
 
 
 if __name__ == '__main__':

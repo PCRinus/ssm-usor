@@ -4,7 +4,9 @@ annex title typed in capitals ("CAPITOLUL II. PREZENTAREA METODEI") reads in sen
 written from the headings, so they read the same way. Every contents is headed "Cuprins".
 Every chapter, annex and bibliography starts a page, the first after the contents too; a
 subchapter stays in the flow. In a document without contents the first chapter stays under the
-document's title.
+document's title. A contents after other text starts a page too, and a paragraph before it that
+the original numbered as an article (11's „Odată cu prezentul material informativ, s-au predat
+…”) loses its number, so the articles count from chapter I.
 """
 
 import re
@@ -121,3 +123,37 @@ def chapters_on_new_pages(xml):
     for start, end in reversed(chapters):
         xml = xml[:start] + on_a_new_page(xml[start:end]) + xml[end:]
     return xml
+
+
+def article_lists(numbering):
+    """The lists whose first level prints "Art. N."."""
+    abstracts = set(re.findall(
+        r'<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>(?:(?!</w:abstractNum>).)*?<w:lvl w:ilvl="0"[^>]*>'
+        r'(?:(?!</w:lvl>).)*?<w:lvlText w:val="Art\. %1\."/>', numbering, re.S))
+    return {number for number, abstract in re.findall(
+        r'<w:num w:numId="(\d+)"[^>]*>\s*<w:abstractNumId w:val="(\d+)"/>', numbering) if abstract in abstracts}
+
+
+def articles_from_chapter_one(xml, numbering):
+    contents = xml.find('docPartGallery w:val="Table of Contents"')
+    if contents < 0:
+        return xml
+    lists = article_lists(numbering)
+    numbered = re.compile(r'<w:numPr>(?:(?!</w:numPr>).)*?<w:numId w:val="(\d+)"/>(?:(?!</w:numPr>).)*?</w:numPr>', re.S)
+    for kind, start, end in reversed(list(body_blocks(xml[:contents]))):
+        found = numbered.search(xml[start:end]) if kind == 'p' else None
+        if found and found.group(1) in lists:
+            xml = xml[:start + found.start()] + xml[start + found.end():]
+    return xml
+
+
+def contents_on_its_own_page(xml):
+    contents = xml.find('docPartGallery w:val="Table of Contents"')
+    if contents < 0:
+        return xml
+    control = xml.rindex('<w:sdt>', 0, contents)
+    before = [(kind, start, end) for kind, start, end in body_blocks(xml[:control])]
+    if len(before) < 2 or not any(kind == 'tbl' or text_of(xml[start:end]).strip() for kind, start, end in before[:-1]):
+        return xml
+    _, start, end = before[-1]
+    return xml[:start] + on_a_new_page(xml[start:end]) + xml[end:]
