@@ -265,6 +265,64 @@ describe.each([
     ).toEqual([360, 720, 1080]);
   });
 
+  it('sets "Art. N." on a line of its own over an article\'s alineats or its list, in the occupational safety annex', () => {
+    const body = {
+      blocks: [
+        { kind: 'article' as const, paragraphs: ['Riscuri potențiale:', '– cădere;', '– lovire.'] },
+        {
+          kind: 'article' as const,
+          paragraphs: ['(1) Lucrătorii poartă casca.', '(2) Casca se verifică:', 'a) zilnic.'],
+        },
+        { kind: 'article' as const, paragraphs: ['Se interzice fumatul.'] },
+        { kind: 'article' as const, paragraphs: ['Acțiuni: (1) Se anunță.', '(2) Se stinge.'] },
+        { kind: 'article' as const, paragraphs: ['Echipamentul de protecție', '(1) Casca.'] },
+      ],
+    };
+    const xml = part(renderAnnex(domain, body, data), 'word/document.xml');
+    const lines = (xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g) ?? [])
+      .filter((paragraph) => /AnnexArticle|AnnexParagraph|AnnexItem|AnnexDash/.test(paragraph))
+      .map(
+        (paragraph) =>
+          `${/w:val="Annex(\w+)"/.exec(paragraph)![1]}: ${paragraphTexts(paragraph).join('').trim()}`
+      );
+    if (domain === 'su') {
+      expect(lines).toEqual([
+        'Article: Art. 1. Riscuri potențiale:',
+        'Item1: –\tcădere;',
+        'Item1: –\tlovire.',
+        'Article: Art. 2. (1) Lucrătorii poartă casca.',
+        'Item1: (2)\tCasca se verifică:',
+        'Item2: a)\tzilnic.',
+        'Article: Art. 3. Se interzice fumatul.',
+        'Article: Art. 4. Acțiuni: (1) Se anunță.',
+        'Item1: (2)\tSe stinge.',
+        'Article: Art. 5. Echipamentul de protecție',
+        'Item1: (1)\tCasca.',
+      ]);
+      return;
+    }
+    expect(lines).toEqual([
+      'Article: Art. 1.',
+      'Paragraph: Riscuri potențiale:',
+      'Dash1: –\tcădere;',
+      'Dash1: –\tlovire.',
+      'Article: Art. 2.',
+      'Paragraph: (1) Lucrătorii poartă casca.',
+      'Paragraph: (2) Casca se verifică:',
+      'Item1: a)\tzilnic.',
+      'Article: Art. 3.\tSe interzice fumatul.',
+      'Article: Art. 4.',
+      'Paragraph: Acțiuni:',
+      'Paragraph: (1) Se anunță.',
+      'Paragraph: (2) Se stinge.',
+      'Article: Art. 5.',
+      'Paragraph: Echipamentul de protecție',
+      'Paragraph: (1) Casca.',
+    ]);
+    expect(xml).toMatch(/<w:keepNext\/>(?:(?!<\/w:p>)[\s\S])*Art\. 1\./);
+    expect(xml).toMatch(/<w:b\/><\/w:rPr><w:t>\(2\)<\/w:t>/);
+  });
+
   it('keeps a line that ends with ":" and the last article with what follows them', () => {
     if (domain === 'su') return;
     const xml = part(rendered, 'word/document.xml');
