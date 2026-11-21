@@ -55,8 +55,10 @@ const empty: AnnexParagraph = {
 
 // A paragraph that opens with a marker hangs from it, one tier deeper for each kind of marker
 // its article met before ("a)" under "1."). An alineat ("(2)") divides the article itself, as
-// in the orders the fire-safety annexes copy, so it never hangs under the letters before it.
-export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
+// in the orders the fire-safety annexes copy, so it never hangs under the letters before it. With
+// `articles`, the occupational safety annex lays its articles out as the common part does: an
+// alineat starts at the margin, and `headingLineOfItsOwn` sets "Art. N." on a line of its own.
+export function annexParagraphs(body: AnnexBody, { articles = false } = {}): AnnexParagraph[] {
   const paragraphs: AnnexParagraph[] = [];
   let number = 0;
   for (const block of body.blocks) {
@@ -66,18 +68,22 @@ export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
     }
     number += 1;
     const [first = '', ...rest] = block.paragraphs;
-    paragraphs.push({ ...empty, article: { number, text: first } });
-    let tiers: string[] = /^\(1\)\s/u.test(first) ? ['alineat'] : [];
-    for (const text of rest) {
+    const alone = articles && headingLineOfItsOwn(block.paragraphs);
+    const titled = alone ? /^(.*?:)\s+(\(1\)\s.*)$/su.exec(first) : null;
+    const leading = !alone ? [] : titled ? [titled[1]!, titled[2]!] : first ? [first] : [];
+    paragraphs.push({ ...empty, article: { number, text: alone ? '' : first } });
+    let tiers: string[] = !articles && /^\(1\)\s/u.test(first) ? ['alineat'] : [];
+    for (const text of [...leading, ...rest]) {
       const match = marker.exec(text);
-      if (!match) {
+      const kind = match && markerKind(match[1]!);
+      if (!match || (articles && kind === 'alineat')) {
         paragraphs.push({ ...empty, paragraph: text });
+        if (match) tiers = [];
         continue;
       }
-      const kind = markerKind(match[1]!);
       if (kind === 'alineat') tiers = [kind];
-      else if (!tiers.includes(kind)) tiers.push(kind);
-      const tier = Math.min(tiers.indexOf(kind) + 1, 3) as 1 | 2 | 3;
+      else if (!tiers.includes(kind!)) tiers.push(kind!);
+      const tier = Math.min(tiers.indexOf(kind!) + 1, 3) as 1 | 2 | 3;
       paragraphs.push({
         ...empty,
         [`item${tier}`]: { marker: match[1]!, text: text.slice(match[0].length) },
@@ -85,6 +91,16 @@ export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
     }
   }
   return paragraphs;
+}
+
+// The common part's rule (heading_line_of_its_own in tools/import/typography.py): an article of
+// alineats, "(1)" first or further on, or whose first paragraph introduces a list, prints
+// "Art. N." on a line of its own; any other runs on after its label.
+export function headingLineOfItsOwn(paragraphs: readonly string[]) {
+  const [first = '', ...rest] = paragraphs;
+  if (/^\(1\)\s|:\s+\(1\)\s/u.test(first)) return true;
+  if (rest.some((text) => /^\(\d{1,3}\)\s/u.test(text))) return true;
+  return first.endsWith(':') && rest.length > 0 && marker.test(rest[0]!);
 }
 
 const tiers = ['1', '2', '3'] as const;
@@ -129,20 +145,37 @@ export function renderAnnex(domain: AnnexDomain, body: AnnexBody, data: Template
   const document = renderDocument(annexTemplate(domain), {
     ...data,
     paragraphs:
-      domain === 'ssm' ? withDashes(annexParagraphs(withTypedDashes(body))) : annexParagraphs(body),
+      domain === 'ssm'
+        ? withDashes(annexParagraphs(withTypedDashes(body), { articles: true }))
+        : annexParagraphs(body),
   });
   if (domain !== 'ssm') return document;
   const zip = new PizZip(document);
   const part = zip.file('word/document.xml')!;
-  zip.file(part.name, keptWithWhatFollows(part.asText()));
+  zip.file(part.name, keptWithWhatFollows(boldAlineats(part.asText())));
   return zip.generate({ type: 'uint8array', compression: 'DEFLATE' });
+}
+
+// An alineat's label is bold, as in the common part; the paragraph is one run of the member's text.
+function boldAlineats(xml: string) {
+  return xml.replace(
+    /(<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?<w:pStyle w:val="AnnexParagraph"\/>(?:(?!<\/w:p>)[\s\S])*?)<w:r>(<w:rPr>(?:(?!<\/w:rPr>)[\s\S])*<\/w:rPr>)?<w:t(?: [^>]*)?>(\(\d{1,3}\))(\s[^<]*)<\/w:t><\/w:r>/g,
+    (_, before: string, properties: string | undefined, label: string, rest: string) => {
+      const plain = properties ?? '<w:rPr></w:rPr>';
+      const bold = plain.replace(
+        /<w:rPr>((?:<w:rStyle\b[^>]*\/>)?(?:<w:rFonts\b[^>]*\/>)?)/,
+        '<w:rPr>$1<w:b/>'
+      );
+      return `${before}<w:r>${bold}<w:t>${label}</w:t></w:r><w:r>${plain}<w:t xml:space="preserve">${rest}</w:t></w:r>`;
+    }
+  );
 }
 
 const annexParagraph =
   /<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?<w:pStyle w:val="(Annex\w+)"\/>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g;
 
 // What the body says is known only once merged: a line that ends with ":" keeps with the list it
-// introduces, and the last paragraph with the closing "Acte normative" line, which is otherwise
+// introduces, "Art. N." on a line of its own with its text, and the last paragraph with the closing "Acte normative" line, which is otherwise
 // left alone on a page.
 function keptWithWhatFollows(xml: string) {
   const paragraphs = [...xml.matchAll(annexParagraph)];
@@ -156,6 +189,7 @@ function keptWithWhatFollows(xml: string) {
       .trim();
     const keep =
       (match[1] !== 'AnnexHeading' && match[1] !== 'AnnexActs' && text.endsWith(':')) ||
+      (match[1] === 'AnnexArticle' && /^Art\. \d+\.$/u.test(text)) ||
       index === acts - 1;
     if (!keep || /<w:keepNext\/>/.test(match[0])) continue;
     const kept = match[0].replace(/(<w:pStyle w:val="Annex\w+"\/>)/, '$1<w:keepNext/>');
