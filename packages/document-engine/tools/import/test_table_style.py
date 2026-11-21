@@ -178,10 +178,12 @@ class SignedAndClosing(unittest.TestCase):
         laid = house_table(table, 'house')
         self.assertEqual(set(re.findall(r'<w:vAlign w:val="(\w+)"/>', laid)), {'center'})
 
-    def test_a_list_signed_by_hand_keeps_only_its_head(self):
-        rows = [ROW.format('Semnătura de primire'), ROW.format('1.'), ROW.format('2.'), ROW.format('3.')]
+    def test_a_list_signed_by_hand_keeps_its_head_and_its_last_two_rows(self):
+        rows = [ROW.format('Semnătura de primire')] + [ROW.format(f'{number}.') for number in range(1, 7)]
         _, keeps = keep_together(rows, 1, [4000])
-        self.assertEqual(keeps, [True, True, False, False])
+        self.assertEqual(keeps, [True, True, False, False, False, True, False])
+        _, keeps = keep_together(rows[:4], 1, [4000])
+        self.assertEqual(keeps, [True, True, True, False])
 
     def test_a_short_sentence_ending_its_page_keeps_with_a_whole_table(self):
         sentence = '<w:p><w:r><w:t>Niciunul dintre factorii de risc.</w:t></w:r><w:r><w:br w:type="page"/></w:r></w:p>'

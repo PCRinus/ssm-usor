@@ -464,8 +464,8 @@ def closes_its_page(following):
 def keep_together(rows, header, grid, closing=False, room=KEEP_ROOM):
     """For each row, whether it may not split and whether it keeps with the next row (rule A).
     A list people sign by hand may start under the text that asks for the signatures rather
-    than move whole to the next page; a table kept whole keeps its last row with a `closing`
-    sentence."""
+    than move whole to the next page, but its last row never stands alone on a page; a table kept
+    whole keeps its last row with a `closing` sentence."""
     heights = [estimated_height(row, grid) for row in rows]
     tall = [unescaped_length(text_of(row)) > TALL_ROW_TEXT or height > TALL_ROW_ROOM
             for row, height in zip(rows, heights)]
@@ -474,7 +474,8 @@ def keep_together(rows, header, grid, closing=False, room=KEEP_ROOM):
         # LibreOffice keeps a row with a next one that may split, so a group's name never ends a page.
         return [not each for each in tall], groups
     keeps = [False] * len(rows)
-    if not is_signed_list(rows, header) and len(rows) - header <= WHOLE_ROWS and sum(heights) <= room:
+    signed = is_signed_list(rows, header)
+    if not signed and len(rows) - header <= WHOLE_ROWS and sum(heights) <= room:
         chain = len(rows) - 1
     else:
         # A row keeps with the next one: the header and the first body row tie the second to them.
@@ -483,6 +484,8 @@ def keep_together(rows, header, grid, closing=False, room=KEEP_ROOM):
             chain -= 1
     for index in range(chain):
         keeps[index] = True
+    if signed and len(rows) - header >= 2:
+        keeps[-2] = True
     keeps = [keep or group for keep, group in zip(keeps, groups)]
     if closing and all(keeps[:-1]):
         keeps[-1] = True
