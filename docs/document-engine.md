@@ -289,10 +289,15 @@ plain paragraphs, without the field, each entry ending in a dot leader and a `PA
 heading. LibreOffice lays such a reference out with the page its bookmark lands on, in the
 same layout that prints it, so the number cannot disagree with the page; inside a contents
 field it would keep its cached result instead. A reference that found no bookmark would print
-"Error: Reference source not found", so a file in which one would not is converted as it is.
+"Error: Reference source not found", so a file in which a reference's bookmark would not land
+in a paragraph LibreOffice lays out is converted as it is, and so is one the copy fails on.
+A heading in a text box is not listed: Word saves a text box twice, as a shape and as a copy
+for older readers, and LibreOffice lays out only the first. A draft saved by the in-app editor,
+which writes the tab stop's attributes in another order and the field code's quotes escaped,
+prints the same.
 The fire-safety set has no such style and keeps the rebuilt contents.
 `src/templates/converted-contents.test.ts` checks every printed number against the PDF's
-outline and every label's font. Writing the copy takes 15–50 ms; there is no second conversion.
+outline and every label's font, on both samples and on a draft the editor saved. Writing the copy takes 15–50 ms; there is no second conversion.
 
 `templates/manifest.json` lists all 23 originals under their own numbers, with the stage each
 belongs to: 22 of the provider's pack, all but the periodic test 5.2, which no law asks for
