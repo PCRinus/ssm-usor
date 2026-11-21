@@ -135,6 +135,8 @@ def chapters_on_new_pages(xml):
                 edits[(start, end)] = [typed_heading]
     for start, end in chapters:
         edits.setdefault((start, end), []).append(on_a_new_page)
+        for spacer in spacers_before(xml, start):
+            edits[spacer] = [dropped]
         for kept in before_the_last_lines(xml, start):
             edits.setdefault(kept, []).append(kept_with_next)
     for (start, end), changes in sorted(edits.items(), reverse=True):
@@ -177,6 +179,24 @@ LINE_CHARACTERS = 95  # a body line of 10 pt Arial across the text column
 
 def estimated_lines(paragraph):
     return max(1, -(-len(text_of(paragraph)) // LINE_CHARACTERS))
+
+
+KEPT_CONTENT = re.compile(r'<w:(?:t|drawing|pict|object|sectPr|bookmarkStart|fldChar|instrText|br)\b|<m:oMath')
+
+
+def spacers_before(xml, chapter):
+    """The empty paragraphs right before a chapter, which would otherwise spill onto a page of
+    their own when the page before is full, and the chapter break again after them."""
+    spacers = []
+    for kind, start, end in reversed(list(body_blocks(xml[:chapter]))):
+        if kind != 'p' or KEPT_CONTENT.search(xml[start:end]):
+            break
+        spacers.append((start, end))
+    return spacers
+
+
+def dropped(paragraph):
+    return ''
 
 
 def kept_with_next(paragraph):

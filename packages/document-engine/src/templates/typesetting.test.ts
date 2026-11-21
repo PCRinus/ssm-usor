@@ -603,6 +603,31 @@ describe('Word 2013 layout of the occupational safety set', () => {
     expect(checked).toBeGreaterThan(0);
   });
 
+  it.each([
+    '2.2_general_training_material.docx',
+    '3.2_own_instructions.docx',
+    '4.2_training_themes.docx',
+    '9_risk_assessment.docx',
+    '11_employer_briefing.docx',
+  ])('%s has no empty paragraph right before a chapter that starts a page', (name) => {
+    const blocks =
+      bodyOf(name).match(
+        /<w:sdt>[\s\S]*?<\/w:sdt>|<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>|<w:p\/>/g
+      ) ?? [];
+    const empty = (block: string) =>
+      block.startsWith('<w:p') &&
+      !/<w:(?:t|drawing|pict|object|sectPr|bookmarkStart|fldChar|instrText|br)\b|<m:oMath/.test(
+        block
+      );
+    let chapters = 0;
+    blocks.forEach((block, index) => {
+      if (!block.includes('<w:pageBreakBefore/>')) return;
+      chapters += 1;
+      expect(empty(blocks[index - 1]!), documentTextOf(block)).toBe(false);
+    });
+    expect(chapters).toBeGreaterThan(1);
+  });
+
   it("starts 4.2's chapters II and III on a page, chapter I under the document's title", () => {
     const chapters = paragraphsOf(bodyOf('4.2_training_themes.docx')).filter((paragraph) =>
       /^Capitolul [IVX]+\. [A-ZĂÎȘȚÂ][a-zăîșțâ]/.test(documentTextOf(paragraph))

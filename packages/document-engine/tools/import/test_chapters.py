@@ -81,6 +81,14 @@ class Pages(unittest.TestCase):
                                     + paragraph('CAPITOLUL II. B'))
         self.assertNotIn('<w:keepNext/>', xml)
 
+    def test_drops_the_empty_paragraphs_right_before_a_chapter(self):
+        spacer = '<w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="2"/></w:rPr></w:r></w:p>'
+        picture = '<w:p><w:r><w:drawing/></w:r></w:p>'
+        xml = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('text') + picture + spacer + spacer
+                                    + paragraph('CAPITOLUL II. B'))
+        self.assertNotIn('w:val="2"', xml)
+        self.assertIn(picture, xml)
+
     def test_runs_again_without_a_second_break(self):
         once = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('CAPITOLUL II. B'))
         self.assertEqual(chapters_on_new_pages(once), once)
