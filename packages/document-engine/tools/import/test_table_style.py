@@ -3,8 +3,8 @@ import unittest
 
 import decision_pages
 import landscape_binding
-from table_style import (closes_its_page, element, house_table, in_schema_order, in_schema_values, keep_together,
-                         kind_of, without)
+from table_style import (PORTRAIT_KEEP_ROOM, body_floors, closes_its_page, element, house_table, in_schema_order,
+                         in_schema_values, is_signed_list, keep_together, kind_of, on_the_scale, page_room, without)
 
 ROW = '<w:tr><w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>{}</w:t></w:r></w:p></w:tc></w:tr>'
 def table(rows, properties=''):
@@ -96,7 +96,34 @@ class KeepTogether(unittest.TestCase):
         self.assertEqual(cant_split, [True, True, False, True])
 
 
+class Room(unittest.TestCase):
+    def test_a_short_table_on_a_portrait_page_keeps_whole_where_a_landscape_one_could_not(self):
+        rows = [ROW.format('Nr.')] + [ROW.format('cuvânt ' * 60) for _ in range(3)]
+        _, landscape = keep_together(rows, 1, [4000])
+        _, portrait = keep_together(rows, 1, [4000], room=PORTRAIT_KEEP_ROOM)
+        self.assertFalse(all(landscape[:-1]))
+        self.assertEqual(portrait, [True, True, True, False])
+
+    def test_reads_the_page_of_the_section_a_table_stands_in(self):
+        self.assertEqual(page_room('<w:p/><w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr>'), PORTRAIT_KEEP_ROOM)
+        self.assertLess(page_room('<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/></w:sectPr>'),
+                        PORTRAIT_KEEP_ROOM)
+
+
 class Sizes(unittest.TestCase):
+    def test_raises_only_what_is_smaller_than_10_pt(self):
+        self.assertEqual([on_the_scale(size, False) for size in (14, 16, 18, 20, 24)], [20, 20, 20, 20, 24])
+        self.assertEqual([on_the_scale(size, True) for size in (14, 16, 18, 20)], [16, 16, 16, 20])
+
+    def test_a_column_holds_a_word_with_a_slash_whole(self):
+        cell = '<w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>{}</w:t></w:r></w:p></w:tc>'
+        rows = ['<w:tr><w:trPr><w:tblHeader/></w:trPr>' + cell.format('Tip') + '</w:tr>',
+                '<w:tr>' + cell.format('Încălțăminte antistatică/conductoare') + '</w:tr>',
+                '<w:tr>' + cell.format('Mănuși anti-vibrații') + '</w:tr>']
+        self.assertGreater(body_floors(rows, 1, 85)[0], 2200)
+        self.assertLess(body_floors(rows[:1] + rows[2:], 1, 85)[0], 1500)
+
+
     def test_a_table_narrow_enough_for_10_pt_prints_every_run_at_10_pt(self):
         cell = '<w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/></w:tcPr><w:p><w:r><w:rPr><w:sz w:val="{}"/></w:rPr><w:t>{}</w:t></w:r></w:p></w:tc>'
         def ruled(columns, size):
@@ -109,7 +136,17 @@ class Sizes(unittest.TestCase):
         self.assertIn('<w:sz w:val="16"/>', house_table(ruled(4, 16), 'house', snap=False))
 
 
+# The same cases as src/table-keep.test.ts: the sweep and the merge must agree on a signed list.
+SIGNED_LISTS = [('Semnătura de primire', True), ('SEMNĂTURA', True), ('Sem\u00adnătura celui', True),
+                 ('Data și semnătura', False), ('Numele și prenumele', False)]
+
+
 class SignedAndClosing(unittest.TestCase):
+    def test_a_list_is_signed_when_a_column_of_its_header_asks_for_the_signature(self):
+        for label, signed in SIGNED_LISTS:
+            header = '<w:tr><w:trPr><w:tblHeader/></w:trPr>' + ROW.format(label)[len('<w:tr>'):]
+            self.assertEqual(is_signed_list([header, ROW.format('1.')], 1), signed, label)
+
     def test_every_row_of_a_list_signed_by_hand_is_centred_whatever_wraps(self):
         cell = '<w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>{}</w:t></w:r></w:p></w:tc>'
         header = '<w:tr><w:trPr><w:tblHeader/></w:trPr>' + cell.format('Numele') + cell.format('Semnătura') + '</w:tr>'

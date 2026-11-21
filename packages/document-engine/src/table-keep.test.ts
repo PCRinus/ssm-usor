@@ -2,6 +2,7 @@ import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
 import { renderDocument } from './render';
+import { isSignedList } from './table-keep';
 
 function docx(body: string) {
   const zip = new PizZip();
@@ -101,6 +102,31 @@ describe('keeping the house tables together once merged', () => {
       [...row.matchAll(/<w:vAlign w:val="(\w+)"\/>/g)].map((match) => match[1]);
     expect(vertical(rows[1]!)).toEqual(['center', 'center']);
     expect(vertical(rows[2]!)).toEqual(['top', 'top']);
+  });
+
+  // The same cases as tools/import/test_table_style.py: the sweep and the merge must agree.
+  it.each([
+    ['Semnătura de primire', true],
+    ['SEMNĂTURA', true],
+    ['Sem\u00adnătura celui', true],
+    ['Data și semnătura', false],
+    ['Numele și prenumele', false],
+  ] as const)('takes a header column „%s” for a signed list: %s', (label, signed) => {
+    const headerRow = `<w:tr><w:trPr><w:tblHeader/></w:trPr>${cell(label)}</w:tr>`;
+    expect(isSignedList([headerRow, `<w:tr>${cell('1.')}</w:tr>`], 1)).toBe(signed);
+  });
+
+  it('keeps a short table whole on a portrait page, where a landscape one could not', () => {
+    const section = (width: number, height: number) =>
+      `<w:p><w:pPr><w:sectPr><w:pgSz w:w="${width}" w:h="${height}"/></w:sectPr></w:pPr></w:p>`;
+    const keeps = (page: string) =>
+      rowsOf(
+        renderDocument(docx(table(house, header + loopRow) + page), {
+          people: people(3, 'cuvânt '.repeat(40)),
+        })
+      ).map(keepsWithNext);
+    expect(keeps(section(11906, 16838))).toEqual([true, true, true, false]);
+    expect(keeps(section(16838, 11906))).toEqual([true, true, false, false]);
   });
 
   describe('a list signed by hand', () => {

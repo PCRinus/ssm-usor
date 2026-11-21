@@ -137,7 +137,7 @@ describe('the table house style of the occupational safety set', () => {
     expect(keepTablesTogether(body) === body).toBe(true);
   });
 
-  it('prints a table of up to six columns at 10 pt, but in the sheets', () => {
+  it('prints nothing smaller than 10 pt in a table of up to six columns, but in the sheets', () => {
     const sheets = ['fisa_instruire_ssm.docx', 'fisa_test.docx'];
     const small = houseTables
       .filter(
@@ -146,7 +146,7 @@ describe('the table house style of the occupational safety set', () => {
       )
       .flatMap(([name, first, table]) =>
         [...table.matchAll(/<w:sz w:val="(\d+)"\/>/g)]
-          .filter((size) => size[1] !== '20')
+          .filter((size) => Number(size[1]) < 20)
           .map(() => `${name}: ${first}`)
       );
     expect([...new Set(small)]).toEqual([]);
