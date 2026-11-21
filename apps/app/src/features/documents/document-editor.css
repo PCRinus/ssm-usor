@@ -1,12 +1,96 @@
 /* The editor styles its title row inline and offers no class or prop for it, so the row is
-   found through the actions, which are ours, rather than through the editor's own markup. */
-@media (width < 40rem) {
-  :has(> [data-editor-title-actions]) {
-    flex-wrap: wrap;
-    row-gap: 0.5rem;
-  }
+   found through the actions, which are ours, rather than through the editor's own markup. The
+   editor lets the title shrink to nothing beside the actions, with an inline width that only
+   `!important` outranks; it keeps a readable width, and the actions move under it when the row
+   is too narrow for both. */
+:has(> [data-editor-title-actions]) {
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
 
+:has(> [data-editor-title-actions]) > :has(+ [data-editor-title-actions]) {
+  min-width: min(20rem, 100%) !important;
+}
+
+[data-editor-title-actions] {
+  margin-inline-start: auto;
+}
+
+@media (width < 40rem) {
   [data-editor-title-actions] {
     flex-basis: 100%;
   }
+}
+
+/* The editor declares the same colour names as the app (--primary, --input…) on its own root, in
+   another format, so inside it the app's colours are reached through names it does not use. */
+:root {
+  --app-primary: var(--primary);
+  --app-secondary: var(--secondary);
+  --app-foreground: var(--foreground);
+  --app-muted: var(--muted);
+  --app-muted-foreground: var(--muted-foreground);
+  --app-card: var(--card);
+  --app-input: var(--input);
+  --app-border: var(--border);
+  --app-section-tab: var(--section-tab);
+  /* The app's links are in its near-black green, which does not show on black document text. */
+  --app-link: color-mix(in oklab, var(--brand-forest) 55%, var(--brand-lime));
+  --app-unfilled-mark: color-mix(in srgb, var(--warning-border) 45%, transparent);
+  --app-unfilled-mark-active: var(--warning-border);
+}
+
+.docx-editor .docx-nav {
+  --doc-primary: var(--app-primary);
+  --doc-primary-light: var(--app-secondary);
+  --doc-text: var(--app-foreground);
+  --doc-text-muted: var(--app-muted-foreground);
+  --doc-text-subtle: var(--app-muted-foreground);
+  --doc-text-placeholder: var(--app-muted-foreground);
+  --doc-bg-hover: var(--app-muted);
+  --doc-bg-input: var(--app-card);
+  --doc-border-input: var(--app-input);
+  --doc-border-light: var(--app-border);
+
+  font-family: var(--font-body);
+}
+
+/* The hover and the current chapter would otherwise share one grey. */
+.docx-editor .docx-nav__heading--current {
+  background: var(--app-section-tab);
+  box-shadow: inset 3px 0 0 var(--app-primary);
+}
+
+/* On a phone the pane would leave a sliver of page beside it; it covers the page instead, and
+   closes when a chapter or a result is picked. */
+@media (width <= 40rem) {
+  .docx-editor .docx-nav {
+    width: 100%;
+  }
+
+  .docx-editor .docx-nav__panel-shell {
+    inset-inline: 0;
+    width: auto;
+    padding-inline: 0.75rem;
+  }
+}
+
+/* The outline's filter box reads like the search beside it, and twenty chapters need no filter. */
+.docx-editor #docx-nav-panel-headings .docx-nav__searchbox {
+  display: none;
+}
+
+/* The contents is a content control the engine keeps; lighting the whole block on hover hides
+   which chapter a click opens, so the frame shows only while the cursor is in the contents. An
+   entry is several links, one per run and line, so the colour goes to every link of the
+   paragraph under the pointer. The editor sets each link's colour inline, and its read-only
+   rules outrank a plain override. */
+.docx-content-control-chrome[data-docx-toc][data-hover]:not([data-active])
+  .docx-content-control-boundary {
+  opacity: 0 !important;
+}
+
+.docx-paragraph-fragment:has(a.docx-hyperlink[href^='#_Toc']:hover)
+  a.docx-hyperlink[href^='#_Toc'] {
+  color: var(--app-link) !important;
 }

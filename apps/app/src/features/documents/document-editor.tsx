@@ -2,13 +2,13 @@ import '@docx-editor.dev/core/styles/editor.css';
 import './document-editor.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
-import { DocxEditor, type DocxEditorRef, useDocumentSearch } from '@docx-editor.dev/react';
-import { countOf, unfilledMark } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
-import { TriangleAlert } from 'lucide-react';
-import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from 'react';
+import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
+import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 import { editorStrings } from './editor-strings.ro';
+import { NavigationButton } from './navigation-button';
+import { UnfilledNavigator } from './unfilled-navigator';
+import { useDocumentNavigation } from './use-document-navigation';
 
 // The Word editor itself, in a module of its own so that its three megabytes are only
 // fetched when a document is opened. It takes bytes and gives bytes back (ADR 005), so
@@ -29,34 +29,6 @@ export interface DocumentEditorHandle {
   save: () => Promise<Uint8Array | null>;
   /** The same, without counting as saved. */
   copy: () => Promise<Uint8Array | null>;
-}
-
-// Formatting the mark in the file itself, red or highlighted, was the other way: what is typed
-// over it inherits the formatting, here and in Word, and the price is issued in red.
-function UnfilledNavigator() {
-  const { matches, activeIndex, next, setQuery, setMatchCase } = useDocumentSearch();
-  useEffect(() => {
-    setMatchCase(true);
-    setQuery(unfilledMark);
-  }, [setMatchCase, setQuery]);
-  if (matches.length === 0) return null;
-
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      data-testid="editor-unfilled"
-      title={`Selectează următorul „${unfilledMark}”; ce scrii îl înlocuiește.`}
-      className="border-warning-border bg-warning text-warning-foreground hover:bg-warning/70 hover:text-warning-foreground"
-      onClick={next}
-    >
-      <TriangleAlert aria-hidden="true" />
-      {countOf(matches.length, 'loc', 'locuri')} de completat
-      <span className="font-normal">
-        {activeIndex < 0 ? '· arată' : `· ${activeIndex + 1} din ${matches.length}`}
-      </span>
-    </Button>
-  );
 }
 
 export default function DocumentEditor({
@@ -88,6 +60,8 @@ export default function DocumentEditor({
   // The revision of the document as loaded or as last saved. Opening a file also reports
   // changes, from laying it out, which are not the person's.
   const cleanRevision = useRef<number | null>(null);
+  const [laidOut, setLaidOut] = useState(false);
+  const pane = useDocumentNavigation();
 
   useImperativeHandle(handle, () => ({
     save: async () => {
@@ -127,7 +101,7 @@ export default function DocumentEditor({
       // Correcting a name or a sentence needs the toolbar and the page, not an office suite.
       menu={false}
       rulers={false}
-      navigation={false}
+      navigation={pane.navigation}
       locale="ro-RO"
       // A module constant: a catalogue with a new identity rebuilds the whole interface.
       i18n={editorStrings}
@@ -137,12 +111,14 @@ export default function DocumentEditor({
       renderTitleBarLeft={() => <span className="-mr-0.5 flex">{back}</span>}
       renderTitleBarRight={() => (
         <div data-editor-title-actions className="flex flex-wrap items-center gap-2">
-          {editable && <UnfilledNavigator />}
+          <NavigationButton open={pane.open} onToggle={pane.toggle} />
+          {editable && <UnfilledNavigator ready={laidOut} />}
           {actions}
         </div>
       )}
       onReady={() => {
         ready.current = true;
+        setLaidOut(true);
         cleanRevision.current = editor.current?.getDocumentHandle()?.revision ?? null;
         onReady();
       }}
