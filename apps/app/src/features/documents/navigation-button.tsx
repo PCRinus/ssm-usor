@@ -8,11 +8,13 @@ export function NavigationButton({ open, onToggle }: { open: boolean; onToggle: 
       size="sm"
       data-testid="editor-navigation"
       aria-expanded={open}
+      aria-controls="docx-nav-panel-headings docx-nav-panel-find"
       onClick={onToggle}
     >
       <TableOfContents aria-hidden="true" />
-      <span>
-        Cuprins<span className="max-sm:hidden"> și căutare</span>
+      {/* Beside a long title the label gives way, so the title is not squeezed. */}
+      <span className="sm:@max-[80rem]:sr-only">
+        Cuprins<span className="max-sm:sr-only"> și căutare</span>
       </span>
     </Button>
   );

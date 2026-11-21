@@ -61,7 +61,7 @@ export default function DocumentEditor({
   // changes, from laying it out, which are not the person's.
   const cleanRevision = useRef<number | null>(null);
   const [laidOut, setLaidOut] = useState(false);
-  const pane = useDocumentNavigation(ready);
+  const pane = useDocumentNavigation();
 
   useImperativeHandle(handle, () => ({
     save: async () => {

@@ -1,18 +1,17 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useRef } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NavigationButton } from './navigation-button';
 import { useDocumentNavigation } from './use-document-navigation';
 
-// The pane's markup as the editor draws it: the hook finds its parts by these classes and ids.
-function Page({ ready = true }: { ready?: boolean }) {
-  const isReady = useRef(ready);
-  const pane = useDocumentNavigation(isReady);
+// The hook reaches the editor's document and pane through their class names and ids.
+function Page() {
+  const pane = useDocumentNavigation();
   return (
     <>
-      <textarea aria-label="Ciorna" />
+      <input aria-label="Titlu" />
+      <div className="docx-pages" tabIndex={0} aria-label="Conținutul documentului" />
       <NavigationButton open={pane.open} onToggle={pane.toggle} />
       <div
         className="docx-nav"
@@ -33,13 +32,27 @@ function Page({ ready = true }: { ready?: boolean }) {
           <input type="search" className="docx-nav__search-input" aria-label="Caută în document" />
         </div>
       </div>
+      <div role="dialog" aria-label="Dialog">
+        <input aria-label="Câmp din dialog" />
+      </div>
     </>
   );
 }
 
 const pane = () => screen.getByTestId('pane');
-const findShortcut = (init: KeyboardEventInit = { metaKey: true }) =>
-  fireEvent.keyDown(screen.getByLabelText('Ciorna'), { key: 'f', ...init });
+const draft = () => screen.getByLabelText('Conținutul documentului');
+const searchBox = () => screen.getByLabelText('Caută în document');
+const press = (target: Element, init: KeyboardEventInit) => fireEvent.keyDown(target, init);
+const cmdF = { key: 'f', metaKey: true };
+
+function onPlatform(platform: string) {
+  vi.spyOn(navigator, 'platform', 'get').mockReturnValue(platform);
+}
+
+beforeEach(() => {
+  onPlatform('MacIntel');
+  return () => vi.restoreAllMocks();
+});
 
 describe('the chapter and search pane', () => {
   it('starts closed and opens and closes from its button, without the editor’s own toggle', async () => {
@@ -58,66 +71,130 @@ describe('the chapter and search pane', () => {
     expect(pane().dataset.open).toBe('false');
   });
 
-  it('opens on the search with the cursor in its box for Cmd+F and Ctrl+F, instead of the browser’s find', () => {
+  it('opens on the search with the cursor in its box for Cmd+F in the document', () => {
     render(<Page />);
-    screen.getByLabelText('Ciorna').focus();
+    draft().focus();
 
-    expect(findShortcut()).toBe(false);
+    expect(press(draft(), cmdF)).toBe(false);
     expect(pane().dataset.open).toBe('true');
     expect(pane().dataset.tab).toBe('find');
-    expect(document.activeElement).toBe(screen.getByLabelText('Caută în document'));
-
-    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
-    expect(findShortcut({ ctrlKey: true })).toBe(false);
-    expect(document.activeElement).toBe(screen.getByLabelText('Caută în document'));
+    expect(document.activeElement).toBe(searchBox());
   });
 
-  it('leaves Cmd+F to the browser until the document is laid out, and with other modifiers', () => {
-    const { unmount } = render(<Page ready={false} />);
-    expect(findShortcut()).toBe(true);
+  it('leaves Cmd+F to the browser anywhere outside the document', () => {
+    render(<Page />);
+    const title = screen.getByLabelText('Titlu');
+    title.focus();
+    expect(press(title, cmdF)).toBe(true);
+
+    const inDialog = screen.getByLabelText('Câmp din dialog');
+    inDialog.focus();
+    expect(press(inDialog, cmdF)).toBe(true);
+
+    (document.activeElement as HTMLElement).blur();
+    expect(press(document.body, cmdF)).toBe(true);
+    expect(pane().dataset.open).toBe('false');
+  });
+
+  it('keeps Ctrl+F for moving the cursor on a Mac, and uses it elsewhere', () => {
+    const { unmount } = render(<Page />);
+    draft().focus();
+    expect(press(draft(), { key: 'f', ctrlKey: true })).toBe(true);
     expect(pane().dataset.open).toBe('false');
     unmount();
 
+    onPlatform('Win32');
     render(<Page />);
-    expect(findShortcut({ metaKey: true, shiftKey: true })).toBe(true);
+    draft().focus();
+    expect(press(draft(), cmdF)).toBe(true);
+    expect(press(draft(), { key: 'f', ctrlKey: true })).toBe(false);
+    expect(pane().dataset.open).toBe('true');
+  });
+
+  it('keeps the focus in the search box and selects its text on another Cmd+F', async () => {
+    render(<Page />);
+    draft().focus();
+    press(draft(), cmdF);
+    await userEvent.type(searchBox(), 'preluare');
+
+    expect(press(searchBox(), cmdF)).toBe(false);
+    expect(document.activeElement).toBe(searchBox());
+    const box = searchBox() as HTMLInputElement;
+    expect([box.selectionStart, box.selectionEnd]).toEqual([0, 8]);
+  });
+
+  it('takes the focus back into the box when Enter moves to the next result', async () => {
+    render(<Page />);
+    draft().focus();
+    press(draft(), cmdF);
+
+    fireEvent.keyDown(searchBox(), { key: 'Enter' });
+    draft().focus();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect(document.activeElement).toBe(searchBox());
+  });
+
+  it('closes on Esc from the search box and gives the focus back to the document', () => {
+    render(<Page />);
+    draft().focus();
+    press(draft(), cmdF);
+
+    expect(press(searchBox(), { key: 'Escape' })).toBe(false);
     expect(pane().dataset.open).toBe('false');
+    expect(document.activeElement).toBe(draft());
+  });
+
+  it('closes on Esc anywhere while open, leaving the focus where it is outside the pane', async () => {
+    render(<Page />);
+    await userEvent.click(screen.getByRole('button', { name: /Cuprins/ }));
+    draft().focus();
+
+    expect(press(draft(), { key: 'Escape' })).toBe(false);
+    expect(pane().dataset.open).toBe('false');
+    expect(document.activeElement).toBe(draft());
+  });
+
+  it('leaves Esc to a dialog, and to an editor popup that handled it', () => {
+    render(<Page />);
+    draft().focus();
+    press(draft(), cmdF);
+
+    press(screen.getByLabelText('Câmp din dialog'), { key: 'Escape' });
+    const handled = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    handled.preventDefault();
+    draft().dispatchEvent(handled);
+    expect(pane().dataset.open).toBe('true');
+  });
+
+  it('gives the focus back to where the last Cmd+F came from', () => {
+    render(<Page />);
+    draft().focus();
+    press(draft(), cmdF);
+    draft().focus();
+    press(draft(), cmdF);
+
+    press(searchBox(), { key: 'Escape' });
+    expect(document.activeElement).toBe(draft());
+  });
+
+  it('gives the focus back when the pane’s own arrow closes it', async () => {
+    render(<Page />);
+    draft().focus();
+    press(draft(), cmdF);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Închide' }));
+    expect(pane().dataset.open).toBe('false');
+    expect(document.activeElement).toBe(draft());
   });
 
   it('gives Cmd+F back to the browser once the document page is left', () => {
     const { unmount } = render(<Page />);
     unmount();
-    expect(fireEvent.keyDown(document.body, { key: 'f', metaKey: true })).toBe(true);
-  });
-
-  it('closes on Esc from inside the pane and gives the focus back to the draft', () => {
-    render(<Page />);
-    const draft = screen.getByLabelText('Ciorna');
-    draft.focus();
-    findShortcut();
-
-    expect(fireEvent.keyDown(screen.getByLabelText('Caută în document'), { key: 'Escape' })).toBe(
-      false
-    );
-    expect(pane().dataset.open).toBe('false');
-    expect(document.activeElement).toBe(draft);
-  });
-
-  it('leaves Esc alone outside the pane', () => {
-    render(<Page />);
-    findShortcut();
-    expect(fireEvent.keyDown(document.body, { key: 'Escape' })).toBe(true);
-    expect(pane().dataset.open).toBe('true');
-  });
-
-  it('gives the focus back when the pane’s own arrow closes it', async () => {
-    render(<Page />);
-    const draft = screen.getByLabelText('Ciorna');
-    draft.focus();
-    findShortcut();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Închide' }));
-    expect(pane().dataset.open).toBe('false');
-    expect(document.activeElement).toBe(draft);
+    expect(fireEvent.keyDown(document.body, cmdF)).toBe(true);
   });
 
   it('closes after a chapter is picked on a phone, so the page shows', async () => {
