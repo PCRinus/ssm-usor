@@ -423,7 +423,7 @@ export function SigningAgreementCard({
               params={{ clientId: employee.clientId }}
               state={openedHere}
             >
-              Deschide Documente SSM
+              Deschide Documentație SSM
             </Link>
           </TodoAction>
         }

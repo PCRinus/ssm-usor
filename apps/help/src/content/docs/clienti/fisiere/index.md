@@ -27,7 +27,7 @@ Aici păstrezi fișierele pe care aplicația nu le scrie, dar pe care le ai de l
 
 ## Alte documente
 
-Tabul **Alte documente** al unui client ține certificatul de înregistrare, procesele-verbale ITM, fișele de aptitudine, ofertele, fotografiile de la locurile de muncă și orice alt fișier despre client. Documentele pe care le generează aplicația sunt în **Documente SSM** și **Documente SU**, iar fișierele unui lucrător sunt pe pagina lui, la [Documentele lucrătorului](#documentele-lucrătorului).
+Tabul **Alte documente** al unui client ține certificatul de înregistrare, procesele-verbale ITM, fișele de aptitudine, ofertele, fotografiile de la locurile de muncă și orice alt fișier despre client. Documentele pe care le generează aplicația sunt în **Documentație SSM** și **Documentație SU**, iar fișierele unui lucrător sunt pe pagina lui, la [Documentele lucrătorului](#documentele-lucrătorului).
 
 Lista are, pentru fiecare fișier:
 

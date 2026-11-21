@@ -232,7 +232,7 @@ describe('client documents', () => {
     const current = screen
       .getAllByTestId('client-section')
       .filter((link) => link.getAttribute('aria-current') === 'page');
-    expect(current.map((link) => link.textContent)).toEqual(['Documente SSM']);
+    expect(current.map((link) => link.textContent)).toEqual(['Documentație SSM']);
     expect(await screen.findByTestId('documents-empty')).toBeTruthy();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
       'Generează documentația'

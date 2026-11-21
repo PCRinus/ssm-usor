@@ -225,7 +225,7 @@ Un factor venit din bibliotecă arată sub descriere „În evaluarea … din bi
 
 ## Ce cer documentele 9 și 10
 
-Evaluarea riscurilor (documentul 9) și planul de prevenire și protecție (documentul 10), din Documente SSM, se generează din fișele clientului. Ca să le poți genera:
+Evaluarea riscurilor (documentul 9) și planul de prevenire și protecție (documentul 10), din Documentație SSM, se generează din fișele clientului. Ca să le poți genera:
 
 - fiecare post actual are fișa de evaluare a riscurilor, cu cel puțin un factor de risc;
 - grupurile sensibile sunt evaluate, cu cel puțin un factor, sau clientul a declarat că nu are lucrători din aceste grupuri;

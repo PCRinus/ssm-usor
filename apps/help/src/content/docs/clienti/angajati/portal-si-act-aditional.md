@@ -244,4 +244,4 @@ Revenirea are efect din momentul în care o înregistrezi, nu din data cererii: 
 
 Angajatorul hotărăște în regulamentul intern cum se semnează fișele de instruire (HG 1425/2006, art. 81 alin. (3¹)). În setul SSM, asta face anexa 13 la regulamentul intern, care se aplică unui client cu participanți în portal.
 
-Cât timp anexa nu e emisă, panoul actului adițional arată un rând galben și te trimite la **Documente SSM**. Emite anexa odată cu actele adiționale.
+Cât timp anexa nu e emisă, panoul actului adițional arată un rând galben și te trimite la **Documentație SSM**. Emite anexa odată cu actele adiționale.

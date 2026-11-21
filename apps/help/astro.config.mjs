@@ -61,8 +61,8 @@ const clientAreas = [
   { label: 'Posturi și echipament', directory: 'posturi' },
   { label: 'Instruire și fișe', directory: 'instruire' },
   { label: 'Evaluarea riscurilor', directory: 'evaluarea-riscurilor' },
-  { label: 'Documente SSM', directory: 'documente-ssm' },
-  { label: 'Documente SU', directory: 'documente-su' },
+  { label: 'Documentație SSM', directory: 'documente-ssm' },
+  { label: 'Documentație SU', directory: 'documente-su' },
   { label: 'Fișiere', directory: 'fisiere' },
 ];
 
