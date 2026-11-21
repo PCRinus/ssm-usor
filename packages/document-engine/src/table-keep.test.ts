@@ -160,6 +160,21 @@ describe('keeping the house tables together once merged', () => {
       expect(rows.slice(1).map(vertical)).toEqual(Array(4).fill(['center']));
     });
 
+    it('keeps its first two rows and its last two together, so no row stands alone at a break', () => {
+      const keeps = (count: number) =>
+        rowsOf(
+          renderDocument(docx(signedList), {
+            people: Array.from({ length: count }, (_, index) => ({
+              name: `Persoana ${index + 1}`,
+              jobTitle: 'Operator',
+              date: '21.11.2026',
+            })),
+          })
+        ).map(keepsWithNext);
+      expect(keeps(4)).toEqual([true, true, false, false, false, true, false]);
+      expect(keeps(1)).toEqual([true, true, true, false]);
+    });
+
     it('centres every row even when a cell wraps', () => {
       const rows = rowsOf(
         renderDocument(docx(signedList), {

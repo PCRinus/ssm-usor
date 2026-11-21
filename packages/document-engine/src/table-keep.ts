@@ -152,20 +152,19 @@ function keepTogether(rows: string[], header: number, grid: number[], room: numb
   let chain: number;
   // A list people sign by hand may start under the text that asks for the signatures, as the
   // acknowledgement after a decision does, rather than leave most of that page empty.
-  if (
-    !isSignedList(rows, header) &&
-    rows.length - header <= wholeRows &&
-    total(rows.length) <= room
-  ) {
+  const signed = isSignedList(rows, header);
+  if (!signed && rows.length - header <= wholeRows && total(rows.length) <= room) {
     chain = rows.length - 1;
   } else {
     // A row keeps with the next one: the header and the first body row tie the second to them.
     chain = Math.min(header + 1, rows.length - 1);
     while (chain > 0 && total(chain + 1) > room) chain -= 1;
   }
+  // Nor does its last row stand alone under the header repeated on the next page.
+  const lastPair = signed && rows.length - header >= 2 ? rows.length - 2 : -1;
   return {
     cantSplit: rows.map(() => true),
-    keeps: rows.map((_, index) => index < chain || groups[index]!),
+    keeps: rows.map((_, index) => index < chain || index === lastPair || groups[index]!),
   };
 }
 
