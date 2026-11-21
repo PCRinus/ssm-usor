@@ -792,7 +792,8 @@ describe('risk_assessment', () => {
         'components',
         'groups',
         'factors',
-        'sheet',
+        'sheetComponents',
+        'rows',
         'unacceptable',
         'plan',
         'ranked',
@@ -804,37 +805,44 @@ describe('risk_assessment', () => {
     expect(bodyOf('9_risk_assessment.docx')).toContain(
       '<w:docPartGallery w:val="Table of Contents"/>'
     );
-    expect(text).toContain('{{#sheet}}{{component}}');
+    expect(text).toContain('{{#sheetComponents}}{{label}}');
+    expect(text).toContain('{{#rows}}{{group}}');
     expect(text).toContain('Conducerea locurilor de muncă: {{workplaceManagersList}}');
     expect(text).toContain('Subcapitolul V.{{roman}}. Evaluarea riscurilor');
     expect(text).not.toMatch(/\d+ – \d+\s*(I|II|III|IV|V|VI)\b/);
   });
 
-  // A group's name covers its rows in one cell, never above empty bordered ones.
-  it("merges a component's and a group's cells down the rows of the evaluation sheet", () => {
+  // A component names its rows on a row across the sheet, and a group's name covers its rows in
+  // one cell, never above empty bordered ones.
+  it("names a component on a row across the sheet and merges a group's cells down its rows", () => {
     const data = setSamples.find((sample) => sample.label === 'long')!.data;
     const body = new PizZip(renderDocument(read('9_risk_assessment.docx'), data))
       .file('word/document.xml')!
       .asText();
     const sheets = (body.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? []).filter((table) =>
-      documentTextOf(table).startsWith('Componenta sistemului de muncăFactori de risc identificați')
+      documentTextOf(table).startsWith('Factori de risc identificațiForma concretă')
     );
     const evaluations = (
-      data.riskAssessment as { evaluations: { sheet: { component: string; group: string }[] }[] }
+      data.riskAssessment as {
+        evaluations: { sheetComponents: { label: string; rows: { group: string }[] }[] }[];
+      }
     ).evaluations;
     expect(sheets).toHaveLength(evaluations.length);
     sheets.forEach((sheet, index) => {
       const rows = sheet.match(/<w:tr>[\s\S]*?<\/w:tr>/g)!.slice(1);
-      const cells = (row: string) => row.match(/<w:tc>[\s\S]*?<\/w:tc>/g)!.slice(0, 2);
-      const merges = rows.map((row) =>
-        cells(row).map((cell) => (cell.includes('<w:vMerge/>') ? 'continue' : 'restart'))
-      );
-      expect(merges).toEqual(
-        evaluations[index]!.sheet.map(({ component, group }) => [
-          component ? 'restart' : 'continue',
-          group ? 'restart' : 'continue',
+      const shape = rows.map((row) => {
+        const cells = row.match(/<w:tc>[\s\S]*?<\/w:tc>/g)!;
+        if (cells.length === 1) return documentTextOf(cells[0]!);
+        return cells[0]!.includes('<w:vMerge/>') ? 'continue' : 'restart';
+      });
+      expect(shape).toEqual(
+        evaluations[index]!.sheetComponents.flatMap(({ label, rows: factors }) => [
+          label,
+          ...factors.map(({ group }) => (group ? 'restart' : 'continue')),
         ])
       );
+      expect(sheet.match(/<w:gridCol /g)).toHaveLength(6);
+      expect(sheet).not.toMatch(/<w:sz w:val="1[0-9]"\/>/);
     });
   });
 

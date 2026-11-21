@@ -47,6 +47,7 @@ from contents import column_style, column_style_id, label_columns
 from decision_pages import decision_pages
 from signatures import signing_space
 from landscape_binding import landscape_bound_on_top
+from risk_assessment import NAME as RISK_ASSESSMENT, risk_assessment, sized_breaks
 from table_style import (P_PR_ORDER, R_PR_ORDER, draws_house_tables, edit_properties, house_tables_part, in_schema_order,
                          in_schema_values,
                          marked_for_content_widths, put)
@@ -2130,7 +2131,9 @@ def sweep(path, word_2013=None):
             document, styles, numbering = typography(
                 labelled.get('word/document.xml', document), styles, labelled.get('word/numbering.xml'),
                 contents is not None, os.path.basename(path))
-            document = contents_on_its_own_page(chapters_on_new_pages(citation_notes(document)))
+            document = sized_breaks(contents_on_its_own_page(chapters_on_new_pages(citation_notes(document))))
+            if os.path.basename(path) == RISK_ASSESSMENT and numbering is not None:
+                document, numbering = risk_assessment(document, numbering, styles)
             labelled['word/document.xml'], labelled['word/styles.xml'] = document, styles
             if numbering is not None:
                 labelled['word/numbering.xml'] = numbering
