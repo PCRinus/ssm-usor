@@ -1,4 +1,4 @@
-// The measures of 9, 10 and 2.2's own risks come from the merge data as lines joined with line
+// The measures (and 10's actions) of 9, 10 and 2.2's own risks come from the merge data as lines joined with line
 // breaks, each opened by a dash: a wrapped line then starts under the dash instead of under the
 // text. Once merged, each measure becomes a paragraph of its own that hangs from its dash, as the
 // import sets a dash typed in a cell (`tools/import/typography.py`).
@@ -6,11 +6,11 @@
 import { columnsOf, isHeader, topLevelTables } from './table-keep';
 
 const houseTable = 'HouseTable';
-const measuresColumn = /^Măsur[ai]\b/iu;
+const measuresColumn = /^(?:Măsur[ai]|Acțiuni)\b/iu;
 // 3 mm, in twips.
 const cellHang = 170;
 // A dash before a digit is a minus sign ("- 5 °C"), not an item's.
-const dashLine = /^\s*[–-]\s+(?![\s\d])/u;
+const dashLine = /^\s*(?:–\s+|-\s+(?![\s\d]))/u;
 
 const rowPattern = /<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g;
 const paragraphPattern = /<w:p(?:\s[^>]*)?\/>|<w:p(?:\s[^>]*[^/])?>(?:(?!<\/w:p>)[\s\S])*<\/w:p>/g;

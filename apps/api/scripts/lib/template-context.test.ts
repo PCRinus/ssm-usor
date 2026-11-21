@@ -826,7 +826,9 @@ describe('the risk assessment', () => {
     );
     for (const evaluation of context.riskAssessment.evaluations) {
       for (const row of evaluation.plan) {
-        expect(text).toContain(`${row.code}. ${row.description}\n${row.level}\n– `);
+        expect(text).toContain(
+          `${row.code}. ${row.description}\n${row.level}\n${row.measures.split('\n')[0]}`
+        );
       }
     }
     expect(text).not.toContain('Niciunul dintre factorii de risc identificați nu depășește');

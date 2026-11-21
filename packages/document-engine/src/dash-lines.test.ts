@@ -34,6 +34,27 @@ describe('hangDashLines', () => {
     }
   });
 
+  it("hangs the items of the plan's actions column as it does the measures", () => {
+    const merged = paragraph(
+      '<w:r><w:t xml:space="preserve">– Contractarea verificării.</w:t><w:br/><w:t xml:space="preserve">– Instruirea.</w:t></w:r>'
+    );
+    expect(
+      paragraphsOf(
+        hangDashLines(table(merged, { header: 'Acțiuni în scopul realizării măsurii' }))
+      ).map(textOf)
+    ).toEqual(['–⇥Contractarea verificării.', '–⇥Instruirea.']);
+  });
+
+  it('hangs an en-dash item that opens with a digit, as a minus is only a hyphen', () => {
+    const merged = paragraph(
+      '<w:r><w:t xml:space="preserve">– Verificarea.</w:t><w:br/><w:t xml:space="preserve">– 2 verificări pe an.</w:t></w:r>'
+    );
+    expect(paragraphsOf(hangDashLines(table(merged))).map(textOf)).toEqual([
+      '–⇥Verificarea.',
+      '–⇥2 verificări pe an.',
+    ]);
+  });
+
   it('hangs a single measure once, and a dash in a run of its own', () => {
     const single = paragraph('<w:r><w:t xml:space="preserve">– Verificarea periodică.</w:t></w:r>');
     const hung = hangDashLines(table(single));
