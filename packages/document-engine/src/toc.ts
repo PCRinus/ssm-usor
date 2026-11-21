@@ -2,11 +2,21 @@
 // written from the merged document, so a chapter a loop repeats is listed once per item. They
 // carry no page numbers: the PDF conversion recomputes the table with them, as the in-app
 // editor and Word do when asked, and a number guessed here would be wrong wherever the pages
-// break differently.
+// break differently. Where the template has a "Contents labels N" style (the occupational
+// safety set, tools/import/contents.py), an entry of level N prints its label bold, a tab, and
+// its title, with that style's tab stop and hang. LibreOffice's recomputed table, written from
+// the headings' plain text in the "toc N" styles, has neither, so the PDF is made from
+// `printedContents` (src/printable.ts).
+
+import { textWidth } from './content-widths';
 
 const contentsControl =
   /<w:sdt>(?:(?!<\/w:sdt>)[\s\S])*?<w:docPartGallery w:val="Table of Contents"\/>[\s\S]*?<\/w:sdt>/;
 const paragraphPattern = /<w:p[ >][\s\S]*?<\/w:p>/g;
+// A text box holds paragraphs of its own, and Word saves it twice, the second copy for readers
+// that know no modern shapes, which LibreOffice skips: a bookmark there is never laid out.
+export const boxPattern =
+  /<mc:AlternateContent>[\s\S]*?<\/mc:AlternateContent>|<w:txbxContent>[\s\S]*?<\/w:txbxContent>/g;
 const styleDefinition = /<w:style\b([^>]*)>([\s\S]*?)<\/w:style>/g;
 
 const decode = (text: string) =>
@@ -43,8 +53,50 @@ function headingLevels(styles: string) {
   return (id: string) => resolve(id, new Set());
 }
 
+const entryLabel = /^((?:sub)?capitolul [IVXLC]+\.(?:[IVXLC]+\.)?|anexa(?: nr\.)? \d+\.) (.+)$/i;
+
+type LabelColumn = { start: number; title: number; properties: string };
+
+/** Per level, where its labels start, where its titles start, and the tab and indent to set. */
+function labelColumns(styles: string) {
+  const columns = new Map<number, LabelColumn>();
+  for (const [, attributes, body] of styles.matchAll(styleDefinition)) {
+    const level = /w:styleId="ContentsLabels(\d)"/.exec(attributes!)?.[1];
+    if (!level) continue;
+    const tabs = /<w:tabs>[\s\S]*?<\/w:tabs>/.exec(body!)?.[0];
+    const indent = /<w:ind\b[^>]*\/>/.exec(body!)?.[0];
+    // Attributes in either order: the in-app editor writes the position first when it saves.
+    const title = tabs && /<w:tab\b(?=[^>]*w:val="left")[^>]*w:pos="(\d+)"/.exec(tabs)?.[1];
+    if (!indent || !title) continue;
+    const left = Number(/w:left="(\d+)"/.exec(indent)?.[1] ?? 0);
+    const hanging = Number(/w:hanging="(\d+)"/.exec(indent)?.[1] ?? 0);
+    columns.set(Number(level), {
+      start: left - hanging,
+      title: Number(title),
+      properties: tabs + indent,
+    });
+  }
+  return columns;
+}
+
+const run = (text: string, bold = false) =>
+  `<w:r>${bold ? '<w:rPr><w:b/><w:bCs/></w:rPr>' : ''}<w:t xml:space="preserve">${encode(text)}</w:t></w:r>`;
+
+function entry(level: number, text: string, column: LabelColumn | undefined) {
+  const style = `<w:pStyle w:val="TOC${level}"/>`;
+  const parts = column ? entryLabel.exec(text) : null;
+  if (!parts) return { properties: style, runs: run(text) };
+  const [, label, title] = parts;
+  // A label wider than its column would tab on to the page numbers' stop.
+  const fits = column!.start + textWidth(label!, 20, true) + 57 <= column!.title;
+  return {
+    properties: style + column!.properties,
+    runs: run(label!, true) + (fits ? '<w:r><w:tab/></w:r>' : run(' ')) + run(title!),
+  };
+}
+
 function outlineRange(instruction: string) {
-  const range = /\\o\s+"(\d)-(\d)"/.exec(instruction);
+  const range = /\\o\s+"(\d)-(\d)"/.exec(decode(instruction));
   return range ? { from: Number(range[1]), to: Number(range[2]) } : { from: 1, to: 9 };
 }
 
@@ -68,11 +120,19 @@ function withBookmark(paragraph: string, name: string, id: number) {
 const fieldRun = (type: 'begin' | 'separate' | 'end') =>
   `<w:r><w:fldChar w:fldCharType="${type}"/></w:r>`;
 
-export function fillTableOfContents(document: string, styles: string): string {
+type Contents = {
+  control: RegExpExecArray;
+  instruction: RegExpExecArray;
+  before: string;
+  marked: string;
+  entries: { level: number; text: string; bookmark: string }[];
+};
+
+function contentsOf(document: string, styles: string): Contents | null {
   const control = contentsControl.exec(document);
-  if (!control) return document;
+  if (!control) return null;
   const instruction = /<w:instrText[^>]*>([^<]*\bTOC\b[^<]*)<\/w:instrText>/.exec(control[0]);
-  if (!instruction) return document;
+  if (!instruction) return null;
 
   const levelOf = headingLevels(styles);
   const { from, to } = outlineRange(instruction[1]!);
@@ -96,8 +156,10 @@ export function fillTableOfContents(document: string, styles: string): string {
 
   const before = document.slice(0, control.index);
   const after = document.slice(control.index + control[0].length);
-  const entries: { level: number; text: string; bookmark: string }[] = [];
-  const marked = after.replace(paragraphPattern, (paragraph) => {
+  const boxes: string[] = [];
+  const masked = after.replace(boxPattern, (box) => `\uE000${boxes.push(box) - 1}\uE000`);
+  const entries: Contents['entries'] = [];
+  const marked = masked.replace(paragraphPattern, (paragraph) => {
     const properties = /^<w:p\b[^>]*>\s*<w:pPr>([\s\S]*?)<\/w:pPr>/.exec(paragraph)?.[1] ?? '';
     const style = /<w:pStyle w:val="([^"]+)"\/>/.exec(properties)?.[1];
     const direct = /<w:outlineLvl w:val="(\d)"\/>/.exec(properties)?.[1];
@@ -109,15 +171,26 @@ export function fillTableOfContents(document: string, styles: string): string {
     entries.push({ level, text, bookmark });
     return withBookmark(paragraph, bookmark, nextId++);
   });
-  if (entries.length === 0) return document;
+  const unmasked = marked.replace(
+    /\uE000(\d+)\uE000/g,
+    (_, index: string) => boxes[Number(index)]!
+  );
+  return entries.length === 0 ? null : { control, instruction, before, marked: unmasked, entries };
+}
 
+export function fillTableOfContents(document: string, styles: string): string {
+  const contents = contentsOf(document, styles);
+  if (!contents) return document;
+  const { control, instruction, before, marked, entries } = contents;
+  const columns = labelColumns(styles);
   const rows = entries.map(({ level, text, bookmark }, index) => {
     const opening =
       index === 0 ? `${fieldRun('begin')}<w:r>${instruction[0]}</w:r>${fieldRun('separate')}` : '';
     const closing = index === entries.length - 1 ? fieldRun('end') : '';
+    const { properties, runs } = entry(level, text, columns.get(level));
     return (
-      `<w:p><w:pPr><w:pStyle w:val="TOC${level}"/></w:pPr>${opening}` +
-      `<w:hyperlink w:anchor="${bookmark}" w:history="1"><w:r><w:t xml:space="preserve">${encode(text)}</w:t></w:r></w:hyperlink>` +
+      `<w:p><w:pPr>${properties}</w:pPr>${opening}` +
+      `<w:hyperlink w:anchor="${bookmark}" w:history="1">${runs}</w:hyperlink>` +
       `${closing}</w:p>`
     );
   });
@@ -126,4 +199,27 @@ export function fillTableOfContents(document: string, styles: string): string {
     `<w:sdtContent>${rows.join('')}</w:sdtContent>`
   );
   return before + filled + marked;
+}
+
+/**
+ * The contents for the PDF: entries without the field, each ending in a PAGEREF to its
+ * heading, which LibreOffice lays out where it would keep a field's entries plain.
+ */
+export function printedContents(document: string, styles: string): string {
+  const columns = labelColumns(styles);
+  if (columns.size === 0) return document;
+  const contents = contentsOf(document, styles);
+  if (!contents) return document;
+  const { before, marked, entries } = contents;
+  const rows = entries.map(({ level, text, bookmark }) => {
+    const { properties, runs } = entry(level, text, columns.get(level));
+    return (
+      `<w:p><w:pPr>${properties}</w:pPr>` +
+      `<w:hyperlink w:anchor="${bookmark}" w:history="1">${runs}</w:hyperlink>` +
+      `<w:r><w:tab/></w:r>${fieldRun('begin')}` +
+      `<w:r><w:instrText xml:space="preserve"> PAGEREF ${bookmark} \\h </w:instrText></w:r>` +
+      `${fieldRun('separate')}${fieldRun('end')}</w:p>`
+    );
+  });
+  return before + rows.join('') + marked;
 }

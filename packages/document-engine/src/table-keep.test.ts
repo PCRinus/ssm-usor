@@ -2,6 +2,7 @@ import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
 import { renderDocument } from './render';
+import { isSignedList } from './table-keep';
 
 function docx(body: string) {
   const zip = new PizZip();
@@ -103,6 +104,79 @@ describe('keeping the house tables together once merged', () => {
     expect(vertical(rows[2]!)).toEqual(['top', 'top']);
   });
 
+  // The same cases as tools/import/test_table_style.py: the sweep and the merge must agree.
+  it.each([
+    ['Semnătura de primire', true],
+    ['SEMNĂTURA', true],
+    ['Sem\u00adnătura celui', true],
+    ['Data și semnătura', false],
+    ['Numele și prenumele', false],
+  ] as const)('takes a header column „%s” for a signed list: %s', (label, signed) => {
+    const headerRow = `<w:tr><w:trPr><w:tblHeader/></w:trPr>${cell(label)}</w:tr>`;
+    expect(isSignedList([headerRow, `<w:tr>${cell('1.')}</w:tr>`], 1)).toBe(signed);
+  });
+
+  it('keeps a short table whole on a portrait page, where a landscape one could not', () => {
+    const section = (width: number, height: number) =>
+      `<w:p><w:pPr><w:sectPr><w:pgSz w:w="${width}" w:h="${height}"/></w:sectPr></w:pPr></w:p>`;
+    const keeps = (page: string) =>
+      rowsOf(
+        renderDocument(docx(table(house, header + loopRow) + page), {
+          people: people(3, 'cuvânt '.repeat(40)),
+        })
+      ).map(keepsWithNext);
+    expect(keeps(section(11906, 16838))).toEqual([true, true, true, false]);
+    expect(keeps(section(16838, 11906))).toEqual([true, true, false, false]);
+  });
+
+  describe('a list signed by hand', () => {
+    const widths = [621, 3458, 2076, 1297, 1903];
+    const signedCell = (width: number, text: string) =>
+      `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/></w:tcPr><w:p><w:r><w:t xml:space="preserve">${text}</w:t></w:r></w:p></w:tc>`;
+    const signedRow = (texts: string[], properties = '') =>
+      `<w:tr>${properties}${texts.map((text, index) => signedCell(widths[index]!, text)).join('')}</w:tr>`;
+    const tall = '<w:trPr><w:trHeight w:val="850" w:hRule="atLeast"/></w:trPr>';
+    const signedList = `<w:tbl><w:tblPr>${house}</w:tblPr><w:tblGrid>${widths.map((width) => `<w:gridCol w:w="${width}"/>`).join('')}</w:tblGrid>${signedRow(
+      ['Nr. crt.', 'Numele și prenumele', 'Funcția', 'Data primirii', 'Semnătura de primire'],
+      '<w:trPr><w:tblHeader/></w:trPr>'
+    )}${signedRow(['1.', '{{#people}}{{name}}', '{{jobTitle}}', '{{date}}{{/people}}', ''], tall)}${signedRow(['2.', '', '', '', ''], tall)}${signedRow(['3.', '', '', '', ''], tall)}</w:tbl>`;
+    const vertical = (row: string) => [
+      ...new Set([...row.matchAll(/<w:vAlign w:val="(\w+)"\/>/g)].map((match) => match[1])),
+    ];
+
+    it('centres every row while each cell holds one line', () => {
+      const rows = rowsOf(
+        renderDocument(docx(signedList), {
+          people: [
+            {
+              name: 'Mureșanu Bogdan-Alexandru',
+              jobTitle: 'Manager restaurant',
+              date: '21.11.2026',
+            },
+            { name: 'Bălănescu Gheorghe', jobTitle: 'Bucătar-șef', date: '21.11.2026' },
+          ],
+        })
+      );
+      expect(rows.slice(1).map(vertical)).toEqual(Array(4).fill(['center']));
+    });
+
+    it('centres every row even when a cell wraps', () => {
+      const rows = rowsOf(
+        renderDocument(docx(signedList), {
+          people: [
+            { name: 'Bălănescu Gheorghe', jobTitle: 'Bucătar-șef', date: '21.11.2026' },
+            {
+              name: 'Mihai Popescu',
+              jobTitle: 'Operator montaj linii automate',
+              date: '21.11.2026',
+            },
+          ],
+        })
+      );
+      expect(rows.slice(1).map(vertical)).toEqual(Array(4).fill(['center']));
+    });
+  });
+
   it('centres a column of short values and starts one of names or text at the left', () => {
     const rows = rowsOf(
       renderDocument(docx(table(house, header + loopRow)), {
@@ -140,6 +214,17 @@ describe('keeping the house tables together once merged', () => {
       ...[true, false, false, false],
       ...[true, false, false, false],
     ]);
+  });
+
+  it('keeps a group named in bold with its first row beside a row that may split', () => {
+    const boldGroup = `<w:tr><w:tc><w:tcPr><w:tcW w:w="6000" w:type="dxa"/><w:gridSpan w:val="2"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Fizice - termice</w:t></w:r></w:p></w:tc></w:tr>`;
+    const rows = rowsOf(
+      renderDocument(docx(table(house, header + boldGroup + loopRow)), {
+        people: [{ name: 'Arsuri', note: 'Lucrări '.repeat(150) }, ...people(2)],
+      })
+    );
+    expect(rows.map(keepsWithNext)).toEqual([false, true, false, false, false]);
+    expect(rows.map(staysWhole)).toEqual([true, true, false, true, true]);
   });
 
   it("joins a marked cell the data left empty to the group's cell above, which reads from the top", () => {

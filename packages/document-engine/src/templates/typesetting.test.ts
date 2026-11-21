@@ -582,7 +582,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
       documentTextOf(paragraph).includes('Menținerea în stare de utilizare a tuturor:')
     );
     if (evacuation >= 0)
-      expect(paragraphs[evacuation + 1]).toMatch(/<w:ind w:left="(1080|1800)" w:hanging="360"\/>/);
+      expect(paragraphs[evacuation + 1]).toMatch(/<w:ind w:left="1440" w:hanging="360"\/>/);
   });
 
   it.each(files)('%s is laid out in compatibility mode 15', (_, bytes) => {
@@ -606,5 +606,49 @@ describe('Word 2013 layout of the occupational safety set', () => {
     expect(indents.filter((indent) => !/^<w:tblInd w:w="0" w:type="dxa"\/>$/.test(indent))).toEqual(
       []
     );
+  });
+});
+
+describe('the "Conform …:" notes of 2.2', () => {
+  const paragraphs =
+    bodyOf('2.2_general_training_material.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+  const runs = (paragraph: string) =>
+    (paragraph.match(/<w:r>[\s\S]*?<\/w:r>/g) ?? []).filter((run) => documentTextOf(run));
+  const notes = paragraphs.flatMap((paragraph, index) => {
+    if (!/^Conform /.test(documentTextOf(paragraph))) return [];
+    const passage = [paragraph];
+    for (const next of paragraphs.slice(index + 1)) {
+      if (!/^(\(\d+\)|[a-z]\)) /.test(documentTextOf(next))) break;
+      passage.push(next);
+    }
+    return [passage];
+  });
+
+  it('finds the four notes of chapters XIV and XV', () => {
+    expect(notes.map((passage) => passage.length)).toEqual([2, 2, 4, 2]);
+  });
+
+  it('sets them on the text margin, only the citation italic and the labels bold', () => {
+    for (const [note, ...quoted] of notes) {
+      for (const paragraph of [note!, ...quoted]) {
+        expect(paragraph).toContain('<w:ind w:left="0" w:hanging="0"/>');
+        expect(paragraph).not.toMatch(/<w:numPr>/);
+      }
+      const [citation, ...rest] = runs(note!);
+      expect(documentTextOf(citation!)).toMatch(/^Conform [^:]+:$/);
+      expect(citation).toContain('<w:i/>');
+      expect(citation).not.toContain('<w:b/>');
+      for (const paragraph of [note!, ...quoted]) {
+        for (const run of paragraph === note ? rest : runs(paragraph)) {
+          expect(run, documentTextOf(run)).not.toContain('<w:i/>');
+          const isLabel = /^(\(\d+\)|[a-z]\))$/.test(documentTextOf(run));
+          expect(run.includes('<w:b/>'), documentTextOf(run)).toBe(isLabel);
+        }
+      }
+      for (const paragraph of quoted) {
+        expect(documentTextOf(runs(paragraph)[0]!)).toMatch(/^(\(\d+\)|[a-z]\))$/);
+      }
+    }
+    expect(documentTextOf(runs(notes[2]![0]!)[2]!)).toBe('(1)');
   });
 });

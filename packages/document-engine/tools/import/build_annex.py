@@ -38,9 +38,9 @@ STYLES = {
     'AnnexActs': {'above': 12, 'adjust': LEFT},
 }
 # The occupational safety annexes are set as the common part of 3.2: left-aligned, the text after
-# "Art. N." at the common part's article tab, a list label one tier in per level (6.35 mm, the
-# third at 25.4 mm) with 8 mm to its text, so "(24)" or "xvi." still leaves a gap; a bullet of
-# any glyph prints as the common part's en dash, at the same tiers and hang.
+# "Art. N." at the common part's article tab, a list label 6.35 mm further in per level, with 8 mm
+# to its text, so "(24)" or "xvi." still leaves a gap; a bullet of any glyph prints as the common
+# part's en dash, at the same tiers and hanging 6.35 mm, as the common part's dashes do.
 LABEL_TEXT = 800
 ARTICLE_TAB = 1905
 HOUSE_STYLES = {
@@ -49,10 +49,10 @@ HOUSE_STYLES = {
     'AnnexParagraph': {'above': 2},
     'AnnexItem1': {'above': 2, 'left': HANG + LABEL_TEXT, 'hang': LABEL_TEXT},
     'AnnexItem2': {'above': 2, 'left': 2 * HANG + LABEL_TEXT, 'hang': LABEL_TEXT},
-    'AnnexItem3': {'above': 2, 'left': 4 * HANG + LABEL_TEXT, 'hang': LABEL_TEXT},
+    'AnnexItem3': {'above': 2, 'left': 3 * HANG + LABEL_TEXT, 'hang': LABEL_TEXT},
     'AnnexDash1': {'above': 2, 'left': 2 * HANG},
     'AnnexDash2': {'above': 2, 'left': 3 * HANG},
-    'AnnexDash3': {'above': 2, 'left': 5 * HANG},
+    'AnnexDash3': {'above': 2, 'left': 4 * HANG},
     'AnnexActs': {'above': 12},
 }
 

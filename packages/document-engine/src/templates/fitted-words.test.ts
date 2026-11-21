@@ -111,3 +111,22 @@ describe.skipIf(!converter)('a table fitted to its content', () => {
     60_000
   );
 });
+
+// 6's tables of H.G. 1048/2006's annex 3 print at 10 pt in narrow columns: the sweep widens a column
+// to the longest word its body holds, „antistatică/conductoare” among them.
+// Labels the lists number themselves, and the closing bracket of the text's „lit. b))” that
+// LibreOffice moves to the next line, are no pieces of a word.
+const notAWord = /^(\d{1,2}\.|[a-z]\)|\))$/;
+
+describe.skipIf(!converter)('the tables of 6', () => {
+  it.each(setSamples.map(({ label, data }) => ({ label, data })))(
+    'break no word ($label)',
+    async ({ data }) => {
+      const words = await brokenWords(
+        renderDocument(read('6_protective_equipment_list.docx'), data)
+      );
+      expect(words.filter((token) => !notAWord.test(token))).toEqual([]);
+    },
+    120_000
+  );
+});

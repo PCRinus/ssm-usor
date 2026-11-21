@@ -9,6 +9,7 @@ const tallRowText = 700;
 // In twips.
 const tallRowRoom = 280 * 20;
 const keepRoom = 340 * 20;
+const portraitKeepRoom = 580 * 20;
 const padding = { vertical: 80, horizontal: 170 };
 const characterWidth = 0.55;
 const lineHeight = 1.15;
@@ -17,6 +18,8 @@ const emptyMark = '—';
 const valueColumn =
   /^(nr\.?\s*(crt|întreb)|data\b|durata|nivel\b|nivelul|clas[ae]\b|cantitate|număr|nr\. bucăți|cod risc|termen|lunile|punctaj|răspunsul)/i;
 const textColumn = /^(nume|numele|denumire|persoan|semnătur|observa|cine)/i;
+// A list people sign by hand: a column of its header asks for the signature.
+const signatureColumn = /^semnătur/i;
 const shortWords = 3;
 const shortText = 24;
 const dashes = new Set(['-', '--', '–', '—', '---']);
@@ -123,43 +126,46 @@ function estimatedHeight(row: string, grid: number[]) {
 }
 
 // The fill of a row of one cell across the table that names the group of rows under it: 6's
-// post names.
+// post names. Its risk groups name theirs in bold.
 const groupFill = 'F1F4EF';
+const boldRun = /<w:rPr>(?:(?!<\/w:rPr>)[\s\S])*<w:b(?: w:val="(?:true|1|on)")?\/>/;
 const isGroupRow = (row: string, grid: number[]) => {
   const cells = columnsOf(row);
-  return (
-    cells.length === 1 &&
-    spanOf(cells[0]!.cell) === grid.length &&
-    cellProperties(cells[0]!.cell).includes(`w:fill="${groupFill}"`)
-  );
+  if (cells.length !== 1 || spanOf(cells[0]!.cell) !== grid.length) return false;
+  if (cellProperties(cells[0]!.cell).includes(`w:fill="${groupFill}"`)) return true;
+  const said = [...row.matchAll(runPattern)].filter(([run]) => textOf(run).trim());
+  return said.length > 0 && said.every(([run]) => boldRun.test(run));
 };
 
-function keepTogether(rows: string[], header: number, grid: number[]) {
+function keepTogether(rows: string[], header: number, grid: number[], room: number) {
   const heights = rows.map((row) => estimatedHeight(row, grid));
   const tall = rows.map(
     (row, index) => lengthOf(textOf(row)) > tallRowText || heights[index]! > tallRowRoom
   );
+  const groups = rows.map(
+    (row, index) => index >= header && index < rows.length - 1 && isGroupRow(row, grid)
+  );
   if (tall.some(Boolean)) {
-    return { cantSplit: tall.map((each) => !each), keeps: rows.map(() => false) };
+    return { cantSplit: tall.map((each) => !each), keeps: groups };
   }
   const total = (count: number) => heights.slice(0, count).reduce((sum, each) => sum + each, 0);
   let chain: number;
   // A list people sign by hand may start under the text that asks for the signatures, as the
   // acknowledgement after a decision does, rather than leave most of that page empty.
-  const signedByHand = rows.slice(0, header).some((row) => /Semnătura/u.test(textOf(row)));
-  if (!signedByHand && rows.length - header <= wholeRows && total(rows.length) <= keepRoom) {
+  if (
+    !isSignedList(rows, header) &&
+    rows.length - header <= wholeRows &&
+    total(rows.length) <= room
+  ) {
     chain = rows.length - 1;
   } else {
     // A row keeps with the next one: the header and the first body row tie the second to them.
     chain = Math.min(header + 1, rows.length - 1);
-    while (chain > 0 && total(chain + 1) > keepRoom) chain -= 1;
+    while (chain > 0 && total(chain + 1) > room) chain -= 1;
   }
   return {
     cantSplit: rows.map(() => true),
-    keeps: rows.map(
-      (row, index) =>
-        index < chain || (index >= header && index < rows.length - 1 && isGroupRow(row, grid))
-    ),
+    keeps: rows.map((_, index) => index < chain || groups[index]!),
   };
 }
 
@@ -276,6 +282,29 @@ function cellLines(cell: string, column: number, grid: number[]) {
     .reduce((sum, [paragraph]) => sum + paragraphLines(paragraph, width), 0);
 }
 
+export function isSignedList(rows: string[], header: number) {
+  return rows.slice(0, header).some((row) =>
+    columnsOf(row).some(({ cell }) =>
+      signatureColumn.test(
+        textOf(cell)
+          .replace(/\u00ad/g, '')
+          .trim()
+      )
+    )
+  );
+}
+
+/** The room for a table kept whole on the pages of its section, which the first section
+ * properties after it describe. */
+function pageRoom(following: string) {
+  const size = /<w:pgSz\b[^>]*\/>/.exec(following)?.[0];
+  if (!size) return keepRoom;
+  const side = (name: string) => Number(new RegExp(`w:${name}="(\\d+)"`).exec(size)?.[1] ?? 0);
+  return size.includes('w:orient="landscape"') || side('w') > side('h')
+    ? keepRoom
+    : portraitKeepRoom;
+}
+
 const isShort = (text: string) =>
   text === emptyMark ||
   /^\d/.test(text) ||
@@ -337,17 +366,22 @@ function withVerticalAlignment(cell: string, value: 'center' | 'top') {
 /**
  * A row of single lines reads centred; a row with more lines anywhere, or with a cell merged
  * down over the next row, reads from the top, so a group's name stands beside its first row.
+ * A row of a list signed by hand is centred whatever it holds.
  */
 function alignedRow(
   row: string,
   grid: number[],
   alignments: Map<number, 'center' | 'left'>,
-  mergedOn: ReadonlySet<number>
+  mergedOn: ReadonlySet<number>,
+  signed = false
 ) {
   const placed = columnsOf(row);
   const single =
-    mergedOn.size === 0 &&
-    placed.every(({ column, cell }) => continuesMerge(cell) || cellLines(cell, column, grid) <= 1);
+    signed ||
+    (mergedOn.size === 0 &&
+      placed.every(
+        ({ column, cell }) => continuesMerge(cell) || cellLines(cell, column, grid) <= 1
+      ));
   let index = 0;
   return row.replace(cellPattern, (cell) => {
     const { column } = placed[index]!;
@@ -441,7 +475,7 @@ function closesItsPage(following: string) {
   return length > 0 && length <= closingLength;
 }
 
-function laidOut(table: string, closing = false) {
+function laidOut(table: string, closing: boolean, room: number) {
   const rows = [...table.matchAll(rowPattern)].map((match) => match[0]);
   let header = 0;
   while (header < rows.length && isHeader(rows[header]!)) header += 1;
@@ -453,10 +487,15 @@ function laidOut(table: string, closing = false) {
     index < header ? row : row.replace(cellPattern, (cell) => withEmptyMark(cell))
   );
   const alignments = columnAlignments(withMarks, header);
+  // The rows of a signed list are as tall as a signature needs: a row read from the top beside
+  // a centred one shows at once.
+  const signed = isSignedList(withMarks, header);
   const marked = withMarks.map((row, index) =>
-    index < header ? row : alignedRow(row, grid, alignments, mergedOnto(row, withMarks[index + 1]))
+    index < header
+      ? row
+      : alignedRow(row, grid, alignments, mergedOnto(row, withMarks[index + 1]), signed)
   );
-  const { cantSplit, keeps } = keepTogether(marked, header, grid);
+  const { cantSplit, keeps } = keepTogether(marked, header, grid, room);
   if (closing && keeps.slice(0, -1).every(Boolean)) keeps[keeps.length - 1] = true;
   let index = 0;
   return table.replace(rowPattern, () => {
@@ -478,7 +517,11 @@ export function keepTablesTogether(document: string): string {
       table.slice(7).includes('<w:tbl>')
     )
       continue;
-    pieces.push(document.slice(at, start), laidOut(table, closesItsPage(document.slice(end))));
+    const following = document.slice(end);
+    pieces.push(
+      document.slice(at, start),
+      laidOut(table, closesItsPage(following), pageRoom(following))
+    );
     at = end;
   }
   pieces.push(document.slice(at));

@@ -109,6 +109,27 @@ describe('2.2_general_training_material.docx', () => {
     );
   });
 
+  // Each printed only the general prohibition or mandatory sign, and no law asks for them.
+  it('leaves out the signs that had no pictogram of their own', () => {
+    const text = documentTextOf(body);
+    for (const name of [
+      'Interzis transportul de persoane pe stivuitor',
+      'Interzisă urcarea pe transpaletă',
+      'Purtarea bonetei obligatorie',
+      'Folosiți mijloacele de protecție',
+    ])
+      expect(text).not.toContain(name);
+    expect(text).toContain('Obligație generală');
+  });
+
+  it('fills every row of the prohibition and mandatory catalogues', () => {
+    const counts = Object.fromEntries(
+      catalogue['2.2'].map((group) => [group.heading, group.signs.length])
+    );
+    expect(counts['Panouri de interzicere']).toBe(22);
+    expect(counts['Panouri de obligativitate']).toBe(18);
+  });
+
   it('heads each kind of sign right after the law describes it', () => {
     const headings = catalogue['2.2'].map((group) => group.heading);
     const paragraphs = (body.match(/<w:p\b[\s\S]*?<\/w:p>/g) ?? []).map(documentTextOf);

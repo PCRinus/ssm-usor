@@ -5,7 +5,8 @@ header that is bold, centred, filled with the app's table-header grey-green and 
 every page; 1.5 mm of padding beside the text and 0.7 mm above and below it; a body row of
 single lines centred from top to bottom, one with more lines anywhere read from the top, never
 mixed; a column of short values centred, one of names or text from the left; row numbers
-regular; one mark, a centred dash, for a cell left empty in a table of data. Then the rule that keeps a table together (`keep_together`).
+regular; one mark, a centred dash, for a cell left empty in a table of data; a cell in a safety
+colour in the value the set's signs print (`safety_colours`). Then the rule that keeps a table together (`keep_together`).
 
 A table drawn this way names the table style `HOUSE_TABLE`, which holds nothing: the merge
 (`src/table-keep.ts`) lays the rule over again once a loop has repeated the rows, and touches
@@ -54,9 +55,10 @@ ROW_NUMBER_COLUMN = re.compile(r'^nr\.?\s*crt', re.I)
 WHOLE_ROWS = 6
 TALL_ROW_TEXT = 700
 TALL_ROW_ROOM = 280 * 20  # twips
-# A landscape page holds some 410 pt under its box of document details; the line that
-# introduces the table and the guess's error take the rest.
+# A landscape page holds some 410 pt under its box of document details, a portrait one some
+# 650 pt; the line that introduces the table and the guess's error take the rest.
 KEEP_ROOM = 340 * 20  # twips
+PORTRAIT_KEEP_ROOM = 580 * 20
 # Arial's average advance, rounded towards too wide, so a guess errs on the side of a shorter chain.
 CHARACTER_WIDTH = 0.55
 LINE_HEIGHT = 1.15
@@ -87,6 +89,9 @@ ROW = re.compile(r'<w:tr\b[^>]*>.*?</w:tr>', re.S)
 CELL = re.compile(r'<w:tc\b[^>]*>.*?</w:tc>', re.S)
 PARAGRAPH = re.compile(r'<w:p\b[^>]*/>|<w:p\b[^>]*>.*?</w:p>', re.S)
 RUN = re.compile(r'<w:r\b[^>]*>.*?</w:r>', re.S)
+# A list people sign by hand: a column of its header asks for the signature.
+SIGNATURE_COLUMN = re.compile(r'semnătur', re.I)
+BOLD_RUN = re.compile(r'<w:rPr>(?:(?!</w:rPr>).)*<w:b(?: w:val="(?:true|1|on)")?/>', re.S)
 TEXT = re.compile(r'(<w:t\b[^>]*>)([^<]*)(</w:t>)')
 LOOP_TAGS_ONLY = re.compile(r'(\{\{[#/^][^}]*\}\})+')
 ON = r'(?: w:val="(?:true|1|on)")?'
@@ -456,7 +461,7 @@ def closes_its_page(following):
     return 0 < length <= CLOSING_LENGTH
 
 
-def keep_together(rows, header, grid, closing=False):
+def keep_together(rows, header, grid, closing=False, room=KEEP_ROOM):
     """For each row, whether it may not split and whether it keeps with the next row (rule A).
     A list people sign by hand may start under the text that asks for the signatures rather
     than move whole to the next page; a table kept whole keeps its last row with a `closing`
@@ -464,30 +469,50 @@ def keep_together(rows, header, grid, closing=False):
     heights = [estimated_height(row, grid) for row in rows]
     tall = [unescaped_length(text_of(row)) > TALL_ROW_TEXT or height > TALL_ROW_ROOM
             for row, height in zip(rows, heights)]
+    groups = [header <= index < len(rows) - 1 and is_group_row(row, grid) for index, row in enumerate(rows)]
     if any(tall):
-        return [not each for each in tall], [False] * len(rows)
+        # LibreOffice keeps a row with a next one that may split, so a group's name never ends a page.
+        return [not each for each in tall], groups
     keeps = [False] * len(rows)
-    signed_by_hand = any('Semnătura' in text_of(row) for row in rows[:header])
-    if not signed_by_hand and len(rows) - header <= WHOLE_ROWS and sum(heights) <= KEEP_ROOM:
+    if not is_signed_list(rows, header) and len(rows) - header <= WHOLE_ROWS and sum(heights) <= room:
         chain = len(rows) - 1
     else:
         # A row keeps with the next one: the header and the first body row tie the second to them.
         chain = min(header + 1, len(rows) - 1)
-        while chain > 0 and sum(heights[:chain + 1]) > KEEP_ROOM:
+        while chain > 0 and sum(heights[:chain + 1]) > room:
             chain -= 1
     for index in range(chain):
         keeps[index] = True
-    for index in range(header, len(rows) - 1):
-        if is_group_row(rows[index], grid):
-            keeps[index] = True
+    keeps = [keep or group for keep, group in zip(keeps, groups)]
     if closing and all(keeps[:-1]):
         keeps[-1] = True
     return [True] * len(rows), keeps
 
 
+def is_signed_list(rows, header):
+    return any(SIGNATURE_COLUMN.match(text_of(cell).replace('\u00ad', '').strip())
+               for row in rows[:header] for cell in CELL.findall(row))
+
+
+def page_room(following):
+    """The room for a table kept whole on the pages of the section it stands in, which the first
+    section properties after it describe."""
+    size = re.search(r'<w:pgSz\b[^>]*/>', following)
+    if not size:
+        return KEEP_ROOM
+    width, height = (re.search(rf'w:{side}="(\d+)"', size.group(0)) for side in ('w', 'h'))
+    landscape = 'w:orient="landscape"' in size.group(0) or (width and height and int(width.group(1)) > int(height.group(1)))
+    return KEEP_ROOM if landscape else PORTRAIT_KEEP_ROOM
+
+
 def is_group_row(row, grid):
     cells = CELL.findall(row)
-    return len(cells) == 1 and span(cells[0]) == len(grid) and f'w:fill="{GROUP_FILL}"' in cell_properties(cells[0])
+    if len(cells) != 1 or span(cells[0]) != len(grid):
+        return False
+    if f'w:fill="{GROUP_FILL}"' in cell_properties(cells[0]):
+        return True
+    said = [run for run in RUN.findall(row) if text_of(run).strip()]
+    return bool(said) and all(BOLD_RUN.search(run) for run in said)
 
 
 def apply_keep(row, cant_split, keeps):
@@ -568,9 +593,22 @@ BOLD_WIDTHS = dict(zip(
 BASE_LETTERS = str.maketrans('ăâîșțşţĂÂÎȘȚŞŢ', 'aaiststAAISTST')
 
 
+# Arial's, rounded up as `src/content-widths.ts` has them.
+REGULAR_WIDTHS = dict(zip(
+    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,:;-()/%',
+    [557, 557, 500, 557, 557, 278, 557, 557, 223, 223, 500, 223, 834, 557, 557, 557, 557, 334, 500, 278,
+     557, 500, 723, 500, 500, 500, 667, 667, 723, 723, 667, 611, 778, 723, 278, 500, 667, 557, 834, 723,
+     778, 667, 778, 723, 667, 611, 723, 667, 944, 667, 667, 611] + [557] * 10 + [278, 278, 278, 278, 334,
+                                                                              334, 334, 278, 890]))
+
+
 def bold_width(word, size):
     """In twips, at `size` half-points."""
     return sum(BOLD_WIDTHS.get(letter, 611) for letter in word.translate(BASE_LETTERS)) * size / 2 * 20 / 1000
+
+
+def regular_width(word, size):
+    return sum(REGULAR_WIDTHS.get(letter, 611) for letter in word.translate(BASE_LETTERS)) * size / 2 * 20 / 1000
 
 
 def header_floors(rows, header, size, side_padding):
@@ -587,6 +625,25 @@ def header_floors(rows, header, size, side_padding):
             need = max((bold_width(word, size) for word in words if word), default=0)
             if need:
                 floors[column] = max(floors.get(column, 0), math.ceil(need) + across + 20)
+    return floors
+
+
+def body_floors(rows, header, side_padding):
+    across = 2 * side_padding
+    floors = {}
+    for row in rows[header:]:
+        for column, cell in columns_of(row):
+            if span(cell) > 1 or '<w:textDirection' in cell_properties(cell):
+                continue
+            for paragraph in PARAGRAPH.findall(cell):
+                said = re.sub(r'&\w+;', '_', text_of(paragraph))
+                if '{{' in said:
+                    continue
+                size = paragraph_size(paragraph)
+                left = re.search(r'<w:ind\b[^>]*w:left="(\d+)"', element(paragraph, 'pPr') or '')
+                need = max((regular_width(word, size) for word in re.split(r'\s+|(?<=-)', said) if word), default=0)
+                if need:
+                    floors[column] = max(floors.get(column, 0), math.ceil(need) + across + 20 + int(left.group(1) if left else 0))
     return floors
 
 
@@ -651,16 +708,17 @@ def at_least(height):
 
 
 def on_the_scale(size, wide):
-    """The house sizes: 10 pt, 8 pt in a table too wide for 10. 9 and 7 pt were neither."""
-    if size == 18:
-        return 16 if wide else 20
-    return 16 if size == 14 else size
+    """The house sizes: 10 pt, 8 pt in a table too wide for 10. 9 and 7 pt were neither, and a
+    table narrow enough for 10 pt prints nothing smaller, whatever size its text came in."""
+    if not wide:
+        return max(size, 20)
+    return 16 if size in (14, 18) else size
 
 
 def snapped(row, wide):
     def change(inner):
         size = size_of(inner)
-        return sized(on_the_scale(size, wide))(inner) if size in (14, 18) else inner
+        return sized(on_the_scale(size, wide))(inner) if size is not None and on_the_scale(size, wide) != size else inner
     return RUN.sub(lambda match: edit_properties(match.group(0), 'rPr', change), set_paragraphs_marks(row, change))
 
 
@@ -668,7 +726,7 @@ def set_paragraphs_marks(row, change):
     return edit_paragraphs(row, lambda paragraph: set_paragraph(paragraph, mark_properties(change)))
 
 
-def house_table(table, kind, header_size=None, snap=True, closing=False):
+def house_table(table, kind, header_size=None, snap=True, closing=False, keep_room=KEEP_ROOM):
     rows = ROW.findall(table)
     if snap:
         wide = len(grid_of(table)) > WIDE_COLUMNS
@@ -680,7 +738,11 @@ def house_table(table, kind, header_size=None, snap=True, closing=False):
     if kind == 'consequences':
         grid = even_locations(grid)
     side_padding = dict(PADDING)['left']
-    grid = fitted(grid, header_floors(rows, header, size, side_padding))
+    floors = header_floors(rows, header, size, side_padding)
+    if snap and not wide:
+        body = body_floors(rows, header, side_padding)
+        floors = {column: max(floors.get(column, 0), body.get(column, 0)) for column in floors.keys() | body.keys()}
+    grid = fitted(grid, floors)
     regridded = grid != grid_of(table)
     if regridded:
         table = re.sub(r'<w:tblGrid>.*?</w:tblGrid>',
@@ -705,9 +767,11 @@ def house_table(table, kind, header_size=None, snap=True, closing=False):
             row = with_cells(row, lambda column, cell: with_widths(cell, column, grid))
         styled.append(row)
     alignments = column_alignments(styled, header)
-    styled = styled[:header] + [aligned_row(row, grid, alignments, merged_onto(row, styled[index + 1] if index + 1 < len(styled) else ''))
+    signed = is_signed_list(styled, header)
+    styled = styled[:header] + [aligned_row(row, grid, alignments, merged_onto(row, styled[index + 1] if index + 1 < len(styled) else ''),
+                                            signed)
                                 for index, row in enumerate(styled) if index >= header]
-    cant_split, keeps = keep_together(styled, header, grid, closing)
+    cant_split, keeps = keep_together(styled, header, grid, closing, keep_room)
     styled = [apply_keep(row, cant, keep) for row, cant, keep in zip(styled, cant_split, keeps)]
     table = edit_properties(table, 'tblPr', house_table_properties(side_padding))
     return rebuilt(table, rows, styled)
@@ -766,10 +830,13 @@ def merged_onto(row, following):
     return {column for column, cell in columns_of(row) if column in continued and not continues_merge(cell)}
 
 
-def aligned_row(row, grid, alignments, merged_on=frozenset()):
+def aligned_row(row, grid, alignments, merged_on=frozenset(), signed=False):
     """A row of single lines reads centred; a row with more lines anywhere, or with a cell merged
-    down over the next row, reads from the top, so a group's name stands beside its first row."""
-    single = not merged_on and all(continues_merge(cell) or cell_lines(cell, column, grid) <= 1 for column, cell in columns_of(row))
+    down over the next row, reads from the top, so a group's name stands beside its first row. The
+    rows of a list signed by hand are as tall as a signature needs, and a row read from the top
+    beside a centred one shows at once: every one is centred."""
+    single = signed or not merged_on and all(continues_merge(cell) or cell_lines(cell, column, grid) <= 1
+                                             for column, cell in columns_of(row))
 
     def change(column, cell):
         cell = edit_cell(cell, lambda inner: put(
@@ -870,6 +937,48 @@ def readable_grid(table):
     return rebuilt(table, rows, styled)
 
 
+# The ISO 7010 colours of the set's safety signs (`pictures/svg`), with the text that reads on
+# each: H.G. 971/2006's table of safety colours shows what its signs print.
+SAFETY_COLOURS = {'red': ('B71F2E', 'FFFFFF'), 'yellow': ('F9A800', '000000'),
+                  'blue': ('005387', 'FFFFFF'), 'green': ('237F52', 'FFFFFF')}
+
+
+def safety_colour(fill):
+    """The safety colour a strongly coloured fill stands for, or None."""
+    if not re.fullmatch(r'[0-9A-Fa-f]{6}', fill or ''):
+        return None
+    red, green, blue = (int(fill[index:index + 2], 16) / 255 for index in (0, 2, 4))
+    high, low = max(red, green, blue), min(red, green, blue)
+    if high < 0.3 or high - low < 0.5 * high:
+        return None
+    if high == red:
+        hue = (60 * (green - blue) / (high - low)) % 360
+    elif high == green:
+        hue = 60 * (blue - red) / (high - low) + 120
+    else:
+        hue = 60 * (red - green) / (high - low) + 240
+    return ('red' if hue < 25 or hue >= 330 else 'yellow' if hue < 75 else 'green' if hue < 165
+            else 'blue' if hue < 270 else None)
+
+
+def safety_colours(table):
+    """A body cell filled with a safety colour prints the signs' value of it, its text bold in
+    the colour that reads on it."""
+    def cell_change(column, cell):
+        shading = re.search(r'<w:shd\b[^>]*/>', cell_properties(cell))
+        fill = shading and re.search(r'w:fill="(\w+)"', shading.group(0))
+        colour = fill and safety_colour(fill.group(1))
+        if not colour:
+            return cell
+        background, text = SAFETY_COLOURS[colour]
+        cell = edit_cell(cell, lambda inner: put(
+            inner, 'shd', f'<w:shd w:val="clear" w:color="auto" w:fill="{background}"/>', TC_PR_ORDER))
+        return edit_paragraphs(cell, lambda paragraph: edit_runs(
+            paragraph, lambda inner: coloured(text)(bold(True)(inner))))
+    rows = ROW.findall(table)
+    return rebuilt(table, rows, [with_cells(row, cell_change) for row in rows])
+
+
 def top_level_tables(xml):
     depth, start = 0, 0
     for match in re.finditer(r'<(/?)w:tbl>', xml):
@@ -958,7 +1067,8 @@ def house_tables(xml, file_name=None):
         table = xml[start:end]
         kind = kind_of(table)
         if kind in ('house', 'consequences'):
-            table = house_table(table, kind, header_size, snap, closes_its_page(xml[end:]))
+            table = safety_colours(house_table(table, kind, header_size, snap, closes_its_page(xml[end:]),
+                                               page_room(xml[end:])))
         elif kind == 'scale':
             table = readable_grid(table)
         xml = xml[:start] + table + xml[end:]

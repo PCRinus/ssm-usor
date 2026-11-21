@@ -250,13 +250,19 @@ describe.each([
       'AnnexDash1',
       'AnnexDash1',
     ]);
-    // The common part's tiers: the dash at 6.35 mm, 12.7 mm, 25.4 mm, its text 6.35 mm further.
+    // The common part's tiers: the dash at 6.35 mm, 12.7 mm, 19.05 mm, its text 6.35 mm further.
     const styles = part(renderAnnex(domain, typed, data), 'word/styles.xml');
     const indent = (id: string) =>
       new RegExp(`w:styleId="${id}">[\\s\\S]*?<w:ind ([^>]*)/>`).exec(styles)![1];
     expect(indent('AnnexDash1')).toBe('w:hanging="360" w:left="720"');
     expect(indent('AnnexDash2')).toBe('w:hanging="360" w:left="1080"');
-    expect(indent('AnnexDash3')).toBe('w:hanging="360" w:left="1800"');
+    expect(indent('AnnexDash3')).toBe('w:hanging="360" w:left="1440"');
+    const item = (id: string) => /w:hanging="(\d+)" w:left="(\d+)"/.exec(indent(id)!)!;
+    expect(
+      ['AnnexItem1', 'AnnexItem2', 'AnnexItem3'].map(
+        (id) => Number(item(id)[2]) - Number(item(id)[1])
+      )
+    ).toEqual([360, 720, 1080]);
   });
 
   it('keeps a line that ends with ":" and the last article with what follows them', () => {

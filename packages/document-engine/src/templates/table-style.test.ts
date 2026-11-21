@@ -137,6 +137,53 @@ describe('the table house style of the occupational safety set', () => {
     expect(keepTablesTogether(body) === body).toBe(true);
   });
 
+  it('prints nothing smaller than 10 pt in a table of up to six columns, but in the sheets', () => {
+    const sheets = ['fisa_instruire_ssm.docx', 'fisa_test.docx'];
+    const small = houseTables
+      .filter(
+        ([name, , table]) =>
+          !sheets.includes(name) && (table.match(/<w:gridCol\b/g) ?? []).length <= 6
+      )
+      .flatMap(([name, first, table]) =>
+        [...table.matchAll(/<w:sz w:val="(\d+)"\/>/g)]
+          .filter((size) => Number(size[1]) < 20)
+          .map(() => `${name}: ${first}`)
+      );
+    expect([...new Set(small)]).toEqual([]);
+  });
+
+  it('centres every row of a list signed by hand', () => {
+    const signed = houseTables.filter(([, , table]) =>
+      rowsOf(table)
+        .filter(isHeader)
+        .some((row) => cellsOf(row).some((cell) => /^Semnătur/i.test(documentTextOf(cell).trim())))
+    );
+    expect(signed.map(([name]) => name)).toEqual(
+      expect.arrayContaining(['1.1_decision_training.docx', '9_risk_assessment.docx'])
+    );
+    for (const [, , table] of signed) {
+      for (const row of rowsOf(table).filter((each) => !isHeader(each))) {
+        expect(new Set(row.match(/<w:vAlign w:val="\w+"\/>/g))).toEqual(
+          new Set(['<w:vAlign w:val="center"/>'])
+        );
+      }
+    }
+  });
+
+  it("keeps each of 6's risk groups with its first row", () => {
+    const groups = houseTables
+      .filter(
+        ([name, first]) =>
+          name === '6_protective_equipment_list.docx' && first.startsWith('Riscuri')
+      )
+      .flatMap(([, , table]) => rowsOf(table).filter((row) => cellsOf(row).length === 1));
+    expect(groups.length).toBe(11);
+    for (const row of groups) {
+      expect(row).toContain('<w:cantSplit/>');
+      expect(row).toContain('<w:keepNext/>');
+    }
+  });
+
   it('marks a consequence in 9 with an X and nothing elsewhere, the places in equal columns', () => {
     const [, , matrix] = houseTables.find(([, first]) => first.startsWith('Nr.crt.CONSECINȚE'))!;
     const marks = rowsOf(matrix)
@@ -212,4 +259,49 @@ describe('the table house style of the occupational safety set', () => {
       expect(bodyOf(name)).not.toContain(houseTable);
     }
   );
+});
+
+describe('the tables H.G. 971/2006 gives 2.2', () => {
+  const tableStarting = (text: string) =>
+    tablesOf('2.2_general_training_material.docx').find((table) =>
+      documentTextOf(table).includes(text)
+    )!;
+
+  // The signs of the catalogue print these ISO 7010 colours (`tools/import/pictures/svg`).
+  it('fills the safety colours as the signs print them, the name readable on each', () => {
+    const rows = rowsOf(tableStarting('GALBEN SAU'));
+    const first = rows.slice(1).map((row) => cellsOf(row)[0]!);
+    const fills = first.map((cell) => /w:fill="(\w+)"/.exec(cell)![1]);
+    expect(fills).toEqual(['B71F2E', 'B71F2E', 'B71F2E', 'F9A800', '005387', '237F52', '237F52']);
+    const named = first.filter((cell) => documentTextOf(cell).trim());
+    expect(
+      named.map((cell) => [
+        documentTextOf(cell),
+        /<w:color w:val="(\w+)"\/>/.exec(runsOf(cell)[0]!)![1],
+      ])
+    ).toEqual([
+      ['ROȘU', 'FFFFFF'],
+      ['GALBEN SAU GALBEN-ORANJ', '000000'],
+      ['ALBASTRU', 'FFFFFF'],
+      ['VERDE', 'FFFFFF'],
+    ]);
+    for (const cell of named) for (const run of runsOf(cell)) expect(run).toContain('<w:b/>');
+  });
+
+  it('heads the code words with a header row repeated on every page', () => {
+    const rows = rowsOf(tableStarting('OPREȘTE'));
+    expect(isHeader(rows[0]!)).toBe(true);
+    expect(cellsOf(rows[0]!).map(documentTextOf)).toEqual(['Cuvânt-cod', 'Semnificație']);
+    expect(rows.slice(1).map((row) => documentTextOf(cellsOf(row)[0]!))).toEqual([
+      'START',
+      'STOP',
+      'OPREȘTE',
+      'RIDICĂ',
+      'COBOARĂ',
+      'ÎNAINTE, ÎNAPOI, DREAPTA, STÂNGA',
+      'PERICOL',
+      'REPEDE',
+    ]);
+    expect(documentTextOf(cellsOf(rows[1]!)[1]!)).toBe('–pentru a indica începerea comenzii;');
+  });
 });

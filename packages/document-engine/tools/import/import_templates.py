@@ -40,6 +40,8 @@ from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
+from citation_notes import citation_notes
+from contents import column_style, column_style_id, label_columns
 from decision_pages import decision_pages
 from signatures import signing_space
 from landscape_binding import landscape_bound_on_top
@@ -1994,21 +1996,43 @@ def table_of_contents(xml, styles, spec, word_2013=False):
             if level:
                 xml = xml[:start] + with_style(xml[start:end], f'Heading{level}') + xml[end:]
     xml, styles = paragraph_styles(xml, styles)
+    columns = label_columns(contents_labels(xml, contents_end)) if word_2013 else {}
     if spec.get('pageAfter'):
-        xml = contents_page(xml, contents_end)
+        xml = contents_page(xml, contents_end, columns.get(1))
 
     heading = house_heading_style if word_2013 else heading_style
-    for style_id, definition in [('Heading1', heading(1)), ('Heading2', heading(2)),
-                                 ('TOC1', contents_entry_style(1, word_2013)), ('TOC2', contents_entry_style(2, word_2013))]:
+    definitions = [('Heading1', heading(1)), ('Heading2', heading(2)),
+                   ('TOC1', contents_entry_style(1, word_2013)), ('TOC2', contents_entry_style(2, word_2013))]
+    definitions += [(column_style_id(level), column_style(level, column, TOC_NUMBER_ROOM)) for level, column in columns.items()]
+    for style_id, definition in definitions:
         existing = style_definition(styles, style_id)
         styles = styles.replace(existing.group(0), definition) if existing \
             else styles.replace('</w:styles>', f'{definition}</w:styles>')
     return xml, styles
 
 
-def contents_page(xml, contents_end):
+def contents_labels(xml, contents_end):
+    labelled = []
+    for kind, start, end in body_blocks(xml):
+        if kind != 'p' or start < contents_end:
+            continue
+        paragraph = xml[start:end]
+        level = re.search(r'<w:pStyle w:val="Heading([12])"/>', paragraph)
+        if level:
+            labelled.append((int(level.group(1)), spoken_text(paragraph)))
+        elif ANNEX_LINE.match(spoken_text(paragraph)):
+            labelled.append((1, spoken_text(paragraph)))
+    return labelled
+
+
+ANNEX_LINE = re.compile(r'^Anexa \{\{number\}\}\.')
+
+
+def contents_page(xml, contents_end, column=None):
     """The contents on a page of their own, the first chapter on the next; the typed annex
-    lines under them hang like the entries above."""
+    lines under them hang like the entries above, and in the occupational safety set their
+    label is bold, as the entries' is."""
+    hang = column or TOC_HANG
     edits = []
     for kind, start, end in body_blocks(xml):
         if kind != 'p' or start < contents_end:
@@ -2019,12 +2043,24 @@ def contents_page(xml, contents_end):
                 paragraph, 'pPr', lambda inner: put(inner, 'pageBreakBefore', '<w:pageBreakBefore/>', P_PR_ORDER))))
             break
         if not LOOP_TAGS_ONLY.fullmatch(paragraph_text(paragraph)):
-            hung = re.sub(r'<w:ind\b[^>]*/>', f'<w:ind w:left="{TOC_HANG}" w:hanging="{TOC_HANG}"/>', paragraph, count=1)
-            edits.append((start, end, re.sub(r'<w:tabs>.*?</w:tabs>', f'<w:tabs><w:tab w:val="left" w:pos="{TOC_HANG}"/></w:tabs>',
-                                             hung, count=1, flags=re.S)))
+            hung = re.sub(r'<w:ind\b[^>]*/>', f'<w:ind w:left="{hang}" w:hanging="{hang}"/>', paragraph, count=1)
+            hung = re.sub(r'<w:tabs>.*?</w:tabs>', f'<w:tabs><w:tab w:val="left" w:pos="{hang}"/></w:tabs>',
+                          hung, count=1, flags=re.S)
+            if column:
+                hung = bold_label(hung)
+            edits.append((start, end, hung))
     for start, end, paragraph in reversed(edits):
         xml = xml[:start] + paragraph + xml[end:]
     return xml
+
+
+def bold_label(paragraph):
+    tab = paragraph.find('<w:tab/>')
+    head = paragraph[:tab]
+    for run in re.findall(r'<w:r>(?:(?!</w:r>).)*?<w:t\b.*?</w:r>', head, re.S):
+        head = head.replace(run, edit_properties(run, 'rPr', lambda inner: put(
+            put(inner, 'b', '<w:b/>', R_PR_ORDER), 'bCs', '<w:bCs/>', R_PR_ORDER)), 1)
+    return head + paragraph[tab:]
 
 
 # A paragraph holding only this marker becomes a page break of its own. A break set on a
@@ -2047,8 +2083,9 @@ def sweep(path, word_2013=None):
     of contents over real headings (`TABLES_OF_CONTENTS`). In the occupational safety set,
     Word 2013's layout with every table on the margins (`word_layout`), the table house
     style (`table_style`), one signing space for every signature (`signatures`), the
-    decisions' page numbers and running header (`decision_pages`) and landscape pages bound on
-    their top edge (`landscape_binding`), which `word_2013` asks for
+    decisions' page numbers and running header (`decision_pages`), landscape pages bound on
+    their top edge (`landscape_binding`) and 2.2's "Conform …:" notes set like its other
+    quotations (`citation_notes`), which `word_2013` asks for
     or leaves to the file's place. Safe to run again."""
     if word_2013 is None:
         word_2013 = lays_out_as_word_2013(path)
@@ -2069,6 +2106,7 @@ def sweep(path, word_2013=None):
             document, styles, numbering = typography(
                 labelled.get('word/document.xml', document), styles, labelled.get('word/numbering.xml'),
                 contents is not None, os.path.basename(path))
+            document = citation_notes(document)
             labelled['word/document.xml'], labelled['word/styles.xml'] = document, styles
             if numbering is not None:
                 labelled['word/numbering.xml'] = numbering
