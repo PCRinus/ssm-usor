@@ -40,9 +40,15 @@ function passage(paragraphs: string[], first: string, last: string) {
   return end === -1 ? null : paragraphs.slice(start, end + 1);
 }
 
+// The occupational safety set sets an article's "Art. N." on a line of its own over its list, an
+// empty paragraph that prints only its number; the fire-safety copies run on, so the text compares
+// without it.
+const written = (paragraphs: string[] | null) =>
+  paragraphs && paragraphs.filter((text) => text.trim() !== '');
+
 function differences(copy: Uint8Array, source: Uint8Array, { first, last }: CopiedPassage) {
-  const copied = passage(bodyParagraphs(copy), first, last);
-  const original = passage(bodyParagraphs(source), first, last);
+  const copied = written(passage(bodyParagraphs(copy), first, last));
+  const original = written(passage(bodyParagraphs(source), first, last));
   if (!copied) return [`the copy has no passage from /${first}/ to /${last}/`];
   if (!original) return [`the source has no passage from /${first}/ to /${last}/`];
   const found: string[] = [];

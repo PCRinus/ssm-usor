@@ -59,10 +59,12 @@ describe('typesetting', () => {
       expect(texts.filter((text) => /^[ \u00a0\t]/.test(text))).toEqual([]);
       // Loop tags stand alone in a paragraph. The only empty paragraphs are the ones Word needs
       // after a table: at the end, or between two tables that would otherwise be saved as one;
-      // and a page break that a section prints for some items of a loop only.
+      // a page break that a section prints for some items of a loop only; and an article's
+      // "Art. N." on a line of its own, which prints its number.
       const empty = paragraphsOf(body).filter(
         (paragraph) =>
           documentTextOf(paragraph).trim() === '' &&
+          !/<w:numPr>/.test(paragraph) &&
           !/<w:drawing|<w:object|<w:pict|<mc:AlternateContent|<w:br w:type="page"\/>/.test(
             paragraph
           )
@@ -527,20 +529,100 @@ describe('Word 2013 layout of the occupational safety set', () => {
     expect(typed).toEqual([]);
   });
 
-  it.each(['1.1_decision_training.docx', '12_control_regulation.docx'])(
-    '%s starts the text after "Art. N." 1.27 cm in, as the decisions do',
+  const articleListsOf = (numbering: string) =>
+    new Set(
+      [...numbering.matchAll(/<w:num w:numId="(\d+)"[^>]*>\s*<w:abstractNumId w:val="(\d+)"/g)]
+        .filter(([, , abstract]) =>
+          new RegExp(
+            `w:abstractNumId="${abstract}"[^>]*>\\s*<w:lvl w:ilvl="0"[^>]*>(?:(?!</w:lvl>)[\\s\\S])*?<w:lvlText w:val="Art`
+          ).test(numbering)
+        )
+        .map(([, num]) => num)
+    );
+  const articleFiles = ssmFiles
+    .map(([name]) => name)
+    .filter((name) => articleListsOf(numberingOf(read(name))).size > 0);
+
+  it('finds the articles of every document that has them', () => {
+    expect(articleFiles).toEqual(
+      expect.arrayContaining([
+        '1.1_decision_training.docx',
+        '2.2_general_training_material.docx',
+        '3.2_own_instructions.docx',
+        '6_protective_equipment_list.docx',
+        '11_employer_briefing.docx',
+        '12_control_regulation.docx',
+        '13_signing_regulation_annex.docx',
+      ])
+    );
+  });
+
+  // 1.27 cm, as the decisions; 1.9 cm where three digits ("Art. 328.") are wider than that.
+  it.each(articleFiles)(
+    '%s sets "Art. N." on the margin and its text at a tab, its wrapped lines back at the margin',
     (name) => {
-      const articles = [
-        ...numberingOf(read(name)).matchAll(/<w:lvl w:ilvl="0"[^>]*>([\s\S]*?)<\/w:lvl>/g),
-      ]
+      const numbering = numberingOf(read(name));
+      const tab = ['2.2_general_training_material.docx', '3.2_own_instructions.docx'].includes(name)
+        ? 1080
+        : 720;
+      const levels = [...numbering.matchAll(/<w:lvl w:ilvl="0"[^>]*>([\s\S]*?)<\/w:lvl>/g)]
         .map((match) => match[1]!)
-        .filter(
-          (level) => /<w:lvlText w:val="Art\. %1\."\/>/.test(level) && !level.includes('<w:suff ')
+        .filter((level) => /<w:lvlText w:val="Art\. %1\."\/>/.test(level));
+      expect(levels.length).toBeGreaterThan(0);
+      for (const level of levels) {
+        expect(level).not.toContain('<w:suff ');
+        expect(level).toContain(
+          `<w:tabs><w:tab w:val="num" w:pos="${tab}"/></w:tabs><w:ind w:left="0" w:hanging="0"/>`
         );
-      expect(articles.length).toBeGreaterThan(0);
-      for (const level of articles) expect(level).toContain('<w:tab w:val="num" w:pos="720"/>');
+      }
     }
   );
+
+  // tools/import/typography.py, heading_line_of_its_own: an article of numbered paragraphs, or
+  // whose first paragraph introduces a list, prints its label and note on a line of their own.
+  it.each(articleFiles)('%s lays out every article by one rule', (name) => {
+    const body = bodyOf(name).replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '<w:p>TABLE</w:p>');
+    const paragraphs = paragraphsOf(body).filter(
+      (paragraph) => !/^(\{\{[#/^][^}]*\}\})+$/.test(documentTextOf(paragraph).trim())
+    );
+    const texts = paragraphs.map((paragraph) => documentTextOf(paragraph).trim());
+    const articles = articleListsOf(numberingOf(read(name)));
+    const numId = (paragraph: string) => /<w:numId w:val="(\d+)"/.exec(paragraph)?.[1];
+    const isArticle = (paragraph: string) =>
+      articles.has(numId(paragraph) ?? '') &&
+      (/<w:ilvl w:val="(\d+)"/.exec(paragraph)?.[1] ?? '0') === '0';
+    const afterNote = (text: string) =>
+      text.replace(/^\((?:Preluare din|Conform)\b(?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)\s*/u, '');
+    const wrong: string[] = [];
+    paragraphs.forEach((paragraph, index) => {
+      if (!isArticle(paragraph)) return;
+      const first = afterNote(texts[index]!);
+      const rest = paragraphs.slice(index + 1);
+      const end = rest.findIndex(
+        (each) => isArticle(each) || /<w:pStyle w:val="Heading[12]"\/>/.test(each)
+      );
+      const alineats = rest
+        .slice(0, end === -1 ? undefined : end)
+        .some(
+          (each) =>
+            !(numId(each) !== undefined && numId(each) !== '0') &&
+            /^\(\d+\)/.test(afterNote(documentTextOf(each).trim()))
+        );
+      const next = paragraphs[index + 1] ?? '';
+      const nextIsItem = numId(next) !== undefined && numId(next) !== '0' && !isArticle(next);
+      const alone =
+        (first !== '' && alineats) ||
+        /^\(\d+\)/.test(first) ||
+        /:\s+\(1\)\s/.test(first) ||
+        (first.endsWith(':') &&
+          (nextIsItem ||
+            /^(\(\d+\)|[a-z]\)|[A-Z]\.|\d{1,2}\.)\s/.test(afterNote(texts[index + 1] ?? ''))));
+      if (alone) wrong.push(`runs on: ${texts[index]!.slice(0, 80)}`);
+      if (first === '' && !/<w:keepNext\/>/.test(paragraph))
+        wrong.push(`does not keep with its text: ${texts[index]!.slice(0, 80)}`);
+    });
+    expect(wrong).toEqual([]);
+  });
 
   it('opens chapter I of 3.2 on the page after its contents', () => {
     const body = bodyOf('3.2_own_instructions.docx');

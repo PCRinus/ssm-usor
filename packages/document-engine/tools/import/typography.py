@@ -2,7 +2,9 @@
 
 Only an article's labels are bold ("Art. N.", "(2)", "a)"), never its body: the originals set
 their articles in a copy of a bold 16 pt heading style, so every paragraph that never switched
-bold off printed bold. A "(Preluare din …)" note is italic. Headings follow one scale, a chapter
+bold off printed bold. A "(Preluare din …)" note is italic. "Art. N." stands on the margin with
+a tab to its text, and over numbered paragraphs or a list it and its note are a line of their
+own (`heading_line_of_its_own`). Headings follow one scale, a chapter
 12 pt and a subchapter 11 pt, both centred, and only real headings reach the outline. A
 sub-list hangs one tier deeper than the item that introduces it, a list's number or letter is
 bold and its bullet an en dash; a list sits 2 pt under its lead-in, its items 2 pt apart, and
@@ -35,11 +37,15 @@ HANG = 360
 # An item whose label stands this close to its parent's text, or further in, is nested already.
 NESTED = 120
 ARTICLE_TAB = 720
+WIDE_ARTICLE_TAB = 1080
 CELL_HANG = 170  # 3 mm, a typed dash's hang from a table cell's edge
 DASH = '–'
 
 NOTE = re.compile(r'\((?:Preluare din|Conform\b|Conf\.)')
 ALINEAT = re.compile(r'^\(\d+\)')
+# A title that runs on into the first alineat: "Acțiuni în caz de incendiu: (1) Odată …".
+TITLED = re.compile(r':\s+(?=\(1\)\s)')
+LABELLED = re.compile(r'^(\(\d+\)|[a-z]\)|[A-Z]\.|\d{1,2}\.)\s')
 LABEL = re.compile(r'^(\(\d+\)|[a-z]\)|\d{1,2}\.(?!\d))')
 TYPED_ITEM = re.compile(r'^([a-z]\)|\d{1,2}[.)](?=\s)|[-–•»▪](?=\s))')
 LABEL_FORMATS = {'decimal': 'number', 'lowerLetter': 'letter', 'upperLetter': 'letter',
@@ -343,11 +349,13 @@ def run_bold(run, styled_bold):
 
 
 def balanced_end(text, start):
+    """The end of the bracket that opens at `start`. A letter's label ("lit. c) și d))") closes
+    nothing it opened."""
     depth = 0
     for index in range(start, len(text)):
         if text[index] == '(':
             depth += 1
-        elif text[index] == ')':
+        elif text[index] == ')' and not re.search(r'(?:^|[\s,])[a-z]$', text[start:index]):
             depth -= 1
             if depth == 0:
                 return index + 1
@@ -553,15 +561,128 @@ def dash_bullets(numbering):
     return re.sub(r'<w:lvl w:ilvl="\d"[^>]*>.*?</w:lvl>', level, numbering, flags=re.S)
 
 
-def article_tabs(numbering):
-    """The text after "Art. N." 1.27 cm from the margin, as in the decisions. The long
-    documents, with articles past 99, keep their wider stop."""
+def article_levels(numbering, wide):
+    """"Art. N." on the text margin and the text after it at a tab, 1.27 cm in as in the
+    decisions, or 1.9 cm in a document with articles past 99, whose three digits are wider; the
+    wrapped lines go back to the margin."""
+    tab = WIDE_ARTICLE_TAB if wide else ARTICLE_TAB
+
     def level(match):
         xml = match.group(0)
-        if not re.search(r'<w:lvlText w:val="Art\.', xml) or '<w:suff w:val="space"/>' in xml:
+        if not re.search(r'<w:lvlText w:val="Art\.', xml):
             return xml
-        return re.sub(r'(<w:tab w:val="num" w:pos=")\d+(")', rf'\g<1>{ARTICLE_TAB}\2', xml)
+        xml = xml.replace('<w:suff w:val="space"/>', '')
+        properties = f'<w:pPr><w:tabs><w:tab w:val="num" w:pos="{tab}"/></w:tabs><w:ind w:left="0" w:hanging="0"/></w:pPr>'
+        if '<w:pPr>' in xml:
+            return re.sub(r'<w:pPr>.*?</w:pPr>', properties, xml, count=1, flags=re.S)
+        return re.sub(r'(?=<w:rPr>|</w:lvl>)', properties, xml, count=1)
     return re.sub(r'<w:lvl w:ilvl="0"[^>]*>.*?</w:lvl>', level, numbering, flags=re.S)
+
+
+def is_article(paragraph, styles, numbering):
+    found = numbering_of(own_properties(paragraph), styles)
+    level = numbering.level(numbering.key(*found)) if found else None
+    return bool(level and re.search(r'<w:lvlText w:val="Art\.', level))
+
+
+def heading_line_of_its_own(first, following, following_is_item, alineat_follows):
+    """Whether an article's "Art. N." and its "(Preluare din …)" note stand as a line of their
+    own, with the article's text from the next line at the margin. Mircea's rule (2026-11-21):
+    an article of numbered paragraphs, so "(1)", "(2)" line up, or whose first paragraph
+    introduces a list; any other article runs on after its label and note. `first` is the
+    first paragraph's text after the note, `following` the next paragraph's after its own,
+    `alineat_follows` whether a later paragraph of the article opens with "(n)"."""
+    if not first or ALINEAT.match(first) or TITLED.search(first) or alineat_follows:
+        return True
+    return first.endswith(':') and (following_is_item or LABELLED.match(following or '') is not None)
+
+
+def note_end(said):
+    note = note_span(said)
+    return note[1] if note else 0
+
+
+def after_note(said):
+    return said[note_end(said):].strip()
+
+
+def split_paragraph(paragraph, end, start):
+    """`paragraph` as two, its text up to `end` and from `start` in a paragraph of its own
+    without the list number; what lies between, the spaces after a note, goes."""
+    paragraph = cut_runs(paragraph, [end, start])
+    for run_start, run_end, at, said, _ in reversed(text_runs(paragraph)):
+        if said and at >= end and at + len(unescaped(said)) <= start:
+            paragraph = paragraph[:run_start] + paragraph[run_end:]
+    cut = next(run_start for run_start, _, at, said, _ in text_runs(paragraph) if said and at >= end)
+    opening = re.match(r'<w:p\b[^>]*>', paragraph).group(0)
+    properties = own_properties(paragraph)
+    head = paragraph[:cut] + '</w:p>'
+    # Word repairs a file in which two paragraphs share an id.
+    second = re.sub(r'\s+w14:(paraId|textId)="[^"]*"', '', opening)
+    second += edit_properties(f'<w:p>{properties}</w:p>', 'pPr', lambda inner: without(inner, 'numPr'))[len('<w:p>'):-len('</w:p>')]
+    return head, second + paragraph[cut:]
+
+
+def article_heading(paragraph):
+    """An article's heading line keeps with its text, a paragraph's distance above it."""
+    paragraph = edit_properties(paragraph, 'pPr', lambda inner: put(inner, 'keepNext', '<w:keepNext/>', P_PR_ORDER))
+    return set_spacing(paragraph, after=ROOM)
+
+
+def articles(document, styles_xml, numbering_xml):
+    styles, numbering = Styles(styles_xml), Numbering(numbering_xml)
+    return sum(1 for kind, start, end in body_blocks(document)
+               if kind == 'p' and is_article(document[start:end], styles, numbering))
+
+
+def alineat_follows(document, blocks, index, styles, numbering):
+    for kind, start, end in blocks[index + 1:]:
+        xml = document[start:end]
+        if kind != 'p' or is_loop_tags(xml) or list_item(xml, styles, numbering) is not None:
+            continue
+        if is_article(xml, styles, numbering) or re.search(r'<w:pStyle w:val="Heading[12]"/>', own_properties(xml)):
+            return False
+        if ALINEAT.match(after_note(unescaped(text_of(xml)))):
+            return True
+    return False
+
+
+def article_paragraphs(document, styles_xml, numbering_xml):
+    """Every article laid out by `heading_line_of_its_own`: an article that opens with its
+    "(1)", holds alineats further on or opens with the line introducing its list is cut after
+    its note, or after its label where it has none; a title that runs on into "(1)" ("Acțiuni
+    în caz de incendiu: (1) Odată …") keeps its own paragraph above it."""
+    styles, numbering = Styles(styles_xml), Numbering(numbering_xml)
+    blocks = list(body_blocks(document))
+    edits = []
+    for index, (kind, start, end) in enumerate(blocks):
+        xml = document[start:end]
+        if kind != 'p' or not is_article(xml, styles, numbering):
+            continue
+        following = next(((next_kind, document[next_start:next_end]) for next_kind, next_start, next_end in blocks[index + 1:]
+                          if next_kind != 'p' or not is_loop_tags(document[next_start:next_end])), (None, ''))
+        is_item = following[0] == 'p' and list_item(following[1], styles, numbering) is not None
+        said = unescaped(text_of(xml))
+        if not heading_line_of_its_own(after_note(said), after_note(unescaped(text_of(following[1]))) if following[0] == 'p' else None,
+                                       is_item, alineat_follows(document, blocks, index, styles, numbering)):
+            continue
+        end_of_head = note_end(said)
+        first = len(said) - len(said[end_of_head:].lstrip())
+        if first < len(said):
+            head, body = split_paragraph(xml, end_of_head, first)
+            body = set_spacing(body, before=0)
+            titled = TITLED.search(said[first:])
+            if titled:
+                title, alineat = split_paragraph(body, titled.start() + 1, titled.end())
+                body = set_spacing(title, after=ROOM) + set_spacing(alineat, before=0)
+            changed = article_heading(head) + body
+        else:
+            changed = article_heading(xml)
+        if changed != xml:
+            edits.append((start, end, changed))
+    for start, end, changed in reversed(edits):
+        document = document[:start] + changed + document[end:]
+    return document
 
 
 def bold_level(numbering, key):
@@ -786,10 +907,12 @@ def typography(document, styles, numbering, contents, name=None):
         document = heading_scale(document)
     else:
         document, styles = out_of_the_outline(document, styles)
+    if numbering is not None:
+        document = article_paragraphs(document, styles, numbering)
     document, styles = plain_articles(document, styles)
     if name in ARTICLE_DOCUMENTS:
         document = article_labels(document, styles)
     if numbering is not None:
-        numbering = dash_bullets(numbering if contents else article_tabs(numbering))
+        numbering = article_levels(dash_bullets(numbering), wide=articles(document, styles, numbering) > 99)
         document, numbering = lists(document, styles, numbering)
     return dash_lines_in_cells(document), styles, numbering

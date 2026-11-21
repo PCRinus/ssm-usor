@@ -135,7 +135,10 @@ function copiedPassageRange(source: Uint8Array, first: string, last: string) {
   if (start === -1) return null;
   const end = body.findIndex((each, at) => at >= start && new RegExp(last, 'u').test(each.text));
   if (end === -1) return null;
-  return { start: body[start]!.index, end: body[end]!.index, texts: body.slice(start, end + 1) };
+  // An occupational safety article's "Art. N." on a line of its own is an empty paragraph the
+  // fire-safety copy does not have.
+  const texts = body.slice(start, end + 1).filter(({ text }) => text.trim() !== '');
+  return { start: body[start]!.index, end: body[end]!.index, texts };
 }
 
 /** Where each value of a JSON text is, by its path: ".templates.3.change". */
@@ -337,7 +340,14 @@ export function replaceLegalQuote(
     const copy = outputs.get(other) ?? read(other);
     const there = copiedPassageRange(copy, passage.first, passage.last);
     if (!there) throw new Error(`${other} has no passage /${passage.first}/ … /${passage.last}/.`);
-    const updated = applyQuotePlan(copy, there.start + (quoteStart - here.start), replaced.plan);
+    const line = here.texts.findIndex(({ index }) => index === quoteStart);
+    const at = there.texts[line]?.index;
+    if (line === -1 || at === undefined) {
+      throw new Error(
+        `${other}: the copy of /${passage.first}/ … /${passage.last}/ has no line for the quote; change both by hand.`
+      );
+    }
+    const updated = applyQuotePlan(copy, at, replaced.plan);
     const after = [
       copiedPassageRange(replaced.source, passage.first, passage.last),
       copiedPassageRange(updated, passage.first, passage.last),

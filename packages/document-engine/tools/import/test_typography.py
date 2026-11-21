@@ -3,7 +3,7 @@
 import re
 import unittest
 
-from typography import article_labels, article_tabs, dash_bullets, dash_lines_in_cells, lists, plain_articles, typography
+from typography import article_labels, article_levels, article_paragraphs, dash_bullets, heading_line_of_its_own, dash_lines_in_cells, lists, plain_articles, typography
 
 STYLES = ('<w:styles><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/>'
           '<w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr><w:rPr><w:sz w:val="20"/></w:rPr></w:style>'
@@ -125,10 +125,63 @@ class Lists(unittest.TestCase):
         self.assertIn('<w:lvlText w:val="–"/>', numbering)
         self.assertIn('<w:lvlText w:val="%1)"/>', numbering)
 
-    def test_sets_the_article_tab_at_the_decisions_stop(self):
-        numbering = NUMBERING.replace('<w:pPr><w:ind w:left="0" w:hanging="0"/>',
-                                      '<w:pPr><w:tabs><w:tab w:val="num" w:pos="850"/></w:tabs><w:ind w:left="0" w:hanging="0"/>')
-        self.assertIn('w:pos="720"', article_tabs(numbering))
+    def test_sets_every_article_label_on_the_margin_with_a_tab_to_its_text(self):
+        hung = NUMBERING.replace('<w:lvlText w:val="Art. %1."/><w:pPr><w:ind w:left="0" w:hanging="0"/>',
+                                 '<w:suff w:val="space"/><w:lvlText w:val="Art. %1."/><w:pPr><w:ind w:left="810" w:hanging="360"/>')
+        article = re.search(r'<w:abstractNum w:abstractNumId="1">.*?</w:abstractNum>', article_levels(hung, wide=False)).group(0)
+        self.assertNotIn('<w:suff', article)
+        self.assertIn('<w:tab w:val="num" w:pos="720"/></w:tabs><w:ind w:left="0" w:hanging="0"/>', article)
+        self.assertIn('w:pos="1080"', article_levels(hung, wide=True))
+        self.assertIn('<w:ind w:left="720" w:hanging="360"/>', article_levels(hung, wide=False))
+
+
+class ArticleLines(unittest.TestCase):
+    def test_puts_the_label_and_note_on_a_line_of_their_own_only_above_numbered_paragraphs_or_a_list(self):
+        self.assertTrue(heading_line_of_its_own('(1) Angajatorul asigură', '(2) Lucrătorii', False, True))
+        self.assertTrue(heading_line_of_its_own('', '(1) Angajatorul asigură', False, True))
+        self.assertTrue(heading_line_of_its_own('Se definesc termenii:', 'lucrător;', True, False))
+        self.assertTrue(heading_line_of_its_own('Trusele sanitare cuprind:', '(1) Activități industriale', False, True))
+        self.assertTrue(heading_line_of_its_own('Acțiuni în caz de incendiu: (1) Odată anunțați', '(2) Stingerea', False, True))
+        self.assertTrue(heading_line_of_its_own('Neluarea măsurilor legale', '(1) Neluarea', False, True))
+        self.assertFalse(heading_line_of_its_own('Instruirea are ca scop însușirea.', 'Altceva', False, False))
+        self.assertFalse(heading_line_of_its_own('Conținutul trusei:', None, False, False))
+
+    def test_cuts_an_article_after_its_note_and_keeps_the_line_with_its_text(self):
+        document = body(paragraph('(Preluare din Legea 319/2006 – Art. 12 alin. (1) lit. c)) (1) Angajatorul asigură', num=1, after=60),
+                        paragraph('(2) Lucrătorii respectă'))
+        laid = article_paragraphs(document, STYLES, NUMBERING)
+        first, second, third = re.findall(r'<w:p>.*?</w:p>', laid)
+        self.assertEqual(re.sub(r'<[^>]+>', '', first), '(Preluare din Legea 319/2006 – Art. 12 alin. (1) lit. c))')
+        self.assertIn('<w:keepNext/>', first)
+        self.assertIn('w:after="120"', first)
+        self.assertEqual(re.sub(r'<[^>]+>', '', second), '(1) Angajatorul asigură')
+        self.assertNotIn('<w:numPr>', second)
+        self.assertEqual(article_paragraphs(laid, STYLES, NUMBERING), laid)
+
+    def test_leaves_a_one_paragraph_article_on_its_label_line(self):
+        document = body(paragraph('(Preluare din H.G. 1425/2006 – Art. 75) Instruirea are ca scop însușirea.', num=1),
+                        paragraph('Lucrătorii respectă instrucțiunile.'), paragraph('(Preluare din H.G. 1425/2006 – Art. 76) (1) Instruirea', num=1))
+        laid = article_paragraphs(document, STYLES, NUMBERING)
+        self.assertEqual(laid.split('Lucrătorii')[0], document.split('Lucrătorii')[0])
+
+    def test_cuts_an_article_without_a_note_after_its_label(self):
+        document = body(paragraph('Periodicitatea controalelor este stabilită astfel:', num=1),
+                        paragraph('lunar;', num=2))
+        first, second, _ = re.findall(r'<w:p>.*?</w:p>', article_paragraphs(document, STYLES, NUMBERING))
+        self.assertEqual(re.sub(r'<[^>]+>', '', first), '')
+        self.assertIn('<w:numId w:val="1"/>', first)
+        self.assertEqual(re.sub(r'<[^>]+>', '', second), 'Periodicitatea controalelor este stabilită astfel:')
+
+    def test_gives_a_title_its_own_paragraph_above_an_articles_alineats(self):
+        document = body(paragraph('Neluarea măsurilor legale', num=1), paragraph('(1) Neluarea vreuneia'),
+                        paragraph('(2) Pedeapsa'))
+        texts = [re.sub(r'<[^>]+>', '', item) for item in re.findall(r'<w:p>.*?</w:p>', article_paragraphs(document, STYLES, NUMBERING))]
+        self.assertEqual(texts, ['', 'Neluarea măsurilor legale', '(1) Neluarea vreuneia', '(2) Pedeapsa'])
+        document = body(paragraph('Acțiuni în caz de incendiu: (1) Odată anunțați', num=1), paragraph('(2) Stingerea'))
+        laid = article_paragraphs(document, STYLES, NUMBERING)
+        texts = [re.sub(r'<[^>]+>', '', item) for item in re.findall(r'<w:p>.*?</w:p>', laid)]
+        self.assertEqual(texts, ['', 'Acțiuni în caz de incendiu:', '(1) Odată anunțați', '(2) Stingerea'])
+        self.assertEqual(article_paragraphs(laid, STYLES, NUMBERING), laid)
 
 
 class Cells(unittest.TestCase):
