@@ -685,6 +685,133 @@ def article_paragraphs(document, styles_xml, numbering_xml):
     return document
 
 
+# The house order of a nested list's labels, tier by tier: 1., a), –.
+HOUSE_TIERS = (('decimal', '%{}.'), ('lowerLetter', '%{})'), ('bullet', DASH))
+HOUSE_KINDS = ('number', 'letter', 'bullet')
+
+
+def label_kind(item):
+    return 'bullet' if item.kind == 'bullet' else item.kind.rstrip('%.)(').replace('%', '')
+
+
+def list_groups(document, styles, numbering, start=0, end=None):
+    """The body's lists, each a run of numbered items with its sub-lists, as (paragraph start,
+    item, tier) for every item; a typed label leaves its list out."""
+    groups, group, stack = [], [], []
+    for kind, block_start, block_end in body_blocks(document):
+        if block_start < start or (end is not None and block_start >= end):
+            continue
+        xml = document[block_start:block_end] if kind == 'p' else ''
+        if kind == 'p' and is_loop_tags(xml):
+            continue
+        item = list_item(xml, styles, numbering) if kind == 'p' else None
+        if item is None:
+            if kind != 'p' or text_of(xml).strip():
+                groups.append(group)
+                group, stack = [], []
+            continue
+        while stack and stack[-1] >= item.label - NESTED:
+            stack.pop()
+        group.append((block_start, item, len(stack)))
+        stack.append(item.label)
+    groups.append(group)
+    return [group for group in groups if group and not any(item.typed for _, item, _ in group)]
+
+
+def out_of_order(group):
+    """A list whose letters hold numbers: 2.2's evacuation rules, "a)" over "1." over "–"."""
+    parents = {}
+    for _, item, tier in group:
+        parents[tier] = label_kind(item)
+        if tier and parents.get(tier - 1) == 'letter' and parents[tier] == 'number':
+            return True
+    return False
+
+
+def relabelled(document, numbering_xml, groups):
+    """`groups` labelled in the house order, each tier by its own kind, through copies of their
+    numbering, so a list elsewhere that shares it keeps its labels."""
+    numbering = Numbering(numbering_xml)
+    taken = [int(found) for found in re.findall(r'w:(?:abstractNumId|numId)="(\d+)"', numbering_xml)]
+    next_id = max(taken, default=0) + 1
+    paragraphs = {start: document[start:end] for kind, start, end in body_blocks(document) if kind == 'p'}
+    abstracts, nums, renumbered = [], [], {}
+    for group in groups:
+        tiers, kinds = {}, {}
+        for start, item, tier in group:
+            own = re.search(r'<w:numId w:val="(\d+)"/>', own_properties(paragraphs[start]))
+            level = re.search(r'<w:ilvl w:val="(\d)"/>', own_properties(paragraphs[start]))
+            if not own or own.group(1) not in numbering.nums or \
+                    tiers.setdefault(own.group(1), {}).setdefault(level.group(1) if level else '0', tier) != tier:
+                break
+            kinds.setdefault(own.group(1), set()).add(label_kind(item) == HOUSE_KINDS[min(tier, 2)])
+        else:
+            copies = {}
+            for num_id, levels in tiers.items():
+                if all(kinds[num_id]):
+                    continue
+                num = numbering.nums[num_id]
+                abstract = numbering.abstracts[re.search(r'<w:abstractNumId w:val="(\d+)"/>', num).group(1)]
+                for level, tier in levels.items():
+                    fmt, text = HOUSE_TIERS[min(tier, 2)]
+
+                    def relabel(match, fmt=fmt, text=text.format(int(level) + 1)):
+                        xml = re.sub(r'<w:numFmt w:val="\w+"/>', f'<w:numFmt w:val="{fmt}"/>', match.group(0))
+                        return re.sub(r'<w:lvlText w:val="[^"]*"/>', f'<w:lvlText w:val="{text}"/>', xml)
+                    pattern = rf'<w:lvl w:ilvl="{level}"[^>]*>.*?</w:lvl>'
+                    abstract = re.sub(pattern, relabel, abstract, count=1, flags=re.S)
+                    num = re.sub(rf'<w:lvlOverride w:ilvl="{level}">.*?</w:lvlOverride>',
+                                 lambda match: re.sub(pattern, relabel, match.group(0), flags=re.S), num, flags=re.S)
+                abstract = re.sub(r'w:abstractNumId="\d+"', f'w:abstractNumId="{next_id}"', abstract, count=1)
+                # Word joins the lists of two definitions that share an id.
+                abstract = re.sub(r'<w:nsid w:val="[0-9A-Fa-f]+"/>', f'<w:nsid w:val="{0x5A000000 + next_id:08X}"/>', abstract)
+                num = re.sub(r'w:numId="\d+"', f'w:numId="{next_id}"', num, count=1)
+                num = re.sub(r'<w:abstractNumId w:val="\d+"/>', f'<w:abstractNumId w:val="{next_id}"/>', num)
+                abstracts.append(abstract)
+                nums.append(num)
+                copies[num_id] = str(next_id)
+                next_id += 1
+            for start, _, _ in group:
+                renumbered[start] = copies
+    if not renumbered:
+        return document, numbering_xml
+    for kind, start, end in reversed(list(body_blocks(document))):
+        if start in renumbered:
+            paragraph = document[start:end]
+            num_id = re.search(r'<w:numId w:val="(\d+)"/>', own_properties(paragraph)).group(1)
+            if num_id not in renumbered[start]:
+                continue
+            changed = paragraph.replace(f'<w:numId w:val="{num_id}"/>', f'<w:numId w:val="{renumbered[start][num_id]}"/>', 1)
+            document = document[:start] + changed + document[end:]
+    last_abstract = list(re.finditer(r'</w:abstractNum>', numbering_xml))[-1].end()
+    numbering_xml = numbering_xml[:last_abstract] + ''.join(abstracts) + numbering_xml[last_abstract:]
+    last_num = list(re.finditer(r'</w:num>', numbering_xml))[-1].end()
+    numbering_xml = numbering_xml[:last_num] + ''.join(nums) + numbering_xml[last_num:]
+    return document, numbering_xml
+
+
+def typed_hyphens(document):
+    """A hyphen typed as a list's mark at the head of a body paragraph prints as the house's en
+    dash, as a list's bullet does (9's probability classes and risk levels)."""
+    edits = []
+    for kind, start, end in body_blocks(document):
+        xml = document[start:end]
+        if kind != 'p' or not re.match(r'\s*-[\t ]+[^\W\d_]', unescaped(spoken(xml))):
+            continue
+        said = unescaped(text_of(xml))
+        at = len(said) - len(said.lstrip())
+        edits.append((start, end, replace_text_range(xml, at, at + 1, DASH)))
+    for start, end, changed in reversed(edits):
+        document = document[:start] + changed + document[end:]
+    return document
+
+
+def house_order(document, styles_xml, numbering_xml):
+    styles, numbering = Styles(styles_xml), Numbering(numbering_xml)
+    groups = [group for group in list_groups(document, styles, numbering) if out_of_order(group)]
+    return relabelled(document, numbering_xml, groups)
+
+
 def bold_level(numbering, key):
     container_pattern = (rf'<w:num w:numId="{key[1]}"[^>]*>.*?</w:num>' if key[0] == 'num'
                          else rf'<w:abstractNum\b[^>]*w:abstractNumId="{key[1]}"[^>]*>.*?</w:abstractNum>')
@@ -912,7 +1039,9 @@ def typography(document, styles, numbering, contents, name=None):
     document, styles = plain_articles(document, styles)
     if name in ARTICLE_DOCUMENTS:
         document = article_labels(document, styles)
+    document = typed_hyphens(document)
     if numbering is not None:
+        document, numbering = house_order(document, styles, numbering)
         numbering = article_levels(dash_bullets(numbering), wide=articles(document, styles, numbering) > 99)
         document, numbering = lists(document, styles, numbering)
     return dash_lines_in_cells(document), styles, numbering

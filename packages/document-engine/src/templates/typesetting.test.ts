@@ -624,6 +624,48 @@ describe('Word 2013 layout of the occupational safety set', () => {
     expect(wrong).toEqual([]);
   });
 
+  // 1., a), – from the outside in (tools/import/typography.py, house_order): a letter's list
+  // never holds numbers. The dashes of H.G. 1048/2006's annex 2 in 6 and the method's
+  // nomenclature in 9 are reproduced as their sources print them.
+  it.each(ssmFiles)('%s never numbers a list under a letter', (name, bytes) => {
+    const numbering = numberingOf(bytes);
+    const levelOf = (paragraph: string) => {
+      const num = /<w:numId w:val="(\d+)"\/>/.exec(paragraph)?.[1];
+      if (!num || num === '0') return null;
+      const ilvl = /<w:ilvl w:val="(\d)"\/>/.exec(paragraph)?.[1] ?? '0';
+      const abstract = new RegExp(
+        `<w:num w:numId="${num}"[^>]*>\\s*<w:abstractNumId w:val="(\\d+)"`
+      ).exec(numbering)?.[1];
+      const level = new RegExp(
+        `<w:abstractNum\\b[^>]*w:abstractNumId="${abstract}"[^>]*>(?:(?!</w:abstractNum>)[\\s\\S])*?(<w:lvl w:ilvl="${ilvl}"[^>]*>[\\s\\S]*?</w:lvl>)`
+      ).exec(numbering)?.[1];
+      if (!level) return null;
+      const indent = (xml: string) => /<w:ind w:left="(\d+)" w:hanging="(\d+)"\/>/.exec(xml);
+      const own = indent(/<w:pPr>[\s\S]*?<\/w:pPr>/.exec(paragraph)?.[0] ?? '') ?? indent(level);
+      return {
+        format: /<w:numFmt w:val="(\w+)"\/>/.exec(level)?.[1],
+        label: own ? Number(own[1]) - Number(own[2]) : 0,
+      };
+    };
+    const body = new PizZip(bytes).file('word/document.xml')!.asText();
+    const wrong: string[] = [];
+    let parents: { format?: string; label: number }[] = [];
+    for (const paragraph of paragraphsOf(body.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, ''))) {
+      const text = documentTextOf(paragraph).trim();
+      if (/^(\{\{[#/^][^}]*\}\})+$/.test(text)) continue;
+      const level = levelOf(paragraph);
+      if (!level) {
+        if (text) parents = [];
+        continue;
+      }
+      while (parents.length > 0 && parents.at(-1)!.label >= level.label - 120) parents.pop();
+      if (parents.at(-1)?.format === 'lowerLetter' && level.format === 'decimal')
+        wrong.push(text.slice(0, 60));
+      parents.push(level);
+    }
+    expect(wrong).toEqual([]);
+  });
+
   it('opens chapter I of 3.2 on the page after its contents', () => {
     const body = bodyOf('3.2_own_instructions.docx');
     const contentsEnd = body.indexOf('</w:sdt>', body.indexOf('Table of Contents'));

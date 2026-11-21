@@ -3,7 +3,8 @@
 import re
 import unittest
 
-from typography import article_labels, article_levels, article_paragraphs, dash_bullets, heading_line_of_its_own, dash_lines_in_cells, lists, plain_articles, typography
+from typography import (article_labels, article_levels, article_paragraphs, dash_bullets, dash_lines_in_cells,
+                        heading_line_of_its_own, house_order, lists, plain_articles, typed_hyphens, typography)
 
 STYLES = ('<w:styles><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/>'
           '<w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr><w:rPr><w:sz w:val="20"/></w:rPr></w:style>'
@@ -182,6 +183,33 @@ class ArticleLines(unittest.TestCase):
         texts = [re.sub(r'<[^>]+>', '', item) for item in re.findall(r'<w:p>.*?</w:p>', laid)]
         self.assertEqual(texts, ['', 'Acțiuni în caz de incendiu:', '(1) Odată anunțați', '(2) Stingerea'])
         self.assertEqual(article_paragraphs(laid, STYLES, NUMBERING), laid)
+
+
+class HouseOrder(unittest.TestCase):
+    def test_relabels_a_letters_list_that_holds_numbers_as_numbers_over_letters(self):
+        def indented(text, num, left):
+            return paragraph(text, num=num).replace('</w:pPr>', f'<w:ind w:left="{left}" w:hanging="360"/></w:pPr>')
+        numbering = NUMBERING.replace('</w:numbering>', f'<w:abstractNum w:abstractNumId="4">{level(0, "decimal", "%1.", 1080)}'
+                                      '</w:abstractNum><w:num w:numId="4"><w:abstractNumId w:val="4"/></w:num></w:numbering>')
+        document = body(paragraph('Reguli:'), indented('Evacuarea:', 2, 720), indented('Menținerea:', 4, 1080),
+                        indented('căilor;', 3, 1440), indented('Limitarea.', 2, 720), paragraph('După.'),
+                        indented('Altă listă', 2, 720))
+        laid, relabelled = house_order(document, STYLES, numbering)
+        items = re.findall(r'<w:p>.*?</w:p>', laid)
+        first, second = (re.search(r'<w:numId w:val="(\d+)"/>', items[index]).group(1) for index in (1, 2))
+        def format_of(num):
+            abstract = re.search(rf'<w:num w:numId="{num}"><w:abstractNumId w:val="(\d+)"/>', relabelled).group(1)
+            return re.search(rf'<w:abstractNum w:abstractNumId="{abstract}">.*?<w:lvlText w:val="([^"]*)"/>', relabelled).group(1)
+        self.assertEqual((format_of(first), format_of(second)), ('%1.', '%1)'))
+        self.assertIn('<w:numId w:val="3"/>', items[3])
+        self.assertIn('<w:numId w:val="2"/>', items[6])
+        self.assertEqual(house_order(laid, STYLES, relabelled), (laid, relabelled))
+
+    def test_prints_a_typed_hyphen_as_an_en_dash(self):
+        document = body(paragraph('- nivelul 2: elementul (4,1);'), paragraph('Valoarea -5 rămâne.'))
+        laid = typed_hyphens(document)
+        texts = [re.sub(r'<[^>]+>', '', item) for item in re.findall(r'<w:p>.*?</w:p>', laid)]
+        self.assertEqual(texts, ['– nivelul 2: elementul (4,1);', 'Valoarea -5 rămâne.'])
 
 
 class Cells(unittest.TestCase):
