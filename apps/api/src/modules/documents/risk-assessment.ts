@@ -280,6 +280,14 @@ type FactorLine = { code: string; description: string };
 
 type SheetFactor = FactorLine & { level: number };
 
+type SheetRow = SheetFactor & {
+  component: string;
+  group: string;
+  consequence: string;
+  gravityClass: number;
+  probabilityClass: number;
+};
+
 export type RiskAssessmentEvaluation = {
   /** The subchapter's numeral in chapter V: "I", "II". */
   roman: string;
@@ -318,13 +326,12 @@ export type RiskAssessmentEvaluation = {
     groups: { letter: string; name: string; factors: FactorLine[] }[];
   }[];
   /** A row per factor; the component and the group are printed on their first row only. */
-  sheet: (SheetFactor & {
-    component: string;
-    group: string;
-    consequence: string;
-    gravityClass: number;
-    probabilityClass: number;
-  })[];
+  sheet: SheetRow[];
+  /**
+   * The sheet by component, each named on a row across the table above its factors; template
+   * versions before it read `sheet`.
+   */
+  sheetComponents: { label: string; rows: SheetRow[] }[];
   /** Every factor, the highest level first; equal levels in the sheet's order. */
   ranked: SheetFactor[];
   globalLevel: string;
@@ -515,6 +522,18 @@ function evaluationContext(
   const irreversibleCount = evaluation.factors.filter(
     (factor) => factor.gravityClass >= irreversibleGravity
   ).length;
+  const sheet = facts.map((entry, position): SheetRow => {
+    const { component, groupIndex, factorIndex } = numbered[position]!;
+    const startsComponent = groupIndex === 0 && factorIndex === 0;
+    return {
+      ...sheetFactor(entry),
+      component: startsComponent ? componentWords[component].label : '',
+      group: factorIndex === 0 ? numbered[position]!.group.name : '',
+      consequence: gravityConsequence(entry.factor.gravityClass),
+      gravityClass: entry.factor.gravityClass,
+      probabilityClass: entry.factor.probabilityClass,
+    };
+  });
 
   return {
     roman: roman(index + 1),
@@ -551,18 +570,12 @@ function evaluationContext(
         })),
       };
     }),
-    sheet: facts.map((entry, position) => {
-      const { component, groupIndex, factorIndex } = numbered[position]!;
-      const startsComponent = groupIndex === 0 && factorIndex === 0;
-      return {
-        ...sheetFactor(entry),
-        component: startsComponent ? componentWords[component].label : '',
-        group: factorIndex === 0 ? numbered[position]!.group.name : '',
-        consequence: gravityConsequence(entry.factor.gravityClass),
-        gravityClass: entry.factor.gravityClass,
-        probabilityClass: entry.factor.probabilityClass,
-      };
-    }),
+    sheet,
+    sheetComponents: sheet.reduce<{ label: string; rows: SheetRow[] }[]>((components, row) => {
+      if (row.component) components.push({ label: row.component, rows: [] });
+      components.at(-1)?.rows.push(row);
+      return components;
+    }, []),
     ranked: [...facts].sort(byLevel).map(sheetFactor),
     globalLevel: printedLevel(level),
     verdict: isOverAcceptableLimit(level) ? verdicts.over : verdicts.within,

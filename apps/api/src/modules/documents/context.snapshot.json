@@ -729,6 +729,138 @@
             "probabilityClass": 4
           }
         ],
+        "sheetComponents": [
+          {
+            "label": "MIJLOACE DE PRODUCȚIE",
+            "rows": [
+              {
+                "code": "F1",
+                "component": "MIJLOACE DE PRODUCȚIE",
+                "consequence": "Deces",
+                "description": "Electrocutare prin atingere directă la prize, prelungitoare sau echipamente cu izolația deteriorată.",
+                "gravityClass": 7,
+                "group": "Factori de risc electric",
+                "level": 3,
+                "probabilityClass": 1
+              },
+              {
+                "code": "F2",
+                "component": "",
+                "consequence": "Invaliditate gradul II",
+                "description": "Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.",
+                "gravityClass": 5,
+                "group": "",
+                "level": 4,
+                "probabilityClass": 2
+              },
+              {
+                "code": "F3",
+                "component": "",
+                "consequence": "ITM 3–45 zile",
+                "description": "Lovire de colțurile mobilierului sau de sertarele lăsate deschise.",
+                "gravityClass": 2,
+                "group": "Factori de risc mecanic",
+                "level": 2,
+                "probabilityClass": 3
+              },
+              {
+                "code": "F4",
+                "component": "",
+                "consequence": "ITM 3–45 zile",
+                "description": "Căderea obiectelor așezate pe rafturile înalte.",
+                "gravityClass": 2,
+                "group": "",
+                "level": 2,
+                "probabilityClass": 2
+              }
+            ]
+          },
+          {
+            "label": "MEDIUL DE MUNCĂ",
+            "rows": [
+              {
+                "code": "F5",
+                "component": "MEDIUL DE MUNCĂ",
+                "consequence": "ITM 3–45 zile",
+                "description": "Iluminat insuficient sau reflexii pe ecran, care obosesc vederea.",
+                "gravityClass": 2,
+                "group": "Factori de risc fizic",
+                "level": 2,
+                "probabilityClass": 4
+              },
+              {
+                "code": "F6",
+                "component": "",
+                "consequence": "Minore reversibile",
+                "description": "Temperatură necorespunzătoare în birou, vara sau iarna.",
+                "gravityClass": 1,
+                "group": "",
+                "level": 1,
+                "probabilityClass": 4
+              }
+            ]
+          },
+          {
+            "label": "EXECUTANT",
+            "rows": [
+              {
+                "code": "F7",
+                "component": "EXECUTANT",
+                "consequence": "ITM 45–180 zile",
+                "description": "Cădere la același nivel prin împiedicare de cablurile lăsate pe pardoseală.",
+                "gravityClass": 3,
+                "group": "Acțiuni greșite",
+                "level": 3,
+                "probabilityClass": 3
+              },
+              {
+                "code": "F8",
+                "component": "",
+                "consequence": "Deces",
+                "description": "Accident de circulație pe drumul dintre domiciliu și locul de muncă sau în deplasările de serviciu.",
+                "gravityClass": 7,
+                "group": "",
+                "level": 4,
+                "probabilityClass": 2
+              },
+              {
+                "code": "F9",
+                "component": "",
+                "consequence": "ITM 3–45 zile",
+                "description": "Neanunțarea defecțiunilor observate la echipamentele de lucru.",
+                "gravityClass": 2,
+                "group": "Omisiuni",
+                "level": 2,
+                "probabilityClass": 3
+              }
+            ]
+          },
+          {
+            "label": "SARCINA DE MUNCĂ",
+            "rows": [
+              {
+                "code": "F10",
+                "component": "SARCINA DE MUNCĂ",
+                "consequence": "ITM 3–45 zile",
+                "description": "Poziție șezând prelungită la calculator, cu dureri de spate și ale încheieturilor.",
+                "gravityClass": 2,
+                "group": "Suprasolicitare fizică",
+                "level": 3,
+                "probabilityClass": 5
+              },
+              {
+                "code": "F11",
+                "component": "",
+                "consequence": "ITM 3–45 zile",
+                "description": "Ritm de lucru intens și termene scurte.",
+                "gravityClass": 2,
+                "group": "Suprasolicitare psihică",
+                "level": 2,
+                "probabilityClass": 4
+              }
+            ]
+          }
+        ],
         "subject": "locul de muncă: Birou, postul de lucru: Contabil",
         "title": "Contabil",
         "unacceptable": [
@@ -1187,6 +1319,148 @@
             "probabilityClass": 2
           }
         ],
+        "sheetComponents": [
+          {
+            "label": "MIJLOACE DE PRODUCȚIE",
+            "rows": [
+              {
+                "code": "F1",
+                "component": "MIJLOACE DE PRODUCȚIE",
+                "consequence": "Invaliditate gradul II",
+                "description": "Prinderea mâinilor sau a îmbrăcămintei de elementele în mișcare ale mașinilor neprotejate.",
+                "gravityClass": 5,
+                "group": "Factori de risc mecanic",
+                "level": 4,
+                "probabilityClass": 3
+              },
+              {
+                "code": "F2",
+                "component": "",
+                "consequence": "ITM 3–45 zile",
+                "description": "Tăiere sau înțepare cu sculele de mână ori cu muchiile pieselor.",
+                "gravityClass": 2,
+                "group": "",
+                "level": 3,
+                "probabilityClass": 5
+              },
+              {
+                "code": "F3",
+                "component": "",
+                "consequence": "Invaliditate gradul III",
+                "description": "Proiectarea de așchii sau de fragmente de disc la lucrul cu polizorul unghiular.",
+                "gravityClass": 4,
+                "group": "",
+                "level": 4,
+                "probabilityClass": 3
+              },
+              {
+                "code": "F4",
+                "component": "",
+                "consequence": "Deces",
+                "description": "Electrocutare prin atingere directă la sculele electrice portabile cu cablul deteriorat.",
+                "gravityClass": 7,
+                "group": "Factori de risc electric",
+                "level": 4,
+                "probabilityClass": 2
+              }
+            ]
+          },
+          {
+            "label": "MEDIUL DE MUNCĂ",
+            "rows": [
+              {
+                "code": "F5",
+                "component": "MEDIUL DE MUNCĂ",
+                "consequence": "ITM 45–180 zile",
+                "description": "Zgomot peste valorile de expunere, în timpul funcționării mașinilor.",
+                "gravityClass": 3,
+                "group": "Factori de risc fizic",
+                "level": 3,
+                "probabilityClass": 4
+              },
+              {
+                "code": "F6",
+                "component": "",
+                "consequence": "ITM 3–45 zile",
+                "description": "Iluminat insuficient la unele posturi de lucru.",
+                "gravityClass": 2,
+                "group": "",
+                "level": 2,
+                "probabilityClass": 3
+              },
+              {
+                "code": "F7",
+                "component": "",
+                "consequence": "ITM 45–180 zile",
+                "description": "Pulberi rezultate la șlefuire și la debitare.",
+                "gravityClass": 3,
+                "group": "Factori de risc chimic",
+                "level": 3,
+                "probabilityClass": 3
+              }
+            ]
+          },
+          {
+            "label": "EXECUTANT",
+            "rows": [
+              {
+                "code": "F8",
+                "component": "EXECUTANT",
+                "consequence": "ITM 45–180 zile",
+                "description": "Ridicarea și transportul manual al unor sarcini prea grele sau în poziții forțate.",
+                "gravityClass": 3,
+                "group": "Acțiuni greșite",
+                "level": 4,
+                "probabilityClass": 5
+              },
+              {
+                "code": "F9",
+                "component": "",
+                "consequence": "ITM 45–180 zile",
+                "description": "Cădere la același nivel pe pardoseala murdară de ulei sau aglomerată cu materiale.",
+                "gravityClass": 3,
+                "group": "",
+                "level": 3,
+                "probabilityClass": 3
+              },
+              {
+                "code": "F10",
+                "component": "",
+                "consequence": "ITM 45–180 zile",
+                "description": "Nepurtarea echipamentului individual de protecție primit.",
+                "gravityClass": 3,
+                "group": "Omisiuni",
+                "level": 3,
+                "probabilityClass": 4
+              }
+            ]
+          },
+          {
+            "label": "SARCINA DE MUNCĂ",
+            "rows": [
+              {
+                "code": "F11",
+                "component": "SARCINA DE MUNCĂ",
+                "consequence": "ITM 3–45 zile",
+                "description": "Lucru în picioare pe toată durata schimbului.",
+                "gravityClass": 2,
+                "group": "Suprasolicitare fizică",
+                "level": 3,
+                "probabilityClass": 5
+              },
+              {
+                "code": "F12",
+                "component": "",
+                "consequence": "Invaliditate gradul III",
+                "description": "Executarea unor operații pentru care lucrătorul nu a fost instruit.",
+                "gravityClass": 4,
+                "group": "Alte riscuri",
+                "level": 3,
+                "probabilityClass": 2
+              }
+            ]
+          }
+        ],
         "subject": "postul de lucru: Sudor",
         "title": "Sudor",
         "unacceptable": [
@@ -1504,6 +1778,98 @@
             "group": "Suprasolicitare psihică",
             "level": 3,
             "probabilityClass": 3
+          }
+        ],
+        "sheetComponents": [
+          {
+            "label": "MIJLOACE DE PRODUCȚIE",
+            "rows": [
+              {
+                "code": "F1",
+                "component": "MIJLOACE DE PRODUCȚIE",
+                "consequence": "ITM 45–180 zile",
+                "description": "Accidentarea persoanelor cu dizabilități pe căile de acces neadaptate (praguri, trepte).",
+                "gravityClass": 3,
+                "group": "Factori de risc mecanic",
+                "level": 3,
+                "probabilityClass": 3
+              }
+            ]
+          },
+          {
+            "label": "MEDIUL DE MUNCĂ",
+            "rows": [
+              {
+                "code": "F2",
+                "component": "MEDIUL DE MUNCĂ",
+                "consequence": "ITM 3–45 zile",
+                "description": "Temperaturi extreme în spațiile de lucru.",
+                "gravityClass": 2,
+                "group": "Factori de risc fizic",
+                "level": 2,
+                "probabilityClass": 3
+              },
+              {
+                "code": "F3",
+                "component": "",
+                "consequence": "ITM 45–180 zile",
+                "description": "Contact cu persoane bolnave, cu risc de infectare.",
+                "gravityClass": 3,
+                "group": "Factori de risc biologic",
+                "level": 3,
+                "probabilityClass": 3
+              }
+            ]
+          },
+          {
+            "label": "EXECUTANT",
+            "rows": [
+              {
+                "code": "F4",
+                "component": "EXECUTANT",
+                "consequence": "Invaliditate gradul II",
+                "description": "Executarea de către tineri, fără supraveghere, a unor operații periculoase.",
+                "gravityClass": 5,
+                "group": "Acțiuni greșite",
+                "level": 4,
+                "probabilityClass": 2
+              }
+            ]
+          },
+          {
+            "label": "SARCINA DE MUNCĂ",
+            "rows": [
+              {
+                "code": "F5",
+                "component": "SARCINA DE MUNCĂ",
+                "consequence": "Invaliditate gradul III",
+                "description": "Ridicarea și transportul de greutăți de către lucrătoarea gravidă.",
+                "gravityClass": 4,
+                "group": "Suprasolicitare fizică",
+                "level": 4,
+                "probabilityClass": 3
+              },
+              {
+                "code": "F6",
+                "component": "",
+                "consequence": "ITM 3–45 zile",
+                "description": "Statul prelungit în picioare sau în aceeași poziție.",
+                "gravityClass": 2,
+                "group": "",
+                "level": 2,
+                "probabilityClass": 4
+              },
+              {
+                "code": "F7",
+                "component": "",
+                "consequence": "ITM 45–180 zile",
+                "description": "Muncă de noapte sau program prelungit pentru tineri și lucrătoare gravide.",
+                "gravityClass": 3,
+                "group": "Suprasolicitare psihică",
+                "level": 3,
+                "probabilityClass": 3
+              }
+            ]
           }
         ],
         "subject": "grupuri sensibile la riscuri specifice (femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități)",
