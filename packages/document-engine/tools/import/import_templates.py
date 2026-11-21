@@ -1585,15 +1585,27 @@ def is_list_item(paragraph):
     return '<w:numPr>' in own_properties(paragraph) or TYPED_LIST_ITEM.match(paragraph_text(paragraph)) is not None
 
 
-def keep_lead_ins(xml, styles):
-    """A line that introduces a list ("Tipuri de pansamente:") keeps with the list's first item."""
+def keep_lead_ins(xml, styles, word_2013=False):
+    """A line that introduces a list ("Tipuri de pansamente:") keeps with the list's first item.
+    In the occupational safety set it looks through the loop tags that stand between them, which
+    the merge removes, and reads a dash typed with a tab ("–⇥") or an alineat ("(1) …") as an item."""
     keeping, default = styles_keeping_next(styles)
     blocks = list(body_blocks(xml))
-    lead_ins = [(start, end) for (kind, start, end), (following, item_start, item_end) in zip(blocks, blocks[1:])
-                if kind == following == 'p'
-                and paragraph_text(xml[start:end]).endswith(':')
-                and is_list_item(xml[item_start:item_end])
-                and not paragraph_keeps_next(xml[start:end], keeping, default)]
+    lead_ins = []
+    for index, (kind, start, end) in enumerate(blocks):
+        if kind != 'p' or not paragraph_text(xml[start:end]).endswith(':') \
+                or paragraph_keeps_next(xml[start:end], keeping, default):
+            continue
+        following = blocks[index + 1:]
+        if word_2013:
+            following = [block for block in following
+                         if not (block[0] == 'p' and LOOP_TAGS_ONLY.fullmatch(paragraph_text(xml[block[1]:block[2]])))]
+        if not following or following[0][0] != 'p':
+            continue
+        item = xml[following[0][1]:following[0][2]]
+        if is_list_item(item) or word_2013 and (TYPED_DASH.match(spoken_text(item).lstrip())
+                                                or re.match(r'\(\d{1,3}\)\s', paragraph_text(item))):
+            lead_ins.append((start, end))
     for start, end in reversed(lead_ins):
         xml = xml[:start] + set_keep_next(xml[start:end], KEEP_NEXT_ON) + xml[end:]
     return xml
@@ -2157,7 +2169,7 @@ def sweep(path, word_2013=None):
                 if item.filename == 'word/document.xml':
                     if word_2013:
                         xml = marked_for_content_widths(signing_space(xml), os.path.basename(path))
-                    xml = cap_keep_chains(keep_lead_ins(xml, styles), styles)
+                    xml = cap_keep_chains(keep_lead_ins(xml, styles, word_2013), styles)
                     xml = PAGE_BREAK_PARAGRAPH.sub(PAGE_BREAK, xml)
                 elif item.filename.startswith('word/footer'):
                     xml = style_branding(xml)

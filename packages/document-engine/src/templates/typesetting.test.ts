@@ -624,6 +624,44 @@ describe('Word 2013 layout of the occupational safety set', () => {
     expect(wrong).toEqual([]);
   });
 
+  // import_templates.py, keep_lead_ins: the merge removes the loop tags between a lead-in and
+  // its list, so the lead-in keeps with whatever comes after them.
+  it.each(ssmFiles)('%s keeps every line that ends with ":" with the list under it', (_, bytes) => {
+    const styles = new PizZip(bytes).file('word/styles.xml')!.asText();
+    const keeps = (paragraph: string) => {
+      const own = /<w:keepNext(?: w:val="(\w+)")?\/>/.exec(paragraph);
+      if (own) return !['false', '0', 'off'].includes(own[1] ?? 'true');
+      const style = /<w:pStyle w:val="([^"]+)"\/>/.exec(paragraph)?.[1];
+      const definition = style
+        ? new RegExp(`w:styleId="${style}"[^>]*>[\\s\\S]*?</w:style>`).exec(styles)?.[0]
+        : undefined;
+      return /<w:keepNext(?: w:val="(?:true|1|on)")?\/>/.test(definition ?? '');
+    };
+    const body = new PizZip(bytes)
+      .file('word/document.xml')!
+      .asText()
+      .replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '<w:p>TABLE</w:p>');
+    const paragraphs = paragraphsOf(body).filter(
+      (paragraph) => !/^(\{\{[#/^][^}]*\}\})+$/.test(documentTextOf(paragraph).trim())
+    );
+    const isItem = (paragraph: string) =>
+      /<w:numPr>(?:(?!<\/w:numPr>)[\s\S])*<w:numId w:val="[1-9]/.test(paragraph) ||
+      /^\s*(?:[a-z]\)|\d{1,2}[.)]\s|[-–•]\s|\(\d{1,3}\)\s)/.test(
+        [...paragraph.matchAll(/<w:t\b[^>]*>([^<]*)<\/w:t>|<w:tab\/>/g)]
+          .map((match) => match[1] ?? ' ')
+          .join('')
+      );
+    const loose = paragraphs
+      .filter(
+        (paragraph, index) =>
+          documentTextOf(paragraph).trim().endsWith(':') &&
+          isItem(paragraphs[index + 1] ?? '') &&
+          !keeps(paragraph)
+      )
+      .map((paragraph) => documentTextOf(paragraph).trim().slice(0, 60));
+    expect(loose).toEqual([]);
+  });
+
   // 1., a), – from the outside in (tools/import/typography.py, house_order): a letter's list
   // never holds numbers. The dashes of H.G. 1048/2006's annex 2 in 6 and the method's
   // nomenclature in 9 are reproduced as their sources print them.
