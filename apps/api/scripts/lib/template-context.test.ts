@@ -877,7 +877,7 @@ describe('the risk assessment', () => {
         },
       ],
     });
-    expect(text).toContain('profesională pentru Vizitatori');
+    expect(text).toContain('profesională pentru vizitatori');
     expect(text).toContain(
       'Nu au fost stabilite măsuri de prevenire: niciun factor de risc identificat nu depășește nivelul de risc\u00a03.'
     );

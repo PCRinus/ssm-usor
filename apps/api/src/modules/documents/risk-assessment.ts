@@ -289,7 +289,10 @@ export type RiskAssessmentEvaluation = {
    * headings were set in sentence case still print it; `subject` replaced it.
    */
   heading: string;
-  /** What the subchapter's heading names after „pentru”: "locul de muncă: Birou, postul de lucru: Contabil". */
+  /**
+   * What the subchapter's heading names after „pentru”: "locul de muncă: Birou, postul de lucru:
+   * Contabil", or another evaluation's name as it reads inside a sentence ("vizitatori").
+   */
   subject: string;
   /** The prevention plan's heading: the post as the app spells it, the work zone beside it. */
   title: string;
@@ -460,7 +463,7 @@ function evaluationContext(
     evaluation.kind === 'sensitive_groups'
       ? runOn(sensitiveGroupsTitle)
       : evaluation.kind === 'other'
-        ? name
+        ? runOn(name)
         : workZone
           ? `locul de muncă: ${workZone}, postul de lucru: ${name}`
           : `postul de lucru: ${name}`;

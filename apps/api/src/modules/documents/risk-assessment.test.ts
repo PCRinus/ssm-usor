@@ -281,7 +281,7 @@ describe('an evaluation of the risk assessment', () => {
     ]).evaluations;
     expect(visitors).toMatchObject({
       heading: 'VIZITATORI',
-      subject: 'Vizitatori',
+      subject: 'vizitatori',
       title: 'Vizitatori',
       workSystem: { executant: 'Vizitatori', workTask: 'Vizitarea atelierului însoțit.' },
       exposedPersons: '—',
