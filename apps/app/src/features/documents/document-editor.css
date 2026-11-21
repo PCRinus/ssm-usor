@@ -23,6 +23,8 @@
   --app-input: var(--input);
   --app-border: var(--border);
   --app-link: var(--chart-1);
+  --app-unfilled-mark: color-mix(in srgb, var(--warning-border) 45%, transparent);
+  --app-unfilled-mark-active: var(--warning-border);
 }
 
 /* The chapter and search pane, in the app's type and colours. The editor's toolbar keeps its own. */

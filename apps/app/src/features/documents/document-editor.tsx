@@ -3,7 +3,7 @@ import './document-editor.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
 import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
-import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from 'react';
+import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 import { editorStrings } from './editor-strings.ro';
 import { NavigationButton } from './navigation-button';
@@ -60,6 +60,7 @@ export default function DocumentEditor({
   // The revision of the document as loaded or as last saved. Opening a file also reports
   // changes, from laying it out, which are not the person's.
   const cleanRevision = useRef<number | null>(null);
+  const [laidOut, setLaidOut] = useState(false);
   const pane = useDocumentNavigation(ready);
 
   useImperativeHandle(handle, () => ({
@@ -111,12 +112,13 @@ export default function DocumentEditor({
       renderTitleBarRight={() => (
         <div data-editor-title-actions className="flex flex-wrap items-center gap-2">
           <NavigationButton open={pane.open} onToggle={pane.toggle} />
-          {editable && <UnfilledNavigator />}
+          {editable && <UnfilledNavigator ready={laidOut} />}
           {actions}
         </div>
       )}
       onReady={() => {
         ready.current = true;
+        setLaidOut(true);
         cleanRevision.current = editor.current?.getDocumentHandle()?.revision ?? null;
         onReady();
       }}
