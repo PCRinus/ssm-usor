@@ -779,6 +779,19 @@ describe('training_themes', () => {
 describe('risk_assessment', () => {
   const text = documentText(read('9_risk_assessment.docx'));
 
+  it('heads the two ways of using a computer on the margin, the list under the first one tier in, 1. over a)', () => {
+    const paragraphs = bodyOf('9_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
+    const indent = (start: string) => {
+      const paragraph = paragraphs.find((xml) => documentTextOf(xml).startsWith(start))!;
+      const ind = /<w:ind w:left="(\d+)" w:hanging="(\d+)"\/>/.exec(paragraph)!;
+      return Number(ind[1]) - Number(ind[2]);
+    };
+    expect(indent('a)În timpul evaluării propriu-zise')).toBe(0);
+    expect(indent('b)Gestiunea computerizată a riscurilor')).toBe(0);
+    expect(indent('1.constituirea unor bănci de date')).toBe(360);
+    expect(indent('a)durata de viață a echipamentelor')).toBe(720);
+  });
+
   it("prints nothing of the first client's posts, levels or premises", () => {
     expect(text).not.toMatch(
       /MANAGER MAGAZIN|Manager magazin|GELATERIE|BARMAN|VIZITATOR|5630|Calea Victoriei|Vestiarele|Stingător P6|2,40|2,55/

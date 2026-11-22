@@ -422,11 +422,13 @@ def lists(document):
     for last in (r'^VI\.III\.\s+determinarea', r'^V\.3\.\s+determinarea'):
         document = edit_paragraphs(document, last, lambda xml, *_: indented(xml, left=2 * TIER + HANG, hanging=HANG,
                                                                              after=ROOM), count=1)
+    # The two ways of using a computer head what follows them, run in on the margin, so their
+    # labels stay for the text that may cite them and the list under the first reads 1. → a).
     for letter in 'ab':
         document = edit_paragraphs(document, rf'^{letter}[.)]\s+(?:În timpul evaluării|Gestiunea computerizată)',
                                    lambda xml, match, *_, letter=letter: labelled(
-                                       xml, r'[a-z][.)]\s*', f'{letter})', left=TIER, hanging=TIER, before=ROOM,
-                                       after=GAP if letter == 'a' else ROOM, keep=letter == 'a'), count=1)
+                                       xml, r'[a-z][.)]\s*', f'{letter})', left=0, hanging=0, before=ROOM,
+                                       after=GAP if letter == 'a' else ROOM, keep=letter == 'a', tabs=(TIER,)), count=1)
     uses = [r'^(?:\d\.\s*)?constituirea unor bănci de date privind:', r'^(?:\d\.\s*)?calculul automat al nivelurilor de risc']
     for number, pattern in enumerate(uses, 1):
         document = edit_paragraphs(document, pattern, lambda xml, match, *_, number=number: labelled(
