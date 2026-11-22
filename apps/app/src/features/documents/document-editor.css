@@ -34,8 +34,6 @@
   --app-input: var(--input);
   --app-border: var(--border);
   --app-section-tab: var(--section-tab);
-  /* The app's links are in its near-black green, which does not show on black document text. */
-  --app-link: color-mix(in oklab, var(--brand-forest) 55%, var(--brand-lime));
   --app-unfilled-mark: color-mix(in srgb, var(--warning-border) 45%, transparent);
   --app-unfilled-mark-active: var(--warning-border);
 }
@@ -83,8 +81,8 @@
 /* The contents is a content control the engine keeps; lighting the whole block on hover hides
    which chapter a click opens, so the frame shows only while the cursor is in the contents. An
    entry is several links, one per run and line, so the colour goes to every link of the
-   paragraph under the pointer. The editor sets each link's colour inline, and its read-only
-   rules outrank a plain override. */
+   paragraph under the pointer. The editor sets each link's colour and decoration inline, and its
+   read-only rules outrank a plain override. */
 .docx-content-control-chrome[data-docx-toc][data-hover]:not([data-active])
   .docx-content-control-boundary {
   opacity: 0 !important;
@@ -92,5 +90,6 @@
 
 .docx-paragraph-fragment:has(a.docx-hyperlink[href^='#_Toc']:hover)
   a.docx-hyperlink[href^='#_Toc'] {
-  color: var(--app-link) !important;
+  color: var(--app-primary) !important;
+  text-decoration: underline !important;
 }
