@@ -17,6 +17,10 @@ class HiddenBookmarks(unittest.TestCase):
         xml = mark('art5') + '<w:instrText xml:space="preserve"> PAGEREF art5 \\h </w:instrText>'
         self.assertEqual(hidden_bookmarks(xml), xml)
 
+    def test_a_bookmark_a_note_reference_names_stays(self):
+        xml = mark('nota1') + '<w:instrText> NOTEREF nota1 \\h </w:instrText>'
+        self.assertEqual(hidden_bookmarks(xml), xml)
+
     def test_a_bookmark_a_link_names_stays(self):
         xml = mark('anexa') + '<w:instrText> HYPERLINK \\l "anexa" </w:instrText>' + mark('x')
         self.assertEqual(hidden_bookmarks(xml), xml.replace('w:name="x"', 'w:name="_x"'))

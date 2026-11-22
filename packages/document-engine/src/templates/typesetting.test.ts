@@ -245,7 +245,9 @@ describe('typesetting', () => {
     const body = bodyOf(name);
     const named = new Set(
       [
-        ...body.matchAll(/\b(?:PAGEREF|REF)\s+"?([^\s"\\]+)|\bHYPERLINK\b[^<]*?\\l\s+"([^"]+)"/g),
+        ...body.matchAll(
+          /\b(?:PAGEREF|NOTEREF|REF)\s+"?([^\s"\\]+)|\bHYPERLINK\b[^<]*?\\l\s+"([^"]+)"/g
+        ),
       ].map((match) => match[1] ?? match[2])
     );
     const listed = [...body.matchAll(/<w:bookmarkStart\b[^>]*?\bw:name="([^"]*)"/g)]

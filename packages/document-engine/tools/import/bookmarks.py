@@ -11,7 +11,7 @@ a later sweep take the paragraph out and move the pages. Safe to run again.
 import re
 
 START = re.compile(r'(<w:bookmarkStart\b[^>]*?\bw:name=")([^"]*)(")')
-FIELD = re.compile(r'\b(?:PAGEREF|REF)\s+"?([^\s"\\]+)|\bHYPERLINK\b[^<]*?\\l\s+"([^"]+)"')
+FIELD = re.compile(r'\b(?:PAGEREF|NOTEREF|REF)\s+"?([^\s"\\]+)|\bHYPERLINK\b[^<]*?\\l\s+"([^"]+)"')
 ANCHOR = re.compile(r'\bw:anchor="([^"]*)"')
 
 
