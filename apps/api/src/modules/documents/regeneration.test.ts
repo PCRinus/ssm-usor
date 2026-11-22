@@ -127,7 +127,6 @@ const templateVersion = (
     legal_changes: { id, legal_acts: { name } },
   })),
 });
-// Each newest version with every version of its template, in no particular order.
 const templateVersionRows = [
   {
     id: decisionVersionId,
