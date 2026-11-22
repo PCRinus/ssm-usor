@@ -466,9 +466,17 @@ def lists(document):
                                labelled(xml, r'(?:[1-4]\.\s*)?', f'{position + 1}.', left=TIER, hanging=TIER, before=0,
                                         after=ROOM if position == total - 1 else GAP), count=4)
     document = edit_paragraphs(document, r'^[^:]{3,90}:$', lambda xml, *_: indented_keep(xml))
-    document = edit_paragraphs(document, r'^LA NIVELUL UNITĂȚII SE VOR AVEA ÎN VEDERE URMĂTOARELE:$',
+    document = edit_paragraphs(document, r'^(?i:la nivelul unității se vor avea în vedere următoarele):$',
                                lambda xml, *_: indented(xml, left=0, hanging=0, before=ROOM, after=GAP, keep=True), count=1)
+    for heading in RECOMMENDATION_HEADINGS:
+        document = edit_paragraphs(document, rf'^(?i:{heading})$', lambda xml, *_: in_sentence_case(xml), count=1)
     return document
+
+
+# Chapter VI's headings over the measures and the levels, typed in capitals.
+RECOMMENDATION_HEADINGS = (r'măsuri cu caracter general propuse pentru toate locurile de muncă',
+                           r'la nivelul unității se vor avea în vedere următoarele:',
+                           r'nivelurile de risc global ale locurilor de muncă evaluate')
 
 
 def indented_keep(xml):

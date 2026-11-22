@@ -792,6 +792,12 @@ describe('risk_assessment', () => {
     expect(indent('a)durata de viață a echipamentelor')).toBe(720);
   });
 
+  it("heads chapter VI's measures and levels in sentence case", () => {
+    expect(text).toContain('\nMăsuri cu caracter general propuse pentru toate locurile de muncă\n');
+    expect(text).toContain('\nLa nivelul unității se vor avea în vedere următoarele:\n');
+    expect(text).toContain('\nNivelurile de risc global ale locurilor de muncă evaluate\n');
+  });
+
   it("sets the unit's level in chapter VI as a centred formula in (2)'s notation, not as typed text", () => {
     const paragraphs = bodyOf('9_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
     const at = paragraphs.findIndex((xml) =>
