@@ -92,8 +92,8 @@
       "title": "Material de instruire introductiv-generală",
       "file": "2.1_general_training_material.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabele cu linii negre, cap gri-verde pe orice pagină; cele scurte întregi. „…”, „și/sau”. Panouri standard explicate; desene noi. Articole neîngroșate, la margine, sursa pe rând aparte peste alineate și tabele; titluri mărite lângă text; liste 1., a), –; cuprins cu etichete îngroșate. Antetul nu rupe „introductiv-generală”; m¹), liniuțe din anexe pe rând nou. Trei preluări devin articole. Culori ca panourile; cuvinte-cod în tabel; note „Conform …” la margine. Capitole pe pagini noi; doar Arial."
+        "kind": "layout",
+        "note": "Un tabel nu mai lasă un singur rând pe pagina următoare, sub capul de tabel repetat."
       }
     },
     {
@@ -116,8 +116,8 @@
       "title": "Instrucțiuni proprii de securitate și sănătate în muncă",
       "file": "3.1_own_instructions.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde pe fiecare pagină; cele scurte nu se rup între pagini. „…”, „și/sau”. Articole neîngroșate, sursa pe rând aparte peste mai multe paragrafe; titluri pe o scară clară, aproape de text, subliste în trepte egale, anexe aliniate la stânga. Cuprinsul are subcapitolele, etichete îngroșate, titluri aliniate. Durata instruirii pe un rând. Capitole pe pagini noi; doar Arial."
+        "kind": "layout",
+        "note": "Un tabel nu mai lasă un singur rând pe pagina următoare, sub capul de tabel repetat."
       }
     },
     {
@@ -140,8 +140,8 @@
       "title": "Tematica și programul de instruire",
       "file": "4.1_training_themes.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde pe fiecare pagină; cele scurte nu se rup între pagini. Scris „și/sau”. Fiecare post începe cu numele lui; datele lui pe două coloane. „Locul de muncă” al unui post e zona lui de lucru; lista instrucțiunilor specifice ocupă tot tabelul. Trimiterile MISSMIG urmează noua numerotare. Titluri fără majuscule, aproape de text; capitolele II și III pe pagină nouă; doar Arial."
+        "kind": "layout",
+        "note": "Un tabel nu mai lasă un singur rând pe pagina următoare, sub capul de tabel repetat."
       }
     },
     {
@@ -177,7 +177,7 @@
       "file": "6_protective_equipment_list.docx",
       "change": {
         "kind": "layout",
-        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
+        "note": "Un tabel nu mai lasă un singur rând pe pagina următoare, sub capul de tabel repetat."
       }
     },
     {
@@ -201,7 +201,7 @@
       "file": "7.1_event_registers.docx",
       "change": {
         "kind": "layout",
-        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
+        "note": "Un tabel nu mai lasă un singur rând pe pagina următoare, sub capul de tabel repetat."
       }
     },
     {
@@ -213,7 +213,7 @@
       "file": "8_control_report.docx",
       "change": {
         "kind": "layout",
-        "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
+        "note": "Un tabel nu mai lasă un singur rând pe pagina următoare, sub capul de tabel repetat."
       }
     },
     {
@@ -225,7 +225,7 @@
       "file": "9_risk_assessment.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde pe fiecare pagină; cele scurte nu se rup între pagini. Grile clare, consecințe cu X; semnături de 25 mm; figuri noi; o măsură pe rând; pagini orizontale legate sus. Titluri fără majuscule, aproape de text; cuprins cu etichete îngroșate; capitole pe pagini noi. Formule centrate și numerotate, în text la mărimea lui; liste ca în set; fișa de evaluare la 10 pt; doar Arial."
+        "note": "Un tabel nu mai lasă un singur rând pe pagina următoare. Nivelul de risc global pe unitate e o formulă centrată, scrisă ca formulele metodei; titlurile din capitolul VI fără majuscule; cele două moduri de folosire a calculatorului arată la fel."
       }
     },
     {
