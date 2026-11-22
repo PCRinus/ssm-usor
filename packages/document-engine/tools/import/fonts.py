@@ -41,6 +41,7 @@ def default_font_arial(styles):
         if R_FONTS.search(properties):
             return match.group(0)
         return f'{match.group(1)}<w:rFonts{ARIAL_SLOTS}/>{properties}{match.group(3)}'
+    styles = styles.replace('<w:docDefaults/>', '<w:docDefaults></w:docDefaults>')
     styles = DEFAULT_RUN_EMPTY.sub(f'<w:rPrDefault><w:rPr><w:rFonts{ARIAL_SLOTS}/></w:rPr></w:rPrDefault>',
                                    styles)
     if '<w:rPrDefault>' not in styles:

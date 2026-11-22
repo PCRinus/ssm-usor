@@ -39,6 +39,12 @@ class DocumentDefault(unittest.TestCase):
                       arial_part('word/styles.xml', '<w:styles><w:docDefaults></w:docDefaults></w:styles>'))
 
 
+    def test_fills_an_empty_one_without_adding_another(self):
+        result = arial_part('word/styles.xml', '<w:styles><w:docDefaults/></w:styles>')
+        self.assertEqual(result.count('<w:docDefaults>'), 1)
+        self.assertIn(f'<w:rPrDefault><w:rPr>{ARIAL}</w:rPr></w:rPrDefault>', result)
+
+
 class FontTable(unittest.TestCase):
     def test_keeps_arial_alone(self):
         arial = '<w:font w:name="Arial"><w:charset w:val="00"/></w:font>'
