@@ -7077,6 +7077,319 @@
         },
         "required": ["state"]
       },
+      "RiskZonesResponse": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["undecided", "none", "listed"]
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "workplace": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
+                "location": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "measures": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "factors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "component": {
+                        "type": "string",
+                        "enum": [
+                          "executant",
+                          "work_task",
+                          "means_of_production",
+                          "work_environment"
+                        ]
+                      },
+                      "group": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "riskLevel": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 7
+                      },
+                      "evaluation": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": ["job_position", "sensitive_groups", "other"]
+                          },
+                          "title": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "kind", "title"]
+                      },
+                      "measures": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": ["technical", "organizational", "hygienic_sanitary", "other"]
+                            },
+                            "description": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["id", "kind", "description"]
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "component",
+                      "group",
+                      "description",
+                      "riskLevel",
+                      "evaluation",
+                      "measures"
+                    ]
+                  }
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "name",
+                "workplace",
+                "location",
+                "measures",
+                "factors",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          },
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "factors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "component": {
+                        "type": "string",
+                        "enum": [
+                          "executant",
+                          "work_task",
+                          "means_of_production",
+                          "work_environment"
+                        ]
+                      },
+                      "group": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "riskLevel": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 7
+                      },
+                      "evaluation": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": ["job_position", "sensitive_groups", "other"]
+                          },
+                          "title": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "kind", "title"]
+                      },
+                      "measures": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": ["technical", "organizational", "hygienic_sanitary", "other"]
+                            },
+                            "description": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["id", "kind", "description"]
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "component",
+                      "group",
+                      "description",
+                      "riskLevel",
+                      "evaluation",
+                      "measures"
+                    ]
+                  },
+                  "minItems": 1
+                },
+                "existingZoneId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                }
+              },
+              "required": ["name", "factors", "existingZoneId"]
+            }
+          }
+        },
+        "required": ["state", "zones", "suggestions"]
+      },
+      "RiskZoneRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "workplaceId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "location": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "measures": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "factorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 300,
+            "default": []
+          }
+        },
+        "required": ["name"]
+      },
+      "UpdateRiskZonesStateRequest": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["undecided", "none"]
+          }
+        },
+        "required": ["state"]
+      },
+      "RiskZoneNamesResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "measures": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": ["name", "measures"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
       "EvaluationProfileListResponse": {
         "type": "object",
         "properties": {
@@ -38031,6 +38344,670 @@
           },
           "409": {
             "description": "The client is archived (`client_archived`) or its sensitive groups are evaluated (`sensitive_groups_evaluated`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/risk-zones": {
+      "get": {
+        "operationId": "listRiskZones",
+        "summary": "Read a client's zones of high and specific risk",
+        "description": "The zones in the order they were added, each with its workplace and its linked factors, the highest level first, with their level, evaluation and prevention measures as the evaluation holds them now; the client’s `state`; and the `suggestions` (ADR 045): the unacceptable factors (level above 3) of current posts and client-level evaluations that no zone links yet, grouped by the position’s work zone, or the position’s name without one, or the evaluation’s title outside the posts, each offered as a zone named after its group. `existingZoneId` names a zone of the client with that name already. Nothing is saved until a zone is added.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zones, the state and the suggestions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskZonesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createRiskZone",
+        "summary": "Add a zone of high and specific risk",
+        "description": "A zone links at least one of the client’s risk factors or has measures of its own. Adding one sets the state to `listed`, replacing a declaration that there are none. Two zones of a client differ in name, ignoring case and spaces (reason `risk_zone_name_taken`). Answers with all of the client’s zones, its state and the suggestions, as reading them does.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RiskZoneRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The zones after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskZonesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body: no linked factor and no measures of its own (`measures`), a workplace that is not a current one of this client (`workplaceId`), or a factor that is not one of its (`factorIds`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived or a lead, or the name is taken; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/risk-zones/{zoneId}": {
+      "put": {
+        "operationId": "updateRiskZone",
+        "summary": "Replace a zone and its linked factors",
+        "description": "Every field is replaced, and `factorIds` becomes the zone’s whole set of linked factors. A workplace archived after the zone named it may be sent again. Answers with all of the client’s zones, its state and the suggestions, as reading them does.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "zoneId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RiskZoneRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The zones after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskZonesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body: no linked factor and no measures of its own (`measures`), a workplace that is not a current one of this client (`workplaceId`), or a factor that is not one of its (`factorIds`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The zone does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived, or the name is taken (`risk_zone_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removeRiskZone",
+        "summary": "Delete a zone",
+        "description": "Its links go with it; the factors stay. Deleting the last zone sets the state back to `undecided`. Answers with all of the client’s zones, its state and the suggestions, as reading them does.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "zoneId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zones after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskZonesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The zone does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (`client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/risk-zones-state": {
+      "put": {
+        "operationId": "updateRiskZonesState",
+        "summary": "Say whether a client has zones of high and specific risk",
+        "description": "`none` declares that the client has no zones of high and specific risk, so document 9.2 says so; `undecided` withdraws the declaration. `listed` is never sent: the database sets it while the client has a zone, and both values are refused meanwhile (`409`, reason `risk_zones_listed`). Answers with all of the client’s zones, its state and the suggestions, as reading them does.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRiskZonesStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The zones after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskZonesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (`client_archived`) or has zones (`risk_zones_listed`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/risk-zone-names": {
+      "get": {
+        "operationId": "listRiskZoneNames",
+        "summary": "The zone names the organization used before",
+        "description": "The distinct names of the organization’s zones under clients that are not archived, leaving out those of `exceptClientId`, ignoring case and spaces, each with the own measures of its most recently changed zone, in Romanian alphabetical order, at most 200. The zone dialog offers them as the name, and the measures to start from.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "exceptClientId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The names",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskZoneNamesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
