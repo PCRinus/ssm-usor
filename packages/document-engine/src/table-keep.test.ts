@@ -61,12 +61,21 @@ describe('keeping the house tables together once merged', () => {
     );
   });
 
-  it('keeps a longer table only from its header to its second body row', () => {
+  it('keeps a longer table from its header to its second body row, and its last two rows together', () => {
     const rows = rowsOf(
       renderDocument(docx(table(house, header + loopRow)), { people: people(10) })
     );
-    expect(rows.map(keepsWithNext)).toEqual([true, true, ...Array(9).fill(false)]);
+    expect(rows.map(keepsWithNext)).toEqual([true, true, ...Array(7).fill(false), true, false]);
     expect(rows.every(staysWhole)).toBe(true);
+  });
+
+  it('leaves its last two rows apart when they would not fit on a page together', () => {
+    const rows = rowsOf(
+      renderDocument(docx(table(house, header + loopRow)), {
+        people: [...people(8), ...people(2, 'cuvânt '.repeat(60))],
+      })
+    );
+    expect(rows.map(keepsWithNext)).toEqual([true, true, ...Array(9).fill(false)]);
   });
 
   // LibreOffice leaves content out of the PDF when a row that may not split is tied to rows
@@ -78,6 +87,16 @@ describe('keeping the house tables together once merged', () => {
     const rows = rowsOf(merged);
     expect(rows.some(keepsWithNext)).toBe(false);
     expect(rows.map(staysWhole)).toEqual([true, true, true, false]);
+  });
+
+  it('keeps the last two rows of a table with a row of a page together when both are short', () => {
+    const rows = rowsOf(
+      renderDocument(docx(table(house, header + loopRow)), {
+        people: [{ name: 'Persoana 1', note: 'cuvânt '.repeat(150) }, ...people(2)],
+      })
+    );
+    expect(rows.map(keepsWithNext)).toEqual([false, false, true, false]);
+    expect(rows.map(staysWhole)).toEqual([true, false, true, true]);
   });
 
   it('marks a cell the data left with a dash with one centred mark', () => {
@@ -227,7 +246,7 @@ describe('keeping the house tables together once merged', () => {
     expect(rows.map(keepsWithNext)).toEqual([
       ...[true, true, false, false, false],
       ...[true, false, false, false],
-      ...[true, false, false, false],
+      ...[true, false, true, false],
     ]);
   });
 
@@ -238,7 +257,7 @@ describe('keeping the house tables together once merged', () => {
         people: [{ name: 'Arsuri', note: 'Lucrări '.repeat(150) }, ...people(2)],
       })
     );
-    expect(rows.map(keepsWithNext)).toEqual([false, true, false, false, false]);
+    expect(rows.map(keepsWithNext)).toEqual([false, true, false, true, false]);
     expect(rows.map(staysWhole)).toEqual([true, true, false, true, true]);
   });
 

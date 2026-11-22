@@ -48,10 +48,10 @@ SHORT_TEXT = 24
 ROW_NUMBER_COLUMN = re.compile(r'^nr\.?\s*crt', re.I)
 
 # Rule A of the keep-together decision. A table of up to `WHOLE_ROWS` body rows moves whole; a
-# longer one keeps its header with its first two body rows. A row longer than `TALL_ROW_TEXT`
-# characters, or estimated taller than `TALL_ROW_ROOM`, may split and the table keeps nothing:
-# LibreOffice silently leaves out of the PDF the content of a row that may not split when the
-# rows tied to it do not fit on a page.
+# longer one keeps its header with its first two body rows, and its last two together. A row
+# longer than `TALL_ROW_TEXT` characters, or estimated taller than `TALL_ROW_ROOM`, may split and
+# the table keeps only its groups and its last two rows: LibreOffice silently leaves out of the
+# PDF the content of a row that may not split when the rows tied to it do not fit on a page.
 WHOLE_ROWS = 6
 TALL_ROW_TEXT = 700
 TALL_ROW_ROOM = 280 * 20  # twips
@@ -464,15 +464,15 @@ def closes_its_page(following):
 def keep_together(rows, header, grid, closing=False, room=KEEP_ROOM):
     """For each row, whether it may not split and whether it keeps with the next row (rule A).
     A list people sign by hand may start under the text that asks for the signatures rather
-    than move whole to the next page, but its last row never stands alone on a page; a table kept
-    whole keeps its last row with a `closing` sentence."""
+    than move whole to the next page; a table kept whole keeps its last row with a `closing`
+    sentence."""
     heights = [estimated_height(row, grid) for row in rows]
     tall = [unescaped_length(text_of(row)) > TALL_ROW_TEXT or height > TALL_ROW_ROOM
             for row, height in zip(rows, heights)]
     groups = [header <= index < len(rows) - 1 and is_group_row(row, grid) for index, row in enumerate(rows)]
     if any(tall):
         # LibreOffice keeps a row with a next one that may split, so a group's name never ends a page.
-        return [not each for each in tall], groups
+        return [not each for each in tall], tied_tail(groups, heights, tall, header, room)
     keeps = [False] * len(rows)
     signed = is_signed_list(rows, header)
     if not signed and len(rows) - header <= WHOLE_ROWS and sum(heights) <= room:
@@ -484,12 +484,26 @@ def keep_together(rows, header, grid, closing=False, room=KEEP_ROOM):
             chain -= 1
     for index in range(chain):
         keeps[index] = True
-    if signed and len(rows) - header >= 2:
-        keeps[-2] = True
-    keeps = [keep or group for keep, group in zip(keeps, groups)]
+    keeps = tied_tail([keep or group for keep, group in zip(keeps, groups)], heights, tall, header, room)
     if closing and all(keeps[:-1]):
         keeps[-1] = True
     return [True] * len(rows), keeps
+
+
+def tied_tail(keeps, heights, tall, header, room):
+    """The last body row kept with the one before it, so it never stands alone under the header
+    repeated on the next page; unless either may split, or the rows that would then move
+    together, with that header, do not fit on a page."""
+    last = len(keeps) - 1
+    if last - header < 1 or tall[last - 1] or tall[last]:
+        return keeps
+    start = last - 1
+    while start > 0 and keeps[start - 1]:
+        start -= 1
+    moving = sum(heights[start:]) + (sum(heights[:header]) if start >= header else 0)
+    if moving > room:
+        return keeps
+    return keeps[:last - 1] + [True, keeps[last]]
 
 
 def is_signed_list(rows, header):

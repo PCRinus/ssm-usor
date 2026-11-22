@@ -80,6 +80,12 @@ N_R = (sub('N', 'r') + r('=') +
 N_G = (sub('N', 'g') + r('=') +
        frac(total(r('p=1'), r('n'), sub('r', 'p') + r('·') + sub('N', 'sp')),
             total(r('p=1'), r('n'), sub('r', 'p'))))
+# The unit's level in (2)'s notation: the workplaces' levels N_rp weighed by their ranks r_p, which
+# the text says equal those levels; the original typed it flat, "Nrg = Σ (Nrgi × Nrgi) / Σ Nrgi".
+N_RG = (sub('N', 'rg') + r('=') +
+        frac(total(r('p=1'), r('n'), sub('r', 'p') + r('·') + sub('N', 'rp')),
+             total(r('p=1'), r('n'), sub('r', 'p'))))
+UNIT_FORMULA = re.compile(r'\sNrg\s*=\s*Σ\s*\(Nrgi\s*×\s*Nrgi\)\s*/\s*Σ\s*Nrgi\.$')
 R_SET = total(r('R=1'), r('7'), sub('N', 'R'))
 LIMITS = (r('y') + r('=') + frac(r('1'), r('0')) + r('→+∞;'), r('y') + r('=') + frac(r('1'), r('+∞')) + r('→0.'))
 
@@ -294,6 +300,13 @@ def formulas(document):
     document = replace_blocks(document, at + 1, end - 1, numbered_display(N_G, 2, NG_LEGEND))
     document = set_gap(document, at, after=0, keep=True)
     document = set_gap(document, find(document, r'^E\. Stabilirea măsurilor de prevenire:'), before=ROOM)
+    at = find(document, r'^Nivelul de risc global pe unitate \(Nrg\) este media ponderată')
+    block = blocks(document)[at]
+    xml = document[block[1]:block[2]]
+    typed = UNIT_FORMULA.search(unescaped(spoken(xml)))
+    if typed:
+        document = document[:block[1]] + replaced_tail(xml, typed.group(0), '') + display(N_RG) + document[block[2]:]
+        document = set_gap(set_gap(document, at, after=0, keep=True), at + 1, keep=True)
     return document
 
 
@@ -429,13 +442,14 @@ def lists(document):
     for last in (r'^VI\.III\.\s+determinarea', r'^V\.3\.\s+determinarea'):
         document = edit_paragraphs(document, last, lambda xml, *_: indented(xml, left=2 * TIER + HANG, hanging=HANG,
                                                                              after=ROOM), count=1)
-    # The two ways of using a computer head what follows them, run in on the margin, so their
-    # labels stay for the text that may cite them and the list under the first reads 1. → a).
+    # The two ways of using a computer read alike: the label on the margin, then a bold lead run in
+    # and the text hanging from the label's tab, so their labels stay for the text that may cite
+    # them and the list under the first reads 1. → a). The original set the first all in bold.
     for letter in 'ab':
         document = edit_paragraphs(document, rf'^{letter}[.)]\s+(?:În timpul evaluării|Gestiunea computerizată)',
-                                   lambda xml, match, *_, letter=letter: labelled(
-                                       xml, r'[a-z][.)]\s*', f'{letter})', left=0, hanging=0, before=ROOM,
-                                       after=GAP if letter == 'a' else ROOM, keep=letter == 'a', tabs=(TIER,)), count=1)
+                                   lambda xml, match, *_, letter=letter: computer_use(labelled(
+                                       xml, r'[a-z][.)]\s*', f'{letter})', left=TIER, hanging=TIER, before=ROOM,
+                                       after=GAP if letter == 'a' else ROOM, keep=letter == 'a', tabs=(TIER,))), count=1)
     uses = [r'^(?:\d\.\s*)?constituirea unor bănci de date privind:', r'^(?:\d\.\s*)?calculul automat al nivelurilor de risc']
     for number, pattern in enumerate(uses, 1):
         document = edit_paragraphs(document, pattern, lambda xml, match, *_, number=number: labelled(
@@ -453,9 +467,25 @@ def lists(document):
                                labelled(xml, r'(?:[1-4]\.\s*)?', f'{position + 1}.', left=TIER, hanging=TIER, before=0,
                                         after=ROOM if position == total - 1 else GAP), count=4)
     document = edit_paragraphs(document, r'^[^:]{3,90}:$', lambda xml, *_: indented_keep(xml))
-    document = edit_paragraphs(document, r'^LA NIVELUL UNITĂȚII SE VOR AVEA ÎN VEDERE URMĂTOARELE:$',
+    document = edit_paragraphs(document, r'^(?i:la nivelul unității se vor avea în vedere următoarele):$',
                                lambda xml, *_: indented(xml, left=0, hanging=0, before=ROOM, after=GAP, keep=True), count=1)
+    for heading in RECOMMENDATION_HEADINGS:
+        document = edit_paragraphs(document, rf'^(?i:{heading})$', lambda xml, *_: in_sentence_case(xml), count=1)
     return document
+
+
+# Chapter VI's headings over the measures and the levels, typed in capitals.
+RECOMMENDATION_HEADINGS = (r'măsuri cu caracter general propuse pentru toate locurile de muncă',
+                           r'la nivelul unității se vor avea în vedere următoarele:',
+                           r'nivelurile de risc global ale locurilor de muncă evaluate')
+
+
+def computer_use(xml):
+    text = unescaped(text_of(xml))
+    lead = re.search(r'(?<=^.\))(?:În timpul evaluării propriu-zise|Gestiunea computerizată a riscurilor)', text)
+    if not lead:
+        return xml
+    return edit_text_range(edit_text_range(xml, lead.start(), lead.end(), bold(True)), lead.end(), len(text), bold(False))
 
 
 def indented_keep(xml):

@@ -146,7 +146,10 @@ function keepTogether(rows: string[], header: number, grid: number[], room: numb
     (row, index) => index >= header && index < rows.length - 1 && isGroupRow(row, grid)
   );
   if (tall.some(Boolean)) {
-    return { cantSplit: tall.map((each) => !each), keeps: groups };
+    return {
+      cantSplit: tall.map((each) => !each),
+      keeps: tiedTail(groups, heights, tall, header, room),
+    };
   }
   const total = (count: number) => heights.slice(0, count).reduce((sum, each) => sum + each, 0);
   let chain: number;
@@ -160,12 +163,39 @@ function keepTogether(rows: string[], header: number, grid: number[], room: numb
     chain = Math.min(header + 1, rows.length - 1);
     while (chain > 0 && total(chain + 1) > room) chain -= 1;
   }
-  // Nor does its last row stand alone under the header repeated on the next page.
-  const lastPair = signed && rows.length - header >= 2 ? rows.length - 2 : -1;
   return {
     cantSplit: rows.map(() => true),
-    keeps: rows.map((_, index) => index < chain || index === lastPair || groups[index]!),
+    keeps: tiedTail(
+      rows.map((_, index) => index < chain || groups[index]!),
+      heights,
+      tall,
+      header,
+      room
+    ),
   };
+}
+
+/**
+ * The last body row kept with the one before it, so it never stands alone under the header
+ * repeated on the next page; unless either may split, or the rows that would then move
+ * together, with that header, do not fit on a page.
+ */
+function tiedTail(
+  keeps: boolean[],
+  heights: number[],
+  tall: boolean[],
+  header: number,
+  room: number
+) {
+  const last = keeps.length - 1;
+  if (last - header < 1 || tall[last - 1] || tall[last]) return keeps;
+  let start = last - 1;
+  while (start > 0 && keeps[start - 1]) start -= 1;
+  const sum = (from: number, to: number) =>
+    heights.slice(from, to).reduce((total, each) => total + each, 0);
+  const moving = sum(start, keeps.length) + (start >= header ? sum(0, header) : 0);
+  if (moving > room) return keeps;
+  return keeps.map((keep, index) => keep || index === last - 1);
 }
 
 // The properties that open `rest`, to their own closing tag: a paragraph's `w:pPrChange` holds

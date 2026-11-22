@@ -792,6 +792,40 @@ describe('risk_assessment', () => {
     expect(indent('a)durata de viață a echipamentelor')).toBe(720);
   });
 
+  it('runs in the same way after both labels: a bold lead, then regular text hanging from the label', () => {
+    const paragraphs = bodyOf('9_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
+    const bolds = (start: string) => {
+      const paragraph = paragraphs.find((xml) => documentTextOf(xml).startsWith(start))!;
+      expect(paragraph).toContain('<w:ind w:left="360" w:hanging="360"/>');
+      return [...paragraph.matchAll(/<w:r>(?:(?!<\/w:r>)[\s\S])*<\/w:r>/g)]
+        .filter(([run]) => /<w:t\b/.test(run))
+        .filter(([run]) => /<w:b\/>/.test(run))
+        .map(([run]) => documentTextOf(`<w:p>${run}</w:p>`));
+    };
+    expect(bolds('a)În timpul evaluării')).toEqual(['a)', 'În timpul evaluării propriu-zise']);
+    expect(bolds('b)Gestiunea computerizată')).toEqual([
+      'b)',
+      'Gestiunea computerizată a riscurilor',
+    ]);
+  });
+
+  it("heads chapter VI's measures and levels in sentence case", () => {
+    expect(text).toContain('\nMăsuri cu caracter general propuse pentru toate locurile de muncă\n');
+    expect(text).toContain('\nLa nivelul unității se vor avea în vedere următoarele:\n');
+    expect(text).toContain('\nNivelurile de risc global ale locurilor de muncă evaluate\n');
+  });
+
+  it("sets the unit's level in chapter VI as a centred formula in (2)'s notation, not as typed text", () => {
+    const paragraphs = bodyOf('9_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
+    const at = paragraphs.findIndex((xml) =>
+      documentTextOf(xml).startsWith('Nivelul de risc global pe unitate')
+    );
+    expect(documentTextOf(paragraphs[at]!)).toMatch(/nivelul său de risc global:$/);
+    expect(paragraphs[at + 1]).toContain('<m:oMathPara><m:oMathParaPr><m:jc m:val="center"/>');
+    expect(paragraphs[at + 1]).toContain('<m:t xml:space="preserve">rp</m:t>');
+    expect(text).not.toContain('Nrgi');
+  });
+
   it("prints nothing of the first client's posts, levels or premises", () => {
     expect(text).not.toMatch(
       /MANAGER MAGAZIN|Manager magazin|GELATERIE|BARMAN|VIZITATOR|5630|Calea Victoriei|Vestiarele|Stingător P6|2,40|2,55/
