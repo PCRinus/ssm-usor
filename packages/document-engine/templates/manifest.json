@@ -21,7 +21,7 @@
       "file": "1.1_decision_training.docx",
       "change": {
         "kind": "layout",
-        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
+        "note": "Marcajele rămase din textul preluat de pe portalul legislativ nu mai apar în panoul de navigare al editorului; aspectul rămâne același."
       }
     },
     {
@@ -69,7 +69,7 @@
       "file": "1.5_decision_workers_representative.docx",
       "change": {
         "kind": "layout",
-        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
+        "note": "Marcajele rămase din textul preluat de pe portalul legislativ nu mai apar în panoul de navigare al editorului; aspectul rămâne același."
       }
     },
     {
@@ -93,7 +93,7 @@
       "file": "2.1_general_training_material.docx",
       "change": {
         "kind": "layout",
-        "note": "Un tabel nu mai lasă un singur rând pe pagina următoare, sub capul de tabel repetat."
+        "note": "Marcajele rămase din textul preluat de pe portalul legislativ nu mai apar în panoul de navigare al editorului; aspectul rămâne același."
       }
     },
     {
@@ -117,7 +117,7 @@
       "file": "3.1_own_instructions.docx",
       "change": {
         "kind": "layout",
-        "note": "Un tabel nu mai lasă un singur rând pe pagina următoare, sub capul de tabel repetat."
+        "note": "Marcajele rămase din textul preluat de pe portalul legislativ nu mai apar în panoul de navigare al editorului; aspectul rămâne același."
       }
     },
     {
@@ -260,8 +260,8 @@
       "title": "Material de informare a angajatorului",
       "file": "11.1_employer_briefing.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde pe fiecare pagină; cele scurte nu se rup între pagini. 25 mm pentru semnătură și ștampilă. „…”, „și/sau”; testul la angajare redenumit. Acte și materiale în liste; panouri standard explicate. Articole neîngroșate, sursa pe rând aparte peste alineate; subliste în trepte; titluri lângă text. Predarea documentelor nu e articol; cuprins și capitole pe pagini noi; doar Arial."
+        "kind": "layout",
+        "note": "Marcajele rămase din textul preluat de pe portalul legislativ nu mai apar în panoul de navigare al editorului; aspectul rămâne același."
       }
     },
     {

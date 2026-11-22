@@ -40,6 +40,7 @@ from com.sun.star.table import BorderLine2
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.HoriOrientation import FULL as FULL_WIDTH
 
+from bookmarks import hidden_bookmarks
 from chapters import (articles_from_chapter_one, chapters_on_new_pages, contents_on_its_own_page, in_sentence_case,
                       titled_contents)
 from citation_notes import citation_notes
@@ -2100,9 +2101,10 @@ def sweep(path, word_2013=None, arial=None):
     not in all, or not at all: a dead link that survives clearing, an empty paragraph it writes
     as justified though its own model says otherwise, a picture floating between two lines,
     its own fonts as the defaults of the styles, and list labels smaller than their text. Then
-    three rules every template keeps: a line ending in ":" keeps with the list item after it,
+    four rules every template keeps: a line ending in ":" keeps with the list item after it,
     no run of paragraphs kept with the next longer than `KEEP_CHAIN` unless its lines are
-    short, and the branding line small and grey; and in the documents with contents, a table
+    short, the branding line small and grey, and a bookmark nothing points to hidden from the
+    editor's navigation pane (`bookmarks`); and in the documents with contents, a table
     of contents over real headings (`TABLES_OF_CONTENTS`). In the occupational safety set,
     Word 2013's layout with every table on the margins (`word_layout`), the table house
     style (`table_style`), one signing space for every signature (`signatures`), the
@@ -2174,6 +2176,7 @@ def sweep(path, word_2013=None, arial=None):
                 # The API's PageNumberOffset does not let go of it.
                 xml = re.sub(r'(<w:pgNumType\b[^>]*?) w:start="\d+"', r'\1', xml)
                 if item.filename == 'word/document.xml':
+                    xml = hidden_bookmarks(xml)
                     if word_2013:
                         xml = marked_for_content_widths(signing_space(xml), os.path.basename(path))
                     xml = cap_keep_chains(keep_lead_ins(xml, styles, word_2013), styles)
