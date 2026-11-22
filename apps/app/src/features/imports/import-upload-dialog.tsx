@@ -130,7 +130,7 @@ function UploadForm({
       >
         <form onSubmit={form.onSubmit} aria-busy={busy} noValidate>
           <DialogHeader>
-            <DialogTitle>{client ? 'Completează cu AI' : 'Client nou din documente'}</DialogTitle>
+            <DialogTitle>{client ? 'Importă cu AI' : 'Client nou din documente'}</DialogTitle>
             <DialogDescription>
               <span className="block">
                 Citim documentația SSM și SU a firmei și îți propunem datele clientului.

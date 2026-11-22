@@ -146,7 +146,7 @@ export function ClientLayout() {
                   onClick={() => setImporting(true)}
                 >
                   <Sparkles aria-hidden="true" />
-                  Completează cu AI
+                  Importă cu AI
                 </Button>
                 {isOwner && (
                   <Button

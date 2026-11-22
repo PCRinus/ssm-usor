@@ -16,7 +16,7 @@ type Flow =
   | { step: 'uploading'; way: 'complete' | 'employees'; client: PickedClient };
 
 const pickerTitles = {
-  complete: 'Completează un client din documente',
+  complete: 'Client existent din documente',
   employees: 'Lucrători din fișe de instruire',
 } as const;
 
