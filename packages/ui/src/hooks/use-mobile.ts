@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react';
 
 const MOBILE_QUERY = '(max-width: 767px)';
-const PHONE_QUERY = '(max-width: 639px)';
+// Tailwind's `sm`, so the hook and `max-sm:` classes agree at fractional widths too.
+const PHONE_QUERY = '(width < 40rem)';
 
 const subscribeTo = (query: string) => (onChange: () => void) => {
   const media = window.matchMedia(query);

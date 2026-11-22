@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UnfilledNavigator } from './unfilled-navigator';
+import { useUnfilledMarks } from './use-unfilled-marks';
+
+function Navigator({ ready }: { ready: boolean }) {
+  return <UnfilledNavigator marks={useUnfilledMarks(ready)} />;
+}
 
 type Match = { blockId: string; start: number; length: number; text: string };
 
@@ -30,6 +35,7 @@ const fakeEditor = {
     editor.laidOut && query === 'DE COMPLETAT' && options?.matchCase ? editor.matches : []
   ),
   selectMatch: vi.fn(() => ({ ok: true })),
+  focus: vi.fn(),
 };
 
 // The real editor is three megabytes of layout engine and needs a browser; the flow tests drive it.
@@ -73,18 +79,18 @@ beforeEach(() => {
 describe('the unfilled places button', () => {
   it('counts the marks, matching case, once the document is laid out and before any edit', () => {
     editor.laidOut = false;
-    const { rerender } = render(<UnfilledNavigator ready={false} />);
+    const { rerender } = render(<Navigator ready={false} />);
     expect(screen.queryByTestId('editor-unfilled')).toBeNull();
 
     editor.laidOut = true;
-    rerender(<UnfilledNavigator ready />);
+    rerender(<Navigator ready />);
 
     expect(button().textContent).toBe('3 locuri de completat· arată');
     expect(fakeEditor.findMatches).toHaveBeenLastCalledWith('DE COMPLETAT', { matchCase: true });
   });
 
   it('marks them in a highlight set and a colour of its own, apart from the search', () => {
-    render(<UnfilledNavigator ready />);
+    render(<Navigator ready />);
 
     expect(lastHighlight()).toEqual({
       name: 'unfilled',
@@ -94,7 +100,7 @@ describe('the unfilled places button', () => {
   });
 
   it('selects the next mark on every click, from the first after the last', async () => {
-    render(<UnfilledNavigator ready />);
+    render(<Navigator ready />);
 
     await userEvent.click(button());
     expect(fakeEditor.selectMatch).toHaveBeenLastCalledWith(editor.matches[0]);
@@ -109,7 +115,7 @@ describe('the unfilled places button', () => {
   });
 
   it('counts again after an edit, and goes on to the mark after the one typed over', async () => {
-    render(<UnfilledNavigator ready />);
+    render(<Navigator ready />);
     await userEvent.click(button());
     await userEvent.click(button());
 
@@ -123,7 +129,7 @@ describe('the unfilled places button', () => {
 
   it('goes on to the next mark in the same paragraph once the selected one is typed over', async () => {
     editor.matches = [mark('p3', 5), mark('p3', 24), mark('p8', 0)];
-    render(<UnfilledNavigator ready />);
+    render(<Navigator ready />);
     await userEvent.click(button());
 
     await edit([mark('p3', 15), mark('p8', 0)]);
@@ -135,7 +141,7 @@ describe('the unfilled places button', () => {
   });
 
   it('keeps its place when an edit elsewhere leaves the selected mark where it was', async () => {
-    render(<UnfilledNavigator ready />);
+    render(<Navigator ready />);
     await userEvent.click(button());
     await userEvent.click(button());
 
@@ -145,7 +151,7 @@ describe('the unfilled places button', () => {
 
   it('is not shown when nothing is left to fill in', () => {
     editor.matches = [];
-    render(<UnfilledNavigator ready />);
+    render(<Navigator ready />);
 
     expect(screen.queryByTestId('editor-unfilled')).toBeNull();
   });

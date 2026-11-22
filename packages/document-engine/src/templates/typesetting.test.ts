@@ -448,6 +448,71 @@ describe('Word 2013 layout of the occupational safety set', () => {
     }
   );
 
+  const tablesAsLines = (xml: string) => {
+    let depth = 0;
+    let out = '';
+    let from = 0;
+    for (const tag of xml.matchAll(/<(\/?)w:tbl>/g)) {
+      if (tag[1]) {
+        depth -= 1;
+        if (depth === 0) from = tag.index + tag[0].length;
+      } else {
+        if (depth === 0)
+          out += `${xml.slice(from, tag.index)}<w:p><w:r><w:t>[tabel]</w:t></w:r></w:p>`;
+        depth += 1;
+      }
+    }
+    return out + xml.slice(from);
+  };
+
+  it.each(contents)(
+    '%s sets a heading nearer its own text than what comes before it, with no empty line beside it',
+    (name) => {
+      const paragraphs = paragraphsOf(tablesAsLines(bodyOf(name))).filter(
+        (paragraph) => !/^(\{\{[#/^][^}]*\}\})+$/.test(documentTextOf(paragraph))
+      );
+      paragraphs.forEach((paragraph, index) => {
+        const level = /<w:pStyle w:val="Heading([12])"\/>/.exec(paragraph)?.[1];
+        if (!level) return;
+        const previous = paragraphs[index - 1] ?? '';
+        const spacing = /<w:spacing\b[^>]*\/>/.exec(paragraph)![0];
+        const side = (key: string) => Number(new RegExp(`w:${key}="(\\d+)"`).exec(spacing)?.[1]);
+        const sitsRightUnder =
+          level === '2'
+            ? /<w:pStyle w:val="Heading1"\/>/.test(previous)
+            : /<w:sectPr\b/.test(previous);
+        const label = documentTextOf(paragraph);
+        expect([side('before'), side('after')], label).toEqual(
+          level === '1' ? [sitsRightUnder ? 0 : 120, 280] : [sitsRightUnder ? 0 : 240, 160]
+        );
+        expect(spacing, label).not.toContain('w:line=');
+        for (const neighbour of [previous, paragraphs[index + 1] ?? 'x'])
+          expect(
+            documentTextOf(neighbour).trim() !== '' ||
+              /<w:(numPr|sectPr|drawing|br|fldChar)\b/.test(neighbour),
+            label
+          ).toBe(true);
+      });
+    }
+  );
+
+  it("sets 4.2's typed headings nearer their text, the first chapter with nothing above it", () => {
+    const spacing = paragraphsOf(bodyOf('4.2_training_themes.docx'))
+      .filter((paragraph) => /^(Sub)?[Cc]apitolul [IVX]+\./u.test(documentTextOf(paragraph)))
+      .map((paragraph) => {
+        const own = /<w:spacing\b[^>]*\/>/.exec(paragraph)![0];
+        const side = (key: string) => Number(new RegExp(`w:${key}="(\\d+)"`).exec(own)![1]);
+        return `${documentTextOf(paragraph).split(' ')[0]} ${side('before')}/${side('after')}`;
+      });
+    expect(spacing).toEqual([
+      'Capitolul 0/280',
+      'Subcapitolul 240/160',
+      'Capitolul 120/280',
+      'Subcapitolul 240/160',
+      'Capitolul 120/280',
+    ]);
+  });
+
   it.each(ssmFiles.map(([name]) => name).filter((name) => !contents.includes(name)))(
     '%s gives none of its paragraphs an outline level, so its PDF has no bookmarks of body text',
     (name) => {
@@ -579,8 +644,10 @@ describe('Word 2013 layout of the occupational safety set', () => {
   );
 
   // tools/import/typography.py, heading_line_of_its_own: an article of numbered paragraphs, or
-  // whose first paragraph introduces a list, prints its label and note on a line of their own.
+  // whose first paragraph introduces a list, prints its label and note on a line of their own;
+  // in a document with contents, so does one that holds a second paragraph or a table.
   it.each(articleFiles)('%s lays out every article by one rule', (name) => {
+    const book = contents.includes(name);
     const body = bodyOf(name).replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '<w:p>TABLE</w:p>');
     const paragraphs = paragraphsOf(body).filter(
       (paragraph) => !/^(\{\{[#/^][^}]*\}\})+$/.test(documentTextOf(paragraph).trim())
@@ -591,8 +658,19 @@ describe('Word 2013 layout of the occupational safety set', () => {
     const isArticle = (paragraph: string) =>
       articles.has(numId(paragraph) ?? '') &&
       (/<w:ilvl w:val="(\d+)"/.exec(paragraph)?.[1] ?? '0') === '0';
-    const afterNote = (text: string) =>
-      text.replace(/^\((?:Preluare din|Conform)\b(?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)\s*/u, '');
+    // As typography.py's balanced_end: a letter's label ("lit. c) și d))") closes nothing.
+    const afterNote = (text: string) => {
+      if (!/^\((?:Preluare din|Conform)\b/u.test(text)) return text;
+      let depth = 0;
+      for (let index = 0; index < text.length; index += 1) {
+        if (text[index] === '(') depth += 1;
+        else if (text[index] === ')' && !/(?:^|[\s,])[a-z]$/u.test(text.slice(0, index))) {
+          depth -= 1;
+          if (depth === 0) return text.slice(index + 1).trimStart();
+        }
+      }
+      return text;
+    };
     const wrong: string[] = [];
     paragraphs.forEach((paragraph, index) => {
       if (!isArticle(paragraph)) return;
@@ -609,8 +687,20 @@ describe('Word 2013 layout of the occupational safety set', () => {
             /^\(\d+\)/.test(afterNote(documentTextOf(each).trim()))
         );
       const next = paragraphs[index + 1] ?? '';
+      const isItem = (each: string) =>
+        (numId(each) !== undefined && numId(each) !== '0' && !isArticle(each)) ||
+        /^([a-z]\)|\d{1,2}[.)]\s|[-–•»▪]\s)/u.test(documentTextOf(each).trim());
       const nextIsItem = numId(next) !== undefined && numId(next) !== '0' && !isArticle(next);
+      const more = rest
+        .slice(0, end === -1 ? undefined : end)
+        .some(
+          (each) =>
+            each === '<w:p>TABLE</w:p>' || (documentTextOf(each).trim() !== '' && !isItem(each))
+        );
+      const quotesOnlyItsFirst =
+        afterNote(texts[index]!) !== texts[index]! && !/[:;]$/u.test(first);
       const alone =
+        (book && first !== '' && more && !quotesOnlyItsFirst) ||
         (first !== '' && alineats) ||
         /^\(\d+\)/.test(first) ||
         /:\s+\(1\)\s/.test(first) ||
