@@ -2219,7 +2219,7 @@ it exists): covers 1.0 and 6.0 list only what the set holds, and decision 6 cite
 only then. `annexes` and `noAnnexes` are what the own instructions 2.1 annex: the `su` modules
 the current positions apply, each once, by group, title and id, numbered from 1, as the other
 set's `annexes` holds its `ssm` ones; only 2.1 prints them, so an edit in the library marks
-only its draft. Issuing 2.1 renders, like 3.2, each annexed module version as an annex of its
+only its draft. Issuing 2.1 renders, like the occupational safety set's 3.1, each annexed module version as an annex of its
 own and merges them into one PDF, the fire-safety annex naming the technician in its box. It is
 never merged with the occupational safety set's names, so an edit to positions or equipment never
 marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does.

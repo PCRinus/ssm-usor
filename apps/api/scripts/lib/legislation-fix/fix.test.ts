@@ -265,6 +265,15 @@ describe('a change whose quote differs', () => {
     });
   });
 
+  it('finds the quote by file name for a passage stored without a type', async () => {
+    const untyped = { ...roads, passages: [{ ...roads.passages[0]!, type_key: null }] };
+    const { deps, tool } = setup({ changes: [untyped] });
+    await runLegislationFix(deps, options);
+    expect(tool.mock.calls[0]![0]).toMatchObject({
+      citation: { file: '2.1_general_training_material.docx' },
+    });
+  });
+
   it('opens an issue when the citation index no longer lists the quote', async () => {
     const moved = {
       ...roads,

@@ -146,7 +146,10 @@ function probe(change: OpenChange, groups: CitedPassages[], tool: QuoteTool): Pr
   const problems: Problem[] = [];
   for (const { citation, passages } of groups) {
     const first = passages[0]!;
-    const where = { file: first.template_file, locator: first.locator ?? first.unit_label };
+    const where = {
+      file: citation?.file ?? first.template_file,
+      locator: first.locator ?? first.unit_label,
+    };
     if (!citation) {
       problems.push({
         ...where,
