@@ -63,9 +63,11 @@ class Pages(unittest.TestCase):
         self.assertRegex(xml, r'<w:pageBreakBefore/>[^/]*/></w:pPr><w:r><w:t>Capitolul II. B')
 
     def test_a_typed_heading_is_nearer_its_text_than_what_comes_before_it(self):
-        xml = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('SUBCAPITOLUL I.I B'))
-        self.assertIn('<w:spacing w:after="200" w:before="120"/></w:pPr><w:r><w:t>Capitolul I. A', xml)
+        xml = chapters_on_new_pages(paragraph('CAPITOLUL I. A') + paragraph('SUBCAPITOLUL I.I B') + paragraph('text')
+                                    + paragraph('CAPITOLUL II. C'))
+        self.assertIn('<w:spacing w:after="200" w:before="0"/></w:pPr><w:r><w:t>Capitolul I. A', xml)
         self.assertIn('<w:spacing w:after="120" w:before="240"/></w:pPr><w:r><w:t>Subcapitolul I.I. B', xml)
+        self.assertRegex(xml, r'<w:spacing w:after="200" w:before="120"/></w:pPr><w:r><w:t>Capitolul II. C')
 
     def test_a_typed_subchapter_reads_in_sentence_case_its_label_closed_by_a_dot(self):
         xml = chapters_on_new_pages(paragraph('SUBCAPITOLUL I.I PLANUL INSTRUIRII / 4 ORE'))

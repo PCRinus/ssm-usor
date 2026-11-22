@@ -496,6 +496,23 @@ describe('Word 2013 layout of the occupational safety set', () => {
     }
   );
 
+  it("sets 4.2's typed headings nearer their text, the first chapter with nothing above it", () => {
+    const spacing = paragraphsOf(bodyOf('4.2_training_themes.docx'))
+      .filter((paragraph) => /^(Sub)?[Cc]apitolul [IVX]+\./u.test(documentTextOf(paragraph)))
+      .map((paragraph) => {
+        const own = /<w:spacing\b[^>]*\/>/.exec(paragraph)![0];
+        const side = (key: string) => Number(new RegExp(`w:${key}="(\\d+)"`).exec(own)![1]);
+        return `${documentTextOf(paragraph).split(' ')[0]} ${side('before')}/${side('after')}`;
+      });
+    expect(spacing).toEqual([
+      'Capitolul 0/200',
+      'Subcapitolul 240/120',
+      'Capitolul 120/200',
+      'Subcapitolul 240/120',
+      'Capitolul 120/200',
+    ]);
+  });
+
   it.each(ssmFiles.map(([name]) => name).filter((name) => !contents.includes(name)))(
     '%s gives none of its paragraphs an outline level, so its PDF has no bookmarks of body text',
     (name) => {

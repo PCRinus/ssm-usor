@@ -104,11 +104,13 @@ TYPED_HEADING = re.compile(r'^(?i:(?:sub)?capitolul) [IVXLC]+\.')
 UNDOTTED_SUBCHAPTER = re.compile(r'(>(?i:subcapitolul) [IVXLC]+\.[IVXLC]+)(?= )')
 
 
-def typed_heading(paragraph):
+def typed_heading(paragraph, opens_section=False):
     """A chapter or subchapter typed as text ("SUBCAPITOLUL I.I PLANUL") in sentence case, its
-    label closed by a dot as the contents' labels are, with the headings' room around it."""
+    label closed by a dot as the contents' labels are, with the headings' room around it; one
+    that opens the document or a section has none above it, which LibreOffice would print at
+    the top of the page (4.2's chapter I stood 6 pt below the others)."""
     scale = CHAPTER if TYPED_CHAPTER.match(text_of(paragraph)) else SUBCHAPTER
-    paragraph = set_spacing(paragraph, scale['before'], scale['after'])
+    paragraph = set_spacing(paragraph, 0 if opens_section else scale['before'], scale['after'])
     return in_sentence_case(UNDOTTED_SUBCHAPTER.sub(r'\1.', paragraph, count=1))
 
 HEADING_1 = '<w:pStyle w:val="Heading1"/>'
@@ -133,9 +135,12 @@ def chapters_on_new_pages(xml):
         chapters = [(start, end) for start, end in paragraphs if TYPED_CHAPTER.match(text_of(xml[start:end]))][1:]
     edits = {}
     if contents < 0:
-        for start, end in paragraphs:
-            if TYPED_HEADING.match(text_of(xml[start:end])):
-                edits[(start, end)] = [typed_heading]
+        previous = None
+        for kind, start, end in body_blocks(xml):
+            if kind == 'p' and TYPED_HEADING.match(text_of(xml[start:end])):
+                opens = previous is None or '<w:sectPr' in xml[previous[0]:previous[1]]
+                edits[(start, end)] = [lambda paragraph, opens=opens: typed_heading(paragraph, opens)]
+            previous = (start, end)
     for start, end in chapters:
         edits.setdefault((start, end), []).append(on_a_new_page)
         for spacer in spacers_before(xml, start):
