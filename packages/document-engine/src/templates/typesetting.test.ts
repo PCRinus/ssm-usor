@@ -425,6 +425,30 @@ describe('Word 2013 layout of the occupational safety set', () => {
 
   const paragraphsOf = (xml: string) => xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
   const ssmFiles = files.filter(([name]) => name.endsWith('.docx'));
+
+  // A style, a list level or the document default naming another font reaches an empty line, a
+  // tab or a label, and the in-app editor, which packages Arial only, warns on a device without it.
+  it.each(files)('%s names no font but Arial in any of its parts', (_, bytes) => {
+    const zip = new PizZip(bytes);
+    const named = new Set<string>();
+    for (const part of zip.file(/^word\/.*\.xml$/)) {
+      const xml = part.asText();
+      for (const [, fonts = ''] of xml.matchAll(/<w:rFonts\b([^>]*)\/>/g)) {
+        for (const [, font] of fonts.matchAll(/w:(?:ascii|hAnsi|eastAsia|cs)="([^"]*)"/g)) {
+          named.add(font!);
+        }
+        if (/Theme="/i.test(fonts)) named.add('a theme font');
+      }
+      for (const [, font] of xml.matchAll(/<w:font w:name="([^"]*)"/g)) named.add(font!);
+      for (const [, font] of xml.matchAll(/<a:(?:latin|ea|cs|font)\b[^>]*typeface="([^"]+)"/g)) {
+        named.add(font!);
+      }
+    }
+    expect([...named]).toEqual(['Arial']);
+    expect(zip.file('word/styles.xml')!.asText()).toMatch(
+      /<w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"\/>/
+    );
+  });
   const contents = [
     '2.2_general_training_material.docx',
     '3.2_own_instructions.docx',

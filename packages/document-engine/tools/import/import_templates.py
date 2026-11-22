@@ -45,6 +45,7 @@ from chapters import (articles_from_chapter_one, chapters_on_new_pages, contents
 from citation_notes import citation_notes
 from contents import column_style, column_style_id, label_columns
 from decision_pages import decision_pages
+from fonts import arial_part
 from signatures import signing_space
 from landscape_binding import landscape_bound_on_top
 from risk_assessment import NAME as RISK_ASSESSMENT, risk_assessment, sized_breaks
@@ -2106,8 +2107,8 @@ def sweep(path, word_2013=None):
     Word 2013's layout with every table on the margins (`word_layout`), the table house
     style (`table_style`), one signing space for every signature (`signatures`), the
     decisions' page numbers and running header (`decision_pages`), landscape pages bound on
-    their top edge (`landscape_binding`) and 2.2's "Conform …:" notes set like its other
-    quotations (`citation_notes`), which `word_2013` asks for
+    their top edge (`landscape_binding`), 2.2's "Conform …:" notes set like its other
+    quotations (`citation_notes`) and Arial as the only font (`fonts`), which `word_2013` asks for
     or leaves to the file's place. Safe to run again."""
     if word_2013 is None:
         word_2013 = lays_out_as_word_2013(path)
@@ -2182,6 +2183,7 @@ def sweep(path, word_2013=None):
             if word_2013 and item.filename.endswith('.xml'):
                 data = house_tables_part(item.filename, word_2013_part(item.filename, data.decode('utf8')), house,
                                          os.path.basename(path))
+                data = arial_part(item.filename, data)
                 if re.fullmatch(r'word/(document|styles|numbering|header\d*|footer\d*)\.xml', item.filename):
                     data = in_schema_order(in_schema_values(data))
                 data = data.encode('utf8')

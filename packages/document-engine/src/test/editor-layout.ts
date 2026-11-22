@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { openTreeSession } from '@docx-editor.dev/core/binding';
 import {
   createPackagedFileFetch,
   openFontBackedDocumentForExport,
@@ -126,5 +127,17 @@ export function describeEditorLayout(part: number) {
       },
       60_000
     );
+
+    // The editor packages Arial only, and warns on a device without a font the text or its
+    // styles name. The fire-safety set and the contracts are not reviewed yet.
+    it.each(
+      files
+        .filter((_, index) => index % editorLayoutParts === part)
+        .filter((name) => !/^(fire|other)\//.test(name) && name !== suAnnex)
+    )('%s asks the editor for no font but Arial', (name) => {
+      const opened = openTreeSession(read(name));
+      if (!opened.ok) throw new Error(`The editor rejected the file: ${opened.reason}`);
+      expect(opened.session.renderedFontFamilies()).toEqual(['Arial']);
+    });
   });
 }

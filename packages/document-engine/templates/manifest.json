@@ -8,8 +8,8 @@
       "title": "Copertă – Deciziile interne",
       "file": "1.0_cover_decisions.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; titlul numește domeniul, rândul dinaintea clientului spune doar „pentru”, iar lista are rândurile aliniate."
+        "kind": "layout",
+        "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     },
     {
@@ -20,8 +20,8 @@
       "title": "Decizia privind responsabilii cu instruirea",
       "file": "1.1_decision_training.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet cu decizia; 25 mm pentru semnătură și ștampilă. „și/sau”. Note „(Conf. …)” cursive; liste spațiate egal, în trepte; PDF fără semne de carte. Deasupra unei liste, „Art. N.” pe rând separat. Procesul-verbal: rânduri de semnat de 15 mm, centrate vertical, niciunul singur pe pagină."
+        "kind": "layout",
+        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
       }
     },
     {
@@ -32,8 +32,8 @@
       "title": "Decizia privind echipa de evaluare a riscurilor",
       "file": "1.2_decision_risk_evaluation_team.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. Listele, spațiate la fel; PDF-ul nu mai are semne de carte din corpul textului. Deasupra unei liste, „Art. N.” stă pe rând separat. Procesul-verbal: rânduri de semnat de 15 mm, centrate vertical, niciunul singur pe pagină."
+        "kind": "layout",
+        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
       }
     },
     {
@@ -44,8 +44,8 @@
       "title": "Decizia privind responsabilii cu primul ajutor",
       "file": "1.3_decision_first_aid.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. Listele, spațiate la fel; PDF-ul nu mai are semne de carte din corpul textului. Deasupra unei liste, „Art. N.” stă pe rând separat. Procesul-verbal: rânduri de semnat de 15 mm, centrate vertical, niciunul singur pe pagină."
+        "kind": "layout",
+        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
       }
     },
     {
@@ -56,8 +56,8 @@
       "title": "Decizia privind pericolul grav și iminent",
       "file": "1.4_decision_imminent_danger.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. „și/sau”. Listele, spațiate la fel; PDF-ul fără semne de carte din text. Deasupra unei liste, „Art. N.” stă pe rând separat. Procesul-verbal: rânduri de semnat de 15 mm, centrate vertical, niciunul singur pe pagină."
+        "kind": "layout",
+        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
       }
     },
     {
@@ -68,8 +68,8 @@
       "title": "Decizia privind reprezentanții lucrătorilor",
       "file": "1.5_decision_workers_representative.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Pagini numerotate și, de la a doua, un antet care numește decizia; 25 mm pentru semnătură și ștampilă. Ghilimele „…”. Listele, spațiate la fel; PDF-ul fără semne de carte din text. Deasupra unei liste, „Art. N.” stă pe rând separat. Procesul-verbal: rânduri de semnat de 15 mm, centrate vertical, niciunul singur pe pagină."
+        "kind": "layout",
+        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
       }
     },
     {
@@ -81,7 +81,7 @@
       "file": "2.0_cover_general_training_material.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; „introductiv-generală” nu se mai desparte."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; „introductiv-generală” nu se mai desparte; Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     },
     {
@@ -93,7 +93,7 @@
       "file": "2.2_general_training_material.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabele cu linii negre, cap gri-verde pe orice pagină; cele scurte întregi. „…”, „și/sau”. Panouri standard explicate; desene noi. Articole neîngroșate, la margine, sursa pe rând aparte peste alineate și tabele; titluri mărite, aproape de text; liste 1., a), –; cuprins cu etichete îngroșate. Antetul nu rupe „introductiv-generală”; m¹), liniuțe din anexe pe rând nou. Trei preluări devin articole. Culori ca panourile; cuvinte-cod în tabel; note „Conform …” la margine. Capitole pe pagină nouă."
+        "note": "Tabele cu linii negre, cap gri-verde pe orice pagină; cele scurte întregi. „…”, „și/sau”. Panouri standard explicate; desene noi. Articole neîngroșate, la margine, sursa pe rând aparte peste alineate și tabele; titluri mărite lângă text; liste 1., a), –; cuprins cu etichete îngroșate. Antetul nu rupe „introductiv-generală”; m¹), liniuțe din anexe pe rând nou. Trei preluări devin articole. Culori ca panourile; cuvinte-cod în tabel; note „Conform …” la margine. Capitole pe pagini noi; doar Arial."
       }
     },
     {
@@ -105,7 +105,7 @@
       "file": "3.0_cover_own_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; rândul dinaintea clientului spune doar „pentru”."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; rândul dinaintea clientului spune doar „pentru”; Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     },
     {
@@ -117,7 +117,7 @@
       "file": "3.2_own_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. „…”, „și/sau”. Articole neîngroșate, sursa pe rând aparte peste mai multe paragrafe; titluri pe o scară clară, aproape de text, subliste în trepte egale, anexe aliniate la stânga. Cuprinsul are subcapitolele, etichete îngroșate, titluri aliniate. Durata instruirii pe un rând. Capitole pe pagină nouă."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde pe fiecare pagină; cele scurte nu se rup între pagini. „…”, „și/sau”. Articole neîngroșate, sursa pe rând aparte peste mai multe paragrafe; titluri pe o scară clară, aproape de text, subliste în trepte egale, anexe aliniate la stânga. Cuprinsul are subcapitolele, etichete îngroșate, titluri aliniate. Durata instruirii pe un rând. Capitole pe pagini noi; doar Arial."
       }
     },
     {
@@ -129,7 +129,7 @@
       "file": "4.0_cover_training_themes.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     },
     {
@@ -141,7 +141,7 @@
       "file": "4.2_training_themes.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Scris „și/sau”. Fiecare post începe cu numele lui; datele lui pe două coloane. „Locul de muncă” al unui post e zona lui de lucru; lista instrucțiunilor specifice ocupă tot tabelul. Trimiterile MISSMIG urmează noua numerotare. Titluri fără majuscule, aproape de text; capitolele II și III pe pagină nouă."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde pe fiecare pagină; cele scurte nu se rup între pagini. Scris „și/sau”. Fiecare post începe cu numele lui; datele lui pe două coloane. „Locul de muncă” al unui post e zona lui de lucru; lista instrucțiunilor specifice ocupă tot tabelul. Trimiterile MISSMIG urmează noua numerotare. Titluri fără majuscule, aproape de text; capitolele II și III pe pagină nouă; doar Arial."
       }
     },
     {
@@ -152,8 +152,8 @@
       "title": "Copertă – Test de verificare a cunoștințelor",
       "file": "5.0_cover_tests.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul: „Test de verificare a cunoștințelor la angajare (TASSM)”. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; rândul dinaintea clientului spune doar „pentru”."
+        "kind": "layout",
+        "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     },
     {
@@ -164,8 +164,8 @@
       "title": "Test de verificare a cunoștințelor la angajare",
       "file": "5.1_test_hiring.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Titlul: „Test de verificare a cunoștințelor la angajare (TASSM)”; specimen marcat, cheia în a), b), c). Rândul semnăturilor are 15 mm."
+        "kind": "layout",
+        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
       }
     },
     {
@@ -176,8 +176,8 @@
       "title": "Lista internă de dotare cu echipament individual de protecție",
       "file": "6_protective_equipment_list.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnături pe 25 mm, cu linie pentru dată. „…”, „și/sau”. Echipamentul, într-un tabel grupat pe posturi. Liniuțele din celule, sub text. Categoria de personal pe un rând. Anexa 3 cu 10 pt; grupele de riscuri nu rămân la capăt de pagină. Articole la margine. Anexa 2: echipament numerotat, riscuri cu litere."
+        "kind": "layout",
+        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
       }
     },
     {
@@ -189,7 +189,7 @@
       "file": "7.0_cover_event_registers.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; lista are rândurile aliniate."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; lista are rândurile aliniate; Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     },
     {
@@ -200,8 +200,8 @@
       "title": "Registrele de evidență a evenimentelor",
       "file": "7.2_event_registers.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Paginile, așezate orizontal, se leagă pe latura de sus. Capetele de tabel ale celor patru registre au aceeași mărime. Clientul stă sub titlu; rânduri de aceeași înălțime, până la capătul paginii."
+        "kind": "layout",
+        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
       }
     },
     {
@@ -212,8 +212,8 @@
       "title": "Referat de control",
       "file": "8_control_report.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Rândul semnăturilor are 25 mm. Formularul are titlul „REFERAT DE CONTROL”. Titlurile din tabel nu mai rămân singure la capăt de pagină."
+        "kind": "layout",
+        "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     },
     {
@@ -225,7 +225,7 @@
       "file": "9_risk_assessment.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Grile clare, consecințe cu X; semnături de 25 mm; figuri noi; o măsură pe rând; pagini orizontale legate sus. Titluri fără majuscule, aproape de text; cuprins cu etichete îngroșate; capitole pe pagini noi. Formule centrate și numerotate, în text la mărimea lui; liste ca în set; fișa de evaluare la 10 pt."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde pe fiecare pagină; cele scurte nu se rup între pagini. Grile clare, consecințe cu X; semnături de 25 mm; figuri noi; o măsură pe rând; pagini orizontale legate sus. Titluri fără majuscule, aproape de text; cuprins cu etichete îngroșate; capitole pe pagini noi. Formule centrate și numerotate, în text la mărimea lui; liste ca în set; fișa de evaluare la 10 pt; doar Arial."
       }
     },
     {
@@ -236,8 +236,8 @@
       "title": "Planul de prevenire și protecție",
       "file": "10_prevention_plan.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Semnatarii au 25 mm pentru semnătură și ștampilă, la aceeași înălțime. Fiecare plan poartă numele postului, cu locul de muncă alături. Coloanele își împart lățimea după cât text are fiecare, iar paginile se leagă pe latura de sus. O măsură pe rând în celule."
+        "kind": "layout",
+        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
       }
     },
     {
@@ -249,7 +249,7 @@
       "file": "11.0_cover_employer_briefing.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile."
+        "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     },
     {
@@ -261,7 +261,7 @@
       "file": "11.1_employer_briefing.docx",
       "change": {
         "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. 25 mm pentru semnătură și ștampilă. „…”, „și/sau”; testul la angajare redenumit. Acte și materiale în liste; panouri standard explicate. Articole neîngroșate, sursa pe rând aparte peste alineate; subliste în trepte; titluri lângă text. Predarea documentelor nu e articol; cuprins și capitole pe pagini noi."
+        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde pe fiecare pagină; cele scurte nu se rup între pagini. 25 mm pentru semnătură și ștampilă. „…”, „și/sau”; testul la angajare redenumit. Acte și materiale în liste; panouri standard explicate. Articole neîngroșate, sursa pe rând aparte peste alineate; subliste în trepte; titluri lângă text. Predarea documentelor nu e articol; cuprins și capitole pe pagini noi; doar Arial."
       }
     },
     {
@@ -272,8 +272,8 @@
       "title": "Regulament intern privind controlul propriu",
       "file": "12_control_regulation.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Predarea-primirea are titlul și formulările de pe coperți și 25 mm pentru semnătură și ștampilă. Scris „și/sau”. Textul articolelor începe ca în decizii; deasupra unei liste, „Art. N.” stă pe rând separat. Titlul se rupe după sens; graficul are legendă."
+        "kind": "layout",
+        "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
       }
     },
     {
@@ -283,8 +283,8 @@
       "title": "Anexă la Regulamentul intern privind semnarea electronică a fișelor de instruire",
       "file": "13_signing_regulation_annex.docx",
       "change": {
-        "kind": "correction",
-        "note": "Tabelele și caseta din antet stau pe marginile textului. Angajatorul și cel care a întocmit anexa au fiecare 25 mm pentru semnătură și ștampilă, sub ultimul articol. Textul articolelor începe ca în decizii."
+        "kind": "layout",
+        "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     },
     {
@@ -294,7 +294,7 @@
       "file": "fisa_instruire_ssm.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. Rândurile de semnat au textul centrat pe verticală, niciunul singur pe o pagină."
+        "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     },
     {
@@ -314,7 +314,7 @@
       "file": "fisa_test.docx",
       "change": {
         "kind": "layout",
-        "note": "Tabelele stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini."
+        "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
     }
   ]
