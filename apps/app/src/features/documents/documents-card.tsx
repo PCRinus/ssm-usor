@@ -4,6 +4,7 @@ import {
   type DocumentSet,
   documentSetTypeKeys,
   isDatedDocumentType,
+  numberedTitle,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -258,7 +259,7 @@ export function DocumentsCard<Set extends DocumentSet>({
       error && (
         <div data-testid="documents-refused" className="grid gap-4">
           <Notice variant="destructive" data-testid="documents-error">
-            Nu am putut genera din nou „{error.document.title}”. Completează mai întâi:
+            {`Nu am putut genera din nou „${numberedTitle(error.document.typeKey, error.document.title)}”. Completează mai întâi:`}
           </Notice>
           <DocumentMissingRows
             clientId={clientId}

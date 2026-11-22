@@ -135,7 +135,7 @@ test('with a gap elsewhere in the set the cover is generated again, and a decisi
   await act(page, rows.filter({ hasText: title }), 'document-regenerate');
   await page.getByTestId('document-confirm').click();
   await expect(page.getByTestId('documents-error')).toHaveText(
-    `Nu am putut genera din nou „${title}”. Completează mai întâi:`
+    `Nu am putut genera din nou „1.1 ${title}”. Completează mai întâi:`
   );
   const missing = page.getByTestId('documents-missing-row');
   await expect(missing).toHaveText([/^Programul instruirii periodice/]);

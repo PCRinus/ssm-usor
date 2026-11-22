@@ -1583,7 +1583,7 @@ describe('client documents', () => {
 
     await regenerateRow(user, 'primul ajutor');
     expect((await screen.findByTestId('documents-error')).textContent).toBe(
-      'Nu am putut genera din nou „Decizia privind responsabilii cu primul ajutor”. Completează mai întâi:'
+      'Nu am putut genera din nou „1.3 Decizia privind responsabilii cu primul ajutor”. Completează mai întâi:'
     );
     const rows = await screen.findAllByTestId('documents-missing-row');
     expect(rows.map((row) => row.textContent)).toEqual(['Funcția reprezentantului legal']);
