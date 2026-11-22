@@ -1,4 +1,9 @@
-import { countOf, type DocumentSet, type LegalChangeOutcome } from '@ssm-usor/contracts';
+import {
+  countOf,
+  type DocumentSet,
+  type LegalChangeOutcome,
+  numberedTitle,
+} from '@ssm-usor/contracts';
 
 import { listOf, unitLabel } from './legislation-labels';
 import { documentsTabOf } from './legislation-sections';
@@ -32,7 +37,7 @@ export function underReviewSentence(outcome: LegalChangeOutcome | null, units: r
 // Past a few titles the line counts per set: an act like Legea 319/2006 is cited by a dozen.
 export function documentsText(documents: readonly ChangeDocument[]) {
   if (documents.length <= documentsShown) {
-    return documents.map((document) => document.title).join(', ');
+    return documents.map((document) => numberedTitle(document.typeKey, document.title)).join(', ');
   }
   return (['occupational_safety', 'fire_safety'] as const)
     .map((set) => [set, documents.filter((document) => document.set === set).length] as const)

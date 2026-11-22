@@ -92,6 +92,7 @@ const firstAid = {
   typeKey: 'decision_first_aid',
   title: 'Decizia privind responsabilii cu primul ajutor',
   decisionNumber: 5,
+  period: null,
   draft: revision() as ReturnType<typeof revision> | null,
   issued: null as ReturnType<typeof revision> | null,
 };
@@ -168,6 +169,17 @@ describe('the document editor page', () => {
     expect(back.getAttribute('aria-label')).toBe('Înapoi la documentația SSM');
     expect(back.textContent).toBe('');
     expect(screen.getByRole('main').className).toContain('overflow-hidden');
+  });
+
+  it('names the document by its binder number and title, in the page and the browser tab', async () => {
+    mockApi();
+    mount();
+
+    const editor = await screen.findByTestId('fake-editor');
+    expect(editor.textContent).toContain('1.3 Decizia privind responsabilii cu primul ajutor');
+    await waitFor(() =>
+      expect(document.title).toMatch(/^1\.3 Decizia privind responsabilii cu primul ajutor — /)
+    );
   });
 
   it('keeps the back button at the left edge while the file loads', async () => {
@@ -389,6 +401,9 @@ describe('the document editor page', () => {
     const user = userEvent.setup();
 
     const fallback = await screen.findByTestId('editor-failed');
+    expect(within(fallback).getByRole('heading').textContent).toBe(
+      '1.3 Decizia privind responsabilii cu primul ajutor'
+    );
     expect(fallback.textContent).toContain('editorul din aplicație nu o poate afișa');
     await user.click(screen.getByRole('button', { name: 'Descarcă documentul' }));
     await waitFor(() => expect(click).toHaveBeenCalledTimes(1));

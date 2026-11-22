@@ -1281,7 +1281,7 @@ describe('client documents', () => {
 
     await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
     expect((click.mock.contexts[0] as HTMLAnchorElement).download).toBe(
-      'Decizia privind responsabilii cu primul ajutor.pdf'
+      '1.3 Decizia privind responsabilii cu primul ajutor.pdf'
     );
     expect(await screen.findByText(/Deschide fișierul și tipărește-l/)).toBeTruthy();
   });

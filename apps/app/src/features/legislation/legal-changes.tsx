@@ -1,4 +1,4 @@
-import { appliedLegalChangePageSize, pageCount } from '@ssm-usor/contracts';
+import { appliedLegalChangePageSize, numberedTitle, pageCount } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { keepPreviousData } from '@tanstack/react-query';
@@ -151,7 +151,9 @@ function OpenRow({ change }: { change: OpenChange }) {
 }
 
 function AppliedRow({ change }: { change: AppliedChange }) {
-  const updated = change.updatedDocuments.map((document) => document.title).join(', ');
+  const updated = change.updatedDocuments
+    .map((document) => numberedTitle(document.typeKey, document.title))
+    .join(', ');
   return (
     <ChangeRow
       changeId={change.id}

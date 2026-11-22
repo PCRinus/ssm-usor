@@ -2,6 +2,7 @@ import {
   countOf,
   type DocumentSet,
   fireSafetyDocumentTitles,
+  numberedTitle,
   occupationalSafetyDocumentTitles,
 } from '@ssm-usor/contracts';
 
@@ -25,8 +26,12 @@ const knownTitles: Record<string, string> = {
   ...fireSafetyDocumentTitles,
 };
 
+// `titles` are the API's titles: numbering them too would print the number twice.
 export const titleOf = (typeKey: string, titles: Record<string, string> = {}) =>
-  titles[typeKey] ?? knownTitles[typeKey] ?? typeKey;
+  numberedTitle(typeKey, titles[typeKey] ?? knownTitles[typeKey] ?? typeKey);
+
+export const typeTitle = (type: { typeKey: string; title: string }) =>
+  numberedTitle(type.typeKey, type.title);
 
 export const regenerable = (type: BehindType) =>
   type.clients.filter((client) => !client.editedDraft);
@@ -80,12 +85,12 @@ function editedLine(edited: Pair[], one: boolean): ConfirmLine | null {
       lead: 'Ciorna editată de mână',
       rest: one
         ? ` de la ${client.clientName} rămâne neatinsă, ca să nu pierzi ce ai scris în ea.`
-        : ` a documentului „${type.title}”, la ${client.clientName}, rămâne neatinsă, ca să nu pierzi ce ai scris în ea.`,
+        : ` a documentului „${typeTitle(type)}”, la ${client.clientName}, rămâne neatinsă, ca să nu pierzi ce ai scris în ea.`,
     };
   }
   const where = edited
     .map(({ type, client }) =>
-      one ? client.clientName : `„${type.title}”, la ${client.clientName}`
+      one ? client.clientName : `„${typeTitle(type)}”, la ${client.clientName}`
     )
     .join('; ');
   return {
@@ -102,7 +107,7 @@ function issuedLine(issued: Pair[], one: boolean): ConfirmLine | null {
       lead: '1 document emis',
       rest: one
         ? `, la ${client.clientName}, rămâne în vigoare. Primește o ciornă nouă, pe care o emiți de pe pagina clientului.`
-        : `, „${type.title}” la ${client.clientName}, rămâne în vigoare. Primește o ciornă nouă, pe care o emiți de pe pagina clientului.`,
+        : `, „${typeTitle(type)}” la ${client.clientName}, rămâne în vigoare. Primește o ciornă nouă, pe care o emiți de pe pagina clientului.`,
     };
   }
   return {
@@ -152,7 +157,7 @@ export function confirmOneCopy(type: BehindType): ConfirmCopy {
   const { kept, lines } = linesOf([type], true);
   const clients = countOf(kept.length, 'client', 'clienți');
   return {
-    title: `Regenerezi ${type.title} la ${clients}?`,
+    title: `Regenerezi ${typeTitle(type)} la ${clients}?`,
     lead: `${kept.length === 1 ? 'Îl refacem' : 'Le refacem'} ${sourceOf([type])}, cu datele de azi ale ${kept.length === 1 ? 'clientului' : 'clienților'}.`,
     lines,
     confirm: `Regenerează la ${clients}`,

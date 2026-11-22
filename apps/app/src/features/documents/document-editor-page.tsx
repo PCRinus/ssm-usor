@@ -1,4 +1,4 @@
-import type { DocumentSet } from '@ssm-usor/contracts';
+import { type DocumentSet, numberedTitle } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Notice } from '@ssm-usor/ui/components/notice';
@@ -126,6 +126,7 @@ export function DocumentEditorView({
   const [printError, setPrintError] = useState<string | null>(null);
 
   const revision = document?.draft ?? document?.issued ?? null;
+  const title = document ? numberedTitle(document.typeKey, document.title) : '';
   const editable = !readOnly && document?.draft != null;
   const canStartDraft = !readOnly && document != null && !document.draft && document.issued != null;
   const revisionId = revision?.id;
@@ -207,7 +208,7 @@ export function DocumentEditorView({
     if (!loaded || !document || !revision) return;
     setPrintError(null);
     setPrintError(
-      await print(document.title, async () => {
+      await print(title, async () => {
         if (!editable && revision.hasPdf) return pdfOfRevision(request, documentId, revision);
         const current = ready ? await editor.current?.copy() : null;
         return pdfOf(request, documentId, current ?? loaded.bytes);
@@ -342,7 +343,7 @@ export function DocumentEditorView({
           className="grid max-w-xl gap-4 rounded-lg border p-6"
         >
           <TitleWithBack back={arrow} line="text-lg">
-            <h1 className="text-lg font-semibold">{document.title}</h1>
+            <h1 className="text-lg font-semibold">{title}</h1>
           </TitleWithBack>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Acest document are o așezare în pagină pe care editorul din aplicație nu o poate afișa.
@@ -361,7 +362,7 @@ export function DocumentEditorView({
               <DocumentEditor
                 key={loaded.revisionId}
                 bytes={loaded.bytes}
-                title={document.title}
+                title={title}
                 editable={editable}
                 back={back}
                 handle={editor}

@@ -34,6 +34,7 @@ import {
   confirmTypesCopy,
   regenerable,
   regenerationFailure,
+  typeTitle,
 } from './regeneration-copy';
 import { useRegenerations } from './regenerations-context';
 import { behindSummaryQueryKey, useBehindSummary } from './use-behind-summary';
@@ -193,10 +194,10 @@ function Summary({ change }: { change: Change }) {
               {index > 0 && '; '}
               {behindKeys.has(document.typeKey) ? (
                 <Link to={documentsTabOf(document.set)} className={textLink}>
-                  {document.title}
+                  {typeTitle(document)}
                 </Link>
               ) : (
-                document.title
+                typeTitle(document)
               )}
               , versiunea {document.version} a șablonului
             </Fragment>
@@ -235,7 +236,7 @@ function Regenerate({ change }: { change: Change }) {
     setNotStarted([]);
     try {
       const refused = new Set(await regenerations.startTypes(startable));
-      setNotStarted(startable.filter((type) => refused.has(type.typeKey)).map((t) => t.title));
+      setNotStarted(startable.filter((type) => refused.has(type.typeKey)).map(typeTitle));
     } catch (cause) {
       setFailure(regenerationFailure(cause));
     } finally {

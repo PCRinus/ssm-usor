@@ -6,7 +6,7 @@ import { CellNote } from '@/components/data-table/cell-note';
 import { documentRowLink } from '@/features/documents/document-sets';
 import { formatRoDate } from '@/lib/dates';
 
-import type { BehindClient, BehindType } from './regeneration-copy';
+import { type BehindClient, type BehindType, typeTitle } from './regeneration-copy';
 
 function revisionState(client: BehindClient) {
   if (client.editedDraft) {
@@ -31,7 +31,7 @@ export function BehindClients({ type }: { type: BehindType }) {
     <div className="overflow-x-auto rounded-lg border bg-card">
       <table
         className="w-full min-w-[32rem] text-sm"
-        aria-label={`Clienții cu ${type.title} în urmă`}
+        aria-label={`Clienții cu ${typeTitle(type)} în urmă`}
       >
         <thead>
           <tr className="border-b text-left text-[13px] text-table-head-foreground">
