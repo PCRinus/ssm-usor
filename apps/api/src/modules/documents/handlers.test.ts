@@ -512,7 +512,10 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
             : Response.json({
                 docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
                 revision: 1,
-                client_documents: { title: 'Copertă – Deciziile interne' },
+                client_documents: {
+                  title: 'Copertă – Deciziile interne',
+                  type_key: 'cover_decisions',
+                },
               }))
       );
     },
@@ -1359,7 +1362,7 @@ describe('GET /documents/{documentId}/revisions/{revisionId}/download', () => {
     const response = await request(`/documents/${documentId}/revisions/${revisionId}/download`);
     expect(response.status).toBe(200);
     const body = documentDownloadResponseSchema.parse(await response.json());
-    expect(body.fileName).toBe('Copertă - Deciziile interne - rev. 1.docx');
+    expect(body.fileName).toBe('1.0 Copertă - Deciziile interne - rev. 1.docx');
     expect(body.expiresInSeconds).toBe(60);
     expect(body.url).toContain('https://example.supabase.co/storage/v1/object/sign/documents/');
     // The name travels in the answer; the API's download route puts it in the header.
@@ -1373,7 +1376,7 @@ describe('GET /documents/{documentId}/revisions/{revisionId}/download', () => {
         docx_path: `${path}.docx`,
         pdf_path,
         revision: 1,
-        client_documents: { title: 'Copertă – Deciziile interne' },
+        client_documents: { title: 'Copertă – Deciziile interne', type_key: 'cover_decisions' },
       });
     const url = `/documents/${documentId}/revisions/${revisionId}/download?format=pdf`;
 
@@ -1381,7 +1384,7 @@ describe('GET /documents/{documentId}/revisions/{revisionId}/download', () => {
     const response = await request(url);
     expect(response.status).toBe(200);
     expect(documentDownloadResponseSchema.parse(await response.json()).fileName).toBe(
-      'Copertă - Deciziile interne - rev. 1.pdf'
+      '1.0 Copertă - Deciziile interne - rev. 1.pdf'
     );
     expect(String(calls('/storage/v1/object/sign/documents/', 'POST')[0]!.url)).toContain('1.pdf');
 
@@ -1514,9 +1517,9 @@ describe('GET /clients/{clientId}/documents/archive', () => {
       `filename*=UTF-8''${encodeURIComponent('S.C. PIPETECH S.R.L. - documentația SSM - Word.zip')}`
     );
     expect(await filesOf(response)).toEqual({
-      '01 Copertă - Deciziile interne - rev. 1.docx': `${path('cover', 1)}.docx`,
-      '02 Decizia privind primul ajutor - rev. 1 - ciornă.docx': `${path('aid', 1)}.docx`,
-      '03 Instrucțiuni proprii SSM - rev. 1.docx': JSON.stringify({
+      '1.0 Copertă - Deciziile interne - rev. 1.docx': `${path('cover', 1)}.docx`,
+      '1.3 Decizia privind primul ajutor - rev. 1 - ciornă.docx': `${path('aid', 1)}.docx`,
+      '3.2 Instrucțiuni proprii SSM - rev. 1.docx': JSON.stringify({
         common: `${path('own', 1)}.docx`,
         annexes: [annexData(0), annexData(1)],
       }),
@@ -1532,8 +1535,8 @@ describe('GET /clients/{clientId}/documents/archive', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Disposition')).toContain('documentatia SSM - PDF.zip');
     expect(await filesOf(response)).toEqual({
-      '01 Copertă - Deciziile interne - rev. 1.pdf': `${path('cover', 1)}.pdf`,
-      '02 Instrucțiuni proprii SSM - rev. 1.pdf': `${path('own', 1)}.pdf`,
+      '1.0 Copertă - Deciziile interne - rev. 1.pdf': `${path('cover', 1)}.pdf`,
+      '3.2 Instrucțiuni proprii SSM - rev. 1.pdf': `${path('own', 1)}.pdf`,
     });
     expect(calls('/rest/v1/instruction_module_versions')).toHaveLength(0);
   });
@@ -1548,7 +1551,9 @@ describe('GET /clients/{clientId}/documents/archive', () => {
     const response = await request(`/clients/${clientId}/documents/archive?set=fire_safety`);
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Disposition')).toContain('documentatia SU - Word.zip');
-    expect(Object.keys(await filesOf(response))).toEqual(['01 Registre SU - rev. 1 - ciornă.docx']);
+    expect(Object.keys(await filesOf(response))).toEqual([
+      '6.1 Registre SU - rev. 1 - ciornă.docx',
+    ]);
     expect(calls('/rest/v1/client_documents')[0]!.url.searchParams.get('document_group')).toBe(
       'eq.fire_safety_set'
     );
@@ -1600,7 +1605,7 @@ describe('the Word files of a revision with its annexes', () => {
     const response = await request(`/documents/${documentId}/revisions/${revisionId}/word`);
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Disposition')).toContain(
-      encodeURIComponent('Instrucțiuni proprii SSM - rev. 1.docx')
+      encodeURIComponent('3.2 Instrucțiuni proprii SSM - rev. 1.docx')
     );
     expect(JSON.parse(await response.text())).toEqual({
       common: 'common part',
@@ -1621,7 +1626,9 @@ describe('the Word files of a revision with its annexes', () => {
     const response = await request(`/documents/${documentId}/revisions/${revisionId}/annexes/2`);
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Disposition')).toContain(
-      encodeURIComponent('Instrucțiuni proprii SSM - rev. 1 - Anexa 2 - I.P.S.S.M. Birouri.docx')
+      encodeURIComponent(
+        '3.2 Instrucțiuni proprii SSM - rev. 1 - Anexa 2 - I.P.S.S.M. Birouri.docx'
+      )
     );
     expect(JSON.parse(await response.text())).toEqual(annexData(1));
     expect(
@@ -2719,7 +2726,10 @@ describe('the signed copy of an issued revision', () => {
           docx_path: issuedRevision.docx_path,
           pdf_path: null,
           revision: 1,
-          client_documents: { title: 'Contract de prestări servicii' },
+          client_documents: {
+            title: 'Contract de prestări servicii',
+            type_key: 'service_contract',
+          },
           document_signed_copies: { storage_path: signedPath },
         }),
     });
@@ -4431,12 +4441,13 @@ describe('the fire-safety set', () => {
             client_documents: {
               title: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
               period: 2025,
+              type_key: 'fire_annual_report',
             },
           }),
       });
       const response = await request(`/documents/${documentId}/revisions/${revisionId}/download`);
       expect(documentDownloadResponseSchema.parse(await response.json()).fileName).toBe(
-        'Raportul anual de evaluare a capacității de apărare împotriva incendiilor 2025 - rev. 1.docx'
+        '7.2 Raportul anual de evaluare a capacității de apărare împotriva incendiilor 2025 - rev. 1.docx'
       );
     });
 
