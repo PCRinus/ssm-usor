@@ -1,8 +1,9 @@
-import type {
-  BuiltInDocumentTypeKey,
-  DocumentAnnex,
-  DocumentSet,
-  MissingDocumentData,
+import {
+  type BuiltInDocumentTypeKey,
+  type DocumentAnnex,
+  type DocumentSet,
+  type MissingDocumentData,
+  numberedTitle,
 } from '@ssm-usor/contracts';
 import { saveFile } from '@ssm-usor/ui/lib/save-file';
 import { toast } from '@ssm-usor/ui/lib/toast';
@@ -39,12 +40,15 @@ export type Confirming = {
 } | null;
 type Refusal = { document: ClientDocument; missing: MissingDocumentData[] };
 
+const nameOf = (document: Pick<ClientDocument, 'typeKey' | 'title'>) =>
+  numberedTitle(document.typeKey, document.title);
+
 export function documentActionFailure(cause: unknown, document: ClientDocument): string | Refusal {
   const body = apiErrorBody(cause);
   return (
     commonFailure(cause) ??
     (body?.reason === 'pdf_unavailable'
-      ? `Nu am putut face PDF-ul pentru „${document.title}”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.`
+      ? `Nu am putut face PDF-ul pentru „${nameOf(document)}”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.`
       : body?.reason === 'missing_document_data' && body.missing?.length
         ? { document, missing: body.missing }
         : body?.reason === 'missing_document_data'
@@ -103,14 +107,14 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
         data: file,
         params: target.period === null ? undefined : { period: target.period },
       });
-      toast.success(`„${target.title}” a fost încărcat ca ciornă.`);
+      toast.success(`„${nameOf(target)}” a fost încărcat ca ciornă.`);
     } catch (cause) {
       setError(
         cause instanceof ApiHttpError && cause.status === 400
           ? 'Fișierul nu este un document Word (.docx) sau are peste 15 MB. Dacă este un .doc mai vechi, salvează-l din Word ca .docx.'
           : cause instanceof ApiHttpError && cause.status === 409
             ? 'Documentul s-a schimbat între timp. Lista a fost reîncărcată.'
-            : `Nu am putut încărca fișierul pentru „${target.title}”. Verifică conexiunea și încearcă din nou.`
+            : `Nu am putut încărca fișierul pentru „${nameOf(target)}”. Verifică conexiunea și încearcă din nou.`
       );
     }
     await refreshLists();
@@ -120,10 +124,10 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
     setError(null);
     try {
       const file = await getDocumentWord(document.id, revision.id, request);
-      saveFile(file, file instanceof File ? file.name : `${document.title}.docx`);
+      saveFile(file, file instanceof File ? file.name : `${nameOf(document)}.docx`);
     } catch {
       setError(
-        `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`
+        `Nu am putut descărca „${nameOf(document)}”. Verifică conexiunea și încearcă din nou.`
       );
     }
   }
@@ -167,7 +171,7 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
 
   async function printRevision(document: ClientDocument, revision: Revision) {
     setError(null);
-    setError(await print(document.title, () => pdfOfRevision(request, document.id, revision)));
+    setError(await print(nameOf(document), () => pdfOfRevision(request, document.id, revision)));
   }
 
   async function startDraftFromIssued(document: ClientDocument) {
@@ -178,7 +182,7 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
       // A 409 is a draft someone else has just started, and it opens all the same.
       if (!(cause instanceof ApiHttpError && cause.status === 409)) {
         setError(
-          `Nu am putut porni o ciornă nouă pentru „${document.title}”. Verifică conexiunea și încearcă din nou.`
+          `Nu am putut porni o ciornă nouă pentru „${nameOf(document)}”. Verifică conexiunea și încearcă din nou.`
         );
         return;
       }
@@ -201,16 +205,16 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
     try {
       if (action === 'regenerate') {
         await regenerate.mutateAsync({ documentId: document.id, data: {} });
-        toast.success(`„${document.title}” a fost generat din nou.`);
+        toast.success(`„${nameOf(document)}” a fost generat din nou.`);
       } else if (action === 'issue' || action === 'issueUnfilled') {
         await issue.mutateAsync({
           documentId: document.id,
           data: { acceptUnfilled: action === 'issueUnfilled' },
         });
-        toast.success(`„${document.title}” a fost emis.`);
+        toast.success(`„${nameOf(document)}” a fost emis.`);
       } else {
         await remove.mutateAsync({ documentId: document.id });
-        toast.success(`Ciorna pentru „${document.title}” a fost ștearsă.`);
+        toast.success(`Ciorna pentru „${nameOf(document)}” a fost ștearsă.`);
       }
     } catch (cause) {
       if (apiErrorBody(cause)?.reason === 'unfilled_text') {

@@ -20,7 +20,7 @@ describe('what a failed regenerate, issue or delete says', () => {
 
   it('says the document was not issued when its PDF could not be made', () => {
     expect(documentActionFailure(refusal(503, 'pdf_unavailable'), document)).toBe(
-      'Nu am putut face PDF-ul pentru „Referat de control”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.'
+      'Nu am putut face PDF-ul pentru „8 Referat de control”, așa că documentul nu a fost emis. Încearcă din nou peste câteva momente.'
     );
   });
 

@@ -851,7 +851,7 @@ describe('the Legislație page', () => {
     expect(screen.getAllByTestId('behind-type')).toHaveLength(1);
     expect(screen.getByTestId('behind-summary').textContent).toBe('1 document la 1 client');
     expect(within(type!).getByTestId('behind-title').textContent).toBe(
-      'Registru de evidență a controlului stingătoarelor de incendiu'
+      '6.4 Registru de evidență a controlului stingătoarelor de incendiu'
     );
     expect(within(type!).getByTestId('behind-version').textContent).toBe(
       'Versiunea 2 · Modificare legislativă'
@@ -975,12 +975,12 @@ describe('the Legislație page', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Regenerează Decizia privind responsabilii cu primul ajutor',
+        name: 'Regenerează 1.3 Decizia privind responsabilii cu primul ajutor',
       })
     );
     const dialog = await screen.findByTestId('behind-confirm-dialog');
     expect(within(dialog).getByRole('heading').textContent).toBe(
-      'Regenerezi Decizia privind responsabilii cu primul ajutor la 1 client?'
+      'Regenerezi 1.3 Decizia privind responsabilii cu primul ajutor la 1 client?'
     );
     expect(
       within(dialog)
@@ -1049,8 +1049,8 @@ describe('the Legislație page', () => {
         .getAllByTestId('behind-confirm-line')
         .map((line) => line.textContent)
     ).toEqual([
-      '1 document emis, „Decizia privind responsabilii cu primul ajutor” la ALFA CONSTRUCT SRL, rămâne în vigoare. Primește o ciornă nouă, pe care o emiți de pe pagina clientului.',
-      'Ciorna editată de mână a documentului „Decizia privind responsabilii cu primul ajutor”, la BETA CAFE SRL, rămâne neatinsă, ca să nu pierzi ce ai scris în ea.',
+      '1 document emis, „1.3 Decizia privind responsabilii cu primul ajutor” la ALFA CONSTRUCT SRL, rămâne în vigoare. Primește o ciornă nouă, pe care o emiți de pe pagina clientului.',
+      'Ciorna editată de mână a documentului „1.3 Decizia privind responsabilii cu primul ajutor”, la BETA CAFE SRL, rămâne neatinsă, ca să nu pierzi ce ai scris în ea.',
     ]);
     await user.click(within(dialog).getByTestId('behind-confirm'));
 
@@ -1073,7 +1073,7 @@ describe('the Legislație page', () => {
     await user.click(await screen.findByTestId('behind-confirm'));
 
     expect((await screen.findByTestId('behind-not-started')).textContent).toBe(
-      'Nu au pornit: Registrele de evidență a evenimentelor. Regenerează-le din nou.'
+      'Nu au pornit: 7.2 Registrele de evidență a evenimentelor. Regenerează-le din nou.'
     );
   });
 
@@ -1273,7 +1273,7 @@ describe('the Legislație page', () => {
       'ALFA CONSTRUCT SRL'
     );
     expect(lacking.textContent).toContain(
-      'Decizia privind responsabilii cu primul ajutor nu s-a regenerat'
+      '1.3 Decizia privind responsabilii cu primul ajutor nu s-a regenerat'
     );
     const rows = await within(lacking).findAllByTestId('regeneration-missing-row');
     const alfaId = firstAidBehind.clients[0]!.clientId;
@@ -1344,7 +1344,7 @@ describe('the Legislație page', () => {
       'Modifică un text citat în documente: art. 12 alin. (1) și art. 109².'
     );
     expect(within(quoted!).getByTestId('legal-change-line').textContent).toBe(
-      'Atinge: Material de instruire introductiv-generală'
+      'Atinge: 2.2 Material de instruire introductiv-generală'
     );
     expect(within(unassessed!).getByTestId('legal-change-sentence').textContent).toBe(
       'Nu a fost încă analizată.'
@@ -1359,7 +1359,7 @@ describe('the Legislație page', () => {
       roadApplied.note
     );
     expect(within(applied!).getByTestId('legal-change-line').textContent).toBe(
-      'A actualizat: Material de instruire introductiv-generală'
+      'A actualizat: 2.2 Material de instruire introductiv-generală'
     );
     const behind = within(applied!).getByTestId('legal-change-behind');
     expect(behind.textContent).toBe('2 documente de actualizat');
@@ -1473,7 +1473,7 @@ describe('the Legislație page', () => {
     expect(screen.getByTestId('legal-change-sentence').textContent).toBe(roadDetail.resolvedByNote);
     const updated = screen.getByTestId('legal-change-updated');
     expect(updated.textContent).toBe(
-      'A actualizat:Material de instruire introductiv-generală, versiunea 5 a șablonului'
+      'A actualizat:2.2 Material de instruire introductiv-generală, versiunea 5 a șablonului'
     );
     expect(within(updated).getByRole('link').getAttribute('href')).toBe(
       '/legislatie/documente-ssm'
@@ -1487,7 +1487,7 @@ describe('the Legislație page', () => {
 
     const passage = screen.getByTestId('legal-change-passage');
     expect(passage.textContent).toContain(
-      'art. 36 alin. (2), citat în Material de instruire introductiv-generală, art. 36 alin. (1) – (3)'
+      'art. 36 alin. (2), citat în 2.2 Material de instruire introductiv-generală, art. 36 alin. (1) – (3)'
     );
     expect(passage.textContent).not.toContain('.docx');
     const before = within(passage).getByTestId('law-diff-before');
@@ -1549,7 +1549,7 @@ describe('the Legislație page', () => {
       'Modifică un text citat în documente: art. 36 alin. (2).'
     );
     expect(screen.getByTestId('legal-change-reach').textContent).toBe(
-      'Atinge:Material de instruire introductiv-generală'
+      'Atinge:2.2 Material de instruire introductiv-generală'
     );
   });
 
@@ -1565,7 +1565,7 @@ describe('the Legislație page', () => {
     await user.click(await screen.findByTestId('legal-change-regenerate'));
     const dialog = await screen.findByTestId('behind-confirm-dialog');
     expect(within(dialog).getByRole('heading').textContent).toBe(
-      'Regenerezi Material de instruire introductiv-generală la 2 clienți?'
+      'Regenerezi 2.2 Material de instruire introductiv-generală la 2 clienți?'
     );
     await user.click(within(dialog).getByTestId('behind-confirm'));
 
@@ -1714,7 +1714,7 @@ describe('the Legislație page', () => {
     await user.click(await screen.findByTestId('behind-confirm'));
 
     expect((await screen.findByTestId('behind-not-started')).textContent).toBe(
-      'Nu au pornit: Material de instruire introductiv-generală. Regenerează-le din nou.'
+      'Nu au pornit: 2.2 Material de instruire introductiv-generală. Regenerează-le din nou.'
     );
     expect(bodiesOf('/documents/behind/regenerate', 'POST')).toEqual([
       { typeKey: 'general_training_material' },
@@ -1856,7 +1856,7 @@ describe('the Legislație page', () => {
       'Acum(2¹) a¹) casca de protecție adăugat: omologată;'
     );
     expect(passage.textContent).toContain(
-      'art. 36 alin. (2¹), citat în Material de instruire introductiv-generală'
+      'art. 36 alin. (2¹), citat în 2.2 Material de instruire introductiv-generală'
     );
     expect(passage.textContent).not.toContain('generală, art. 36');
   });
@@ -1886,7 +1886,7 @@ describe('the Legislație page', () => {
     const passage = await screen.findByTestId('legal-change-passage');
     expect(screen.getAllByTestId('legal-change-passage')).toHaveLength(1);
     expect(within(passage).getByTestId('legal-change-passage-places').textContent).toBe(
-      ', citat în Material de instruire introductiv-generală, art. 36 alin. (1) – (3); trimitere într-un document'
+      ', citat în 2.2 Material de instruire introductiv-generală, art. 36 alin. (1) – (3); trimitere într-un document'
     );
   });
 

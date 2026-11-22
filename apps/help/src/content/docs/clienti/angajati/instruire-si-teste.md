@@ -135,7 +135,7 @@ Ziua instruirii nu poate fi în viitor: o instruire se înregistrează după ce 
 
 Instruirea la locul de muncă cuprinde și „admis la lucru”: ziua, numele și funcția celui care l-a admis pe lucrător la lucru. Pe fișă, blocul apare sub această instruire.
 
-Instruirile SU înregistrate trec și în raportul anual de evaluare din setul SU. Când clientul are cel puțin o instruire SU înregistrată în anul raportului, rândul „Instruirile efectuate și rezultatele testării” arată, pe fiecare tip de instruire, câte instruiri s-au ținut și câți lucrători au participat, cu lunile instruirilor periodice, apoi, din rezultatele consemnate, câți lucrători au promovat fiecare test SU în acel an. Un test picat nu se consemnează, așa că raportul nu spune câți l-au dat. O instruire fără niciun participant nu se numără. Fără nicio instruire SU înregistrată în acel an, rândul rămâne de completat, ca să nu arate mai puțin decât s-a făcut pe hârtie. După ce înregistrezi instruiri, generează din nou raportul ca să le cuprindă.
+Instruirile SU înregistrate trec și în raportul anual de evaluare din setul SU (7.2). Când clientul are cel puțin o instruire SU înregistrată în anul raportului, rândul „Instruirile efectuate și rezultatele testării” arată, pe fiecare tip de instruire, câte instruiri s-au ținut și câți lucrători au participat, cu lunile instruirilor periodice, apoi, din rezultatele consemnate, câți lucrători au promovat fiecare test SU în acel an. Un test picat nu se consemnează, așa că raportul nu spune câți l-au dat. O instruire fără niciun participant nu se numără. Fără nicio instruire SU înregistrată în acel an, rândul rămâne de completat, ca să nu arate mai puțin decât s-a făcut pe hârtie. După ce înregistrezi instruiri, generează din nou raportul ca să le cuprindă.
 
 ### Instruirea periodică suplimentară
 
@@ -199,7 +199,7 @@ La **Încercări în portal** vezi fiecare încercare cu scorul ei și dacă a f
 
 ### Rezultatul de pe hârtie
 
-Pentru un lucrător fără portal, tipărește testul din documentele clientului. După ce l-a completat și l-a promovat, alege **Înregistrează un rezultat de pe hârtie** și completează testul, ziua în care l-a susținut, examinatorul și funcția lui. Pentru un test consemnat pe o fișă veche care nu scrie examinatorul, lasă goale numele și funcția examinatorului: rezultatul se înregistrează fără examinator și apare cu „nume neînscris pe fișă”. Dacă scrii unul dintre ele, îl completezi și pe celălalt.
+Pentru un lucrător fără portal, tipărește testul din documentele clientului (5.1 în setul SSM; 4.1 și 4.2 în setul SU). După ce l-a completat și l-a promovat, alege **Înregistrează un rezultat de pe hârtie** și completează testul, ziua în care l-a susținut, examinatorul și funcția lui. Pentru un test consemnat pe o fișă veche care nu scrie examinatorul, lasă goale numele și funcția examinatorului: rezultatul se înregistrează fără examinator și apare cu „nume neînscris pe fișă”. Dacă scrii unul dintre ele, îl completezi și pe celălalt.
 
 Butonul apare cât timp testul la angajare e de susținut sau neverificat pe fișă și, în SU, pentru testul anual: oricând după primul test promovat, iar la un lucrător neverificat pe fișă și fără el, pentru testele anuale consemnate pe fișa pe hârtie. Ziua nu poate fi în viitor. Un test nepromovat nu se înregistrează: contează susținerea următoare.
 

@@ -92,7 +92,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
   const permit = rows.filter({ hasText: /^Permis de lucru cu foc/ });
   const download = page.waitForEvent('download');
   await act(page, permit, 'document-download-draft');
-  expect((await download).suggestedFilename()).toBe('Permis de lucru cu foc - rev. 1.docx');
+  expect((await download).suggestedFilename()).toBe('6.2 Permis de lucru cu foc - rev. 1.docx');
 
   const cover = rows.nth(0);
   await act(page, cover, 'document-issue');
@@ -150,7 +150,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
   const reportDownload = page.waitForEvent('download');
   await act(page, rows.nth(2), 'document-download-draft');
   expect((await reportDownload).suggestedFilename()).toBe(
-    'Raportul anual de evaluare a capacității de apărare împotriva incendiilor 2025 - rev. 1.docx'
+    '7.2 Raportul anual de evaluare a capacității de apărare împotriva incendiilor 2025 - rev. 1.docx'
   );
 
   await page.getByRole('link', { name: 'Documentație SSM' }).click();

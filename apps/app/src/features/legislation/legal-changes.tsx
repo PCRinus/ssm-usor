@@ -23,6 +23,7 @@ import {
   behindTabOf,
   behindText,
   reachOf,
+  titlesOf,
   underReviewSentence,
 } from './legal-change-copy';
 import { ChangePanel, ChangeRow, ChangeRows } from './legal-change-row';
@@ -151,7 +152,7 @@ function OpenRow({ change }: { change: OpenChange }) {
 }
 
 function AppliedRow({ change }: { change: AppliedChange }) {
-  const updated = change.updatedDocuments.map((document) => document.title).join(', ');
+  const updated = titlesOf(change.updatedDocuments).join(', ');
   return (
     <ChangeRow
       changeId={change.id}

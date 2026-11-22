@@ -50,7 +50,7 @@ Documentele pe care le generează aplicația citează legislația: unele paragra
 
 Pagina are patru secțiuni, fiecare într-un tab:
 
-- **Documente SSM de actualizat** și **Documente SU de actualizat**: documentele clienților tăi generate dintr-o versiune mai veche a șablonului, de dinaintea unei modificări legislative sau a unei corecturi, și instrucțiunile proprii și tematicile generate din instrucțiuni schimbate între timp în bibliotecă sau la posturile de lucru. Numărul de pe tab spune câte documente ai de actualizat; un tab fără număr e la zi;
+- **Documente SSM de actualizat** și **Documente SU de actualizat**: documentele clienților tăi generate dintr-o versiune mai veche a șablonului, de dinaintea unei modificări legislative sau a unei corecturi, și instrucțiunile proprii (3.2 în SSM, 2.1 în SU) și tematicile (4.2 și 3.1) generate din instrucțiuni schimbate între timp în bibliotecă sau la posturile de lucru. Numărul de pe tab spune câte documente ai de actualizat; un tab fără număr e la zi;
 - **Modificări**: formele consolidate noi ale actelor urmărite. Sus, cât timp există, cele **În analiză**; dedesubt, cele **aplicate în documente**, cele mai recente primele. Fiecare rând deschide pagina modificării;
 - **Acte urmărite**: actele normative pe care le citează documentele aplicației.
 
@@ -86,7 +86,7 @@ O liniuță („—”) la **Domeniu** și la **Citat în** înseamnă că niciu
 
 ## Preluări și trimiteri
 
-O **preluare** este un paragraf care copiază textul unui articol, de exemplu un articol din lege redat întreg în materialul de instruire. O **trimitere** este o propoziție care doar numește actul sau un articol al lui, de exemplu „conform art. 20 din Legea 319/2006”, fără să-i copieze textul.
+O **preluare** este un paragraf care copiază textul unui articol, de exemplu un articol din lege redat întreg în materialul de instruire introductiv-generală (2.2). O **trimitere** este o propoziție care doar numește actul sau un articol al lui, de exemplu „conform art. 20 din Legea 319/2006”, fără să-i copieze textul.
 
 Diferența contează când legea se schimbă: o preluare poate rămâne cu textul vechi tipărit în document, o trimitere rămâne corectă cât timp articolul spune în continuare același lucru. „Doar trimiteri” înseamnă că documentele numesc actul fără să preia nimic din el.
 

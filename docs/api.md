@@ -2265,7 +2265,8 @@ without an evaluation marks the risk assessment, the prevention plan and the tra
 material; a gap in the provider's or the client's details marks every draft), and otherwise
 waits until the data is complete. All files go through
 `src/lib/files.ts`, as the verified user; downloads are signed links that carry the
-document's title as the file name. The draft the editor opens is the common part alone, so
+document's binder number and title as the file name, "3.2 Instrucțiuni proprii … - rev. 2.docx"
+(`documentFileName`; a type outside the binder has its title alone). The draft the editor opens is the common part alone, so
 for either set's own instructions `GET …/word` reads the revision's file and appends, with the
 engine's `appendAnnexes`, each version its snapshot annexes, rendered as at issuing, as a
 section whose pages number from 1 (ADR 034); `GET …/annexes/{number}` gives one of them alone.
@@ -2294,7 +2295,7 @@ can do all three, as the ADR decided.
 `GET /clients/{clientId}/documents/archive?set=&format=docx|pdf` answers one set as a zip,
 built in the Worker from Storage with `fflate` (stored, not deflated: Word files and PDFs are
 compressed already; names carry the UTF-8 flag, so diacritics survive Windows and macOS). Each
-document is a file numbered in the set's order. `docx` takes the issued revision, or the draft
+document is a file named by its binder number, in the set's order, as a single download is. `docx` takes the issued revision, or the draft
 while nothing is issued (named "ciornă"), plus the own instructions with their annexed module versions
 appended as sections of their own; `pdf` takes only the PDFs made at issuing, which already
 hold the annexes.

@@ -15,6 +15,7 @@ import {
   type BehindType,
   instructionsSummary,
   regenerable,
+  typeTitle,
 } from './regeneration-copy';
 
 const textLink =
@@ -33,7 +34,7 @@ export function DocumentCell({ type }: { type: BehindType }) {
   return (
     <>
       <span data-testid="behind-title" className="font-medium">
-        {type.title}
+        {typeTitle(type)}
       </span>
       <CellNote data-testid="behind-version">{versionLine(type)}</CellNote>
     </>
@@ -74,7 +75,7 @@ export function ClientsCell({ type }: { type: BehindType }) {
       variant="ghost"
       size="sm"
       data-testid="behind-clients-toggle"
-      aria-label={`${countOf(type.clients.length, 'client', 'clienți')}: ${type.title}`}
+      aria-label={`${countOf(type.clients.length, 'client', 'clienți')}: ${typeTitle(type)}`}
       aria-expanded={open}
       aria-controls={open ? detailsIdOf(type) : undefined}
       className="-my-1 -ml-2 px-2 tabular-nums"
@@ -124,7 +125,7 @@ export function ActionCell({ type }: { type: BehindType }) {
       variant="secondary"
       size="sm"
       data-testid="behind-regenerate"
-      aria-label={`Regenerează ${type.title}`}
+      aria-label={`Regenerează ${typeTitle(type)}`}
       disabled={busy}
       onClick={() => onRegenerate(type)}
     >

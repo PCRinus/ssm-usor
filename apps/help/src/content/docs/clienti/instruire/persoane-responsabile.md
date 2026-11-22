@@ -49,12 +49,12 @@ Funcția unei persoane se copiază din fișa lucrătorului când o alegi și ră
 
 ## Responsabilitățile și documentele lor
 
-- **Conducător al locului de muncă**: face instruirea la locul de muncă și instruirea periodică. Îl numește decizia privind instruirea (1.1), iar tematica și documentele SU îl tipăresc la fiecare punct de lucru.
+- **Conducător al locului de muncă**: face instruirea la locul de muncă și instruirea periodică. Îl numește decizia privind instruirea (1.1), iar tematica (4.2) și documentele SU îl tipăresc la fiecare punct de lucru.
 - **Echipa de evaluare a riscurilor**: decizia 1.2.
 - **Prim ajutor**: decizia 1.3. Angajatorul desemnează lucrătorii care aplică măsurile de prim ajutor (Legea 319/2006, art. 10 alin. (2)).
 - **Pericol grav și iminent**: decizia 1.4, care spune ce se face în caz de pericol grav și iminent: oprirea lucrului, evacuarea, anunțarea (Legea 319/2006, art. 11; HG 1425/2006, art. 102–103).
 - **Reprezentantul lucrătorilor**: decizia 1.5. E reprezentantul lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă (Legea 319/2006, art. 5 lit. d)), pe care lucrătorii îl aleg dintre ei (HG 1425/2006, art. 52): cel puțin unul între 10 și 49 de lucrători, doi între 50 și 100 (HG 1425/2006, art. 53 alin. (2)). Se alege dintre lucrătorii clientului și nu poate fi reprezentantul legal. Un reprezentant care nu mai e lucrător al clientului nu se mai numără; în listă vezi sub numele lui **Nu mai e lucrător**. Când reprezentantul lucrătorilor e și reprezentantul legal, sub responsabilitățile lui vezi cu portocaliu că nu poate fi amândouă.
-- **Coordonator privind apărarea împotriva incendiilor** și **Șef echipă de primă intervenție**: decizia de organizare a apărării împotriva incendiilor din setul SU, prin care administratorul stabilește în scris responsabilitățile și organizarea apărării împotriva incendiilor (Legea 307/2006, art. 19 alin. (1) lit. a)).
+- **Coordonator privind apărarea împotriva incendiilor** și **Șef echipă de primă intervenție**: decizia de organizare a apărării împotriva incendiilor din setul SU (1.1), prin care administratorul stabilește în scris responsabilitățile și organizarea apărării împotriva incendiilor (Legea 307/2006, art. 19 alin. (1) lit. a)).
 
 ## Scoaterea din listă
 

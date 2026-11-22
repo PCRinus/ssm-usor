@@ -121,7 +121,7 @@ test('a client whose decision prints missing data fails the regeneration with ro
   const lacking = page.getByTestId('regeneration-lacking');
   await expect(lacking.getByTestId('regeneration-lacking-client')).toHaveText(clientName);
   await expect(lacking).toContainText(
-    'Decizia privind responsabilii cu instruirea nu s-a regenerat'
+    '1.1 Decizia privind responsabilii cu instruirea nu s-a regenerat'
   );
   const rows = lacking.getByTestId('regeneration-missing-row');
   await expect(rows).toHaveText([/^Programul instruirii periodice/]);
