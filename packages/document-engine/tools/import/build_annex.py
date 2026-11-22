@@ -186,7 +186,7 @@ def build(desktop, definition, target, word_2013):
 
     document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
     document.close(True)
-    sweep(target, word_2013)
+    sweep(target, word_2013, arial=True)
 
 
 def main():
