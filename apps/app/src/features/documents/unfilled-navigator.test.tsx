@@ -35,6 +35,7 @@ const fakeEditor = {
     editor.laidOut && query === 'DE COMPLETAT' && options?.matchCase ? editor.matches : []
   ),
   selectMatch: vi.fn(() => ({ ok: true })),
+  focus: vi.fn(),
 };
 
 // The real editor is three megabytes of layout engine and needs a browser; the flow tests drive it.
