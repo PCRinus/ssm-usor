@@ -1,5 +1,6 @@
 import {
   type BehindLegalChange,
+  type BehindTemplateVersion,
   type BuiltInDocumentTypeKey,
   builtInDocumentTypeKeySchema,
   type DocumentsBehindSummary,
@@ -86,25 +87,40 @@ async function runningJobs(db: DataClient, organizationId: string) {
   }));
 }
 
-async function legalChangesOf(db: DataClient, versionIds: string[]) {
-  const answered = new Map<string, BehindLegalChange[]>();
-  if (versionIds.length === 0) return answered;
+const byActName = (a: BehindLegalChange, b: BehindLegalChange) =>
+  a.actName.localeCompare(b.actName, 'ro', { numeric: true });
+
+// Every version of the template behind each newest version, newest first, read through the
+// template so the view need not say which template a document comes from.
+async function templateVersionsOf(db: DataClient, newestVersionIds: string[]) {
+  const versions = new Map<string, BehindTemplateVersion[]>();
+  if (newestVersionIds.length === 0) return versions;
   const { data, error } = await db
-    .from('template_version_legal_changes')
-    .select('template_version_id, legal_changes(id, legal_acts(name))')
-    .in('template_version_id', versionIds);
-  if (error) throw fromDatabaseError(error, 'legal changes of template versions');
+    .from('document_template_versions')
+    .select(
+      'id, document_templates(document_template_versions(version, kind, note, template_version_legal_changes(legal_changes(id, legal_acts(name)))))'
+    )
+    .in('id', newestVersionIds);
+  if (error) throw fromDatabaseError(error, 'versions of the templates behind');
   for (const row of data) {
-    const change = row.legal_changes;
-    if (!change?.legal_acts) continue;
-    const changes = answered.get(row.template_version_id) ?? [];
-    changes.push({ id: change.id, actName: change.legal_acts.name });
-    answered.set(row.template_version_id, changes);
+    const all = row.document_templates?.document_template_versions ?? [];
+    versions.set(
+      row.id,
+      all
+        .map((version) => ({
+          version: version.version,
+          kind: version.kind as TemplateVersionKind,
+          note: version.note,
+          legalChanges: version.template_version_legal_changes
+            .flatMap(({ legal_changes: change }) =>
+              change?.legal_acts ? [{ id: change.id, actName: change.legal_acts.name }] : []
+            )
+            .sort(byActName),
+        }))
+        .sort((a, b) => b.version - a.version)
+    );
   }
-  for (const changes of answered.values()) {
-    changes.sort((a, b) => a.actName.localeCompare(b.actName, 'ro', { numeric: true }));
-  }
-  return answered;
+  return versions;
 }
 
 export async function listDocumentsBehind(
@@ -126,7 +142,7 @@ export async function listDocumentsBehind(
     ),
     runningJobs(db, organizationId),
   ]);
-  const legalChanges = await legalChangesOf(db, [
+  const versions = await templateVersionsOf(db, [
     ...new Set(rows.flatMap((row) => (row.newest_version_id ? [row.newest_version_id] : []))),
   ]);
 
@@ -144,7 +160,7 @@ export async function listDocumentsBehind(
           kind: row.newest_kind as TemplateVersionKind,
           note: row.newest_note,
         },
-        legalChanges: legalChanges.get(row.newest_version_id!) ?? [],
+        pendingVersions: versions.get(row.newest_version_id!) ?? [],
         runningJobId: running.find((job) => job.typeKey === typeKey)?.id ?? null,
         clients: [],
       };
@@ -163,7 +179,14 @@ export async function listDocumentsBehind(
     });
   }
   return [...types.values()]
-    .map((type) => ({ ...type, clients: type.clients.sort(byName) }))
+    .map((type) => {
+      const oldest = Math.min(...type.clients.map((client) => client.version));
+      return {
+        ...type,
+        pendingVersions: type.pendingVersions.filter((version) => version.version > oldest),
+        clients: type.clients.sort(byName),
+      };
+    })
     .sort(
       (a, b) =>
         (typeOrder.get(a.typeKey) ?? Infinity) - (typeOrder.get(b.typeKey) ?? Infinity) ||

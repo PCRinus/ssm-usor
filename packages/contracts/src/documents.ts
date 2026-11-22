@@ -724,13 +724,21 @@ export const behindLegalChangeSchema = z.object({ id: z.uuid(), actName: z.strin
 
 export type BehindLegalChange = z.infer<typeof behindLegalChangeSchema>;
 
+export const behindTemplateVersionSchema = templateVersionSchema.extend({
+  // The legal changes this version answers; empty for a correction or a layout version.
+  legalChanges: z.array(behindLegalChangeSchema),
+});
+
+export type BehindTemplateVersion = z.infer<typeof behindTemplateVersionSchema>;
+
 export const documentsBehindTypeSchema = z.object({
   typeKey: z.string(),
   title: z.string(),
   set: documentSetSchema,
   newestVersion: templateVersionSchema,
-  // The legal changes the newest version answers; empty for a correction or a layout version.
-  legalChanges: z.array(behindLegalChangeSchema),
+  // Every version of the template newer than the oldest `version` among the clients, newest
+  // first: each client is behind on those newer than its own.
+  pendingVersions: z.array(behindTemplateVersionSchema),
   // Null unless a regeneration of this type is under way.
   runningJobId: z.uuid().nullable(),
   clients: z.array(documentsBehindClientSchema),

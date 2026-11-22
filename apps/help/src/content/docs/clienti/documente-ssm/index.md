@@ -103,7 +103,7 @@ Datele clientului din care este scris documentul s-au schimbat după ce a fost g
 
 ### Șablon actualizat
 
-Șablonul din care s-a făcut documentul are o versiune nouă, cu un text de lege schimbat sau o corectură. Cu mouse-ul pe „Șablon actualizat” vezi versiunea și ce s-a schimbat. Alege **Generează din nou** ca documentul să preia versiunea nouă. Documentul se numără la „de actualizat”, fie el emis sau ciornă.
+Șablonul din care s-a făcut documentul are o versiune nouă, cu un text de lege schimbat sau o corectură. Cu mouse-ul pe „Șablon actualizat” vezi versiunea care cere regenerarea și ce s-a schimbat în ea: cea mai nouă modificare legislativă de la versiunea documentului încoace, iar dacă nu e niciuna, cea mai nouă corectură. Alege **Generează din nou** ca documentul să preia versiunea nouă. Documentul se numără la „de actualizat”, fie el emis sau ciornă.
 
 ### Instrucțiuni actualizate
 

@@ -6,15 +6,17 @@ import { Check, ChevronDown, LoaderCircle, RefreshCw } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
+import { otherVersionsLine } from '@/features/documents/behind-labels';
 
 import { detailsIdOf, useBehindTable } from './behind-table-context';
 import { kindLabels } from './legislation-labels';
 import {
   behindInstructions,
-  behindTemplate,
   type BehindType,
   instructionsSummary,
+  legalChangesOf,
   regenerable,
+  typeTemplateReason,
   typeTitle,
 } from './regeneration-copy';
 
@@ -23,9 +25,9 @@ const textLink =
 
 function versionLine(type: BehindType) {
   const parts = [];
-  if (behindTemplate(type)) {
-    parts.push(`Versiunea ${type.newestVersion.version}`, kindLabels[type.newestVersion.kind]);
-  }
+  const template = typeTemplateReason(type);
+  if (template)
+    parts.push(`Versiunea ${template.reason.version}`, kindLabels[template.reason.kind]);
   if (behindInstructions(type)) parts.push('Instrucțiuni schimbate');
   return parts.join(' · ');
 }
@@ -42,27 +44,32 @@ export function DocumentCell({ type }: { type: BehindType }) {
 }
 
 export function ChangedCell({ type }: { type: BehindType }) {
-  const template = behindTemplate(type);
+  const template = typeTemplateReason(type);
+  const others =
+    template && otherVersionsLine(template.others, kindLabels, template.furthestBehind);
+  const legalChanges = template
+    ? legalChangesOf([template.reason, ...[...template.others].reverse()])
+    : [];
   return (
     <div className="grid max-w-prose gap-1">
       <p data-testid="behind-note" className="leading-relaxed">
         {template
-          ? (type.newestVersion.note ?? 'Versiunea nu spune ce s-a schimbat.')
+          ? (template.reason.note ?? 'Versiunea nu spune ce s-a schimbat.')
           : instructionsSummary(type)}
       </p>
-      {template &&
-        type.legalChanges.map((change) => (
-          <Link
-            key={change.id}
-            to="/legislatie/modificari/$changeId"
-            params={{ changeId: change.id }}
-            state={openedHere}
-            data-testid="behind-legal-change"
-            className={textLink}
-          >
-            Vezi modificarea {change.actName}
-          </Link>
-        ))}
+      {legalChanges.map((change) => (
+        <Link
+          key={change.id}
+          to="/legislatie/modificari/$changeId"
+          params={{ changeId: change.id }}
+          state={openedHere}
+          data-testid="behind-legal-change"
+          className={textLink}
+        >
+          Vezi modificarea {change.actName}
+        </Link>
+      ))}
+      {others && <CellNote data-testid="behind-other-versions">{others}</CellNote>}
     </div>
   );
 }

@@ -38,7 +38,7 @@ import { FileMenuItem } from '@/components/file-menu-item';
 import { formatRoDate } from '@/lib/dates';
 
 import { AnnexRow } from './annex-row';
-import { behindInstructions, instructionChangesHint } from './behind-labels';
+import { behindInstructions, instructionChangesHint, templateReason } from './behind-labels';
 import type { ClientDocument } from './document-labels';
 import { documentLink, documentSetCopy } from './document-sets';
 import { NumberedTitle } from './pack-rows';
@@ -150,7 +150,10 @@ export function DocumentRow({
                 variant="outline"
                 className={warningBadge}
                 data-testid="document-behind"
-                title={newerTemplateHint(behindRow.type.newestVersion)}
+                title={newerTemplateHint(
+                  templateReason(behindRow.type.pendingVersions, behindRow.client.version)
+                    ?.reason ?? behindRow.type.newestVersion
+                )}
               >
                 Șablon actualizat
               </Badge>

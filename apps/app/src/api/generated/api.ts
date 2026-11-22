@@ -7372,9 +7372,27 @@ export type DocumentsBehindResponseItemsItemNewestVersion = {
   note: string | null;
 };
 
-export type DocumentsBehindResponseItemsItemLegalChangesItem = {
+export type DocumentsBehindResponseItemsItemPendingVersionsItemKind =
+  (typeof DocumentsBehindResponseItemsItemPendingVersionsItemKind)[keyof typeof DocumentsBehindResponseItemsItemPendingVersionsItemKind];
+
+export const DocumentsBehindResponseItemsItemPendingVersionsItemKind = {
+  legal: 'legal',
+  correction: 'correction',
+  layout: 'layout',
+} as const;
+
+export type DocumentsBehindResponseItemsItemPendingVersionsItemLegalChangesItem = {
   id: string;
   actName: string;
+};
+
+export type DocumentsBehindResponseItemsItemPendingVersionsItem = {
+  /** @minimum 1 */
+  version: number;
+  kind: DocumentsBehindResponseItemsItemPendingVersionsItemKind;
+  /** @nullable */
+  note: string | null;
+  legalChanges: DocumentsBehindResponseItemsItemPendingVersionsItemLegalChangesItem[];
 };
 
 export type DocumentsBehindResponseItemsItemClientsItemInstructionChangesItemCode =
@@ -7420,7 +7438,7 @@ export type DocumentsBehindResponseItemsItem = {
   title: string;
   set: DocumentsBehindResponseItemsItemSet;
   newestVersion: DocumentsBehindResponseItemsItemNewestVersion;
-  legalChanges: DocumentsBehindResponseItemsItemLegalChangesItem[];
+  pendingVersions: DocumentsBehindResponseItemsItemPendingVersionsItem[];
   /** @nullable */
   runningJobId: string | null;
   clients: DocumentsBehindResponseItemsItemClientsItem[];
@@ -34578,7 +34596,7 @@ export const getListDocumentsBehindUrl = () => {
 };
 
 /**
- * A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: its set, the template's newest version and the legal changes that version answers (with the act's name), the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether that revision is a `draft` or `issued` and the date it carries, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.
+ * A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: its set, the template's newest version, every version newer than the oldest one a client's document came from (newest first, each with the legal changes it answers and the act's name, so a client's reason to regenerate is read from the versions newer than its own), the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether that revision is a `draft` or `issued` and the date it carries, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.
  * @summary List the organization's documents behind their template or their instructions, by document type
  */
 export const listDocumentsBehind = async (

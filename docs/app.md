@@ -974,7 +974,8 @@ their tab bars read.
   view. A table row lists, in the order of the pack: title, the decision's number, badges for the issued revision and the draft, the
   date the document carries, "Date modificate" on a draft whose printed data has changed
   since, and "Șablon actualizat" on a document that is behind its template (ADR 017), with the
-  newest version's note in its tooltip. The card reads `GET /documents/behind` once for the
+  note of the version that makes it behind in its tooltip: the newest legal version after the
+  document's own, else the newest correction (`templateReason` in `behind-labels.ts`). The card reads `GET /documents/behind` once for the
   whole organization and picks its own client's documents from it. "Generează documentația" (or "Generează documentele lipsă" when some exist) shows
   while a built-in type from the contracts' `documentTypeKeys` is missing. Its dialog asks
   `GET …/documents/readiness` every time it opens: while data is missing it shows no form but
@@ -1784,10 +1785,13 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   for the logs. The two document tabs (`documents-behind.tsx`) read `GET /documents/behind`
   and keep the types of their set: a toolbar with "N documente la M clienți", the help's question
   mark and the dark "Regenerează toate", then the shared data table, one row per type:
-  "Document" (binder number and title, as everywhere in Legislație, and under it the newest version with its kind, or "Instrucțiuni
-  schimbate"), "Ce s-a schimbat" (the version's note, or what moved in the instructions,
+  "Document" (binder number and title, as everywhere in Legislație, and under it the version that makes the oldest client behind, the newest legal one else the
+  newest correction, with its kind, or "Instrucțiuni
+  schimbate"), "Ce s-a schimbat" (that version's note, or what moved in the instructions,
   and "Vezi modificarea <act>" to `/legislatie/modificari/<id>` for each legal
-  change the version answers), "Clienți" (the count, which opens the row on a table of the
+  change a pending legal version answers, the shown one's first, then, small and grey, the other
+  versions regenerating brings the client furthest behind, each with its kind, led by "La
+  clientul cel mai în urmă" when the clients stand at different versions), "Clienți" (the count, which opens the row on a table of the
   clients: each linked to that document's row on its client's documents tab, the version it
   came from and what regenerating does: "Emis pe …, primește o ciornă nouă, de emis",
   "Ciornă, se înlocuiește", "Ciornă editată de mână, se sare" in amber) and a grey-green

@@ -12,7 +12,7 @@ import type {
   RegenerationJobResponseJob,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
-import { instructionChangeText } from '@/features/documents/behind-labels';
+import { instructionChangeText, templateReason } from '@/features/documents/behind-labels';
 import { commonFailure } from '@/lib/api-errors';
 
 export type BehindType = DocumentsBehindResponseItemsItem;
@@ -38,6 +38,24 @@ export const regenerable = (type: BehindType) =>
 
 export const behindTemplate = (type: BehindType) =>
   type.clients.some((client) => client.behindTemplate);
+
+export function typeTemplateReason(type: BehindType) {
+  const versions = type.clients
+    .filter((client) => client.behindTemplate)
+    .map((client) => client.version);
+  if (versions.length === 0) return null;
+  const found = templateReason(type.pendingVersions, Math.min(...versions));
+  return found && { ...found, furthestBehind: new Set(versions).size > 1 };
+}
+
+export function legalChangesOf(versions: readonly BehindType['pendingVersions'][number][]) {
+  const changes = versions
+    .filter((version) => version.kind === 'legal')
+    .flatMap((version) => version.legalChanges);
+  return changes.filter(
+    (change, index) => changes.findIndex((other) => other.id === change.id) === index
+  );
+}
 
 export const behindInstructions = (type: BehindType) =>
   type.clients.some((client) => client.instructionChanges.length > 0);

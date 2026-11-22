@@ -114,6 +114,52 @@ const jobRow = {
   ],
 };
 
+const templateVersion = (
+  version: number,
+  kind: string,
+  note: string | null,
+  legalChanges: { id: string; name: string }[] = []
+) => ({
+  version,
+  kind,
+  note,
+  template_version_legal_changes: legalChanges.map(({ id, name }) => ({
+    legal_changes: { id, legal_acts: { name } },
+  })),
+});
+const templateVersionRows = [
+  {
+    id: decisionVersionId,
+    document_templates: {
+      document_template_versions: [
+        templateVersion(1, 'legal', null),
+        templateVersion(2, 'layout', 'Tabelul nu se mai rupe între pagini.'),
+        templateVersion(3, 'legal', 'Art. 2 preia H.G. 1425/2006 în forma în vigoare.', [
+          { id: changeId, name: 'H.G. 1425/2006' },
+        ]),
+      ],
+    },
+  },
+  {
+    id: fireVersionId,
+    document_templates: {
+      document_template_versions: [
+        templateVersion(3, 'legal', 'Art. 2 preia H.G. 1425/2006 în forma în vigoare.'),
+        templateVersion(1, 'legal', null),
+      ],
+    },
+  },
+  {
+    id: coverVersionId,
+    document_templates: {
+      document_template_versions: [
+        templateVersion(1, 'legal', null),
+        templateVersion(2, 'correction', null),
+      ],
+    },
+  },
+];
+
 type Handler = (init: RequestInit | undefined, url: URL) => Response;
 
 // The view as PostgREST answers it: filtered by type, counted for a HEAD, and a page at a time
@@ -177,20 +223,14 @@ const recent = (rows: ReturnType<typeof runningRow>[]) => (_init: unknown, url: 
 };
 function mockUpstream(
   handlers: Partial<
-    Record<'behind' | 'jobs' | 'start' | 'deleteJob' | 'legalChanges' | 'running', Handler>
+    Record<'behind' | 'jobs' | 'start' | 'deleteJob' | 'versions' | 'running', Handler>
   > = {}
 ) {
   mockSignedInUpstream({
     '/rest/v1/documents_behind': ({ init, url }) =>
       handlers.behind ? handlers.behind(init, url) : pageOf(behindRows, init, url),
-    '/rest/v1/template_version_legal_changes': ({ init, url }) =>
-      handlers.legalChanges?.(init, url) ??
-      Response.json([
-        {
-          template_version_id: decisionVersionId,
-          legal_changes: { id: changeId, legal_acts: { name: 'H.G. 1425/2006' } },
-        },
-      ]),
+    '/rest/v1/document_template_versions': ({ init, url }) =>
+      handlers.versions?.(init, url) ?? Response.json(templateVersionRows),
     '/rest/v1/rpc/start_regeneration_job': ({ init, url }) =>
       handlers.start?.(init, url) ?? Response.json(jobRow),
     'DELETE /rest/v1/regeneration_jobs': ({ init, url }) =>
@@ -229,7 +269,7 @@ describe('GET /documents/behind', () => {
         title: 'Coperta deciziilor',
         set: 'occupational_safety',
         newestVersion: { version: 2, kind: 'correction', note: null },
-        legalChanges: [],
+        pendingVersions: [{ version: 2, kind: 'correction', note: null, legalChanges: [] }],
         runningJobId: null,
         clients: [
           {
@@ -254,7 +294,20 @@ describe('GET /documents/behind', () => {
           kind: 'legal',
           note: 'Art. 2 preia H.G. 1425/2006 în forma în vigoare.',
         },
-        legalChanges: [{ id: changeId, actName: 'H.G. 1425/2006' }],
+        pendingVersions: [
+          {
+            version: 3,
+            kind: 'legal',
+            note: 'Art. 2 preia H.G. 1425/2006 în forma în vigoare.',
+            legalChanges: [{ id: changeId, actName: 'H.G. 1425/2006' }],
+          },
+          {
+            version: 2,
+            kind: 'layout',
+            note: 'Tabelul nu se mai rupe între pagini.',
+            legalChanges: [],
+          },
+        ],
         runningJobId: jobId,
         clients: [
           {
@@ -290,7 +343,14 @@ describe('GET /documents/behind', () => {
           kind: 'legal',
           note: 'Art. 2 preia H.G. 1425/2006 în forma în vigoare.',
         },
-        legalChanges: [],
+        pendingVersions: [
+          {
+            version: 3,
+            kind: 'legal',
+            note: 'Art. 2 preia H.G. 1425/2006 în forma în vigoare.',
+            legalChanges: [],
+          },
+        ],
         runningJobId: null,
         clients: [
           {
@@ -310,11 +370,11 @@ describe('GET /documents/behind', () => {
     const [read] = callsTo('/rest/v1/documents_behind', 'GET');
     expect(read!.url.searchParams.get('organization_id')).toBe(`eq.${organizationId}`);
     expect(read!.headers.get('Authorization')).toBe('Bearer test-access-token');
-    const [changes] = callsTo('/rest/v1/template_version_legal_changes', 'GET');
-    expect(changes!.url.searchParams.get('template_version_id')).toBe(
+    const [versions] = callsTo('/rest/v1/document_template_versions', 'GET');
+    expect(versions!.url.searchParams.get('id')).toBe(
       `in.(${decisionVersionId},${fireVersionId},${coverVersionId})`
     );
-    expect(changes!.headers.get('Authorization')).toBe('Bearer test-access-token');
+    expect(versions!.headers.get('Authorization')).toBe('Bearer test-access-token');
   });
 
   it('names what moved in the instructions of a client behind on them, leaving out a change it does not know', async () => {
@@ -353,7 +413,7 @@ describe('GET /documents/behind', () => {
         title: 'Tematica și programul de instruire',
         set: 'occupational_safety',
         newestVersion: { version: 2, kind: 'layout', note: null },
-        legalChanges: [],
+        pendingVersions: [],
         runningJobId: null,
         clients: [
           {
@@ -383,7 +443,7 @@ describe('GET /documents/behind', () => {
     mockUpstream({
       behind: (init, url) => pageOf(manyRows(1001), init, url),
       running: () => Response.json([]),
-      legalChanges: () => Response.json([]),
+      versions: () => Response.json([]),
     });
     const response = await request('/documents/behind');
     const [type] = documentsBehindResponseSchema.parse(await response.json()).items;
