@@ -255,6 +255,12 @@ class Headings(unittest.TestCase):
         self.assertEqual(self.spacing(xml, 'Subcapitolul V.{{roman}}. B'), ('0', '120'))
         self.assertNotIn('<w:sz w:val="2"/>', xml)
 
+    def test_a_chapter_that_opens_a_section_has_no_room_above_it(self):
+        section = '<w:p><w:pPr><w:sectPr><w:pgSz w:orient="landscape"/></w:sectPr></w:pPr></w:p>'
+        xml = heading_scale(body(paragraph('text'), section, paragraph('Anexa Nr. 3.', style='Heading1')))
+        self.assertEqual(self.spacing(xml, 'Anexa Nr. 3.'), ('0', '200'))
+        self.assertIn('<w:sectPr>', xml)
+
 
 if __name__ == '__main__':
     unittest.main()

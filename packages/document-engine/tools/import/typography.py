@@ -494,8 +494,10 @@ def article_labels(document, styles_xml):
 
 def heading_scale(document):
     """Every heading on the scale. A subchapter right under its chapter is only the chapter's
-    room below it, not the larger of the two. An empty paragraph beside a heading goes, as it
-    would add its line and both rooms."""
+    room below it, not the larger of the two, and a chapter that opens a section has nothing
+    above it: LibreOffice drops the room above a chapter at the top of a page, but not after a
+    section break, where 9's annex 3 stood 18 pt lower than its other pages. An empty paragraph
+    beside a heading goes, as it would add its line and both rooms."""
     document = without_spacers_by_headings(document)
     edits, previous = [], None
     for kind, start, end in body_blocks(document):
@@ -506,9 +508,10 @@ def heading_scale(document):
         if style:
             scale = HEADINGS[style.group(1)]
             under_chapter = style.group(1) == 'Heading2' and previous == 'Heading1'
-            changed = scaled_heading(xml, scale, 0 if under_chapter else scale['before'])
+            opens_section = previous == 'section'
+            changed = scaled_heading(xml, scale, 0 if under_chapter or opens_section else scale['before'])
             edits.append((start, end, changed))
-        previous = style.group(1) if style else kind
+        previous = style.group(1) if style else 'section' if kind == 'p' and '<w:sectPr' in own_properties(xml) else kind
     for start, end, changed in reversed(edits):
         document = document[:start] + changed + document[end:]
     return document

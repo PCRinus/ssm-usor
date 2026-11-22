@@ -477,7 +477,10 @@ describe('Word 2013 layout of the occupational safety set', () => {
         const previous = paragraphs[index - 1] ?? '';
         const spacing = /<w:spacing\b[^>]*\/>/.exec(paragraph)![0];
         const side = (key: string) => Number(new RegExp(`w:${key}="(\\d+)"`).exec(spacing)?.[1]);
-        const sitsRightUnder = level === '2' && /<w:pStyle w:val="Heading1"\/>/.test(previous);
+        const sitsRightUnder =
+          level === '2'
+            ? /<w:pStyle w:val="Heading1"\/>/.test(previous)
+            : /<w:sectPr\b/.test(previous);
         const label = documentTextOf(paragraph);
         expect([side('before'), side('after')], label).toEqual(
           level === '1' ? [sitsRightUnder ? 0 : 120, 200] : [sitsRightUnder ? 0 : 240, 120]
