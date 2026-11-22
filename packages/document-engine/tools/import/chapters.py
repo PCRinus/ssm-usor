@@ -64,13 +64,13 @@ def escaped(text):
 TEXT = re.compile(r'(<w:t\b[^>]*>)([^<]*)(</w:t>)')
 
 
-def in_sentence_case(paragraph):
+def in_sentence_case(paragraph, case=sentence_case):
     """A heading paragraph with its text in sentence case, run by run."""
     for tag, renamed in RENAMED_TAGS.items():
         paragraph = paragraph.replace(tag, renamed)
     pieces = [unescaped(match.group(2)) for match in TEXT.finditer(paragraph)]
     whole = ''.join(pieces)
-    cased = sentence_case(whole)
+    cased = case(whole)
     if cased == whole:
         return paragraph
     parts = iter(range(len(pieces)))

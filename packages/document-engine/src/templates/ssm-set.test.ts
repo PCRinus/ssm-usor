@@ -848,8 +848,8 @@ describe('risk_assessment', () => {
 
   it('lists every factor with a measure in the measures sheet, as the plan does', () => {
     const sheet = text.slice(
-      text.indexOf('IV. FIȘA DE MĂSURI PROPUSE'),
-      text.indexOf('V. INTERPRETAREA REZULTATELOR EVALUĂRII')
+      text.indexOf('IV. Fișa de măsuri propuse'),
+      text.indexOf('V. Interpretarea rezultatelor evaluării')
     );
     expect(sheet).toContain('{{#plan}}{{$index}}.');
     expect(sheet).toContain('{{measures}}{{/plan}}');

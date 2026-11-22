@@ -19,6 +19,7 @@ is a dash list, each member's name bold, the client named once in the line above
 
 import re
 
+from chapters import in_sentence_case, sentence_case
 from table_style import P_PR_ORDER, R_PR_ORDER, RUN, edit_properties, element, put
 from typography import body_blocks, bold, edit_run, edit_text_range, escaped, set_spacing, spoken, text_of, unescaped
 from typography import lists as lists_spacing
@@ -512,13 +513,20 @@ def lettered_instruments(numbering, document):
     return numbering[:definition.start()] + relettered + numbering[definition.end():]
 
 
-POST_PARTS = r'^I\. (?i:definirea locului de muncă)'
+# The five parts of each post's evaluation, typed in capitals in the original.
+POST_PARTS = (r'^(?:I\. (?i:definirea locului de muncă)|II\. (?i:identificarea factorilor de risc)|'
+              r'III\. (?i:fișa de evaluare)|IV\. (?i:fișa de măsuri)|V\. (?i:interpretarea rezultatelor))')
+
+
+def post_part(xml, match, position, total):
+    """A part's heading in sentence case after its numeral; the first, right under the post's
+    subchapter, takes only the subchapter's room above it."""
+    xml = in_sentence_case(xml, lambda text: text[:text.index('.') + 1] + sentence_case(text[text.index('.') + 1:]))
+    return set_spacing(xml, before=0) if position == 0 else xml
 
 
 def posts(document):
-    # The first part of a post's evaluation, right under the post's subchapter, takes only the
-    # subchapter's room above it.
-    document = edit_paragraphs(document, POST_PARTS, lambda xml, *_: set_spacing(xml, before=0), count=1)
+    document = edit_paragraphs(document, POST_PARTS, post_part, count=5)
     for field in ('Executant', 'Sarcina de muncă', 'Mijloacele de producție', 'Mediul de muncă'):
         document = edit_paragraphs(document, rf'^{field}: \{{\{{workSystem\.', lambda xml, *_: indented(
             xml, left=0, hanging=0, before=0, after=ROOM if field == 'Mediul de muncă' else GAP), count=1)
@@ -531,7 +539,7 @@ def posts(document):
         xml, r'\{\{letter\}\}\)\s*', '{{letter}})', left=3 * TIER, hanging=TIER, before=0, after=GAP, keep=True), count=1)
     document = edit_paragraphs(document, r'^\{\{code\}\}\.\s*\{\{description\}\}$', lambda xml, *_: labelled(
         xml, r'\{\{code\}\}\.\s*', '{{code}}.', left=3 * TIER + HANG, hanging=HANG, before=0, after=GAP), count=1,
-        before=blocks(document)[find(document, r'^III\. FIȘA DE EVALUARE')][1])
+        before=blocks(document)[find(document, r'^III\. (?i:fișa de evaluare)')][1])
     document = edit_paragraphs(document, r', (?:după formula prezentată în|conform formulei \(1\) din) capitolul II', lambda xml, *_: replaced_tail(
         xml, ', după formula prezentată în capitolul II:', ', conform formulei (1) din capitolul II.'), count=1)
     document = edit_paragraphs(document, r'^\{\{code\}\}(?: –|\.)\s*\{\{description\}\}$', lambda xml, *_: labelled(

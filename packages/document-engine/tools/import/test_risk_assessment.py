@@ -1,7 +1,8 @@
 import re
 import unittest
 
-from risk_assessment import (LEVEL_ONE, LEVELS, LIMITS, N_G, N_R, R_SET, labelled, sheet, sized_breaks, submatrix)
+from risk_assessment import (LEVEL_ONE, LEVELS, LIMITS, N_G, N_R, R_SET, labelled, posts, sheet, sized_breaks,
+                             submatrix)
 
 RUN = ('<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/></w:rPr>'
        '<w:t xml:space="preserve">{}</w:t></w:r>')
@@ -66,6 +67,30 @@ class Sheet(unittest.TestCase):
         self.assertNotIn('Componenta', once)
         self.assertIn('probabilitate', once)
         self.assertEqual(sheet(once), once)
+
+
+class Posts(unittest.TestCase):
+    def test_the_parts_of_a_posts_evaluation_read_in_sentence_case_after_their_numeral(self):
+        parts = ['I. DEFINIREA LOCULUI DE MUNCĂ, ANALIZA PROCESULUI DE MUNCĂ ȘI DETERMINAREA ELEMENTELOR',
+                 'II. IDENTIFICAREA FACTORILOR DE RISC SPECIFICI LOCULUI DE MUNCĂ',
+                 'III. FIȘA DE EVALUARE A RISCURILOR DE ACCIDENTARE ȘI/SAU ÎMBOLNĂVIRE PROFESIONALĂ',
+                 'IV. FIȘA DE MĂSURI PROPUSE', 'V. INTERPRETAREA REZULTATELOR EVALUĂRII']
+        fields = [f'{field}: {{{{workSystem.x}}}}' for field in ('Executant', 'Sarcina de muncă', 'Mijloacele de producție',
+                                                              'Mediul de muncă')]
+        typed = ['{{$index}}. Factori de risc proprii {{of}}:', 'Nu au fost identificați factori de risc proprii {{of}}.',
+                 '{{letter}}) {{name}}:', '{{code}}. {{description}}', ', după formula prezentată în capitolul II:',
+                 'V.2. Nivelul de risc global al locului', '{{code}} – {{description}}', '{{measuresSentence}}']
+        texts = [parts[0], *fields, parts[1], *typed[:4], parts[2], *typed[4:], parts[3], parts[4]]
+        document = '<w:body>' + ''.join(paragraph(RUN.format(text), properties='<w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr>')
+                                        for text in texts) + '</w:body>'
+        once = posts(document)
+        said = [re.sub(r'<[^>]+>', '', p) for p in re.findall(r'<w:p>.*?</w:p>', once)]
+        self.assertIn('I. Definirea locului de muncă, analiza procesului de muncă și determinarea elementelor', said)
+        self.assertIn('III. Fișa de evaluare a riscurilor de accidentare și/sau îmbolnăvire profesională', said)
+        self.assertIn('IV. Fișa de măsuri propuse', said)
+        self.assertIn('<w:spacing w:before="0" w:after="120"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>'
+                      '<w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">I. Definirea', once)
+        self.assertEqual(posts(once), once)
 
 
 if __name__ == '__main__':
