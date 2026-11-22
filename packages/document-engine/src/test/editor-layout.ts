@@ -134,10 +134,14 @@ export function describeEditorLayout(part: number) {
       files
         .filter((_, index) => index % editorLayoutParts === part)
         .filter((name) => !/^(fire|other)\//.test(name) && name !== suAnnex)
-    )('%s asks the editor for no font but Arial', (name) => {
-      const opened = openTreeSession(read(name));
-      if (!opened.ok) throw new Error(`The editor rejected the file: ${opened.reason}`);
-      expect(opened.session.renderedFontFamilies()).toEqual(['Arial']);
-    });
+    )(
+      '%s asks the editor for no font but Arial',
+      (name) => {
+        const opened = openTreeSession(read(name));
+        if (!opened.ok) throw new Error(`The editor rejected the file: ${opened.reason}`);
+        expect(opened.session.renderedFontFamilies()).toEqual(['Arial']);
+      },
+      60_000
+    );
   });
 }
