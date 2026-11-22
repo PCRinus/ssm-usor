@@ -792,6 +792,23 @@ describe('risk_assessment', () => {
     expect(indent('a)durata de viață a echipamentelor')).toBe(720);
   });
 
+  it('runs in the same way after both labels: a bold lead, then regular text hanging from the label', () => {
+    const paragraphs = bodyOf('9_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
+    const bolds = (start: string) => {
+      const paragraph = paragraphs.find((xml) => documentTextOf(xml).startsWith(start))!;
+      expect(paragraph).toContain('<w:ind w:left="360" w:hanging="360"/>');
+      return [...paragraph.matchAll(/<w:r>(?:(?!<\/w:r>)[\s\S])*<\/w:r>/g)]
+        .filter(([run]) => /<w:t\b/.test(run))
+        .filter(([run]) => /<w:b\/>/.test(run))
+        .map(([run]) => documentTextOf(`<w:p>${run}</w:p>`));
+    };
+    expect(bolds('a)În timpul evaluării')).toEqual(['a)', 'În timpul evaluării propriu-zise']);
+    expect(bolds('b)Gestiunea computerizată')).toEqual([
+      'b)',
+      'Gestiunea computerizată a riscurilor',
+    ]);
+  });
+
   it("heads chapter VI's measures and levels in sentence case", () => {
     expect(text).toContain('\nMăsuri cu caracter general propuse pentru toate locurile de muncă\n');
     expect(text).toContain('\nLa nivelul unității se vor avea în vedere următoarele:\n');
