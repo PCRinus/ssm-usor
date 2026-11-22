@@ -37,7 +37,7 @@ Dedesubt, fiecare secțiune a dosarului tipărit este un dosar, și cea care are
 
 Pe bare, verdele închis înseamnă emis, galbenul de actualizat, verdele-cenușiu ciornă, iar griul deschis negenerat. Un document se numără o singură dată, la starea cea mai urgentă: întâi de actualizat, apoi ciornă, apoi emis.
 
-Pe telefon dosarele sunt o listă, unul sub altul, cu aceleași informații.
+Pe telefon dosarele sunt o listă, unul sub altul: fiecare arată numărul și titlul secțiunii, bara și unde stă, fără numărul de documente și de anexe.
 
 Un document pe care clientul îl are deja, dar pe care această versiune a aplicației încă nu îl cunoaște, apare la sfârșit, în dosarul **Alte documente SSM**.
 
@@ -47,9 +47,11 @@ Un clic pe un dosar îl deschide. Vezi numărul și titlul secțiunii, unde stă
 
 Ca să treci prin documentație:
 
-- **Toate secțiunile** te duce înapoi la dosare, ca și butonul „înapoi” al browserului;
-- săgețile din dreapta sus deschid secțiunea dinainte și pe cea de după, iar lângă ele scrie a câta secțiune este din câte;
+- **Toate secțiunile** te duce înapoi la dosare;
+- săgețile din dreapta sus deschid secțiunea dinainte și pe cea de după; a câta secțiune este din câte scrie lângă ele, iar pe telefon sub titlul secțiunii;
 - la capătul tabelului, butonul **Următoarea secțiune** deschide secțiunea următoare.
+
+Săgețile și **Următoarea secțiune** nu adaugă pași în istoricul browserului, așa că butonul „înapoi” al browserului te duce din orice dosar înapoi la dosare, ca **Toate secțiunile**.
 
 Bara, butoanele de generare și descărcarea întregii documentații nu apar într-un dosar deschis: sunt pe pagina cu toate dosarele.
 
@@ -57,7 +59,7 @@ Instrucțiunile proprii își arată anexele sub ele, câte una pe rând, fiecar
 
 ## Numerele documentelor
 
-Fiecare document are numărul lui din dosarul tipărit, scris înaintea titlului: **3.2** sunt instrucțiunile proprii, **6** lista de dotare cu echipament individual de protecție, **9** evaluarea riscurilor. Numărul este același la orice client și oriunde apare documentul.
+Fiecare document are numărul lui din dosarul tipărit, scris înaintea titlului: **3.2** sunt instrucțiunile proprii, **6** lista de dotare cu echipament individual de protecție, **9** evaluarea riscurilor. Numărul este același la orice client și oriunde apare documentul: în titlul documentului deschis, în ferestrele și mesajele despre el, în **Legislație** și în numele fișierelor descărcate, inclusiv în arhiva documentației.
 
 Coperta unei secțiuni are numărul **X.0**: 1.0 este coperta deciziilor, 3.0 coperta instrucțiunilor proprii. După copertă, o secțiune poate continua direct cu X.2, ca 2.0 și 2.2: numerele păstrează locul documentelor din dosarul obișnuit, iar lipsa unui număr este voită.
 
@@ -153,4 +155,4 @@ Fereastra de generare spune ce înseamnă numărul de lucrători al clientului p
 
 ## Clientul arhivat
 
-La un client arhivat nu se mai generează și nu se mai emite nimic. Documentele lui se pot deschide, descărca și tipări în continuare.
+La un client arhivat nu se mai generează și nu se mai emite nimic. Documentele lui se pot deschide, descărca și tipări în continuare. Dacă documentația lui nu a fost generată deloc, tabul arată doar un panou care spune că clientul este arhivat, fără dosare.

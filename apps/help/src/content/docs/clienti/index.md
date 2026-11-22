@@ -117,7 +117,7 @@ Poți ordona lista după aceste coloane ca să vezi întâi clienții la care ma
 - **Detalii**: datele firmei, reprezentantul legal, sediul și punctele de lucru, persoana de contact și, pentru admini, notițele. Vezi [Detalii](/clienti/detalii/);
 - **Lucrători**: lucrătorii clientului, cu instruirea și testarea lor. Vezi [Lucrători](/clienti/angajati/);
 - **Posturi de lucru**, **Mijloace de apărare**, **Instruire și responsabili** și **Instruiri ținute**: datele din care se întocmesc documentele și evidența instruirilor;
-- **Documentație SSM** și **Documentație SU**: cele două seturi de documente;
+- **Documentație SSM** și **Documentație SU**: cele două seturi de documente. Vezi [Documentația SSM](/clienti/documente-ssm/) și [Documentația SU](/clienti/documente-su/);
 - **Contract**: contractul de prestări servicii cu clientul, pe care îl văd doar adminii;
 - **Alte documente** și **Portal**.
 

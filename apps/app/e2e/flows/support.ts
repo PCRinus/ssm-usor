@@ -963,8 +963,7 @@ export async function cleanUp() {
 const sectionNumbered = (page: Page, number: string) =>
   page.getByTestId('section-number').filter({ hasText: new RegExp(`^${number}$`) });
 
-// Only an open folder renders its rows; `number` is the section's in the binder. Another folder
-// leads to this one through the overview of all of them.
+// Only an open folder renders its rows; `number` is the section's in the binder.
 export async function openDocumentSection(page: Page, number: string) {
   const open = page.getByTestId('pack-section');
   if ((await page.getByTestId('pack-layout').getAttribute('data-view')) === 'folder') {
