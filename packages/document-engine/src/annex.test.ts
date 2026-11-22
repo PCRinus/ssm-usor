@@ -276,6 +276,11 @@ describe.each([
         { kind: 'article' as const, paragraphs: ['Se interzice fumatul.'] },
         { kind: 'article' as const, paragraphs: ['Acțiuni: (1) Se anunță.', '(2) Se stinge.'] },
         { kind: 'article' as const, paragraphs: ['Echipamentul de protecție', '(1) Casca.'] },
+        {
+          kind: 'article' as const,
+          paragraphs: ['Instruirea are trei faze.', 'Fișa se semnează.'],
+        },
+        { kind: 'article' as const, paragraphs: ['Se interzice accesul.', '– în birouri.'] },
       ],
     };
     const xml = part(renderAnnex(domain, body, data), 'word/document.xml');
@@ -298,6 +303,10 @@ describe.each([
         'Item1: (2)\tSe stinge.',
         'Article: Art. 5. Echipamentul de protecție',
         'Item1: (1)\tCasca.',
+        'Article: Art. 6. Instruirea are trei faze.',
+        'Paragraph: Fișa se semnează.',
+        'Article: Art. 7. Se interzice accesul.',
+        'Item1: –\tîn birouri.',
       ]);
       return;
     }
@@ -318,6 +327,11 @@ describe.each([
       'Article: Art. 5.',
       'Paragraph: Echipamentul de protecție',
       'Paragraph: (1) Casca.',
+      'Article: Art. 6.',
+      'Paragraph: Instruirea are trei faze.',
+      'Paragraph: Fișa se semnează.',
+      'Article: Art. 7.\tSe interzice accesul.',
+      'Dash1: –\tîn birouri.',
     ]);
     expect(xml).toMatch(/<w:keepNext\/>(?:(?!<\/w:p>)[\s\S])*Art\. 1\./);
     expect(xml).toMatch(/<w:b\/><\/w:rPr><w:t>\(2\)<\/w:t>/);

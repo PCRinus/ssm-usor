@@ -147,6 +147,7 @@ class ArticleLines(unittest.TestCase):
         self.assertTrue(heading_line_of_its_own('Neluarea măsurilor legale', '(1) Neluarea', False, True))
         self.assertFalse(heading_line_of_its_own('Instruirea are ca scop însușirea.', 'Altceva', False, False))
         self.assertFalse(heading_line_of_its_own('Conținutul trusei:', None, False, False))
+        self.assertTrue(heading_line_of_its_own('Conținutul trusei:', None, False, False, True))
 
     def test_cuts_an_article_after_its_note_and_keeps_the_line_with_its_text(self):
         document = body(paragraph('(Preluare din Legea 319/2006 – Art. 12 alin. (1) lit. c)) (1) Angajatorul asigură', num=1, after=60),
@@ -165,6 +166,18 @@ class ArticleLines(unittest.TestCase):
                         paragraph('Lucrătorii respectă instrucțiunile.'), paragraph('(Preluare din H.G. 1425/2006 – Art. 76) (1) Instruirea', num=1))
         laid = article_paragraphs(document, STYLES, NUMBERING)
         self.assertEqual(laid.split('Lucrătorii')[0], document.split('Lucrătorii')[0])
+
+    def test_in_a_book_cuts_an_article_that_holds_a_second_paragraph_or_a_table(self):
+        table = '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Denumirea materialului</w:t></w:r></w:p></w:tc></w:tr></w:tbl>'
+        for after in (paragraph('Riscurile identificate sunt următoarele:'), table):
+            document = body(paragraph('În cadrul instruirii persoana va fi instruită.', num=1), after,
+                            paragraph('Persoana care observă un incendiu', num=1), paragraph('Dacă e cazul, sună la 112.', num=2))
+            laid = article_paragraphs(document, STYLES, NUMBERING, book=True)
+            said = [re.sub(r'<[^>]+>', '', item) for item in re.findall(r'<w:p>.*?</w:p>', laid)]
+            self.assertEqual(said[:2], ['', 'În cadrul instruirii persoana va fi instruită.'])
+            self.assertIn('Persoana care observă un incendiu', said)
+            self.assertEqual(article_paragraphs(laid, STYLES, NUMBERING, book=True), laid)
+            self.assertEqual(article_paragraphs(document, STYLES, NUMBERING), document)
 
     def test_cuts_an_article_without_a_note_after_its_label(self):
         document = body(paragraph('Periodicitatea controalelor este stabilită astfel:', num=1),

@@ -94,12 +94,13 @@ export function annexParagraphs(body: AnnexBody, { articles = false } = {}): Ann
 }
 
 // The common part's rule (heading_line_of_its_own in tools/import/typography.py): an article of
-// alineats, "(1)" first or further on, or whose first paragraph introduces a list, prints
-// "Art. N." on a line of its own; any other runs on after its label.
+// alineats, "(1)" first or further on, whose first paragraph introduces a list, or that holds a
+// second paragraph besides its list items, prints "Art. N." on a line of its own; any other runs
+// on after its label.
 export function headingLineOfItsOwn(paragraphs: readonly string[]) {
   const [first = '', ...rest] = paragraphs;
   if (/^\(1\)\s|:\s+\(1\)\s/u.test(first)) return true;
-  if (rest.some((text) => /^\(\d{1,3}\)\s/u.test(text))) return true;
+  if (rest.some((text) => /^\(\d{1,3}\)\s/u.test(text) || !marker.test(text))) return true;
   return first.endsWith(':') && rest.length > 0 && marker.test(rest[0]!);
 }
 

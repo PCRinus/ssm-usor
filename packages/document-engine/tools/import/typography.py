@@ -628,14 +628,17 @@ def is_article(paragraph, styles, numbering):
     return bool(level and re.search(r'<w:lvlText w:val="Art\.', level))
 
 
-def heading_line_of_its_own(first, following, following_is_item, alineat_follows):
+def heading_line_of_its_own(first, following, following_is_item, alineat_follows, more=False):
     """Whether an article's "Art. N." and its "(Preluare din …)" note stand as a line of their
     own, with the article's text from the next line at the margin. Mircea's rule (2026-11-21):
     an article of numbered paragraphs, so "(1)", "(2)" line up, or whose first paragraph
-    introduces a list; any other article runs on after its label and note. `first` is the
-    first paragraph's text after the note, `following` the next paragraph's after its own,
-    `alineat_follows` whether a later paragraph of the article opens with "(n)"."""
-    if not first or ALINEAT.match(first) or TITLED.search(first) or alineat_follows:
+    introduces a list; any other article runs on after its label and note. Since 2026-11-22
+    also an article that holds more than its first paragraph and its list, a second paragraph
+    or a table, which a label run into the first paragraph would leave out (2.2's art. 328, 11's
+    art. 65). `first` is the first paragraph's text after the note, `following` the next
+    paragraph's after its own, `alineat_follows` whether a later paragraph of the article opens
+    with "(n)", `more` whether it holds such a paragraph or table."""
+    if not first or ALINEAT.match(first) or TITLED.search(first) or alineat_follows or more:
         return True
     return first.endswith(':') and (following_is_item or LABELLED.match(following or '') is not None)
 
@@ -690,11 +693,28 @@ def alineat_follows(document, blocks, index, styles, numbering):
     return False
 
 
-def article_paragraphs(document, styles_xml, numbering_xml):
+def holds_more(document, blocks, index, styles, numbering):
+    """Whether the article at `index` goes on past its first paragraph and its list items, up
+    to the next article or heading."""
+    for kind, start, end in blocks[index + 1:]:
+        xml = document[start:end]
+        if kind != 'p':
+            return kind == 'tbl'
+        if is_article(xml, styles, numbering) or re.search(r'<w:pStyle w:val="Heading[12]"/>', own_properties(xml)):
+            return False
+        if not is_loop_tags(xml) and text_of(xml).strip() and list_item(xml, styles, numbering) is None:
+            return True
+    return False
+
+
+def article_paragraphs(document, styles_xml, numbering_xml, book=False):
     """Every article laid out by `heading_line_of_its_own`: an article that opens with its
     "(1)", holds alineats further on or opens with the line introducing its list is cut after
     its note, or after its label where it has none; a title that runs on into "(1)" ("Acțiuni
-    în caz de incendiu: (1) Odată …") keeps its own paragraph above it."""
+    în caz de incendiu: (1) Odată …") keeps its own paragraph above it. In a `book`, a document
+    with contents, an article ends at the next article or heading, so one that holds a second
+    paragraph or a table is cut too; elsewhere what follows the last article is a signing space
+    or a title of the next part."""
     styles, numbering = Styles(styles_xml), Numbering(numbering_xml)
     blocks = list(body_blocks(document))
     edits = []
@@ -707,7 +727,8 @@ def article_paragraphs(document, styles_xml, numbering_xml):
         is_item = following[0] == 'p' and list_item(following[1], styles, numbering) is not None
         said = unescaped(text_of(xml))
         if not heading_line_of_its_own(after_note(said), after_note(unescaped(text_of(following[1]))) if following[0] == 'p' else None,
-                                       is_item, alineat_follows(document, blocks, index, styles, numbering)):
+                                       is_item, alineat_follows(document, blocks, index, styles, numbering),
+                                       book and holds_more(document, blocks, index, styles, numbering)):
             continue
         end_of_head = note_end(said)
         first = len(said) - len(said[end_of_head:].lstrip())
@@ -1091,7 +1112,7 @@ def typography(document, styles, numbering, contents, name=None):
     else:
         document, styles = out_of_the_outline(document, styles)
     if numbering is not None:
-        document = article_paragraphs(document, styles, numbering)
+        document = article_paragraphs(document, styles, numbering, contents)
     document, styles = plain_articles(document, styles)
     if name in ARTICLE_DOCUMENTS:
         document = article_labels(document, styles)
