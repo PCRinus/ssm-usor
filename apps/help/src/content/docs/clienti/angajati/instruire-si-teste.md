@@ -228,7 +228,7 @@ O fișă nu e un document din setul clientului. Se întocmește în momentul în
 - instruirile la angajare, fiecare cu ziua, durata, cine a instruit și materialul;
 - blocul „admis la lucru”;
 - un rând pentru fiecare instruire periodică și, pe fișa SSM, fiecare instruire suplimentară;
-- rânduri goale până la capătul paginii, pentru semnăturile pe hârtie.
+- rânduri goale până la capătul paginii, în care intră instruirile următoare.
 
 O instruire preluată de pe fișa pe hârtie apare pe fișă cu mențiunea „transcris; semnat pe hârtie” în locul semnăturilor, iar numele celor care au instruit și au verificat rămân dedesubt. Cât timp fișa are măcar un astfel de rând, sub titlu scrie: „Rândurile cu mențiunea „transcris” sunt copiate de pe fișa pe hârtie. Originalul, cu semnăturile, se păstrează la angajator.” Fișa din aplicație nu înlocuiește fișa pe hârtie: clientul o păstrează în continuare.
 
