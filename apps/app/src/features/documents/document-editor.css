@@ -80,16 +80,19 @@
 
 /* The contents is a content control the engine keeps; lighting the whole block on hover hides
    which chapter a click opens, so the frame shows only while the cursor is in the contents. An
-   entry is several links, one per run and line, so the colour goes to every link of the
-   paragraph under the pointer. The editor sets each link's colour and decoration inline, and its
-   read-only rules outrank a plain override. */
+   entry is several links, one per run and line, so the style goes to every link of the paragraph
+   under the pointer. Each word is an inline-block run, which a link's underline never reaches,
+   so the runs take it themselves, and without decorating their trailing spaces the underline
+   breaks between words. The editor's read-only rules outrank a plain override. */
 .docx-content-control-chrome[data-docx-toc][data-hover]:not([data-active])
   .docx-content-control-boundary {
   opacity: 0 !important;
 }
 
 .docx-paragraph-fragment:has(a.docx-hyperlink[href^='#_Toc']:hover)
-  a.docx-hyperlink[href^='#_Toc'] {
+  a.docx-hyperlink[href^='#_Toc']
+  .layout-run {
   color: var(--app-primary) !important;
   text-decoration: underline !important;
+  text-decoration-skip-spaces: none !important;
 }
