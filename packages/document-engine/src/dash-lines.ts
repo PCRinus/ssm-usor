@@ -1,4 +1,4 @@
-// The measures (and 10's actions) of 9, 10 and 2.2's own risks come from the merge data as lines joined with line
+// The measures (and 10's actions) of 9, 10 and 2.1's own risks come from the merge data as lines joined with line
 // breaks, each opened by a dash: a wrapped line then starts under the dash instead of under the
 // text. Once merged, each measure becomes a paragraph of its own that hangs from its dash, as the
 // import sets a dash typed in a cell (`tools/import/typography.py`).

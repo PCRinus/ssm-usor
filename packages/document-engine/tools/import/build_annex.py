@@ -7,7 +7,7 @@ An annex is a title page, then its text, under a box of document details that na
 and counts its pages within it. The box is built by the import's own code, so it cannot drift
 from the common part's. The text is a loop the engine fills from the body: a paragraph style
 per kind of paragraph, so an annex appended to the common part brings its look along. The
-occupational safety annex is set as the common part of 3.2; the fire-safety one keeps its
+occupational safety annex is set as the common part of 3.1; the fire-safety one keeps its
 justified text until its set is reviewed. The templates land in
 `src/annex-template.ts`, base64, so the API needs no file and no registry entry for them.
 """
@@ -37,7 +37,7 @@ STYLES = {
     'AnnexItem3': {'above': 2, 'left': 3 * HANG},
     'AnnexActs': {'above': 12, 'adjust': LEFT},
 }
-# The occupational safety annexes are set as the common part of 3.2: left-aligned, the text after
+# The occupational safety annexes are set as the common part of 3.1: left-aligned, the text after
 # "Art. N." at the common part's article tab, a list label 6.35 mm further in per level, with 8 mm
 # to its text, so "(24)" or "xvi." still leaves a gap; a bullet of any glyph prints as the common
 # part's en dash, at the same tiers and hanging 6.35 mm, as the common part's dashes do.

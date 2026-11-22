@@ -86,8 +86,8 @@ function withHeadingInTextBox(docx: Uint8Array) {
 
 describe.skipIf(!converter)('the contents of the occupational safety set, in the PDF', () => {
   const files = [
-    '2.2_general_training_material.docx',
-    '3.2_own_instructions.docx',
+    '2.1_general_training_material.docx',
+    '3.1_own_instructions.docx',
     '9_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ];
@@ -150,7 +150,7 @@ describe.skipIf(!converter)('the contents of the occupational safety set, in the
   it('leaves a heading in a text box out, and prints no reference it cannot resolve', async () => {
     const sample = setSamples.find((each) => each.label === 'long')!.data;
     const docx = withHeadingInTextBox(
-      renderDocument(read('2.2_general_training_material.docx'), sample)
+      renderDocument(read('2.1_general_training_material.docx'), sample)
     );
     const { pieces, outline } = await contentsAndOutline(await convert(docx));
     const text = pieces.map((piece) => piece.text).join('');

@@ -128,7 +128,7 @@ describe.skipIf(!converter)('the converted pages of the occupational safety set'
 
   it('keeps the four registers on four pages for a client name of 130 characters', async () => {
     const { data } = setSamples.at(-1)!;
-    const docx = renderDocument(read('7.2_event_registers.docx'), withClient(data, longName));
+    const docx = renderDocument(read('7.1_event_registers.docx'), withClient(data, longName));
     expect((await linesOf(await convert(docx))).pages).toBe(4);
   }, 60_000);
 });

@@ -78,7 +78,7 @@ const detail: AdminLegalChangeDetail = {
     {
       id: 'f1f1f1f1-0000-4000-8000-000000000001',
       manifest: 'ssm',
-      templateFile: '2.2_general_training_material.docx',
+      templateFile: '2.1_general_training_material.docx',
       typeKey: 'general_training_material',
       paragraph: 2048,
       citationForm: 'quote',
@@ -251,7 +251,7 @@ describe('a legal change', () => {
     );
     expect(screen.getByTestId('change-review').textContent).toContain('Art. 6 is referred to');
     const passage = screen.getByTestId('change-passage');
-    expect(passage.textContent).toContain('2.2_general_training_material.docx');
+    expect(passage.textContent).toContain('2.1_general_training_material.docx');
     expect(passage.textContent).toContain('Art. 36 alin. (1) – (3)');
     const diff = within(passage).getByTestId('passage-diff');
     expect([...diff.querySelectorAll('del')].map((node) => node.textContent)).toEqual([

@@ -80,8 +80,8 @@ describe('typesetting', () => {
   // the originals set long runs of articles in the heading styles.
   it.each([
     ['11.1_employer_briefing.docx', 19],
-    ['2.2_general_training_material.docx', 19],
-    ['3.2_own_instructions.docx', 21],
+    ['2.1_general_training_material.docx', 19],
+    ['3.1_own_instructions.docx', 21],
     ['9_risk_assessment.docx', 20],
     ['fire/2.1_fire_own_instructions.docx', 25],
   ] as const)('%s has a table of contents, and its %i headings are its titles', (name, count) => {
@@ -466,8 +466,8 @@ describe('Word 2013 layout of the occupational safety set', () => {
   const ssmFiles = files.filter(([name]) => name.endsWith('.docx'));
 
   const contents = [
-    '2.2_general_training_material.docx',
-    '3.2_own_instructions.docx',
+    '2.1_general_training_material.docx',
+    '3.1_own_instructions.docx',
     '9_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ];
@@ -536,8 +536,8 @@ describe('Word 2013 layout of the occupational safety set', () => {
     }
   );
 
-  it("sets 4.2's typed headings nearer their text, the first chapter with nothing above it", () => {
-    const spacing = paragraphsOf(bodyOf('4.2_training_themes.docx'))
+  it("sets 4.1's typed headings nearer their text, the first chapter with nothing above it", () => {
+    const spacing = paragraphsOf(bodyOf('4.1_training_themes.docx'))
       .filter((paragraph) => /^(Sub)?[Cc]apitolul [IVX]+\./u.test(documentTextOf(paragraph)))
       .map((paragraph) => {
         const own = /<w:spacing\b[^>]*\/>/.exec(paragraph)![0];
@@ -563,8 +563,8 @@ describe('Word 2013 layout of the occupational safety set', () => {
   // The originals set their articles in a copy of a bold 16 pt heading style, which every
   // paragraph that never switched bold off printed whole.
   it.each([
-    '2.2_general_training_material.docx',
-    '3.2_own_instructions.docx',
+    '2.1_general_training_material.docx',
+    '3.1_own_instructions.docx',
     '11.1_employer_briefing.docx',
   ])('%s sets its articles in a regular style, the labels bold on their own', (name) => {
     const styles = new PizZip(read(name)).file('word/styles.xml')!.asText();
@@ -619,7 +619,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
         const header = rows.filter((row) => row.includes('<w:tblHeader/>')).flatMap(sizes);
         const body = rows.filter((row) => !row.includes('<w:tblHeader/>')).flatMap(sizes);
         expect(body.filter((size) => size === 14 || size === 18)).toEqual([]);
-        if (name === '7.2_event_registers.docx') expect(new Set(header)).toEqual(new Set([14]));
+        if (name === '7.1_event_registers.docx') expect(new Set(header)).toEqual(new Set([14]));
         else expect(header.filter((size) => size === 14 || size === 18)).toEqual([]);
       }
     }
@@ -652,8 +652,8 @@ describe('Word 2013 layout of the occupational safety set', () => {
     expect(articleFiles).toEqual(
       expect.arrayContaining([
         '1.1_decision_training.docx',
-        '2.2_general_training_material.docx',
-        '3.2_own_instructions.docx',
+        '2.1_general_training_material.docx',
+        '3.1_own_instructions.docx',
         '6_protective_equipment_list.docx',
         '11.1_employer_briefing.docx',
         '12_control_regulation.docx',
@@ -667,7 +667,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
     '%s sets "Art. N." on the margin and its text at a tab, its wrapped lines back at the margin',
     (name) => {
       const numbering = numberingOf(read(name));
-      const tab = ['2.2_general_training_material.docx', '3.2_own_instructions.docx'].includes(name)
+      const tab = ['2.1_general_training_material.docx', '3.1_own_instructions.docx'].includes(name)
         ? 1080
         : 720;
       const levels = [...numbering.matchAll(/<w:lvl w:ilvl="0"[^>]*>([\s\S]*?)<\/w:lvl>/g)]
@@ -851,8 +851,8 @@ describe('Word 2013 layout of the occupational safety set', () => {
     expect(wrong).toEqual([]);
   });
 
-  it('opens chapter I of 3.2 on the page after its contents', () => {
-    const body = bodyOf('3.2_own_instructions.docx');
+  it('opens chapter I of 3.1 on the page after its contents', () => {
+    const body = bodyOf('3.1_own_instructions.docx');
     const contentsEnd = body.indexOf('</w:sdt>', body.indexOf('Table of Contents'));
     const chapter = paragraphsOf(body.slice(contentsEnd)).find((paragraph) =>
       paragraph.includes('<w:pStyle w:val="Heading1"/>')
@@ -861,8 +861,8 @@ describe('Word 2013 layout of the occupational safety set', () => {
   });
 
   it.each([
-    '2.2_general_training_material.docx',
-    '3.2_own_instructions.docx',
+    '2.1_general_training_material.docx',
+    '3.1_own_instructions.docx',
     '9_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ])('%s starts every chapter, annex and bibliography on a page, and no subchapter', (name) => {
@@ -879,7 +879,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
   });
 
   it.each([
-    '2.2_general_training_material.docx',
+    '2.1_general_training_material.docx',
     '9_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ])("%s never leaves a chapter's last short line alone on the page before the next", (name) => {
@@ -913,9 +913,9 @@ describe('Word 2013 layout of the occupational safety set', () => {
   });
 
   it.each([
-    '2.2_general_training_material.docx',
-    '3.2_own_instructions.docx',
-    '4.2_training_themes.docx',
+    '2.1_general_training_material.docx',
+    '3.1_own_instructions.docx',
+    '4.1_training_themes.docx',
     '9_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ])('%s has no empty paragraph right before a chapter that starts a page', (name) => {
@@ -937,8 +937,8 @@ describe('Word 2013 layout of the occupational safety set', () => {
     expect(chapters).toBeGreaterThan(1);
   });
 
-  it("starts 4.2's chapters II and III on a page, chapter I under the document's title", () => {
-    const chapters = paragraphsOf(bodyOf('4.2_training_themes.docx')).filter((paragraph) =>
+  it("starts 4.1's chapters II and III on a page, chapter I under the document's title", () => {
+    const chapters = paragraphsOf(bodyOf('4.1_training_themes.docx')).filter((paragraph) =>
       /^Capitolul [IVX]+\. [A-ZĂÎȘȚÂ][a-zăîșțâ]/.test(documentTextOf(paragraph))
     );
     expect(chapters.map((chapter) => chapter.includes('<w:pageBreakBefore/>'))).toEqual([
@@ -949,8 +949,8 @@ describe('Word 2013 layout of the occupational safety set', () => {
   });
 
   it.each([
-    '2.2_general_training_material.docx',
-    '3.2_own_instructions.docx',
+    '2.1_general_training_material.docx',
+    '3.1_own_instructions.docx',
     '11.1_employer_briefing.docx',
   ])('%s sets a list close under its lead-in and its sub-lists a tier deeper', (name) => {
     const paragraphs = paragraphsOf(bodyOf(name)).filter(
@@ -1010,9 +1010,9 @@ describe('Word 2013 layout of the occupational safety set', () => {
   });
 });
 
-describe('the "Conform …:" notes of 2.2', () => {
+describe('the "Conform …:" notes of 2.1', () => {
   const paragraphs =
-    bodyOf('2.2_general_training_material.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+    bodyOf('2.1_general_training_material.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
   const runs = (paragraph: string) =>
     (paragraph.match(/<w:r>[\s\S]*?<\/w:r>/g) ?? []).filter((run) => documentTextOf(run));
   const notes = paragraphs.flatMap((paragraph, index) => {

@@ -261,9 +261,9 @@ describe('the table house style of the occupational safety set', () => {
   );
 });
 
-describe('the tables H.G. 971/2006 gives 2.2', () => {
+describe('the tables H.G. 971/2006 gives 2.1', () => {
   const tableStarting = (text: string) =>
-    tablesOf('2.2_general_training_material.docx').find((table) =>
+    tablesOf('2.1_general_training_material.docx').find((table) =>
       documentTextOf(table).includes(text)
     )!;
 

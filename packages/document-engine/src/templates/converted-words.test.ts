@@ -21,7 +21,7 @@ const documents = [
   { document: 'fire annex', docx: renderAnnex('su', suAnnexSample, suAnnexData) },
   {
     document: 'own instructions with annexes',
-    docx: appendAnnexes(read('3.2_own_instructions.docx'), [
+    docx: appendAnnexes(read('3.1_own_instructions.docx'), [
       renderAnnex('ssm', ssmAnnexSample, ssmAnnexData),
     ]),
   },

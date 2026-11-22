@@ -2,7 +2,7 @@
 
 The safety signs are rendered from `svg/` at 14 mm and 600 dpi: a PNG, since Word reads an SVG
 picture only from Word 2016 on and LibreOffice not from every file. The hazard-stripe examples
-of 2.2 and the method figures of 9 are drawn here as SVG from their geometry, then rendered the
+of 2.1 and the method figures of 9 are drawn here as SVG from their geometry, then rendered the
 same way at their print size. Needs PyMuPDF and Pillow; run with the package as the working
 directory: python3 tools/import/pictures/make_pictures.py
 """

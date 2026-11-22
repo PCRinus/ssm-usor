@@ -1,9 +1,9 @@
 """Writes the pictures of `pictures/` into the occupational safety set, without an office.
 
-2.2's safety signs and 11.1's sign types become a catalogue (`pictures/catalogue.ro.json`): under
+2.1's safety signs and 11.1's sign types become a catalogue (`pictures/catalogue.ro.json`): under
 a short heading per kind, two signs to a row of a table without lines, each sign 14 mm wide
 beside its name in bold and, where it says more than the name, one line of its meaning in 9 pt.
-2.2's chapters XIV and XV open with an illustration, and its Fig. 1 shows the two hazard bands
+2.1's chapters XIV and XV open with an illustration, and its Fig. 1 shows the two hazard bands
 and a drawn barrier. 9's method figures are plotted (`pictures/make_pictures.py`), and its two
 formulas that were pictures of an old equation editor are formulas like the others.
 
@@ -243,7 +243,7 @@ def replace_pictures(paragraph_xml, drawing):
     return paragraph_xml[:start] + drawing + paragraph_xml[end:]
 
 
-# Where 2.2 quotes each kind of sign from H.G. 971/2006, annex 2: the catalogue of a kind
+# Where 2.1 quotes each kind of sign from H.G. 971/2006, annex 2: the catalogue of a kind
 # stands between the last line of the law's description and what follows it.
 SIGN_GROUPS = [
     ('pictogramă neagră pe fond alb, margine și bandă diagonală roșii', r'^\(4\) Panouri utilizate'),
@@ -323,7 +323,7 @@ def risk_assessment(package):
 def main():
     with open(os.path.join(PICTURES, 'catalogue.ro.json'), encoding='utf8') as file:
         data = json.load(file)
-    for name, build in (('2.2_general_training_material.docx', lambda package: general_training_material(package, data)),
+    for name, build in (('2.1_general_training_material.docx', lambda package: general_training_material(package, data)),
                         ('11.1_employer_briefing.docx', lambda package: employer_briefing(package, data)),
                         ('9_risk_assessment.docx', risk_assessment)):
         package = Package(name)

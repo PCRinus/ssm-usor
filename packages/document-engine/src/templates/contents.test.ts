@@ -16,8 +16,8 @@ const runsOf = (xml: string) => xml.match(/<w:r>[\s\S]*?<\/w:r>/g) ?? [];
 const label = /^((?:sub)?capitolul [IVXLC]+\.(?:[IVXLC]+\.)?|anexa(?: nr\.)? \d+\.)$/i;
 
 describe.each([
-  '2.2_general_training_material.docx',
-  '3.2_own_instructions.docx',
+  '2.1_general_training_material.docx',
+  '3.1_own_instructions.docx',
   '9_risk_assessment.docx',
   '11.1_employer_briefing.docx',
 ])('the contents of %s', (name) => {
@@ -100,7 +100,7 @@ describe.each([
 });
 
 describe('the headings of 9', () => {
-  it("read in sentence case, as 2.2's, and so do its contents", () => {
+  it("read in sentence case, as 2.1's, and so do its contents", () => {
     const headings = (
       partOf(read('9_risk_assessment.docx'), 'word/document.xml').match(
         /<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?<w:pStyle w:val="Heading[12]"\/>[\s\S]*?<\/w:p>/g
@@ -131,13 +131,13 @@ describe('the headings of 9', () => {
   });
 });
 
-describe('the annex lines under the contents of 3.2', () => {
+describe('the annex lines under the contents of 3.1', () => {
   it('hang like the entries, the label bold', () => {
-    const body = partOf(read('3.2_own_instructions.docx'), 'word/document.xml');
+    const body = partOf(read('3.1_own_instructions.docx'), 'word/document.xml');
     const line = (body.match(
       /<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?Anexa \{\{number\}\}\.[\s\S]*?<\/w:p>/g
     ) ?? [])[0]!;
-    const styles = partOf(read('3.2_own_instructions.docx'), 'word/styles.xml');
+    const styles = partOf(read('3.1_own_instructions.docx'), 'word/styles.xml');
     const column = /<w:tab w:val="left" w:pos="(\d+)"\/>/.exec(
       styleOf(styles, 'ContentsLabels1')
     )![1];

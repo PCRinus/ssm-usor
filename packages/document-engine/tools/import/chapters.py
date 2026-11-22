@@ -1,6 +1,6 @@
 """The occupational safety set's chapters read like a book's. A chapter, a subchapter or an
 annex title typed in capitals ("CAPITOLUL II. PREZENTAREA METODEI") reads in sentence case
-("Capitolul II. Prezentarea metodei"), as 2.2's, 3.2's and 11.1's always did; the contents are
+("Capitolul II. Prezentarea metodei"), as 2.1's, 3.1's and 11.1's always did; the contents are
 written from the headings, so they read the same way. Every contents is headed "Cuprins".
 Every chapter, annex and bibliography starts a page, the first after the contents too; a
 subchapter stays in the flow. In a document without contents the first chapter stays under the
@@ -108,7 +108,7 @@ def typed_heading(paragraph, opens=False):
     """A chapter or subchapter typed as text ("SUBCAPITOLUL I.I PLANUL") in sentence case, its
     label closed by a dot as the contents' labels are, with the headings' room around it. One
     that `opens` the document or a section has none above it, which LibreOffice would print at
-    the top of the page (4.2's chapter I stood 6 pt below the others), nor has a subchapter
+    the top of the page (4.1's chapter I stood 6 pt below the others), nor has a subchapter
     right under its chapter, which is the chapter's room below it."""
     scale = CHAPTER if TYPED_CHAPTER.match(text_of(paragraph)) else SUBCHAPTER
     paragraph = set_spacing(paragraph, 0 if opens else scale['before'], scale['after'])

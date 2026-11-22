@@ -53,7 +53,7 @@ const media = (name: string) =>
 const tablesOf = (xml: string) => xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? [];
 
 describe.each([
-  ['2.2_general_training_material.docx', catalogue['2.2'].flatMap((group) => group.signs)],
+  ['2.1_general_training_material.docx', catalogue['2.2'].flatMap((group) => group.signs)],
   ['11.1_employer_briefing.docx', catalogue['11']],
 ])('the sign catalogue of %s', (name, signs) => {
   const body = new PizZip(read(name)).file('word/document.xml')!.asText();
@@ -94,8 +94,8 @@ describe.each([
   });
 });
 
-describe('2.2_general_training_material.docx', () => {
-  const body = new PizZip(read('2.2_general_training_material.docx'))
+describe('2.1_general_training_material.docx', () => {
+  const body = new PizZip(read('2.1_general_training_material.docx'))
     .file('word/document.xml')!
     .asText();
 

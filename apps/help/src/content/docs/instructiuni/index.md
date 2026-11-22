@@ -33,7 +33,7 @@ sources:
   - apps/app/src/features/imports/library/library-model.ts
 ---
 
-Instrucțiunile proprii sunt biblioteca ta de texte pentru activitățile și echipamentele clienților. Le scrii o dată, le aplici la posturile oricărui client, iar aplicația le tipărește ca anexe ale instrucțiunilor proprii ale fiecărui client (3.2 în setul SSM, 2.1 în setul SU).
+Instrucțiunile proprii sunt biblioteca ta de texte pentru activitățile și echipamentele clienților. Le scrii o dată, le aplici la posturile oricărui client, iar aplicația le tipărește ca anexe ale instrucțiunilor proprii ale fiecărui client (3.1 în setul SSM, 2.1 în setul SU).
 
 ## Ce este o instrucțiune proprie
 
@@ -115,7 +115,7 @@ Fiecare instrucțiune aplicată la un post al clientului devine o anexă a instr
 - **Antetul.** Fiecare pagină are antetul documentului, care numește anexa și îi numără paginile separat: „Anexa 2 · Pag. 1 din 3”. O anexă nu continuă numerotarea instrucțiunilor proprii, pentru că aceeași instrucțiune apare la mai mulți clienți.
 - **Descarcă Word** dă instrucțiunile proprii împreună cu anexele, ca PDF-ul. În fișierul Word paginile poartă doar „Pag. X”, fără total; PDF-ul emis are numărul complet.
 
-Tematica de instruire (4.2 în SSM, 3.1 în SU) citează fiecare anexă cu articolele ei, „Art. 1–N”, unde N e numărul exact de articole al versiunii anexate.
+Tematica de instruire (4.1 în SSM, 3.1 în SU) citează fiecare anexă cu articolele ei, „Art. 1–N”, unde N e numărul exact de articole al versiunii anexate.
 
 ## Versiunile și documentele rămase în urmă
 

@@ -14,7 +14,7 @@ const documentOf = (docx: Uint8Array) => new PizZip(docx).file('word/document.xm
 
 describe('the file a contents is printed from', () => {
   it('writes the contents of the occupational safety set as entries with page references', () => {
-    const printed = documentOf(printableDocx(read('2.2_general_training_material.docx')));
+    const printed = documentOf(printableDocx(read('2.1_general_training_material.docx')));
     expect(printed).not.toContain('Table of Contents');
     expect(printed).not.toMatch(/<w:instrText[^>]*> TOC /);
     const references = [...printed.matchAll(/PAGEREF (_Toc\d+) \\h/g)].map((match) => match[1]);
@@ -41,7 +41,7 @@ describe('the file a contents is printed from', () => {
         '<w:body><w:p><w:r><w:instrText xml:space="preserve"> PAGEREF _TocMissing \\h </w:instrText></w:r></w:p>'
       )
     );
-    const docx = read('2.2_general_training_material.docx');
+    const docx = read('2.1_general_training_material.docx');
     expect(printableDocx(docx)).toBe(docx);
   });
 
@@ -54,12 +54,12 @@ describe('the file a contents is printed from', () => {
           '<w:bookmarkEnd w:id="1"/></w:p></w:txbxContent></mc:Fallback></mc:AlternateContent></w:r></w:p>'
       )
     );
-    const docx = read('2.2_general_training_material.docx');
+    const docx = read('2.1_general_training_material.docx');
     expect(printableDocx(docx)).toBe(docx);
   });
 
   it('lists no heading of a text box, so no bookmark lands in a copy LibreOffice skips', () => {
-    const zip = new PizZip(read('2.2_general_training_material.docx'));
+    const zip = new PizZip(read('2.1_general_training_material.docx'));
     const xml = zip.file('word/document.xml')!.asText();
     const heading =
       '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Capitolul XX. Din casetă</w:t></w:r></w:p>';
@@ -71,7 +71,7 @@ describe('the file a contents is printed from', () => {
   });
 
   it('reads a label column and a field code as the in-app editor saves them', () => {
-    const zip = new PizZip(read('2.2_general_training_material.docx'));
+    const zip = new PizZip(read('2.1_general_training_material.docx'));
     const styles = zip
       .file('word/styles.xml')!
       .asText()

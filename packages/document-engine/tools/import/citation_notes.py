@@ -1,4 +1,4 @@
-"""2.2's chapters XIV and XV open with what the law asks of them: a note "Conform Legii
+"""2.1's chapters XIV and XV open with what the law asks of them: a note "Conform Legii
 319/2006 – …:" and the letters and paragraphs it quotes, typed under it. They read like the
 set's "(Preluare din …)" notes: on the text margin, the citation in italics, the quoted text
 regular and its labels ("(1)", "a)") bold.

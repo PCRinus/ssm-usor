@@ -56,7 +56,7 @@ const portal = {
 
 const helmet: IndexedCitation = {
   manifest: 'ssm',
-  file: '2.2_general_training_material.docx',
+  file: '2.1_general_training_material.docx',
   typeKey: 'general_training_material',
   paragraph: 2048,
   form: 'quote',
@@ -171,7 +171,7 @@ describe('assessing a new form', () => {
     expect(passages).toEqual([
       expect.objectContaining({
         change_id: 'c-new',
-        template_file: '2.2_general_training_material.docx',
+        template_file: '2.1_general_training_material.docx',
         type_key: 'general_training_material',
         paragraph: 2048,
         citation_form: 'quote',

@@ -78,7 +78,7 @@ const changeRow = {
 const passageRow = (overrides: Record<string, unknown>) => ({
   id: 'f1f1f1f1-0000-4000-8000-000000000001',
   manifest: 'ssm',
-  template_file: '2.2_general_training_material.docx',
+  template_file: '2.1_general_training_material.docx',
   type_key: 'general_training_material',
   paragraph: 2048,
   citation_form: 'quote',

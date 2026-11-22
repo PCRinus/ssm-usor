@@ -92,6 +92,6 @@ Lângă numărul de întrebări active scrie **minimum 10** cât timp testul are
 
 Temeiul spune pe ce act și articol se sprijină întrebarea, de exemplu „Legea 319/2006, art. 23 alin. (1) lit. e)”. Actele pe care aplicația le urmărește în [Legislație](/legislatie/) apar ca linkuri: fiecare deschide, într-un tab nou, Portalul Legislativ la articolul sau anexa citată, în forma consolidată actuală. Cât timp locul articolului nu e cunoscut, linkul deschide pagina actului.
 
-Ce nu numește un act urmărit rămâne text simplu, de exemplu trimiterile la instrucțiunile proprii (IPSSM 3.2, IPSU 2.1), care nu au o pagină publică.
+Ce nu numește un act urmărit rămâne text simplu, de exemplu trimiterile la instrucțiunile proprii (IPSSM 3.1, IPSU 2.1), care nu au o pagină publică.
 
 La o întrebare proprie, temeiul îl scrii cum îl scrie toată lumea. Aplicația recunoaște singură actele și articolele din el.

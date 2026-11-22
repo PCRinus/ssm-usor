@@ -1123,7 +1123,7 @@ another position.
 one row per own instruction, with a `title`, unique within the organization among the modules in
 use ignoring case, a `module_group` (the category), a `domain` and `archived_at`. The **domain**
 (`instruction_domain`, ADR 012's amendment of 2026-10-11) says whose own instructions annex the
-module: `ssm`, the default, for the occupational safety set's 3.2, or `su` for the fire-safety
+module: `ssm`, the default, for the occupational safety set's 3.1, or `su` for the fire-safety
 set's 2.1. There is one library and one title space for both. The category belongs to the
 domain, which a check constraint holds: `work_activity`, `work_equipment` and
 `protective_equipment` for `ssm`; `premises_activity`, `installation_equipment` and

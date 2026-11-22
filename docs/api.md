@@ -570,7 +570,7 @@ newest training themes revision of the domain, draft or issued: by the position 
 occupational safety, by the position's staff category for fire safety, with
 `themesRevisionId` naming the revision; without one, or for a position the themes do not hold,
 the material is null and the duration the schedule's. A hiring training proposes 240 minutes
-(occupational safety) or 480 (fire safety) and the content line of the 4.2 or 3.1 plan, the
+(occupational safety) or 480 (fire safety) and the content line of the 4.1 or 3.1 plan, the
 occupational safety workplace plan citing the position's modules from the themes and the
 fire-safety one the instructions decision. A supplementary training proposes 60 minutes and no
 material. The people follow "Who signs what": the specialist is the caller, by their profile's
@@ -651,7 +651,7 @@ The instruction library ([ADR 012](architecture/adr-012-own-instructions.md),
 [ADR 034](architecture/adr-034-own-instructions-as-app-text.md)) is the organization's own
 instructions, each a body of headings and numbered articles that the document engine prints.
 Each module has a `domain`, `ssm` or `su` (ADR 012's amendment of 2026-10-11): which set's own
-instructions annex it, 3.2 or 2.1, and a category (`group`) of that domain: `work_activity`,
+instructions annex it, 3.1 or 2.1, and a category (`group`) of that domain: `work_activity`,
 `work_equipment` or `protective_equipment` for `ssm`, `premises_activity`,
 `installation_equipment` or `hazardous_work` for `su`; a category of the other domain answers
 `400` with the reason `instruction_module_category_domain`. `GET /instruction-modules` lists a
@@ -2219,7 +2219,7 @@ it exists): covers 1.0 and 6.0 list only what the set holds, and decision 6 cite
 only then. `annexes` and `noAnnexes` are what the own instructions 2.1 annex: the `su` modules
 the current positions apply, each once, by group, title and id, numbered from 1, as the other
 set's `annexes` holds its `ssm` ones; only 2.1 prints them, so an edit in the library marks
-only its draft. Issuing 2.1 renders, like 3.2, each annexed module version as an annex of its
+only its draft. Issuing 2.1 renders, like the occupational safety set's 3.1, each annexed module version as an annex of its
 own and merges them into one PDF, the fire-safety annex naming the technician in its box. It is
 never merged with the occupational safety set's names, so an edit to positions or equipment never
 marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does.
@@ -2265,7 +2265,7 @@ without an evaluation marks the risk assessment, the prevention plan and the tra
 material; a gap in the provider's or the client's details marks every draft), and otherwise
 waits until the data is complete. All files go through
 `src/lib/files.ts`, as the verified user; downloads are signed links that carry the
-document's binder number and title as the file name, "3.2 Instrucțiuni proprii … - rev. 2.docx"
+document's binder number and title as the file name, "3.1 Instrucțiuni proprii … - rev. 2.docx"
 (`documentFileName`; a type outside the binder has its title alone). The draft the editor opens is the common part alone, so
 for either set's own instructions `GET …/word` reads the revision's file and appends, with the
 engine's `appendAnnexes`, each version its snapshot annexes, rendered as at issuing, as a
@@ -2353,8 +2353,8 @@ date it carries, `editedDraft` when it is a draft edited by hand, `behindTemplat
 `instructionChanges`: per module, `module_version` with `newestVersionAt`, the date of the
 library's newest version, `module_added` or `module_removed`, with the module's `title`; empty
 for a document behind its template alone. A type nobody is behind on is left out. The view is read a page at a time, as the regenerations read it too, so the list, the jobs and the counts agree however many documents are behind. The themes
-cite the newest own instructions revision, so regenerating 4.2 while 3.2 is itself behind
-leaves 4.2 behind: the app says to regenerate the own instructions first.
+cite the newest own instructions revision, so regenerating 4.1 while 3.1 is itself behind
+leaves 4.1 behind: the app says to regenerate the own instructions first.
 
 `POST /documents/behind/regenerate` takes `{ typeKey }`, a built-in type of either set, and
 starts a **regeneration job**: one item per client behind, read with the caller's token, and

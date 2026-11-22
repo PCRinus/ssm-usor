@@ -1901,7 +1901,7 @@ TOC_PLACEHOLDER = (
     '<w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>'
     '</w:p></w:sdtContent></w:sdt>')
 # `end` is searched from the second entry on: a typed list may open with the first chapter's
-# own title. The 3.2 and 2.1 annex lines are a loop of the client's annexes, issued as files
+# own title. The 3.1 and SU 2.1 annex lines are a loop of the client's annexes, issued as files
 # of their own, so they stay typed under the table, without page numbers.
 TABLES_OF_CONTENTS = {
     '11.1_employer_briefing': {
@@ -1909,12 +1909,12 @@ TABLES_OF_CONTENTS = {
         'end': r'^Capitolul I\. ',
         'headings': [(1, r'^Capitolul [IVXLC]+\. '), (2, r'^Subcapitolul [IVXLC]+\.[IVXLC]+\. ')],
     },
-    '2.2_general_training_material': {
+    '2.1_general_training_material': {
         'title': r'^Cuprins:$',
         'end': r'^Notă:$',
         'headings': [(1, r'^Capitolul [IVXLC]+\. '), (2, r'^Subcapitolul [IVXLC]+\.[IVXLC]+\. ')],
     },
-    '3.2_own_instructions': {
+    '3.1_own_instructions': {
         'title': r'^CUPRINS IPSSM',
         'end': r'^\{\{#annexes\}\}$',
         'pageAfter': True,
@@ -2107,7 +2107,7 @@ def sweep(path, word_2013=None, arial=None):
     Word 2013's layout with every table on the margins (`word_layout`), the table house
     style (`table_style`), one signing space for every signature (`signatures`), the
     decisions' page numbers and running header (`decision_pages`), landscape pages bound on
-    their top edge (`landscape_binding`), 2.2's "Conform …:" notes set like its other
+    their top edge (`landscape_binding`), 2.1's "Conform …:" notes set like its other
     quotations (`citation_notes`), which `word_2013` asks for
     or leaves to the file's place. In both sets, Arial as the only font (`fonts`), which `arial`
     asks for or leaves to the file's place. Safe to run again."""

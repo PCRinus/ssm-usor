@@ -10,8 +10,8 @@ import {
   ownInstructionsChapters,
 } from '../../src/modules/documents/themes';
 
-// The training themes cite chapters of 3.2, 2.2 and the IPSU as article ranges written into the
-// code and the 4.2 template (ADR 014, ADR 019); an article added to any of them moves them.
+// The training themes cite chapters of 3.1, 2.1 and the IPSU as article ranges written into the
+// code and the 4.1 template (ADR 014, ADR 019); an article added to any of them moves them.
 
 const fireOwnInstructions = 'fire/2.1_fire_own_instructions.docx';
 
@@ -48,7 +48,7 @@ function articlesByChapter(file: string) {
 
 describe('the chapters the training themes cite', () => {
   it('fall where the own instructions template has them, chapter XIII being the annexes', () => {
-    expect(articlesByChapter('3.2_own_instructions.docx')).toEqual({
+    expect(articlesByChapter('3.1_own_instructions.docx')).toEqual({
       chapterStarts: [
         ...ownInstructionsChapters.chapterStarts,
         ownInstructionsChapters.articleCount + 1,
@@ -58,7 +58,7 @@ describe('the chapters the training themes cite', () => {
   });
 
   it('fall where the general training material template has them', () => {
-    expect(articlesByChapter('2.2_general_training_material.docx')).toEqual({
+    expect(articlesByChapter('2.1_general_training_material.docx')).toEqual({
       chapterStarts: [...generalTrainingChapters.chapterStarts],
       total: generalTrainingChapters.articleCount,
     });
@@ -107,7 +107,7 @@ describe('the chapters the training themes cite', () => {
   });
 
   it('are the ranges the training themes template prints', () => {
-    const text = documentXml('4.2_training_themes.docx')
+    const text = documentXml('4.1_training_themes.docx')
       .replace(/<\/w:p>/g, '\n')
       .replace(/<[^>]+>/g, '');
     const printed = (prefix: string) =>
@@ -120,10 +120,10 @@ describe('the chapters the training themes cite', () => {
       return starts.map((start, index) => [start, (starts[index + 1] ?? total + 1) - 1]);
     };
 
-    expect(printed('I\\.P\\.S\\.S\\.M\\.')).toEqual(ranges('3.2_own_instructions.docx'));
-    expect(printed('MISSMIG')).toEqual(ranges('2.2_general_training_material.docx'));
+    expect(printed('I\\.P\\.S\\.S\\.M\\.')).toEqual(ranges('3.1_own_instructions.docx'));
+    expect(printed('MISSMIG')).toEqual(ranges('2.1_general_training_material.docx'));
     expect(text).toContain(
-      `I.P.S.S.M. Art.\u00a01\u00a0–\u00a0${articlesByChapter('3.2_own_instructions.docx').total};`
+      `I.P.S.S.M. Art.\u00a01\u00a0–\u00a0${articlesByChapter('3.1_own_instructions.docx').total};`
     );
   });
 });

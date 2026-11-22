@@ -25,7 +25,7 @@ describe('the details of the occupational safety set’s pages', () => {
     }
   );
 
-  it.each(['2.2_general_training_material.docx'])(
+  it.each(['2.1_general_training_material.docx'])(
     '%s keeps „introductiv-generală” whole in the header box',
     (name) => {
       for (const header of ['word/header1.xml', 'word/header2.xml', 'word/header3.xml']) {
@@ -35,8 +35,8 @@ describe('the details of the occupational safety set’s pages', () => {
   );
 
   it.each([
-    '2.2_general_training_material.docx',
-    '3.2_own_instructions.docx',
+    '2.1_general_training_material.docx',
+    '3.1_own_instructions.docx',
     '9_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ])('%s keeps a contents entry’s words clear of its page number', (name) => {
@@ -49,7 +49,7 @@ describe('the details of the occupational safety set’s pages', () => {
   });
 
   it('gives every row of the four registers one height', () => {
-    const tables = bodyOf('7.2_event_registers.docx').match(/<w:tbl>[\s\S]*?<\/w:tbl>/g)!;
+    const tables = bodyOf('7.1_event_registers.docx').match(/<w:tbl>[\s\S]*?<\/w:tbl>/g)!;
     expect(tables).toHaveLength(4);
     for (const table of tables) {
       const rows = (table.match(/<w:tr\b[\s\S]*?<\/w:tr>/g) ?? []).filter((row) =>

@@ -246,13 +246,14 @@ test('the own instructions are issued with their annex, which opens in the edito
   await expect(page.getByTestId('document-open-pdf')).toBeVisible();
   await page.keyboard.press('Escape');
 
+  const ownInstructions = '3.1 Instrucțiuni proprii de securitate și sănătate în muncă - rev. 1';
   const wordArchive = await downloadArchive(page, 'documents-archive-docx');
   expect(wordArchive.name).toMatch(/ - documentația SSM - Word\.zip$/);
   const wordFiles = Object.keys(wordArchive.files);
   expect(wordFiles).toContain('1.0 Copertă - Deciziile interne - rev. 1 - ciornă.docx');
   // The annexes are sections of the own instructions' Word file, not files of their own.
   expect(wordFiles.filter((name) => / Instrucțiuni proprii de securitate/.test(name))).toEqual([
-    expect.stringMatching(/^3\.2 .* - rev\. 1\.docx$/),
+    `${ownInstructions}.docx`,
   ]);
   for (const bytes of Object.values(wordArchive.files)) {
     expect(Buffer.from(bytes.subarray(0, 2)).toString()).toBe('PK');
@@ -263,7 +264,7 @@ test('the own instructions are issued with their annex, which opens in the edito
     expect(pdfArchive.name).toMatch(/ - documentația SSM - PDF\.zip$/);
     const [pdf, ...others] = Object.entries(pdfArchive.files);
     expect(others).toEqual([]);
-    expect(pdf![0]).toMatch(/^3\.2 Instrucțiuni proprii de securitate.* - rev\. 1\.pdf$/);
+    expect(pdf![0]).toBe(`${ownInstructions}.pdf`);
     expect(Buffer.from(pdf![1].subarray(0, 5)).toString()).toBe('%PDF-');
   }
 
@@ -276,14 +277,12 @@ test('the own instructions are issued with their annex, which opens in the edito
   await expect(annex.getByTestId('document-annex-newer')).toHaveCount(0);
   const annexDownload = page.waitForEvent('download');
   await act(page, annex, 'document-annex-download', 'document-annex-actions');
-  expect((await annexDownload).suggestedFilename()).toMatch(
-    /^3\.2 Instrucțiuni proprii de securitate.* - rev\. 1 - Anexa 1 - I\.P\.S\.S\.M\. .*\.docx$/
-  );
+  const annexFile = (await annexDownload).suggestedFilename();
+  expect(annexFile.startsWith(`${ownInstructions} - Anexa 1 - I.P.S.S.M. `)).toBe(true);
+  expect(annexFile).toMatch(/\.docx$/);
   const wordDownload = page.waitForEvent('download');
   await act(page, instructions, 'document-download-issued');
-  expect((await wordDownload).suggestedFilename()).toMatch(
-    /^3\.2 Instrucțiuni proprii de securitate.* - rev\. 1\.docx$/
-  );
+  expect((await wordDownload).suggestedFilename()).toBe(`${ownInstructions}.docx`);
   await annex.getByTestId('document-annex-title').click();
   await expect(page.getByTestId('editor-frame')).toHaveAttribute('data-ready', 'true', {
     timeout: 30_000,
@@ -361,7 +360,7 @@ test('the issued training themes fall behind when a cited instruction gets a new
   await act(page, themes, 'document-regenerate');
   await page.getByTestId('document-confirm').click();
   await expect(
-    page.getByText('„4.2 Tematica și programul de instruire” a fost generat din nou.')
+    page.getByText('„4.1 Tematica și programul de instruire” a fost generat din nou.')
   ).toBeVisible();
   await expect(themes.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
   await expect(themes.getByTestId('document-issued')).toHaveText('Emis · rev. 1');

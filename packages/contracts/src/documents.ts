@@ -233,7 +233,7 @@ export const fireSafetyDocumentTitles = {
   fire_annual_report: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
 } as const satisfies Record<FireSafetyDocumentTypeKey, string>;
 
-/** A cover is X.0, so a gap such as 2.0 then 2.2 is intended. Held to the manifest by a test. */
+/** A cover is X.0 and the documents after it X.1, X.2, …. Held to the manifest by a test. */
 export const occupationalSafetyDocumentNumbers = {
   cover_decisions: '1.0',
   decision_training: '1.1',
@@ -242,16 +242,16 @@ export const occupationalSafetyDocumentNumbers = {
   decision_imminent_danger: '1.4',
   decision_workers_representative: '1.5',
   cover_general_training_material: '2.0',
-  general_training_material: '2.2',
+  general_training_material: '2.1',
   cover_own_instructions: '3.0',
-  own_instructions: '3.2',
+  own_instructions: '3.1',
   cover_training_themes: '4.0',
-  training_themes: '4.2',
+  training_themes: '4.1',
   cover_tests: '5.0',
   test_hiring: '5.1',
   protective_equipment_list: '6',
   cover_event_registers: '7.0',
-  event_registers: '7.2',
+  event_registers: '7.1',
   control_report: '8',
   risk_assessment: '9',
   prevention_plan: '10',

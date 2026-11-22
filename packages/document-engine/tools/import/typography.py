@@ -438,7 +438,7 @@ def plain_articles(document, styles_xml):
 # The long documents quote the law article by article: an alineat's or a letter's label typed
 # at the head of a paragraph is bold, as the articles' are, and an article's body regular even
 # where a run of the original says bold.
-ARTICLE_DOCUMENTS = ('2.2_general_training_material.docx', '3.2_own_instructions.docx', '11.1_employer_briefing.docx')
+ARTICLE_DOCUMENTS = ('2.1_general_training_material.docx', '3.1_own_instructions.docx', '11.1_employer_briefing.docx')
 LEADING_LABEL = re.compile(r'\s*(\(\d+\)|[a-z]\))(?=\s)')
 
 
@@ -635,13 +635,13 @@ def heading_line_of_its_own(first, following, following_is_item, alineat_follows
     an article of numbered paragraphs, so "(1)", "(2)" line up, or whose first paragraph
     introduces a list; any other article runs on after its label and note. Since 2026-11-22
     also an article that holds more than its first paragraph and its list, a second paragraph
-    or a table, which a label run into the first paragraph would leave out (2.2's art. 328, 11's
+    or a table, which a label run into the first paragraph would leave out (2.1's art. 328, 11's
     art. 65). `first` is the first paragraph's text after the note, `following` the next
     paragraph's after its own, `alineat_follows` whether a later paragraph of the article opens
     with "(n)", `more` whether it holds such a paragraph or table. A `noted` article quotes only
     its first paragraph unless that introduces what follows, so its note stays run into that
     paragraph: on a line of its own it would read as the source of the text added after it
-    (2.2's art. 24, 3.2's art. 91 and Legea 307's art. 6)."""
+    (2.1's art. 24, 3.1's art. 91 and Legea 307's art. 6)."""
     if not first or ALINEAT.match(first) or TITLED.search(first) or alineat_follows:
         return True
     if more and not (noted and not first.endswith((':', ';'))):
@@ -790,7 +790,7 @@ def list_groups(document, styles, numbering, start=0, end=None):
 
 
 def out_of_order(group):
-    """A list whose letters hold numbers: 2.2's evacuation rules, "a)" over "1." over "–"."""
+    """A list whose letters hold numbers: 2.1's evacuation rules, "a)" over "1." over "–"."""
     parents = {}
     for _, item, tier in group:
         parents[tier] = label_kind(item)

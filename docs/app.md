@@ -1349,7 +1349,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   `ServiceContractEditor` from `GET …/service-contract`, because that list is the
   documentation set only. "Modifică" on an issued contract works as for any document.
   The title bar, the browser tab, the print toast and the document dialogs and toasts name a
-  document by its binder number and title, "3.2 Instrucțiuni proprii …", through the contracts'
+  document by its binder number and title, "3.1 Instrucțiuni proprii …", through the contracts'
   `numberedTitle`; a type outside the binder, such as the service contract, keeps its title.
 - `/clienti/:clientId/alte-documente`: "Alte documente", the tab before "Portal", for owners
   and specialists alike, in `src/features/client-files/` ([ADR 013](architecture/adr-013-client-files.md)).

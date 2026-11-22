@@ -49,7 +49,7 @@ const built: Record<string, () => Uint8Array> = {
   [ssmAnnex]: () => renderAnnex('ssm', ssmAnnexSample, ssmAnnexData),
   [suAnnex]: () => renderAnnex('su', suAnnexSample, suAnnexData),
   [appended]: () =>
-    appendAnnexes(template('3.2_own_instructions.docx'), [
+    appendAnnexes(template('3.1_own_instructions.docx'), [
       renderAnnex('ssm', ssmAnnexSample, ssmAnnexData),
     ]),
 };

@@ -103,7 +103,7 @@ describe('a version that resolves legal changes', () => {
   const entry = (resolves: unknown) => ({
     typeKey: 'general_training_material',
     title: 'Material',
-    file: '2.2_general_training_material.docx',
+    file: '2.1_general_training_material.docx',
     change: { kind: 'legal', note: 'Art. 36 alin. (2) în forma în vigoare.', resolves },
   });
   const change = { act: 'oug-195-2002', consolidatedOn: '2026-11-06' };

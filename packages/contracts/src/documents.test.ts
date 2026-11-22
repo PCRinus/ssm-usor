@@ -28,6 +28,24 @@ describe('documentNumberOf', () => {
     expect(new Set(numbers).size).toBe(numbers.length);
   });
 
+  it.each(documentSets)(
+    'numbers the documents after a cover of the %s set X.1, X.2, … without a gap',
+    (set) => {
+      const numbers = documentSetTypeKeys[set].map((typeKey) => documentNumberOf(typeKey)!);
+      const coveredSections = numbers
+        .filter((number) => number.endsWith('.0'))
+        .map((cover) => cover.split('.')[0]);
+      expect(coveredSections.length).toBeGreaterThan(4);
+      for (const section of coveredSections) {
+        const places = numbers
+          .filter((number) => number.startsWith(`${section}.`))
+          .map((number) => Number(number.split('.')[1]))
+          .sort((a, b) => a - b);
+        expect(places).toEqual(places.map((_, index) => index));
+      }
+    }
+  );
+
   it('numbers no type outside the binder', () => {
     expect(Object.values(trainingSheetTypeKeys).map(documentNumberOf)).toEqual([null, null]);
     expect(documentNumberOf('provider_own_form')).toBeNull();
@@ -39,7 +57,7 @@ describe('numberedTitle', () => {
   it('puts the binder number before the title', () => {
     expect(
       numberedTitle('own_instructions', 'Instrucțiuni proprii de securitate și sănătate în muncă')
-    ).toBe('3.2 Instrucțiuni proprii de securitate și sănătate în muncă');
+    ).toBe('3.1 Instrucțiuni proprii de securitate și sănătate în muncă');
     expect(numberedTitle('fire_annual_report', 'Raport anual de evaluare 2026')).toBe(
       '7.2 Raport anual de evaluare 2026'
     );

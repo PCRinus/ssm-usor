@@ -27,7 +27,8 @@ const roads: OpenChange = {
   passages: [
     {
       manifest: 'ssm',
-      template_file: '2.2_general_training_material.docx',
+      template_file: '2.1_general_training_material.docx',
+      type_key: 'general_training_material',
       paragraph: 2048,
       citation_form: 'quote',
       locator: 'Art. 36 alin. (1) – (3)',
@@ -41,9 +42,9 @@ const roads: OpenChange = {
 
 const applied: LegalQuoteResult = {
   status: 'applied',
-  written: ['2.2_general_training_material.docx', 'citations.json', 'manifest.json'],
+  written: ['2.1_general_training_material.docx', 'citations.json', 'manifest.json'],
   summary: {
-    file: '2.2_general_training_material.docx',
+    file: '2.1_general_training_material.docx',
     act: 'O.U.G. 195/2002',
     locator: 'Art. 36 alin. (1) – (3)',
     changes: [{ kind: 'changed', paragraph: 2052, before: oldText, after: newText }],
@@ -51,7 +52,7 @@ const applied: LegalQuoteResult = {
   },
   copies: [],
   markdown:
-    '**2.2_general_training_material.docx**: O.U.G. 195/2002, Art. 36 alin. (1) – (3)\n\n- alin. (2), ¶2052: … ~~casca~~ **pe cap cască** …',
+    '**2.1_general_training_material.docx**: O.U.G. 195/2002, Art. 36 alin. (1) – (3)\n\n- alin. (2), ¶2052: … ~~casca~~ **pe cap cască** …',
 };
 
 const note =
@@ -147,7 +148,7 @@ describe('a change whose quote differs', () => {
     expect(tool.mock.calls[0]![0]).not.toHaveProperty('change');
     expect(tool.mock.calls[1]![0]).toMatchObject({
       citation: {
-        file: '2.2_general_training_material.docx',
+        file: '2.1_general_training_material.docx',
         act: 'oug-195-2002',
       },
       changes: [{ old: oldText, new: newText, unit: 'Art. 36 alin. (2)' }],
@@ -155,7 +156,7 @@ describe('a change whose quote differs', () => {
     });
     expect(git.commit).toHaveBeenCalledWith(
       'legislation/oug-195-2002-2026-11-06',
-      ['2.2_general_training_material.docx', 'citations.json', 'manifest.json'],
+      ['2.1_general_training_material.docx', 'citations.json', 'manifest.json'],
       'fix(templates): quote O.U.G. 195/2002 in its form of 2026-11-06'
     );
     expect(git.push).toHaveBeenCalledWith('legislation/oug-195-2002-2026-11-06', null);
@@ -203,7 +204,7 @@ describe('a change whose quote differs', () => {
     const body = vi.mocked(gh.openPull).mock.calls[0]![0].body;
     expect(body).toContain('**not applied**');
     expect(body).toMatch(
-      /- \*\*2\.2_general_training_material\.docx\*\* ¶\d+\n {2}- now: .+\n {2}- proposed: Text propus\.\n {2}- why: Reia regula căștii\./
+      /- \*\*2\.1_general_training_material\.docx\*\* ¶\d+\n {2}- now: .+\n {2}- proposed: Text propus\.\n {2}- why: Reia regula căștii\./
     );
     expect(body).not.toContain('Nimic.');
     expect(discord.send.mock.calls[0]![0].content).toContain('Sentences of ours to change');
@@ -244,12 +245,33 @@ describe('a change whose quote differs', () => {
     const issue = vi.mocked(gh.openIssue).mock.calls[0]![0];
     expect(issue.title).toBe('Legislation: O.U.G. 195/2002, form of 2026-11-06 needs a person');
     expect(issue.body).toContain(
-      "- 2.2_general_training_material.docx, Art. 36 alin. (1) – (3): (2) the template's passage does not hold the old words"
+      "- 2.1_general_training_material.docx, Art. 36 alin. (1) – (3): (2) the template's passage does not hold the old words"
     );
     expect(issue.body).toContain(`- ${oldText}\n+ ${newText}`);
     expect(discord.send.mock.calls[0]![0].content).toContain(
       'Issue: <https://github.com/PCRinus/ssm-usor/issues/951>'
     );
+  });
+
+  it('finds the quote of a template renamed after the passage was stored', async () => {
+    const renamed = {
+      ...roads,
+      passages: [{ ...roads.passages[0]!, template_file: '2.2_general_training_material.docx' }],
+    };
+    const { deps, tool } = setup({ changes: [renamed] });
+    await runLegislationFix(deps, options);
+    expect(tool.mock.calls[0]![0]).toMatchObject({
+      citation: { file: '2.1_general_training_material.docx' },
+    });
+  });
+
+  it('finds the quote by file name for a passage stored without a type', async () => {
+    const untyped = { ...roads, passages: [{ ...roads.passages[0]!, type_key: null }] };
+    const { deps, tool } = setup({ changes: [untyped] });
+    await runLegislationFix(deps, options);
+    expect(tool.mock.calls[0]![0]).toMatchObject({
+      citation: { file: '2.1_general_training_material.docx' },
+    });
   });
 
   it('opens an issue when the citation index no longer lists the quote', async () => {
@@ -313,7 +335,7 @@ describe('a change the tool cannot apply as it is', () => {
         calls += 1;
         if (input.change) {
           throw new PendingChangeError(
-            '2.2_general_training_material.docx: the change joined to the pending one: the note has 540 characters, not 2 to 500.'
+            '2.1_general_training_material.docx: the change joined to the pending one: the note has 540 characters, not 2 to 500.'
           );
         }
         return applied;
@@ -430,7 +452,7 @@ describe('a change that needs review', () => {
     const issue = vi.mocked(gh.openIssue).mock.calls[0]![0];
     expect(issue.body).toContain('- Art. 37 is referred to and was changed.');
     expect(issue.body).toContain(
-      '- 2.2_general_training_material.docx ¶2060, reference Art. 37: Art. 37 changed'
+      '- 2.1_general_training_material.docx ¶2060, reference Art. 37: Art. 37 changed'
     );
   });
 });

@@ -85,12 +85,12 @@
       }
     },
     {
-      "number": "2.2",
+      "number": "2.1",
       "original": "2.2._MISSMIG",
       "stage": 1,
       "typeKey": "general_training_material",
       "title": "Material de instruire introductiv-generală",
-      "file": "2.2_general_training_material.docx",
+      "file": "2.1_general_training_material.docx",
       "change": {
         "kind": "correction",
         "note": "Tabele cu linii negre, cap gri-verde pe orice pagină; cele scurte întregi. „…”, „și/sau”. Panouri standard explicate; desene noi. Articole neîngroșate, la margine, sursa pe rând aparte peste alineate și tabele; titluri mărite lângă text; liste 1., a), –; cuprins cu etichete îngroșate. Antetul nu rupe „introductiv-generală”; m¹), liniuțe din anexe pe rând nou. Trei preluări devin articole. Culori ca panourile; cuvinte-cod în tabel; note „Conform …” la margine. Capitole pe pagini noi; doar Arial."
@@ -109,12 +109,12 @@
       }
     },
     {
-      "number": "3.2",
+      "number": "3.1",
       "original": "3.2._IPSSM",
       "stage": 2,
       "typeKey": "own_instructions",
       "title": "Instrucțiuni proprii de securitate și sănătate în muncă",
-      "file": "3.2_own_instructions.docx",
+      "file": "3.1_own_instructions.docx",
       "change": {
         "kind": "correction",
         "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde pe fiecare pagină; cele scurte nu se rup între pagini. „…”, „și/sau”. Articole neîngroșate, sursa pe rând aparte peste mai multe paragrafe; titluri pe o scară clară, aproape de text, subliste în trepte egale, anexe aliniate la stânga. Cuprinsul are subcapitolele, etichete îngroșate, titluri aliniate. Durata instruirii pe un rând. Capitole pe pagini noi; doar Arial."
@@ -133,12 +133,12 @@
       }
     },
     {
-      "number": "4.2",
+      "number": "4.1",
       "original": "4.2._Tematica_de_instruire",
       "stage": 2,
       "typeKey": "training_themes",
       "title": "Tematica și programul de instruire",
-      "file": "4.2_training_themes.docx",
+      "file": "4.1_training_themes.docx",
       "change": {
         "kind": "correction",
         "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde pe fiecare pagină; cele scurte nu se rup între pagini. Scris „și/sau”. Fiecare post începe cu numele lui; datele lui pe două coloane. „Locul de muncă” al unui post e zona lui de lucru; lista instrucțiunilor specifice ocupă tot tabelul. Trimiterile MISSMIG urmează noua numerotare. Titluri fără majuscule, aproape de text; capitolele II și III pe pagină nouă; doar Arial."
@@ -193,12 +193,12 @@
       }
     },
     {
-      "number": "7.2",
+      "number": "7.1",
       "original": "7.2_Registre_de_evidenta_a_evenimentelor",
       "stage": 1,
       "typeKey": "event_registers",
       "title": "Registrele de evidență a evenimentelor",
-      "file": "7.2_event_registers.docx",
+      "file": "7.1_event_registers.docx",
       "change": {
         "kind": "layout",
         "note": "Doar fontul Arial în tot documentul, și în rândurile goale și la numerotare; editorul nu mai anunță fonturi înlocuite."
