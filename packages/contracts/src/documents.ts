@@ -302,7 +302,6 @@ export function documentNumberOf(typeKey: string): string | null {
   return documentNumbers.get(typeKey) ?? null;
 }
 
-/** How a document is named wherever it is shown: "3.2 Instrucțiuni proprii …". */
 export function numberedTitle(typeKey: string, title: string) {
   const number = documentNumberOf(typeKey);
   return number ? `${number} ${title}` : title;

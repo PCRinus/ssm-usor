@@ -1073,7 +1073,7 @@ their tab bars read.
   pregătire" rows it showed until then are gone. Section 7, "Documente pentru inspectorat", holds
   the site sheet 7.1 and the annual report 7.2, with no cover. The report is a dated type (ADR
   020): its newest year is the row, titled "Raport anual de evaluare 2026" from `datedTitle`
-  with the year from the document (the browser tab names it the same way), and the earlier years fold under a "Anii anteriori (n)" row,
+  with the year from the document (the browser tab names it the same way, after its number: "7.2 Raport anual de evaluare 2026"), and the earlier years fold under a "Anii anteriori (n)" row,
   closed until clicked, each year a row of its own with its own menu; an upload from a year's
   row sends that year as `?period=`. The section's counts take the newest year only. Under
   10 current employees decisions 8 and 9, the schedules 5.4, the installation register, the
