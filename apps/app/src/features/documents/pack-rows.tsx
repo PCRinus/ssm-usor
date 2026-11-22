@@ -1,3 +1,4 @@
+import { documentNumberOf } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import {
   Table,
@@ -31,6 +32,27 @@ export function PackTable({ children }: { children: ReactNode }) {
   );
 }
 
+export function NumberedTitle({
+  number,
+  children,
+}: {
+  number: string | null;
+  children: ReactNode;
+}) {
+  if (number === null) return <div>{children}</div>;
+  return (
+    <div className="flex items-baseline gap-3">
+      <span
+        data-testid="document-number"
+        className="w-9 shrink-0 font-semibold tracking-[-0.01em] tabular-nums"
+      >
+        {number}
+      </span>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
 export function MissingDocumentRow({
   row,
   className,
@@ -41,7 +63,9 @@ export function MissingDocumentRow({
   return (
     <TableRow data-testid="document-missing" className={className}>
       <TableCell className={cn(packCells.title, 'font-medium text-muted-foreground')}>
-        {row.title}
+        <NumberedTitle number={documentNumberOf(row.key)}>
+          <span data-testid="document-missing-title">{row.title}</span>
+        </NumberedTitle>
       </TableCell>
       <TableCell className={packCells.status}>
         <Badge variant="outline" className="border-dashed text-muted-foreground">

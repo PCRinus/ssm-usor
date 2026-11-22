@@ -9,6 +9,7 @@ import {
   createOrganization,
   openDocumentSection,
   openedPdf,
+  rowTitled,
   signIn,
 } from './support';
 
@@ -98,7 +99,7 @@ test('the training material is issued', async ({ page }) => {
   // The training material's chapter of the unit's own risks prints the unacceptable factors
   // of the evaluations (ADR 015), so nothing is left to fill in by hand.
   const rows = await openDocuments(page, '2');
-  const material = rows.filter({ hasText: /^Material de instruire introductiv-generală/ });
+  const material = rowTitled(rows, /^Material de instruire introductiv-generală/);
   await act(page, material, 'document-issue');
   await page.getByTestId('document-confirm').click();
   await expect(material.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {

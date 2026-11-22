@@ -1,40 +1,30 @@
 import type { DocumentSet } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 
-import { documentSetCopy } from './document-sets';
-import { PackContents } from './pack-contents';
 import { PackEmpty } from './pack-empty';
-import { isEmptyPack, shownSection } from './pack-labels';
+import { PackFolder } from './pack-folder';
+import { PackFolders } from './pack-folders';
+import { isEmptyPack, openSection } from './pack-labels';
 import { PackBar, PackLegend, PackTotal } from './pack-progress';
-import { PackSectionPane } from './pack-section-pane';
 import type { Pack, PackSection } from './pack-status';
-import { useWideLayout } from './use-wide-layout';
 
-export function PackHeader({
-  set,
-  pack,
-  actions,
-}: {
-  set: DocumentSet;
-  pack?: Pack;
-  actions?: ReactNode;
-}) {
-  const empty = pack !== undefined && isEmptyPack(pack);
-  const wide = useWideLayout();
+function PackHeader({ pack, actions }: { pack: Pack; actions?: ReactNode }) {
   return (
-    <div data-testid="pack-header" className="grid gap-3.5 px-4 pt-5 pb-5 sm:px-6 sm:pt-6">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">{documentSetCopy[set].heading}</h2>
-        {pack && empty && wide && <PackTotal pack={pack} className="text-[0.8125rem]" />}
-        {actions && <div className="flex flex-wrap gap-2 max-sm:grid max-sm:w-full">{actions}</div>}
-      </div>
-      {pack && !empty && (
-        <>
-          <PackBar counts={pack.counts} />
-          <PackLegend pack={pack} />
-        </>
+    <div
+      data-testid="pack-header"
+      className="grid gap-x-4 gap-y-3.5 px-4 pt-5 pb-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6 sm:pt-6"
+    >
+      <PackLegend pack={pack} />
+      {actions && (
+        <div className="flex flex-wrap gap-2 max-sm:order-last max-sm:grid sm:justify-end">
+          {actions}
+        </div>
       )}
+      <div className="flex gap-x-4 gap-y-2 max-sm:flex-col sm:col-span-2 sm:items-center">
+        <PackBar counts={pack.counts} className="sm:flex-1" />
+        <PackTotal pack={pack} className="shrink-0 text-[0.8125rem]" />
+      </div>
     </div>
   );
 }
@@ -60,62 +50,62 @@ export function PackLayout({
   notices?: ReactNode;
   children: (section: PackSection) => ReactNode;
 }) {
-  const wide = useWideLayout();
-  const noticeBlock = notices ? (
-    <div className="grid gap-4 px-4 pb-4 sm:px-6">{notices}</div>
-  ) : null;
+  // An archived client gets nothing generated, so its folders would only list what never comes.
+  const foldersShown = !(readOnly && isEmptyPack(pack));
+  const section = foldersShown ? openSection(pack, sectionId) : undefined;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const stepsRef = useRef<HTMLSpanElement>(null);
+  const shownId = section?.id;
+  const lastShownId = useRef(shownId);
+  useEffect(() => {
+    const from = lastShownId.current;
+    lastShownId.current = shownId;
+    if (from === shownId) return;
+    if (shownId === undefined) {
+      rootRef.current
+        ?.querySelector<HTMLElement>(`[data-testid="pack-folder"][data-section="${from}"]`)
+        ?.focus();
+    } else if (!stepsRef.current?.contains(document.activeElement)) {
+      // Stepping with the arrows keeps the focus on them, unless the arrow just became disabled.
+      headingRef.current?.focus();
+    }
+  }, [shownId]);
 
-  if (isEmptyPack(pack)) {
+  if (section) {
     return (
-      <div data-testid="pack-layout" data-layout={wide ? 'wide' : 'narrow'}>
-        <PackHeader set={set} pack={pack} actions={actions} />
-        {noticeBlock}
-        <PackEmpty
-          set={set}
-          pack={pack}
-          readOnly={readOnly}
-          layout={wide ? 'wide' : 'narrow'}
-          action={generate}
-        />
-      </div>
-    );
-  }
-
-  const section = shownSection(pack, sectionId, wide);
-  if (!wide && section) {
-    return (
-      <div data-testid="pack-layout" data-layout="narrow">
-        {notices && <div className="grid gap-4 px-4 pt-4">{notices}</div>}
-        <PackSectionPane set={set} clientId={clientId} pack={pack} section={section} layout="page">
-          {children(section)}
-        </PackSectionPane>
-      </div>
-    );
-  }
-  return (
-    <div data-testid="pack-layout" data-layout={wide ? 'wide' : 'narrow'}>
-      <PackHeader set={set} pack={pack} actions={actions} />
-      {noticeBlock}
-      <div className={cn(wide && 'grid grid-cols-[19rem_minmax(0,1fr)] border-t')}>
-        <PackContents
+      <div ref={rootRef} data-testid="pack-layout" data-view="folder">
+        <PackFolder
           set={set}
           clientId={clientId}
           pack={pack}
-          selected={section}
-          layout={wide ? 'pane' : 'list'}
-        />
-        {wide && section && (
-          <PackSectionPane
-            set={set}
-            clientId={clientId}
-            pack={pack}
-            section={section}
-            layout="pane"
-          >
-            {children(section)}
-          </PackSectionPane>
-        )}
+          section={section}
+          notices={notices}
+          headingRef={headingRef}
+          stepsRef={stepsRef}
+        >
+          {children(section)}
+        </PackFolder>
       </div>
+    );
+  }
+
+  const noticeBlock = (className: string) =>
+    notices && <div className={cn('grid gap-4 px-4 sm:px-6', className)}>{notices}</div>;
+  return (
+    <div ref={rootRef} data-testid="pack-layout" data-view="overview">
+      {isEmptyPack(pack) ? (
+        <>
+          {noticeBlock('pt-4 sm:pt-6')}
+          <PackEmpty set={set} pack={pack} readOnly={readOnly} action={generate} />
+        </>
+      ) : (
+        <>
+          <PackHeader pack={pack} actions={actions} />
+          {noticeBlock('pb-4')}
+        </>
+      )}
+      {foldersShown && <PackFolders set={set} clientId={clientId} pack={pack} />}
     </div>
   );
 }

@@ -85,7 +85,6 @@ export function PackLegend({ pack }: { pack: Pack }) {
           </span>
         </span>
       ))}
-      <PackTotal pack={pack} className="ml-auto text-[0.8125rem]" />
     </div>
   );
 }

@@ -15,6 +15,8 @@ import {
   expectSetGenerated,
   moduleFixture,
   openDocumentSection,
+  rowTitled,
+  showDocumentFolders,
   signIn,
   updateClient,
 } from './support';
@@ -30,6 +32,7 @@ async function act(page: Page, row: Locator, action: string, menu = 'document-ac
 
 async function downloadArchive(page: Page, format: string) {
   await expect(page.getByRole('menu')).toHaveCount(0);
+  await showDocumentFolders(page);
   const download = page.waitForEvent('download');
   await page.getByTestId('documents-archive').click();
   await page.getByTestId(format).click();
@@ -132,7 +135,7 @@ test('with a gap elsewhere in the set the cover is generated again, and a decisi
   await act(page, rows.filter({ hasText: title }), 'document-regenerate');
   await page.getByTestId('document-confirm').click();
   await expect(page.getByTestId('documents-error')).toHaveText(
-    `Nu am putut genera din nou „${title}”. Completează mai întâi:`
+    `Nu am putut genera din nou „1.1 ${title}”. Completează mai întâi:`
   );
   const missing = page.getByTestId('documents-missing-row');
   await expect(missing).toHaveText([/^Programul instruirii periodice/]);
@@ -188,14 +191,15 @@ test('a row leads to its field and back, and the client then gets its whole docu
   });
   const rows = page.getByTestId('document-row');
 
-  await expect(page.getByTestId('pack-contents-entry')).toHaveCount(12);
+  await expect(page.getByTestId('pack-folder')).toHaveCount(12);
+  // The whole set exists, so there is nothing left to generate.
+  await expect(page.getByTestId('documents-archive')).toBeVisible();
+  await expect(page.getByTestId('documents-generate')).toHaveCount(0);
   await openDocumentSection(page, '6');
   // The equipment list is generated from the positions and their entries (ADR 011).
   await expect(
     rows.filter({ hasText: 'Lista internă de dotare' }).getByTestId('document-draft')
   ).toHaveText('Ciornă · rev. 1');
-  // The whole set exists, so there is nothing left to generate.
-  await expect(page.getByTestId('documents-generate')).toHaveCount(0);
   await openDocumentSection(page, '1');
   await expect(rows.filter({ hasText: 'Decizia privind reprezentanții lucrătorilor' })).toHaveCount(
     0
@@ -229,9 +233,10 @@ test('the own instructions are issued with their annex, which opens in the edito
   // module's body as an annex and converts it with the common part into the one PDF the
   // revision keeps (ADR 034).
   await openDocumentSection(page, '3');
-  const instructions = page
-    .getByTestId('document-row')
-    .filter({ hasText: /^Instrucțiuni proprii de securitate/ });
+  const instructions = rowTitled(
+    page.getByTestId('document-row'),
+    /^Instrucțiuni proprii de securitate/
+  );
   await act(page, instructions, 'document-issue');
   await page.getByTestId('document-confirm').click();
   await expect(instructions.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
@@ -262,6 +267,7 @@ test('the own instructions are issued with their annex, which opens in the edito
     expect(Buffer.from(pdf![1].subarray(0, 5)).toString()).toBe('%PDF-');
   }
 
+  await openDocumentSection(page, '3');
   const annex = page.getByTestId('document-annex');
   await expect(annex).toHaveCount(1);
   await expect(annex.getByTestId('document-annex-title')).toContainText(
@@ -299,7 +305,7 @@ test('the issued training themes fall behind when a cited instruction gets a new
 }) => {
   const rows = await generateDocumentation(page, 'documents-themes-behind', 'TEMATICĂ ÎN URMĂ E2E');
   await openDocumentSection(page, '4');
-  const themes = rows.filter({ hasText: /^Tematica și programul de instruire/ });
+  const themes = rowTitled(rows, /^Tematica și programul de instruire/);
   await act(page, themes, 'document-issue');
   await page.getByTestId('document-confirm').click();
   await expect(themes.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
@@ -338,7 +344,7 @@ test('the issued training themes fall behind when a cited instruction gets a new
   );
 
   await openDocumentSection(page, '3');
-  const instructions = rows.filter({ hasText: /^Instrucțiuni proprii de securitate/ });
+  const instructions = rowTitled(rows, /^Instrucțiuni proprii de securitate/);
   await expect(instructions.getByTestId('document-instructions-behind')).toBeVisible();
   await expect(instructions.getByTestId('document-instructions-behind-reason')).toContainText(
     /^Instrucțiunea „Scări metalice” are o versiune nouă din .*\. Generează documentul din nou\.$/
@@ -595,5 +601,7 @@ test("from 10 employees the set includes the decision on the workers' representa
     .getByTestId('document-row')
     .filter({ hasText: 'Decizia privind reprezentanții lucrătorilor' });
   await expect(decision).toContainText('Decizia nr. 7 SSM');
+  await showDocumentFolders(page);
+  await expect(page.getByTestId('documents-archive')).toBeVisible();
   await expect(page.getByTestId('documents-generate')).toHaveCount(0);
 });

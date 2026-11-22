@@ -16,6 +16,7 @@ Source: `packages/design-tokens/src/tokens.css`; dashboard and panel tokens are 
 | `--muted-foreground` | #65736d | second line under a value, the em dash of an empty cell |
 | `--section-tab`, `-hover`, `-foreground` | #e3e8e0, #d8dfd4, #4d5c55 | tab strip, table header, summary-list labels |
 | `--border`, `--input` | #d4ddd5, #ccd6ce | hairlines, field borders |
+| `--folder`, `--folder-border`, `-hover` | #edf2ea, #cdd8c9, #9fb5a8 | folder tiles of the documentation tabs |
 | `--warning` family | #fdf2d3, border #e9c46a, text #66470a | to do, something to decide (amber) |
 | `--destructive` family | #b42318; soft #fdecea, border #efb3ad, text #8c1c13 | overdue, blocked, wrong (red) |
 | `--success` family | #eff6dc, border #bfd98a, text #2e4712 | done, "La zi", "Are acces" |
@@ -60,6 +61,7 @@ Variants live in `packages/ui/src/components/button.tsx`.
 - Client tabs show lists; what opens from a list gets its own full page.
 - A page whose content splits by kind (SSM and SU) uses `SectionNav` tabs, child routes and a folding sidebar group, never a column plus a select filter.
 - Tabs are named "Documentație SSM" and "Documentație SU"; "document" belongs to Alte documente.
+- Folders (documentation overview, `features/documents/pack-folders.tsx`): each tile has its own sage fill (`--folder`) and outline (`--folder-border`), and its tab is cut from the same piece: sloped right edge, no line between tab and body, square corner under the tab, no shadow. Number chip and the bar's empty part are white on it. Phones keep a plain row list.
 
 ## Lists and tables
 
@@ -103,6 +105,7 @@ Reuse the client import's review anatomy (`features/imports/review-fields.tsx`: 
 - Chip-row filters; a domain column plus select for split content.
 - Coloured state texts as badges; Completat and Necompletat badges on forms; read-only summaries with Modifică for settings forms.
 - Boxes inside boxes; row hairlines and section edges in one line weight; a shared group header over two columns.
+- White folder tiles on the white sheet, and a folder tab in a different colour that reads as a separate strip.
 - Stacking table rows on phones; a left contents column that forces scrolling (documents layout A is being replaced).
 - Tooltip-only information; inline explanatory hints; one-item `⋯` menus; add buttons on archived tabs.
 - Implementation details in marketing copy.

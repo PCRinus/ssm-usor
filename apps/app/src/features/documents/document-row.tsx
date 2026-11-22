@@ -41,6 +41,7 @@ import { AnnexRow } from './annex-row';
 import { behindInstructions, instructionChangesHint } from './behind-labels';
 import type { ClientDocument } from './document-labels';
 import { documentLink, documentSetCopy } from './document-sets';
+import { NumberedTitle } from './pack-rows';
 import { packCells, warningBadge } from './pack-styles';
 import type { DocumentActions, Revision } from './use-document-actions';
 
@@ -60,6 +61,7 @@ export function DocumentRow({
   set,
   clientId,
   document,
+  number,
   title,
   rowId,
   readOnly,
@@ -70,6 +72,7 @@ export function DocumentRow({
   set: DocumentSet;
   clientId: string;
   document: ClientDocument;
+  number: string | null;
   title: string;
   rowId?: string;
   readOnly: boolean;
@@ -97,19 +100,21 @@ export function DocumentRow({
     <>
       <TableRow id={rowId} data-testid="document-row" {...click} className={click.className}>
         <TableCell className={packCells.title}>
-          <Link
-            {...documentLink(set, clientId, document.id)}
-            state={openedHere}
-            data-testid="document-title"
-            className="font-medium underline-offset-4 hover:underline"
-          >
-            {title}
-          </Link>
-          {document.decisionNumber !== null && (
-            <span className="block text-xs text-muted-foreground">
-              Decizia nr. {document.decisionNumber} {documentSetCopy[set].name}
-            </span>
-          )}
+          <NumberedTitle number={number}>
+            <Link
+              {...documentLink(set, clientId, document.id)}
+              state={openedHere}
+              data-testid="document-title"
+              className="font-medium underline-offset-4 hover:underline"
+            >
+              {title}
+            </Link>
+            {document.decisionNumber !== null && (
+              <span className="block text-xs text-muted-foreground">
+                Decizia nr. {document.decisionNumber} {documentSetCopy[set].name}
+              </span>
+            )}
+          </NumberedTitle>
         </TableCell>
         <TableCell className={packCells.status}>
           <span className="flex flex-wrap gap-1.5">
@@ -343,6 +348,7 @@ export function DocumentRow({
           key={annex.version.id}
           annex={annex}
           typeKey={document.typeKey}
+          indent={number === null ? 'pl-5' : 'pl-17'}
           onDownload={() => void actions.downloadAnnex(document, current, annex)}
         />
       ))}

@@ -11,6 +11,8 @@ import {
   nameFireSafetyTechnician,
   openDocumentSection,
   openedPdf,
+  rowTitled,
+  showDocumentFolders,
   signIn,
 } from './support';
 
@@ -41,7 +43,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
 
   await expect(page.getByTestId('documents-hint')).toBeVisible();
   await expect(page.getByTestId('documents-empty')).toBeVisible();
-  await expect(page.getByTestId('pack-empty-entry')).toHaveCount(6);
+  await expect(page.getByTestId('pack-folder')).toHaveCount(6);
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-missing-count')).toHaveText('2 date de completat');
   await expect(page.getByTestId('generate-missing-row')).toHaveText([
@@ -61,7 +63,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
     timeout: 30_000,
   });
 
-  await expect(page.getByTestId('pack-contents-entry')).toHaveCount(6);
+  await expect(page.getByTestId('pack-folder')).toHaveCount(6);
   await openDocumentSection(page, '1');
   const decisions = page.getByTestId('document-row');
   await expect(decisions).toHaveCount(8);
@@ -83,16 +85,20 @@ test('the fire-safety set asks for its own data and the first decision number, i
   const rows = page.getByTestId('document-row');
   await expect(rows).toHaveCount(4);
   await expect(page.getByTestId('document-missing')).toHaveCount(0);
-  await expect(page.getByTestId('documents-hint')).toHaveCount(0);
   await expect(rows.nth(0)).toContainText('Copertă – Registrele de evidență');
   await expect(rows.nth(2)).toContainText('Permis de lucru cu foc');
   await expect(rows.nth(3)).toContainText('controlului stingătoarelor de incendiu');
-  await expect(page.getByTestId('documents-generate')).toHaveCount(0);
 
-  const permit = rows.filter({ hasText: /^Permis de lucru cu foc/ });
+  const permit = rowTitled(rows, /^Permis de lucru cu foc/);
   const download = page.waitForEvent('download');
   await act(page, permit, 'document-download-draft');
   expect((await download).suggestedFilename()).toBe('6.2 Permis de lucru cu foc - rev. 1.docx');
+
+  await showDocumentFolders(page);
+  await expect(page.getByTestId('documents-archive')).toBeVisible();
+  await expect(page.getByTestId('documents-hint')).toHaveCount(0);
+  await expect(page.getByTestId('documents-generate')).toHaveCount(0);
+  await openDocumentSection(page, '6');
 
   const cover = rows.nth(0);
   await act(page, cover, 'document-issue');
@@ -113,6 +119,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
     });
   }
   await page.reload();
+  await showDocumentFolders(page);
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-headcount')).toContainText('10 lucrători');
   await expect(page.getByTestId('generate-period')).toBeVisible();
@@ -129,23 +136,30 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await openDocumentSection(page, '6');
   await expect(rows).toHaveCount(5);
   await openDocumentSection(page, '7');
-  await expect(rows).toHaveText([/^Fișa obiectivului/, /^Raport anual de evaluare 2026/]);
+  await expect(rows).toHaveText([
+    /^7\.1\s*Fișa obiectivului/,
+    /^7\.2\s*Raport anual de evaluare 2026/,
+  ]);
   await expect(page.getByTestId('document-earlier-toggle')).toHaveCount(0);
 
+  await showDocumentFolders(page);
   await expect(page.getByTestId('documents-generate')).toHaveText('Generează pentru alt an');
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-period').fill('2025');
   await page.getByTestId('generate-submit').click();
   await expect(page.getByText('A fost generat un document.')).toBeVisible();
   await openDocumentSection(page, '7');
-  await expect(rows).toHaveText([/^Fișa obiectivului/, /^Raport anual de evaluare 2026/]);
+  await expect(rows).toHaveText([
+    /^7\.1\s*Fișa obiectivului/,
+    /^7\.2\s*Raport anual de evaluare 2026/,
+  ]);
   const earlier = page.getByTestId('document-earlier-toggle');
   await expect(earlier).toHaveText('Anii anteriori (1)');
   await earlier.click();
   await expect(rows).toHaveText([
-    /^Fișa obiectivului/,
-    /^Raport anual de evaluare 2026/,
-    /^Raport anual de evaluare 2025/,
+    /^7\.1\s*Fișa obiectivului/,
+    /^7\.2\s*Raport anual de evaluare 2026/,
+    /^7\.2\s*Raport anual de evaluare 2025/,
   ]);
   const reportDownload = page.waitForEvent('download');
   await act(page, rows.nth(2), 'document-download-draft');

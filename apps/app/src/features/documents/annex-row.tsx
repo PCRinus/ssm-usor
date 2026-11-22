@@ -24,10 +24,12 @@ const day = (timestamp: string) => formatRoDate(timestamp.slice(0, 10));
 export function AnnexRow({
   annex,
   typeKey,
+  indent,
   onDownload,
 }: {
   annex: DocumentAnnex;
   typeKey: string;
+  indent: string;
   onDownload: () => void;
 }) {
   const code = typeKey === 'fire_own_instructions' ? 'I.P.S.U.' : 'I.P.S.S.M.';
@@ -35,7 +37,7 @@ export function AnnexRow({
   return (
     <TableRow data-testid="document-annex">
       <TableCell className={packCells.title}>
-        <div className="pl-5">
+        <div className={indent}>
           <Link
             to="/instructiuni/$moduleId"
             params={{ moduleId: annex.moduleId }}

@@ -955,16 +955,23 @@ their tab bars read.
   `notGeneratedTitles` (held to both manifests by a test). A document the API lists under
   `notApplicable` is no part of the pack, and a section left with nothing is left out. Under the
   heading, a bar and a legend count the states over the pack, with "N de documente în M secțiuni"
-  (`pack-labels.ts` holds the wording and the "de" rule). From 1280 px (`useWideLayout`) the
-  card has two panes (`PackLayout`): the contents ("Cuprinsul documentației", one link per
-  section with its number, a small bar of its states and a caption such as "3 din 5 emise · 1 de
-  actualizat") beside the section on show, the first one while the address names none, its
-  table, and "Secțiunea următoare". Below 1280 px the card is the contents alone until a section
-  is chosen, then that section alone, with "Cuprinsul documentației" as the way back; below
-  768 px a row is a card of its own (`packCells`). Until anything is generated the card shows
-  the contents as what the pack will hold beside a panel with "Generează documentația"
-  (`PackEmpty`; on a phone the contents fold under "Ce va cuprinde documentația"), or the
-  archived client's hint without the button. A row lists, in the order of the pack: title, the decision's number, badges for the issued revision and the draft, the
+  (`pack-labels.ts` holds the wording and the "de" rule). The card
+  (`PackLayout`) has two views, chosen by the route's `?section=`. Without it, the overview: the
+  bar, the legend, "Descarcă documentația" and the generate button over a grid of folders
+  (`PackFolders`), one link per section with its number, "N documente · N anexe", a small bar of
+  its states and a caption such as "3 din 5 emise · 1 de actualizat". From 640 px a folder is a
+  tile in the sage folder colours (`--folder`, `--folder-border`) with a tab cut from the same
+  piece, two to four to a row by the card's width; on a phone the same link is a row of a list
+  without the counts. With a section named, the folder view (`PackFolder`) shows that section
+  alone: "Toate secțiunile" back to the overview, the previous and next arrows with "Secțiunea N
+  din M", the section's number and title, its table, and "Următoarea secțiune". Opening a folder
+  adds a history entry; the arrows and "Următoarea secțiune" replace it, so the browser's back
+  button from a folder opened on the overview returns to it. Opening a folder moves the focus to its heading
+  and going back to the overview to the tile it came from; a folder the address opens takes no
+  focus. A section the pack does not hold shows the overview. Until anything is generated the
+  overview shows a panel with "Generează documentația" over the folders as what the pack will
+  hold (`PackEmpty`), or, for an archived client, its hint alone, with no folders and no folder
+  view. A table row lists, in the order of the pack: title, the decision's number, badges for the issued revision and the draft, the
   date the document carries, "Date modificate" on a draft whose printed data has changed
   since, and "Șablon actualizat" on a document that is behind its template (ADR 017), with the
   newest version's note in its tooltip. The card reads `GET /documents/behind` once for the
