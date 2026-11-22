@@ -287,9 +287,7 @@ describe('the Importuri AI page', () => {
     await user.click(continueButton);
 
     const completing = await screen.findByTestId('import-upload-dialog');
-    expect(
-      within(completing).getByRole('heading', { name: 'Completează din documentație' })
-    ).toBeTruthy();
+    expect(within(completing).getByRole('heading', { name: 'Completează cu AI' })).toBeTruthy();
     expect(within(completing).getByTestId('import-upload-one-client').textContent).toContain(
       'Hotel Carpați Sinaia SRL'
     );

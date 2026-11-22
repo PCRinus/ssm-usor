@@ -478,9 +478,7 @@ describe('completing a client from its documentation', () => {
 
     await userEvent.click(await screen.findByTestId('client-import'));
     const dialog = await screen.findByTestId('import-upload-dialog');
-    expect(
-      within(dialog).getByRole('heading', { name: 'Completează din documentație' })
-    ).toBeTruthy();
+    expect(within(dialog).getByRole('heading', { name: 'Completează cu AI' })).toBeTruthy();
     expect(within(dialog).getByTestId('import-upload-one-client').textContent).toContain(
       'Documentele trebuie să fie ale firmei Brutăria Spicul Auriu SRL (CUI RO31458207).'
     );

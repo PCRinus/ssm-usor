@@ -116,7 +116,7 @@ const conflictReasons: Record<string, string> = {
   [importErrorReasons.otherCompany]:
     'CUI-ul din documente nu este al acestui client. Verifică identitatea clientului înainte de confirmare.',
   [importErrorReasons.clientExists]:
-    'Organizația are deja un client cu acest CUI. Completează-l pe acela din pagina lui, cu „Completează din documentație”.',
+    'Organizația are deja un client cu acest CUI. Completează-l pe acela din pagina lui, cu „Completează cu AI”.',
   [importErrorReasons.incomplete]:
     'Mai sunt decizii de luat. Reîncarcă pagina ca să vezi ce lipsește.',
   [importErrorReasons.outdated]:
