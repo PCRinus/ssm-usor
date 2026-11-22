@@ -173,7 +173,8 @@ const testBoxes: Record<string, Box> = {
   material: { chars: 47, lines: 3 },
   examiner: { chars: 25, lines: 2 },
 };
-const hiringBoxes: Record<string, Box> = { material: { chars: 57, lines: 7 } };
+// The material's box spans the hiring block's grid, the text column less its padding.
+const hiringBoxes: Record<string, Box> = { material: { chars: 91, lines: 5 } };
 const noteBox: Box = { chars: 11, lines: 2 };
 
 function linesAt(text: string, width: number) {

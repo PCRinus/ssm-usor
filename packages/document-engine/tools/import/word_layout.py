@@ -11,9 +11,11 @@ Both go together: mode 15 alone moves the tables indented by their padding to th
 import os
 import re
 
-# The fire-safety set and the contracts keep their layout until they are reviewed too.
+# The fire-safety set and the contracts keep their layout until they are reviewed too; the
+# fire-safety training sheet is a form drawn like the occupational safety one and laid out as it is.
 OUTSIDE = ('fire', 'other')
 OUTSIDE_FILES = ('act_aditional_semnare_electronica.docx',)
+INSIDE_FILES = ('fisa_instructaj_su.docx',)
 
 COMPATIBILITY_MODE = re.compile(r'<w:compatSetting\b(?=[^>]*\bw:name="compatibilityMode")[^>]*/>')
 MODE_VALUE = re.compile(r'\bw:val="[^"]*"')
@@ -31,8 +33,9 @@ ON_THE_MARGIN = '<w:tblInd w:w="0" w:type="dxa"/>'
 
 
 def lays_out_as_word_2013(path):
-    return (os.path.basename(os.path.dirname(path)) not in OUTSIDE
-            and os.path.basename(path) not in OUTSIDE_FILES)
+    name = os.path.basename(path)
+    return name in INSIDE_FILES or (os.path.basename(os.path.dirname(path)) not in OUTSIDE
+                                    and name not in OUTSIDE_FILES)
 
 
 def word_2013_settings(xml):

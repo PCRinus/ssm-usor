@@ -13,7 +13,8 @@ A table drawn this way names the table style `HOUSE_TABLE`, which holds nothing:
 no other table.
 
 Left as they are: a table with no line or with lines on some sides only (the signature blocks,
-the covers' handover, the sheets' lines to write on, the sign catalogues of 2.1 and 11.1), and the
+the covers' handover, the sheets' lines to write on, the sign catalogues of 2.1 and 11.1), the
+training sheets' form grids (`FORM_GRID`), ruled in 0.5 pt throughout, and the
 scales of 9's method (Anexa 3 to 5), whose 1.5 pt contours and grey levels say which class a
 cell belongs to. Their header fill turns to the house one, and their text reads on every grey
 (`readable_grid`). The consequence matrix
@@ -34,6 +35,7 @@ GROUP_FILL = 'F1F4EF'
 WIDE_COLUMNS = 6
 PADDING = (('top', 40), ('left', 85), ('bottom', 40), ('right', 85))  # twips
 HOUSE_TABLE = 'HouseTable'
+FORM_GRID = '<w:tblCaption w:val="FormGrid"/>'
 HOUSE_TABLE_STYLE = (f'<w:style w:type="table" w:customStyle="1" w:styleId="{HOUSE_TABLE}">'
                      '<w:name w:val="Tabel SSM Ușor"/><w:uiPriority w:val="99"/></w:style>')
 EMPTY_MARK = '—'
@@ -300,7 +302,7 @@ def fully_ruled(rows):
 def kind_of(table):
     """'house', 'consequences' (9's Anexa 2), 'scale' (9's Anexa 3 to 5) or None for a table left
     as it is."""
-    if table.count('<w:tbl>') > 1:
+    if table.count('<w:tbl>') > 1 or FORM_GRID in table:
         return None
     rows = ROW.findall(table)
     if not rows:
@@ -1099,7 +1101,7 @@ CONTENT_WIDTHS = 'ContentWidths'
 # The registers' headers name up to 18 columns: 7 pt, in all four, over an 8 pt body.
 SMALL_HEADERS = {'7.1_event_registers.docx': 14}
 # The sheets fit a training's rows and signatures on one page in 7 and 9 pt.
-DENSE_FORMS = ('fisa_instruire_ssm.docx', 'fisa_test.docx')
+DENSE_FORMS = ('fisa_instruire_ssm.docx', 'fisa_instructaj_su.docx', 'fisa_test.docx')
 CONTENT_WIDTH_TABLES = {'10_prevention_plan.docx': '{{#plan}}'}
 
 

@@ -274,8 +274,8 @@ describe('ensureSignedSheet', () => {
     await ensureSignedSheet(ctx, employeeId, 'ssm');
 
     const { h1, h2 } = drawn[0]!.form;
-    expect(h1.materialPlaceholder.split('\n')).toHaveLength(5);
-    expect(h2.materialPlaceholder.split('\n')).toHaveLength(7);
+    expect(h1.materialPlaceholder.split('\n')).toHaveLength(3);
+    expect(h2.materialPlaceholder.split('\n')).toHaveLength(5);
   });
 
   it('stores a new sheet with the paper rows printed, and fills every other record into the next rows', async () => {

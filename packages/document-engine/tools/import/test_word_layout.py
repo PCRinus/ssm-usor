@@ -2,7 +2,7 @@
 
 import unittest
 
-from word_layout import WORD_2013, tables_on_the_margin, word_2013_settings
+from word_layout import WORD_2013, lays_out_as_word_2013, tables_on_the_margin, word_2013_settings
 
 OPEN = '<w:settings xmlns:w="w" xmlns:w14="w14">'
 
@@ -44,6 +44,14 @@ class Word2013Settings(unittest.TestCase):
             word_2013_settings(xml),
             f'{OPEN}<w:defaultTabStop w:val="720"/><w:compat>{WORD_2013}</w:compat>'
             '<w14:docId w14:val="1"/></w:settings>')
+
+
+class LaidOutAsWord2013(unittest.TestCase):
+    def test_takes_the_occupational_safety_set_and_the_fire_safety_sheet_alone_of_its_set(self):
+        self.assertTrue(lays_out_as_word_2013('templates/fisa_instruire_ssm.docx'))
+        self.assertTrue(lays_out_as_word_2013('templates/fire/fisa_instructaj_su.docx'))
+        self.assertFalse(lays_out_as_word_2013('templates/fire/7.2_fire_annual_report.docx'))
+        self.assertFalse(lays_out_as_word_2013('templates/other/act_aditional_semnare_electronica.docx'))
 
 
 class TablesOnTheMargin(unittest.TestCase):

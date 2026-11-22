@@ -116,12 +116,12 @@ describe('signedSheetData', () => {
     const data = signedSheetData(sheetFacts, 'ssm', 1, [], { h2: material });
     const lines = (placeholder: string) => placeholder.split('\n');
     expect(lines(data.form.h2.materialPlaceholder)).toHaveLength(
-      wrapToBox(material, { chars: 57, lines: 7 }).split('\n').length
+      wrapToBox(material, { chars: 91, lines: 5 }).split('\n').length
     );
-    expect(lines(data.form.h2.materialPlaceholder)).toHaveLength(5);
-    expect(lines(data.form.h1.materialPlaceholder)).toHaveLength(7);
+    expect(lines(data.form.h2.materialPlaceholder)).toHaveLength(3);
+    expect(lines(data.form.h1.materialPlaceholder)).toHaveLength(5);
     expect(new Set(lines(data.form.h2.materialPlaceholder))).toEqual(
-      new Set(['\u2002'.repeat(57)])
+      new Set(['\u2002'.repeat(91)])
     );
     expect(lines(materialPlaceholder(''))).toHaveLength(1);
   });

@@ -59,18 +59,18 @@ CLOSING = ('<w:p><w:pPr><w:pStyle w:val="Header"/><w:spacing w:before="0" w:afte
            'w:lineRule="exact"/><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr></w:pPr></w:p>')
 
 
-def header(first=False):
-    """The running header from the second page, or the first page's: the page number alone, in
-    the same place, over the title block that names the decision."""
+def header(line=''):
+    """The running header from the second page, naming the document in `line`, or without a line
+    the first page's: the page number alone, in the same place, over the title block."""
     # Two cells rather than a right tab: a long client name wraps inside its own cell instead of
     # pushing the page number onto a line of its own.
     widths = (TEXT_WIDTH - PAGE_COLUMN, PAGE_COLUMN)
-    contents = ('' if first else run(LINE), page_of_pages())
+    contents = (run(line) if line else '', page_of_pages())
     cells = ''.join(
         f'<w:tc><w:tcPr><w:tcW w:w="{width}" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>'
         f'{paragraph(content, align, "Header")}</w:tc>'
         for width, content, align in zip(widths, contents, ('left', 'right')))
-    rule = '' if first else (f'<w:tblBorders><w:bottom w:val="single" w:sz="4" w:space="0" '
+    rule = '' if not line else (f'<w:tblBorders><w:bottom w:val="single" w:sz="4" w:space="0" '
                              f'w:color="{GREY}"/></w:tblBorders>')
     table = (
         '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:jc w:val="left"/>'
@@ -136,8 +136,8 @@ def decision_pages(parts):
     if not is_decision(parts['word/document.xml']):
         return parts
     parts = dict(parts)
-    parts[HEADER] = header()
-    parts[FIRST_HEADER] = header(first=True)
+    parts[HEADER] = header(LINE)
+    parts[FIRST_HEADER] = header()
     parts['word/_rels/document.xml.rels'] = relationships(parts['word/_rels/document.xml.rels'])
     parts['[Content_Types].xml'] = content_types(parts['[Content_Types].xml'])
     parts['word/document.xml'] = section(parts['word/document.xml'])

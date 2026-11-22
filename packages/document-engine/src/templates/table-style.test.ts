@@ -7,6 +7,8 @@ import { documentTextOf, entries, fireFiles, read } from './read';
 
 // tools/import/table_style.py says why.
 const houseTable = '<w:tblStyle w:val="HouseTable"/>';
+// The training sheets' rubrics, ruled in 0.5 pt throughout as a form.
+const formGrid = '<w:tblCaption w:val="FormGrid"/>';
 const houseLines =
   '<w:tblBorders><w:top w:val="single" w:sz="8" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="8" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="8" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="8" w:space="0" w:color="000000"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tblBorders>';
 const headerRule =
@@ -14,9 +16,14 @@ const headerRule =
 const padding = (side: number) =>
   `<w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="${side}" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="${side}" w:type="dxa"/></w:tblCellMar>`;
 
-const ssmFiles = entries
-  .filter((entry) => entry.set === 'ssm' && entry.typeKey !== signingTypeKeys.agreement)
-  .map((entry) => entry.path);
+// The fire-safety training sheet is drawn in the occupational safety set's style
+// (tools/import/word_layout.py).
+const ssmFiles = [
+  ...entries
+    .filter((entry) => entry.set === 'ssm' && entry.typeKey !== signingTypeKeys.agreement)
+    .map((entry) => entry.path),
+  'fire/fisa_instructaj_su.docx',
+];
 const bodyOf = (name: string) => new PizZip(read(name)).file('word/document.xml')!.asText();
 
 function topLevelTables(xml: string) {
@@ -59,6 +66,7 @@ describe('the table house style of the occupational safety set', () => {
     const left = tablesOf(name).filter(
       (table) =>
         !table.includes(houseTable) &&
+        !table.includes(formGrid) &&
         cellsOf(table).some(
           (cell) =>
             ['top', 'left', 'bottom', 'right'].every((side) =>
@@ -253,12 +261,12 @@ describe('the table house style of the occupational safety set', () => {
     }
   );
 
-  it.each([...fireFiles, 'act_aditional_semnare_electronica.docx'])(
-    '%s keeps its tables as they were, until its set is reviewed',
-    (name) => {
-      expect(bodyOf(name)).not.toContain(houseTable);
-    }
-  );
+  it.each([
+    ...fireFiles.filter((name) => name !== 'fire/fisa_instructaj_su.docx'),
+    'act_aditional_semnare_electronica.docx',
+  ])('%s keeps its tables as they were, until its set is reviewed', (name) => {
+    expect(bodyOf(name)).not.toContain(houseTable);
+  });
 });
 
 describe('the tables H.G. 971/2006 gives 2.1', () => {
