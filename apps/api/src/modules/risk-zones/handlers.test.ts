@@ -203,6 +203,22 @@ describe('GET /clients/{clientId}/risk-zones', () => {
     expect(suggestions[2]!.factors[0]!.evaluation.kind).toBe('sensitive_groups');
   });
 
+  it('names a suggestion after the post when its work zone is too short to be a zone name', async () => {
+    mock({
+      '/rest/v1/risk_evaluations': () => [
+        {
+          id: id(107),
+          kind: 'job_position',
+          name: null,
+          job_positions: position('Casier', ' B '),
+          risk_factors: [factor(11, 4, 5)],
+        },
+      ],
+    });
+    const { suggestions } = riskZonesResponseSchema.parse(await (await request(base)).json());
+    expect(suggestions.map((s) => s.name)).toEqual(['Casier']);
+  });
+
   it('offers every factor of current posts and evaluations to link, acceptable ones too', async () => {
     mock();
     const { factors } = riskZonesResponseSchema.parse(await (await request(base)).json());

@@ -67,8 +67,10 @@ function evaluationTitle(row: EvaluationRow): string {
   return row.name ?? '';
 }
 
+// A work zone may be one character, a zone name may not; the position's name always qualifies.
 function suggestionLabel(row: EvaluationRow): string {
-  return row.job_positions?.work_zone?.trim() || evaluationTitle(row);
+  const workZone = row.job_positions?.work_zone?.trim() ?? '';
+  return workZone.length >= 2 ? workZone : evaluationTitle(row);
 }
 
 const kindRank = new Map(preventionMeasureKinds.map((kind, index) => [kind, index]));
