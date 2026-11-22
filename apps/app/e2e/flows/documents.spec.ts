@@ -125,7 +125,7 @@ test('with a gap elsewhere in the set the cover is generated again, and a decisi
   await act(page, rows.filter({ hasText: 'Copertă – Deciziile interne' }), 'document-regenerate');
   await page.getByTestId('document-confirm').click();
   await expect(
-    page.getByText('„Copertă – Deciziile interne” a fost generat din nou.')
+    page.getByText('„1.0 Copertă – Deciziile interne” a fost generat din nou.')
   ).toBeVisible();
 
   const title = 'Decizia privind responsabilii cu instruirea';
@@ -154,7 +154,7 @@ test('with a gap elsewhere in the set the cover is generated again, and a decisi
   await expect(pointed).toHaveAttribute('data-pointed', '');
   await act(page, pointed, 'document-regenerate');
   await page.getByTestId('document-confirm').click();
-  await expect(page.getByText(`„${title}” a fost generat din nou.`)).toBeVisible();
+  await expect(page.getByText(`„1.1 ${title}” a fost generat din nou.`)).toBeVisible();
 });
 
 test('a row leads to its field and back, and the client then gets its whole documentation, numbered and dated, and downloads a draft', async ({
@@ -355,7 +355,7 @@ test('the issued training themes fall behind when a cited instruction gets a new
   await act(page, themes, 'document-regenerate');
   await page.getByTestId('document-confirm').click();
   await expect(
-    page.getByText('„Tematica și programul de instruire” a fost generat din nou.')
+    page.getByText('„4.2 Tematica și programul de instruire” a fost generat din nou.')
   ).toBeVisible();
   await expect(themes.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
   await expect(themes.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
