@@ -14,6 +14,7 @@ import {
   Check,
   ChevronRight,
   EllipsisVertical,
+  LoaderCircle,
   Redo2,
   TableOfContents,
   TriangleAlert,
@@ -37,7 +38,8 @@ const darkButton =
 const iconButton =
   'size-11 text-brand-forest hover:bg-brand-forest/10 hover:text-brand-forest focus-visible:ring-brand-forest/40';
 
-// A tap on a bar button would otherwise move the focus, and the caret with it, out of the page.
+// A tap on the bar would otherwise move the focus, and the caret with it, out of the page. On the
+// whole row rather than per button: a disabled button lets the tap through to the row.
 const keepSelection = (event: MouseEvent) => event.preventDefault();
 
 export function PhoneEditorBar({
@@ -62,16 +64,18 @@ export function PhoneEditorBar({
       className="flex min-w-0 flex-1 flex-col"
     >
       <div
+        data-testid="editor-phone-bar-row"
         className={cn(
           'flex h-14 shrink-0 items-center gap-1 px-2',
           barColours,
           editable && 'border-b'
         )}
+        onMouseDown={keepSelection}
       >
         {bar.back}
         {/* A draft's bar has undo and redo to fit, so its title is only in the menu. */}
         {editable ? (
-          <span className="flex-1" />
+          <HistoryButtons />
         ) : (
           <span
             data-testid="editor-phone-title"
@@ -80,16 +84,22 @@ export function PhoneEditorBar({
             {bar.title}
           </span>
         )}
-        {editable && <HistoryButtons />}
         {bar.main?.kind === 'button' && (
           <Button
             data-testid={bar.main.testId}
             className={darkButton}
-            disabled={bar.main.disabled}
-            onMouseDown={keepSelection}
+            disabled={bar.main.pending}
+            aria-busy={bar.main.pending || undefined}
             onClick={bar.main.onClick}
           >
-            <bar.main.icon aria-hidden="true" />
+            {bar.main.pending ? (
+              <LoaderCircle
+                className="animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <bar.main.icon aria-hidden="true" />
+            )}
             {bar.main.label}
           </Button>
         )}
@@ -109,11 +119,23 @@ export function PhoneEditorBar({
               size="icon"
               data-testid="editor-phone-menu"
               className={cn('relative', iconButton)}
+              aria-busy={bar.busy ? true : undefined}
               aria-label={
-                unfilled > 0 ? `Opțiunile documentului, ${unfilledLabel}` : 'Opțiunile documentului'
+                bar.busy ??
+                (unfilled > 0
+                  ? `Opțiunile documentului, ${unfilledLabel}`
+                  : 'Opțiunile documentului')
               }
             >
-              <EllipsisVertical className="size-5" aria-hidden="true" />
+              {bar.busy ? (
+                <LoaderCircle
+                  data-testid="editor-phone-busy"
+                  className="size-5 animate-spin motion-reduce:animate-none"
+                  aria-hidden="true"
+                />
+              ) : (
+                <EllipsisVertical className="size-5" aria-hidden="true" />
+              )}
               {unfilled > 0 && (
                 <span
                   data-testid="editor-phone-unfilled-count"
@@ -264,7 +286,7 @@ function HistoryButtons() {
   const undo = useEditorCommand('history.undo');
   const redo = useEditorCommand('history.redo');
   return (
-    <>
+    <div className="ml-auto flex items-center gap-1">
       <Button
         variant="ghost"
         size="icon"
@@ -272,7 +294,6 @@ function HistoryButtons() {
         className={iconButton}
         aria-label="Anulează"
         disabled={!undo.isEnabled}
-        onMouseDown={keepSelection}
         onClick={() => undo.execute()}
       >
         <Undo2 className="size-5" aria-hidden="true" />
@@ -284,12 +305,11 @@ function HistoryButtons() {
         className={iconButton}
         aria-label="Refă"
         disabled={!redo.isEnabled}
-        onMouseDown={keepSelection}
         onClick={() => redo.execute()}
       >
         <Redo2 className="size-5" aria-hidden="true" />
       </Button>
-    </>
+    </div>
   );
 }
 
@@ -319,6 +339,7 @@ function UnfilledStrip({ marks }: { marks: UnfilledMarks }) {
       aria-label="Locuri de completat"
       data-testid="editor-phone-stepper"
       className="mx-2 mb-2 flex items-center gap-3 rounded-lg border border-warning-border bg-warning py-2 pr-1 pl-3 font-sans text-warning-foreground"
+      onMouseDown={keepSelection}
     >
       <TriangleAlert className="size-5 shrink-0" aria-hidden="true" />
       <div className="grid min-w-0 flex-1 text-sm leading-snug">
@@ -332,7 +353,6 @@ function UnfilledStrip({ marks }: { marks: UnfilledMarks }) {
       <Button
         data-testid="editor-phone-stepper-next"
         className={cn('shrink-0', darkButton)}
-        onMouseDown={keepSelection}
         onClick={marks.next}
       >
         Următorul

@@ -12,7 +12,7 @@ export type EditorMainAction =
       label: string;
       icon: LucideIcon;
       onClick: () => void;
-      disabled?: boolean;
+      pending?: boolean;
       testId: string;
     }
   | { kind: 'saved' };
@@ -41,10 +41,9 @@ export interface PhoneBar {
   heading: string;
   subtitle?: string;
   badges: EditorBadge[];
-  // A few words beside the badges, such as whether the draft is saved.
   status?: { text: string; tone: 'muted' | 'warning' };
-  // What the badges mean, as a sentence under them.
   note?: string;
   main: EditorMainAction | null;
+  busy?: string;
   items: EditorMenuItem[];
 }

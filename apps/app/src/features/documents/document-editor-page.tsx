@@ -341,21 +341,22 @@ export function DocumentEditorView({
         : { text: 'Salvat', tone: 'muted' }
       : undefined,
     note: canStartDraft ? issuedNote : readOnly ? readOnlyReason.title : undefined,
+    busy: printing ? 'Se pregătește tipărirea' : undefined,
     main: canStartDraft
       ? {
           kind: 'button',
-          label: startDraft.isPending ? 'Se pregătește ciorna…' : 'Modifică',
+          label: 'Modifică',
           icon: Pencil,
-          disabled: startDraft.isPending,
+          pending: startDraft.isPending,
           onClick: () => void startDraftFromIssued(),
           testId: 'editor-phone-start-draft',
         }
       : editable && dirty
         ? {
             kind: 'button',
-            label: saveDraft.isPending ? 'Se salvează…' : 'Salvează',
+            label: 'Salvează',
             icon: Save,
-            disabled: saveDraft.isPending,
+            pending: saveDraft.isPending,
             onClick: () => void save(),
             testId: 'editor-phone-save',
           }

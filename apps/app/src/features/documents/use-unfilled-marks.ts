@@ -70,7 +70,11 @@ export function useUnfilledMarks(ready: boolean): UnfilledMarks {
 
   function select(index: number) {
     const match = matches[index];
-    if (match && editor?.selectMatch(match).ok) setSelected({ match, index });
+    if (!match || !editor?.selectMatch(match).ok) return;
+    setSelected({ match, index });
+    // Selecting places the selection without the focus, which a closing menu or a tapped button
+    // has left elsewhere, and what is typed would not replace the mark.
+    editor.focus();
   }
 
   // A frame after the strip opens, once the page has moved down to make room for it: selecting

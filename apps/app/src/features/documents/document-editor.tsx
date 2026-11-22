@@ -152,7 +152,6 @@ export default function DocumentEditor({
       fonts={fonts}
       // The editor spaces its title row 8 px apart and pads its title 6 px; -2 px leaves the
       // arrow the 12 px it has beside every other title. The row centres both on one line.
-      // On a phone the arrow is part of the bar on the right.
       renderTitleBarLeft={() =>
         phone ? null : (
           <span data-editor-title-back className="-mr-0.5 flex">

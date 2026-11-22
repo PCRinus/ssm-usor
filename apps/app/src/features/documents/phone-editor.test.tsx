@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode, Ref } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +22,7 @@ const lib = vi.hoisted(() => ({
   undoEnabled: false,
   undo: vi.fn(),
   redo: vi.fn(),
+  focus: vi.fn(),
   owners: 0,
 }));
 
@@ -35,6 +36,7 @@ vi.mock('@docx-editor.dev/react', async () => {
       lib.selected.push(match);
       return { ok: true };
     },
+    focus: () => lib.focus(),
   };
   type Props = {
     title: string;
@@ -124,6 +126,8 @@ function mockApi({
   client = clientRecord(),
   document = draft as unknown,
   contract = null as unknown,
+  save = () => Response.json({ document: draft }) as Response | Promise<Response>,
+  print = () => new Promise<Response>(() => {}) as Response | Promise<Response>,
 } = {}) {
   mockRoutes((init, { pathname }) => {
     const method = init?.method ?? 'GET';
@@ -142,9 +146,8 @@ function mockApi({
       });
     }
     if (pathname === '/signed') return new Response(new Uint8Array([80, 75, 3, 4]));
-    if (pathname === `/documents/${documentId}/draft/file` && method === 'PUT') {
-      return Response.json({ document: draft });
-    }
+    if (pathname === `/documents/${documentId}/draft/file` && method === 'PUT') return save();
+    if (pathname === `/documents/${documentId}/print` && method === 'POST') return print();
     if (pathname === `/documents/${documentId}/draft` && method === 'POST') {
       return Response.json({ document: draft });
     }
@@ -178,11 +181,12 @@ beforeEach(() => {
   lib.undoEnabled = false;
   lib.undo.mockClear();
   lib.redo.mockClear();
+  lib.focus.mockClear();
   lib.owners = 0;
   vi.stubGlobal(
     'matchMedia',
     vi.fn((query: string) => ({
-      matches: /max-width: (639|767)px/.test(query),
+      matches: query === '(width < 40rem)' || query === '(max-width: 767px)',
       media: query,
       onchange: null,
       addEventListener: vi.fn(),
@@ -339,6 +343,7 @@ describe('the document editor on a phone', () => {
     await user.click(row);
 
     await waitFor(() => expect(lib.selected).toEqual([mark('p1')]));
+    expect(lib.focus).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('editor-phone-menu-content')).toBeNull();
     expect(document.activeElement).not.toBe(menuButton());
     expect(screen.getByTestId('editor-phone-stepper-place').textContent).toBe('Locul 1 din 4');
@@ -346,6 +351,7 @@ describe('the document editor on a phone', () => {
 
     await user.click(screen.getByTestId('editor-phone-stepper-next'));
     expect(lib.selected.at(-1)).toEqual(mark('p2'));
+    expect(lib.focus).toHaveBeenCalledTimes(2);
     expect(screen.getByTestId('editor-phone-stepper-place').textContent).toBe('Locul 2 din 4');
 
     await recount([mark('p1'), mark('p3'), mark('p4')]);
@@ -374,6 +380,8 @@ describe('the document editor on a phone', () => {
     await bar();
     await user.click(await within(await openMenu(user)).findByTestId('editor-phone-unfilled'));
     await screen.findByTestId('editor-phone-stepper');
+    expect(fireEvent.mouseDown(screen.getByRole('button', { name: 'Închide' }))).toBe(false);
+    expect(fireEvent.mouseDown(screen.getByTestId('editor-phone-stepper-next'))).toBe(false);
     await user.click(screen.getByRole('button', { name: 'Închide' }));
 
     expect(screen.queryByTestId('editor-phone-stepper')).toBeNull();
@@ -504,5 +512,70 @@ describe('an instruction on a phone', () => {
     );
     expect(within(menu).queryByTestId('editor-phone-open-current')).toBeNull();
     expect(within(menu).queryByTestId('editor-phone-print')).toBeNull();
+  });
+});
+
+describe('the phone bar keeps the page focused', () => {
+  it('takes no focus from a tap anywhere on the bar, disabled buttons included, and still opens its menu', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await bar();
+    const undo = screen.getByTestId<HTMLButtonElement>('editor-phone-undo');
+    expect(undo.disabled).toBe(true);
+    expect(fireEvent.mouseDown(undo)).toBe(false);
+    expect(fireEvent.mouseDown(screen.getByTestId('editor-phone-bar-row'))).toBe(false);
+    expect(fireEvent.mouseDown(screen.getByTestId('editor-phone-saved'))).toBe(false);
+    expect(await openMenu(user)).toBeTruthy();
+  });
+
+  it('still leaves through the back arrow', async () => {
+    mockApi({ document: issued });
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await bar();
+    expect(fireEvent.mouseDown(screen.getByTestId('editor-phone-title'))).toBe(false);
+    await user.click(within(await bar()).getByTestId('editor-back'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/documente-ssm`)
+    );
+  });
+});
+
+describe('the phone bar while something is under way', () => {
+  it('shows printing on the menu button, and keeps print disabled', async () => {
+    mockApi({ document: issued });
+    mount();
+    const user = userEvent.setup();
+
+    await bar();
+    await user.click(within(await openMenu(user)).getByTestId('editor-phone-print'));
+
+    await waitFor(() =>
+      expect(menuButton().getAttribute('aria-label')).toBe('Se pregătește tipărirea')
+    );
+    expect(menuButton().getAttribute('aria-busy')).toBe('true');
+    expect(within(menuButton()).getByTestId('editor-phone-busy')).toBeTruthy();
+    const print = within(await openMenu(user)).getByTestId('editor-phone-print');
+    expect(print.getAttribute('aria-disabled')).toBe('true');
+    expect(print.textContent).toBe('Se pregătește…');
+  });
+
+  it('keeps the short label while saving, disabled, with a spinner', async () => {
+    mockApi({ save: () => new Promise<Response>(() => {}) });
+    mount();
+    const user = userEvent.setup();
+
+    await bar();
+    act(() => lib.edit?.({ revision: 1 }));
+    await user.click(screen.getByTestId('editor-phone-save'));
+
+    const save = screen.getByTestId<HTMLButtonElement>('editor-phone-save');
+    await waitFor(() => expect(save.disabled).toBe(true));
+    expect(save.textContent).toBe('Salvează');
+    expect(save.getAttribute('aria-busy')).toBe('true');
+    expect(save.querySelector('.animate-spin')).toBeTruthy();
   });
 });
