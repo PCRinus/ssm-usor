@@ -53,7 +53,7 @@ O instruire are rubrici pentru cel instruit, pentru instructor, pentru verificat
 
 - pe fișa SSM, la instruirea introductiv-generală ești instructor și verificator;
 - la instruirea la locul de muncă ești verificator: instruirea o ține conducătorul locului de muncă. HG 1425/2006, art. 94, cere ca instruirea la locul de muncă să fie verificată de conducătorul ierarhic al celui care a instruit; dacă la un client verifică altcineva, treci-l pe el în rubrica de verificator;
-- la instruirea periodică și la cea periodică suplimentară ești verificator: instruirea o ține cel pe care tematica de instruire îl numește pentru post;
+- la instruirea periodică și la cea periodică suplimentară ești verificator: instruirea o ține cel pe care tematica de instruire (4.2) îl numește pentru post;
 - pe fișa SU semnezi ca instructor acolo unde tu, cadrul tehnic PSI, ai ținut instruirea;
 - la o fișă de test semnezi ca examinator.
 
@@ -71,7 +71,7 @@ Codul semnează exact lista de pe ecran din momentul în care l-ai cerut. O cere
 
 La final vezi ce s-a semnat și ce nu, cu motivul. Ce nu s-a semnat rămâne în listă.
 
-Semnătura pe care o dai aici este o semnătură electronică avansată: e legată doar de tine, te identifică, o creezi cu un cod pe care îl primești doar tu și orice modificare ulterioară a fișei se vede (Regulamentul (UE) nr. 910/2014, art. 26). Dacă fișele clientului se semnează electronic hotărăște angajatorul, în regulamentul intern (HG 1425/2006, art. 81 alin. (3¹)).
+Semnătura pe care o dai aici este o semnătură electronică avansată: e legată doar de tine, te identifică, o creezi cu un cod pe care îl primești doar tu și orice modificare ulterioară a fișei se vede (Regulamentul (UE) nr. 910/2014, art. 26). Dacă fișele clientului se semnează electronic hotărăște angajatorul, în regulamentul intern (HG 1425/2006, art. 81 alin. (3¹)); în setul SSM, asta face anexa 13 la regulament.
 
 ## Cel mult 30 de semnături cu un cod
 

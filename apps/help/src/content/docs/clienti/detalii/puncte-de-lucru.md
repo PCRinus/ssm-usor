@@ -93,7 +93,7 @@ Cum îi spuneți locului, de exemplu „Sediu social” sau „Magazin Timișoar
 
 Bifează căsuța pentru punctul de lucru care e sediul social al firmei. Un client are un singur sediu social. Dacă bifezi căsuța la al doilea punct de lucru, vezi „Clientul are deja un sediu social. Modifică-l pe acela sau debifează opțiunea.”
 
-Fișa obiectivului din setul SU tipărește celelalte puncte de lucru ca puncte de lucru ale firmei. Când adresa sediului lipsește din datele firmei, fișa folosește adresa acestui punct de lucru.
+Fișa obiectivului (7.1) din setul SU tipărește celelalte puncte de lucru ca puncte de lucru ale firmei. Când adresa sediului lipsește din datele firmei, fișa folosește adresa acestui punct de lucru.
 
 ### La sediul social se desfășoară activitate
 
@@ -102,7 +102,7 @@ Căsuța apare doar la sediul social și e bifată de la început. Debifeaz-o c�
 Când e debifată:
 
 - dialogul nu mai arată secțiunea **Apărare împotriva incendiilor**, iar documentele SU nu cer pentru sediu nici date SU, nici stingător;
-- documentele SU lasă sediul deoparte peste tot unde enumeră locurile de muncă: lista mijloacelor de apărare, fișa și instrucțiunile afișate la locul de muncă, decizia pentru perioadele caniculare și sezonul rece, graficele de verificare, registrele, raportul anual și tematica;
+- documentele SU lasă sediul deoparte peste tot unde enumeră locurile de muncă: lista mijloacelor de apărare (5.1), fișa și instrucțiunile afișate la locul de muncă (5.2), decizia pentru perioadele caniculare și sezonul rece (1.8), graficele de verificare (5.4), registrele, raportul anual (7.2) și tematica (3.1);
 - lista mijloacelor de apărare împotriva incendiilor spune într-un rând că la sediul social nu se desfășoară activitate, cu adresa sediului, ca să se vadă de ce acolo nu e niciun stingător;
 - adresa sediului rămâne adresa firmei unde documentele o tipăresc ca atare, de exemplu pe fișa obiectivului;
 - pe tabul **Mijloace de apărare** sediul nu mai are card. Ce ai completat înainte pentru el (datele SU, stingătoarele, instalațiile, verificările, clădirea) rămâne păstrat, dar nu se mai vede și nu se tipărește; revine dacă bifezi din nou căsuța;
@@ -206,7 +206,7 @@ Rândul din listă arată că punctului de lucru îi lipsește cel puțin unul d
 
 ## Substanțele periculoase
 
-Pe tabul **Mijloace de apărare**, sub punctele de lucru, cardul **Substanțe periculoase** ține lista substanțelor periculoase ale clientului, pe care documentele SU o tipăresc în lista substanțelor periculoase. Pentru fiecare substanță scrii denumirea, clasificarea, cantitatea deținută și opt texte: proprietățile fizico-chimice, codurile de identificare, riscurile pentru sănătate și mediu, mijloacele de protecție, măsurile de intervenție și de prim ajutor, substanțele pentru stingere, locul de depozitare și modul de manipulare. Sub fiecare câmp scrie din ce secțiune a fișei cu date de securitate se copiază. Un text lăsat gol apare în listă ca loc de completat.
+Pe tabul **Mijloace de apărare**, sub punctele de lucru, cardul **Substanțe periculoase** ține lista substanțelor periculoase ale clientului, pe care documentele SU o tipăresc în lista substanțelor periculoase (5.3). Pentru fiecare substanță scrii denumirea, clasificarea, cantitatea deținută și opt texte: proprietățile fizico-chimice, codurile de identificare, riscurile pentru sănătate și mediu, mijloacele de protecție, măsurile de intervenție și de prim ajutor, substanțele pentru stingere, locul de depozitare și modul de manipulare. Sub fiecare câmp scrie din ce secțiune a fișei cu date de securitate se copiază. Un text lăsat gol apare în listă ca loc de completat.
 
 Fișa cu date de securitate o primește clientul de la furnizorul produsului. Regulamentul (CE) nr. 1907/2006 (REACH), art. 31 alin. (1), îi cere furnizorului unui produs periculos s-o dea, întocmită după anexa II, cu cele 16 secțiuni ale ei; alin. (5) cere ca fișa să fie într-o limbă oficială a statului în care se vinde produsul, iar alin. (8), s-o dea gratuit, pe hârtie sau electronic, cel târziu la prima livrare. Clasificarea din secțiunea 2 este cea după Regulamentul (CE) nr. 1272/2008 (CLP).
 
