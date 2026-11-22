@@ -4,9 +4,10 @@ rule finds its place by the text around it and writes the same result whatever i
 Formulas are Word formulas in the subset every reader of the set lays out: the in-app editor
 draws a formula only when no run of it carries properties, no `m:ctrlPr` stands in it, and it
 uses fractions, scripts, radicals and n-ary operators; a delimiter, a matrix, a limit or an
-equation array falls back to its letters run together ("Ng=p=1nrp·Nspp=1nrp"). So a
-submatrix reads M₂,ₚ = ‖(2,2) (2,3) (2,4)‖, p = 2,…,4, and the 7 × 6 matrix of the pairs is a
-small table between double lines. A display formula is centred on its own line, kept with the
+equation array falls back to its letters run together ("Ng=p=1nrp·Nspp=1nrp"). So the 7 × 6
+matrix of the pairs is a small table between double lines, and a submatrix inside a sentence,
+M₂,ₚ = ‖(2,2) (2,3) (2,4)‖, p = 2,…,4, is text: LibreOffice sets a formula at its own 12 pt
+serif whatever the text around it, and the subset has no size to give one. A display formula is centred on its own line, kept with the
 sentence that introduces it; the two the text refers back to, N_r and N_g, carry (1) and (2)
 at the right margin, in a borderless row of three cells: the editor sets a formula after a
 centre tab where the tab is, not around it. Their legend is "unde:", then a symbol, an en dash
@@ -19,8 +20,9 @@ is a dash list, each member's name bold, the client named once in the line above
 
 import re
 
+from chapters import in_sentence_case, sentence_case
 from table_style import P_PR_ORDER, R_PR_ORDER, RUN, edit_properties, element, put
-from typography import body_blocks, bold, edit_run, edit_text_range, escaped, spoken, text_of, unescaped
+from typography import body_blocks, bold, edit_run, edit_text_range, escaped, set_spacing, spoken, text_of, unescaped
 from typography import lists as lists_spacing
 
 NAME = '9_risk_assessment.docx'
@@ -60,10 +62,16 @@ def display_math(content):
     return f'<m:oMathPara><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr>{omath(content)}</m:oMathPara>'
 
 
+NO_BREAK = '\u00a0'
+
+
 def submatrix(index, pairs, counter):
-    """M with its row and column index, the pairs between double bars, then the range."""
-    cells = '  '.join(f'({pair})' for pair in pairs)
-    return omath(sub('M', index) + r('=') + r('‖') + r(cells) + r('‖') + r(',') + r(' ') + r(counter))
+    """M with its row and column index, the pairs between double bars, then the range; a line
+    breaks only before the range."""
+    cells = (NO_BREAK * 2).join(f'({pair})' for pair in pairs)
+    letter, values = counter.split('=')
+    return (symbol('M', index) + run(f'{NO_BREAK}={NO_BREAK}‖{cells}‖, ') + run(letter, i=True)
+            + run(f'{NO_BREAK}={NO_BREAK}{values.replace(" ", NO_BREAK)}'))
 
 
 N_R = (sub('N', 'r') + r('=') +
@@ -421,11 +429,13 @@ def lists(document):
     for last in (r'^VI\.III\.\s+determinarea', r'^V\.3\.\s+determinarea'):
         document = edit_paragraphs(document, last, lambda xml, *_: indented(xml, left=2 * TIER + HANG, hanging=HANG,
                                                                              after=ROOM), count=1)
+    # The two ways of using a computer head what follows them, run in on the margin, so their
+    # labels stay for the text that may cite them and the list under the first reads 1. → a).
     for letter in 'ab':
         document = edit_paragraphs(document, rf'^{letter}[.)]\s+(?:În timpul evaluării|Gestiunea computerizată)',
                                    lambda xml, match, *_, letter=letter: labelled(
-                                       xml, r'[a-z][.)]\s*', f'{letter})', left=TIER, hanging=TIER, before=ROOM,
-                                       after=GAP if letter == 'a' else ROOM, keep=letter == 'a'), count=1)
+                                       xml, r'[a-z][.)]\s*', f'{letter})', left=0, hanging=0, before=ROOM,
+                                       after=GAP if letter == 'a' else ROOM, keep=letter == 'a', tabs=(TIER,)), count=1)
     uses = [r'^(?:\d\.\s*)?constituirea unor bănci de date privind:', r'^(?:\d\.\s*)?calculul automat al nivelurilor de risc']
     for number, pattern in enumerate(uses, 1):
         document = edit_paragraphs(document, pattern, lambda xml, match, *_, number=number: labelled(
@@ -512,7 +522,20 @@ def lettered_instruments(numbering, document):
     return numbering[:definition.start()] + relettered + numbering[definition.end():]
 
 
+# The five parts of each post's evaluation, typed in capitals in the original.
+POST_PARTS = (r'^(?:I\. (?i:definirea locului de muncă)|II\. (?i:identificarea factorilor de risc)|'
+              r'III\. (?i:fișa de evaluare)|IV\. (?i:fișa de măsuri)|V\. (?i:interpretarea rezultatelor))')
+
+
+def post_part(xml, match, position, total):
+    """A part's heading in sentence case after its numeral; the first, right under the post's
+    subchapter, takes only the subchapter's room above it."""
+    xml = in_sentence_case(xml, lambda text: text[:text.index('.') + 1] + sentence_case(text[text.index('.') + 1:]))
+    return set_spacing(xml, before=0) if position == 0 else xml
+
+
 def posts(document):
+    document = edit_paragraphs(document, POST_PARTS, post_part, count=5)
     for field in ('Executant', 'Sarcina de muncă', 'Mijloacele de producție', 'Mediul de muncă'):
         document = edit_paragraphs(document, rf'^{field}: \{{\{{workSystem\.', lambda xml, *_: indented(
             xml, left=0, hanging=0, before=0, after=ROOM if field == 'Mediul de muncă' else GAP), count=1)
@@ -525,7 +548,7 @@ def posts(document):
         xml, r'\{\{letter\}\}\)\s*', '{{letter}})', left=3 * TIER, hanging=TIER, before=0, after=GAP, keep=True), count=1)
     document = edit_paragraphs(document, r'^\{\{code\}\}\.\s*\{\{description\}\}$', lambda xml, *_: labelled(
         xml, r'\{\{code\}\}\.\s*', '{{code}}.', left=3 * TIER + HANG, hanging=HANG, before=0, after=GAP), count=1,
-        before=blocks(document)[find(document, r'^III\. FIȘA DE EVALUARE')][1])
+        before=blocks(document)[find(document, r'^III\. (?i:fișa de evaluare)')][1])
     document = edit_paragraphs(document, r', (?:după formula prezentată în|conform formulei \(1\) din) capitolul II', lambda xml, *_: replaced_tail(
         xml, ', după formula prezentată în capitolul II:', ', conform formulei (1) din capitolul II.'), count=1)
     document = edit_paragraphs(document, r'^\{\{code\}\}(?: –|\.)\s*\{\{description\}\}$', lambda xml, *_: labelled(

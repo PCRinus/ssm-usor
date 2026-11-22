@@ -5,7 +5,8 @@ their articles in a copy of a bold 16 pt heading style, so every paragraph that 
 bold off printed bold. A "(Preluare din …)" note is italic. "Art. N." stands on the margin with
 a tab to its text, and over numbered paragraphs or a list it and its note are a line of their
 own (`heading_line_of_its_own`). Headings follow one scale, a chapter
-12 pt and a subchapter 11 pt, both centred, and only real headings reach the outline. A
+12 pt and a subchapter 11 pt, both centred, each nearer its own text than what comes before it
+(`heading_scale`), and only real headings reach the outline. A
 sub-list hangs one tier deeper than the item that introduces it, a list's number or letter is
 bold and its bullet an en dash; a list sits 2 pt under its lead-in, its items 2 pt apart, and
 the room comes after its last item. Dash lines a table cell joined with line breaks become
@@ -24,8 +25,10 @@ BOLD_ON = re.compile(rf'<w:b{ON}/>')
 BOLD = re.compile(r'<w:b(?: w:val="(\w+)")?/>')
 
 BODY = 20  # half-points
-CHAPTER = {'size': 24, 'before': 360, 'after': 120}
-SUBCHAPTER = {'size': 22, 'before': 240, 'after': 80}
+# Mircea (2026-11-22), after a textbook's sections at a 10 pt body: a chapter starts a page, so a
+# breath under the header box is all it needs above.
+CHAPTER = {'size': 24, 'before': 120, 'after': 280}
+SUBCHAPTER = {'size': 22, 'before': 240, 'after': 160}
 HEADINGS = {'Heading1': CHAPTER, 'Heading2': SUBCHAPTER}
 
 ITEM_GAP = 40  # twips: between list items, and under the line that introduces a list
@@ -490,19 +493,60 @@ def article_labels(document, styles_xml):
 
 
 def heading_scale(document):
-    def paragraph(match):
-        xml = match.group(0)
-        style = re.search(r'<w:pStyle w:val="(Heading[12])"/>', own_properties(xml))
-        if not style:
-            return xml
-        scale = HEADINGS[style.group(1)]
-        xml = set_spacing(xml, scale['before'], scale['after'])
-        xml = edit_properties(xml, 'pPr', lambda inner: put(without(inner, 'ind'), 'jc', '<w:jc w:val="center"/>', P_PR_ORDER))
-        xml = edit_properties(xml, 'pPr', lambda inner: without(inner, 'tabs'))
-        change = lambda inner: sized(scale['size'])(bold(True)(inner))  # noqa: E731
-        xml = edit_properties(xml, 'pPr', lambda inner: put(inner, 'rPr', f'<w:rPr>{change(rpr_inner(inner))}</w:rPr>', P_PR_ORDER))
-        return RUN.sub(lambda run: edit_run(run.group(0), change), xml)
-    return re.sub(r'<w:p\b[^>]*>(?:(?!</w:p>).)*</w:p>', paragraph, document, flags=re.S)
+    """Every heading on the scale. A subchapter right under its chapter is only the chapter's
+    room below it, not the larger of the two, and a chapter that opens a section has nothing
+    above it: LibreOffice drops the room above a chapter at the top of a page, but not after a
+    section break, where 9's annex 3 stood 18 pt lower than its other pages. An empty paragraph
+    beside a heading goes, as it would add its line and both rooms."""
+    document = without_spacers_by_headings(document)
+    edits, previous = [], None
+    for kind, start, end in body_blocks(document):
+        xml = document[start:end]
+        if kind == 'p' and is_loop_tags(xml):
+            continue
+        style = re.search(r'<w:pStyle w:val="(Heading[12])"/>', own_properties(xml)) if kind == 'p' else None
+        if style:
+            scale = HEADINGS[style.group(1)]
+            under_chapter = style.group(1) == 'Heading2' and previous == 'Heading1'
+            opens_section = previous == 'section'
+            changed = scaled_heading(xml, scale, 0 if under_chapter or opens_section else scale['before'])
+            edits.append((start, end, changed))
+        previous = style.group(1) if style else 'section' if kind == 'p' and '<w:sectPr' in own_properties(xml) else kind
+    for start, end, changed in reversed(edits):
+        document = document[:start] + changed + document[end:]
+    return document
+
+
+def scaled_heading(xml, scale, before):
+    xml = set_spacing(xml, before, scale['after'])
+    xml = edit_properties(xml, 'pPr', lambda inner: put(inner, 'spacing', re.sub(
+        r'\s*w:line(?:Rule)?="[^"]*"', '', element(inner, 'spacing')), P_PR_ORDER))
+    xml = edit_properties(xml, 'pPr', lambda inner: put(without(inner, 'ind'), 'jc', '<w:jc w:val="center"/>', P_PR_ORDER))
+    xml = edit_properties(xml, 'pPr', lambda inner: without(inner, 'tabs'))
+    change = lambda inner: sized(scale['size'])(bold(True)(inner))  # noqa: E731
+    xml = edit_properties(xml, 'pPr', lambda inner: put(inner, 'rPr', f'<w:rPr>{change(rpr_inner(inner))}</w:rPr>', P_PR_ORDER))
+    return RUN.sub(lambda run: edit_run(run.group(0), change), xml)
+
+
+SPACER_KEPT = re.compile(r'<w:(?:t|drawing|pict|object|sectPr|bookmarkStart|bookmarkEnd|fldChar|instrText|br|numPr|pBdr|framePr)\b'
+                         r'|<w:pageBreakBefore(?: w:val="(?:true|1|on)")?/>|<m:oMath')
+
+
+def without_spacers_by_headings(document):
+    blocks = list(body_blocks(document))
+    empty = [kind == 'p' and not SPACER_KEPT.search(document[start:end]) for kind, start, end in blocks]
+    dropped = set()
+    for index, (kind, start, end) in enumerate(blocks):
+        if kind != 'p' or not re.search(r'<w:pStyle w:val="Heading[12]"/>', own_properties(document[start:end])):
+            continue
+        for step in (-1, 1):
+            beside = index + step
+            while 0 <= beside < len(blocks) and empty[beside]:
+                dropped.add(beside)
+                beside += step
+    for index in sorted(dropped, reverse=True):
+        document = document[:blocks[index][1]] + document[blocks[index][2]:]
+    return document
 
 
 def rpr_inner(inner):
@@ -585,14 +629,22 @@ def is_article(paragraph, styles, numbering):
     return bool(level and re.search(r'<w:lvlText w:val="Art\.', level))
 
 
-def heading_line_of_its_own(first, following, following_is_item, alineat_follows):
+def heading_line_of_its_own(first, following, following_is_item, alineat_follows, more=False, noted=False):
     """Whether an article's "Art. N." and its "(Preluare din …)" note stand as a line of their
     own, with the article's text from the next line at the margin. Mircea's rule (2026-11-21):
     an article of numbered paragraphs, so "(1)", "(2)" line up, or whose first paragraph
-    introduces a list; any other article runs on after its label and note. `first` is the
-    first paragraph's text after the note, `following` the next paragraph's after its own,
-    `alineat_follows` whether a later paragraph of the article opens with "(n)"."""
+    introduces a list; any other article runs on after its label and note. Since 2026-11-22
+    also an article that holds more than its first paragraph and its list, a second paragraph
+    or a table, which a label run into the first paragraph would leave out (2.2's art. 328, 11's
+    art. 65). `first` is the first paragraph's text after the note, `following` the next
+    paragraph's after its own, `alineat_follows` whether a later paragraph of the article opens
+    with "(n)", `more` whether it holds such a paragraph or table. A `noted` article quotes only
+    its first paragraph unless that introduces what follows, so its note stays run into that
+    paragraph: on a line of its own it would read as the source of the text added after it
+    (2.2's art. 24, 3.2's art. 91 and Legea 307's art. 6)."""
     if not first or ALINEAT.match(first) or TITLED.search(first) or alineat_follows:
+        return True
+    if more and not (noted and not first.endswith((':', ';'))):
         return True
     return first.endswith(':') and (following_is_item or LABELLED.match(following or '') is not None)
 
@@ -647,11 +699,28 @@ def alineat_follows(document, blocks, index, styles, numbering):
     return False
 
 
-def article_paragraphs(document, styles_xml, numbering_xml):
+def holds_more(document, blocks, index, styles, numbering):
+    """Whether the article at `index` goes on past its first paragraph and its list items, up
+    to the next article or heading."""
+    for kind, start, end in blocks[index + 1:]:
+        xml = document[start:end]
+        if kind != 'p':
+            return kind == 'tbl'
+        if is_article(xml, styles, numbering) or re.search(r'<w:pStyle w:val="Heading[12]"/>', own_properties(xml)):
+            return False
+        if not is_loop_tags(xml) and text_of(xml).strip() and list_item(xml, styles, numbering) is None:
+            return True
+    return False
+
+
+def article_paragraphs(document, styles_xml, numbering_xml, book=False):
     """Every article laid out by `heading_line_of_its_own`: an article that opens with its
     "(1)", holds alineats further on or opens with the line introducing its list is cut after
     its note, or after its label where it has none; a title that runs on into "(1)" ("Acțiuni
-    în caz de incendiu: (1) Odată …") keeps its own paragraph above it."""
+    în caz de incendiu: (1) Odată …") keeps its own paragraph above it. In a `book`, a document
+    with contents, an article ends at the next article or heading, so one that holds a second
+    paragraph or a table is cut too; elsewhere what follows the last article is a signing space
+    or a title of the next part."""
     styles, numbering = Styles(styles_xml), Numbering(numbering_xml)
     blocks = list(body_blocks(document))
     edits = []
@@ -664,7 +733,9 @@ def article_paragraphs(document, styles_xml, numbering_xml):
         is_item = following[0] == 'p' and list_item(following[1], styles, numbering) is not None
         said = unescaped(text_of(xml))
         if not heading_line_of_its_own(after_note(said), after_note(unescaped(text_of(following[1]))) if following[0] == 'p' else None,
-                                       is_item, alineat_follows(document, blocks, index, styles, numbering)):
+                                       is_item, alineat_follows(document, blocks, index, styles, numbering),
+                                       book and holds_more(document, blocks, index, styles, numbering),
+                                       note_span(said) is not None):
             continue
         end_of_head = note_end(said)
         first = len(said) - len(said[end_of_head:].lstrip())
@@ -1048,7 +1119,7 @@ def typography(document, styles, numbering, contents, name=None):
     else:
         document, styles = out_of_the_outline(document, styles)
     if numbering is not None:
-        document = article_paragraphs(document, styles, numbering)
+        document = article_paragraphs(document, styles, numbering, contents)
     document, styles = plain_articles(document, styles)
     if name in ARTICLE_DOCUMENTS:
         document = article_labels(document, styles)

@@ -3,12 +3,16 @@ import './document-editor.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
 import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
+import { useIsPhone } from '@ssm-usor/ui/hooks/use-mobile';
 import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
+import type { PhoneBar } from './editor-bar';
 import { editorStrings } from './editor-strings.ro';
 import { NavigationButton } from './navigation-button';
+import { PhoneEditorBar } from './phone-editor-bar';
 import { UnfilledNavigator } from './unfilled-navigator';
 import { useDocumentNavigation } from './use-document-navigation';
+import { useUnfilledMarks } from './use-unfilled-marks';
 
 // The Word editor itself, in a module of its own so that its three megabytes are only
 // fetched when a document is opened. It takes bytes and gives bytes back (ADR 005), so
@@ -38,6 +42,7 @@ export default function DocumentEditor({
   back,
   handle,
   actions,
+  phoneBar,
   onReady,
   onFailed,
   onChange,
@@ -49,6 +54,7 @@ export default function DocumentEditor({
   back: ReactNode;
   handle: Ref<DocumentEditorHandle>;
   actions: ReactNode;
+  phoneBar: PhoneBar;
   onReady: () => void;
   /** The editor could not lay the document out; it shows nothing in that case. */
   onFailed: () => void;
@@ -62,6 +68,7 @@ export default function DocumentEditor({
   const cleanRevision = useRef<number | null>(null);
   const [laidOut, setLaidOut] = useState(false);
   const pane = useDocumentNavigation();
+  const phone = useIsPhone();
 
   useImperativeHandle(handle, () => ({
     save: async () => {
@@ -145,13 +152,24 @@ export default function DocumentEditor({
       fonts={fonts}
       // The editor spaces its title row 8 px apart and pads its title 6 px; -2 px leaves the
       // arrow the 12 px it has beside every other title. The row centres both on one line.
-      renderTitleBarLeft={() => <span className="-mr-0.5 flex">{back}</span>}
+      renderTitleBarLeft={() =>
+        phone ? null : (
+          <span data-editor-title-back className="-mr-0.5 flex">
+            {back}
+          </span>
+        )
+      }
+      // One element at every width: turning a phone past the breakpoint keeps the marks found,
+      // and only the controls around the one editor change.
       renderTitleBarRight={() => (
-        <div data-editor-title-actions className="flex flex-wrap items-center gap-2">
-          <NavigationButton open={pane.open} onToggle={pane.toggle} />
-          {editable && <UnfilledNavigator ready={laidOut} />}
-          {actions}
-        </div>
+        <TitleBarControls
+          phone={phone}
+          ready={laidOut}
+          editable={editable}
+          pane={pane}
+          actions={actions}
+          phoneBar={phoneBar}
+        />
       )}
       onReady={() => {
         ready.current = true;
@@ -164,5 +182,33 @@ export default function DocumentEditor({
       }}
       onSave={onSaveShortcut}
     />
+  );
+}
+
+function TitleBarControls({
+  phone,
+  ready,
+  editable,
+  pane,
+  actions,
+  phoneBar,
+}: {
+  phone: boolean;
+  ready: boolean;
+  editable: boolean;
+  pane: { open: boolean; toggle: () => void };
+  actions: ReactNode;
+  phoneBar: PhoneBar;
+}) {
+  const marks = useUnfilledMarks(ready && editable);
+  if (phone) {
+    return <PhoneEditorBar bar={phoneBar} editable={editable} marks={marks} navigation={pane} />;
+  }
+  return (
+    <div data-editor-title-actions className="flex flex-wrap items-center gap-2">
+      <NavigationButton open={pane.open} onToggle={pane.toggle} />
+      {editable && <UnfilledNavigator marks={marks} />}
+      {actions}
+    </div>
   );
 }

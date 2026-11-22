@@ -21,8 +21,8 @@ import {
   Flame,
   FolderOpen,
   IdCard,
-  ScanText,
   Smartphone,
+  Sparkles,
   Trash2,
   UsersRound,
 } from 'lucide-react';
@@ -145,12 +145,12 @@ export function ClientLayout() {
                   data-testid="client-import"
                   onClick={() => setImporting(true)}
                 >
-                  <ScanText aria-hidden="true" />
-                  Completează din documentație
+                  <Sparkles aria-hidden="true" />
+                  Importă cu AI
                 </Button>
                 {isOwner && (
                   <Button
-                    variant="secondary"
+                    variant="destructive-soft"
                     size="sm"
                     data-testid="client-archive"
                     onClick={() => setArchiveChange({ client, action: 'archive' })}
