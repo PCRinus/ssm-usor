@@ -81,7 +81,7 @@ For each file say:
   - contract: the service contract.
   - training_sheet: an individual training sheet (fișă de instruire individuală) filled in for a person.
   - blank_form: a register, test or form that is not filled in.
-  - risk_zones_record: the record or list of the company's zones with high and specific risk (zone cu risc ridicat și specific), often titled "Evidența zonelor cu risc ridicat și specific": a table of zones, places and measures, or a statement that none were identified. Never blank_form or risk_assessment.
+  - risk_zones_record: the record or list of the company's zones with high and specific risk (zone cu risc ridicat și specific), often titled "Evidența zonelor cu risc ridicat și specific": a table of zones, places and measures, or a statement that none were identified. Only a file that is this record on its own: a risk assessment, prevention plan, decision or instruction that also lists or mentions such zones keeps its own kind.
   - cover: a cover page, label or table of contents.
   - generic_text: legal extracts, manuals and other generic text.
   - other: anything else.
