@@ -1,11 +1,11 @@
 """The occupational safety set's chapters read like a book's. A chapter, a subchapter or an
 annex title typed in capitals ("CAPITOLUL II. PREZENTAREA METODEI") reads in sentence case
-("Capitolul II. Prezentarea metodei"), as 2.2's, 3.2's and 11's always did; the contents are
+("Capitolul II. Prezentarea metodei"), as 2.2's, 3.2's and 11.1's always did; the contents are
 written from the headings, so they read the same way. Every contents is headed "Cuprins".
 Every chapter, annex and bibliography starts a page, the first after the contents too; a
 subchapter stays in the flow. In a document without contents the first chapter stays under the
 document's title. A contents after other text starts a page too, and a paragraph before it that
-the original numbered as an article (11's „Odată cu prezentul material informativ, s-au predat
+the original numbered as an article (11.1's „Odată cu prezentul material informativ, s-au predat
 …”) loses its number, so the articles count from chapter I.
 """
 

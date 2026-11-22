@@ -54,7 +54,7 @@ const tablesOf = (xml: string) => xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? [];
 
 describe.each([
   ['2.2_general_training_material.docx', catalogue['2.2'].flatMap((group) => group.signs)],
-  ['11_employer_briefing.docx', catalogue['11']],
+  ['11.1_employer_briefing.docx', catalogue['11']],
 ])('the sign catalogue of %s', (name, signs) => {
   const body = new PizZip(read(name)).file('word/document.xml')!.asText();
   const catalogues = tablesOf(body).filter((table) => table.includes('<w:drawing'));

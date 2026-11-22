@@ -7,12 +7,12 @@ const paragraphs = (xml: string) => xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])
 const part = (name: string, path: string) => new PizZip(read(name)).file(path)!.asText();
 const covers = [
   '1.0_cover_decisions.docx',
-  '2.1_cover_general_training_material.docx',
-  '3.1_cover_own_instructions.docx',
-  '4.1_cover_training_themes.docx',
+  '2.0_cover_general_training_material.docx',
+  '3.0_cover_own_instructions.docx',
+  '4.0_cover_training_themes.docx',
   '5.0_cover_tests.docx',
-  '7.1_cover_event_registers.docx',
-  '11.1_cover_employer_briefing.docx',
+  '7.0_cover_event_registers.docx',
+  '11.0_cover_employer_briefing.docx',
 ];
 
 describe('the details of the occupational safety set’s pages', () => {
@@ -38,7 +38,7 @@ describe('the details of the occupational safety set’s pages', () => {
     '2.2_general_training_material.docx',
     '3.2_own_instructions.docx',
     '9_risk_assessment.docx',
-    '11_employer_briefing.docx',
+    '11.1_employer_briefing.docx',
   ])('%s keeps a contents entry’s words clear of its page number', (name) => {
     for (const level of [1, 2]) {
       const style = part(name, 'word/styles.xml').match(

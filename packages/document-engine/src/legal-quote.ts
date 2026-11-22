@@ -216,18 +216,19 @@ function changeOf(
 ) {
   const { folder, name } = manifestOf(path);
   const manifest = `${folder}manifest.json`;
-  const entryOf = (text: string | null | undefined) =>
-    text
-      ? (
-          JSON.parse(text) as { templates: { file: string; change: TemplateChange }[] }
-        ).templates.find((entry) => entry.file === name)?.change
-      : undefined;
-  const current = entryOf(manifests.get(manifest));
+  type Entry = { typeKey?: string; file: string; change: TemplateChange };
+  const entriesOf = (text: string | null | undefined) =>
+    text ? (JSON.parse(text) as { templates: Entry[] }).templates : [];
+  const current = entriesOf(manifests.get(manifest)).find((entry) => entry.file === name);
   if (!current) throw new Error(`No manifest entry for ${path}.`);
+  // A file renamed since the release keeps its type, and the version registered under it.
+  const releasedEntry = entriesOf(released(manifest)).find((entry) =>
+    current.typeKey ? entry.typeKey === current.typeKey : entry.file === name
+  );
   return {
     manifest,
     name,
-    change: nextTemplateChange(current, entryOf(released(manifest)), change),
+    change: nextTemplateChange(current.change, releasedEntry?.change, change),
   };
 }
 

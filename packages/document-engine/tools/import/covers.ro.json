@@ -18,21 +18,21 @@
       ]
     },
     {
-      "number": "2.1",
+      "number": "2.0",
       "typeKey": "cover_general_training_material",
       "motto": true,
       "title": "MATERIAL DE INSTRUIRE ÎN DOMENIUL SECURITĂȚII ȘI SĂNĂTĂȚII ÎN MUNCĂ PENTRU INSTRUIREA INTRODUCTIV-GENERALĂ",
       "subtitle": "pentru"
     },
     {
-      "number": "3.1",
+      "number": "3.0",
       "typeKey": "cover_own_instructions",
       "motto": true,
       "title": "INSTRUCȚIUNI PROPRII ÎN DOMENIUL SECURITĂȚII ȘI SĂNĂTĂȚII ÎN MUNCĂ",
       "subtitle": "pentru"
     },
     {
-      "number": "4.1",
+      "number": "4.0",
       "typeKey": "cover_training_themes",
       "motto": true,
       "title": "TEMATICA DE INSTRUIRE ȘI PROGRAMUL DE INSTRUIRE – TESTARE LA NIVELUL UNITĂȚII ÎN DOMENIUL SECURITĂȚII ȘI SĂNĂTĂȚII ÎN MUNCĂ",
@@ -45,7 +45,7 @@
       "subtitle": "pentru"
     },
     {
-      "number": "7.1",
+      "number": "7.0",
       "typeKey": "cover_event_registers",
       "title": "REGISTRELE DE EVIDENȚĂ A EVENIMENTELOR",
       "subtitle": "pentru",
@@ -58,7 +58,7 @@
       ]
     },
     {
-      "number": "11.1",
+      "number": "11.0",
       "typeKey": "cover_employer_briefing",
       "title": "MATERIAL DE INFORMARE A ANGAJATORULUI CU PRIVIRE LA PREVEDERILE LEGISLATIVE DIN DOMENIUL SECURITĂȚII ȘI SĂNĂTĂȚII ÎN MUNCĂ",
       "subtitle": "pentru"

@@ -13,7 +13,7 @@ A table drawn this way names the table style `HOUSE_TABLE`, which holds nothing:
 no other table.
 
 Left as they are: a table with no line or with lines on some sides only (the signature blocks,
-the covers' handover, the sheets' lines to write on, the sign catalogues of 2.2 and 11), and the
+the covers' handover, the sheets' lines to write on, the sign catalogues of 2.2 and 11.1), and the
 scales of 9's method (Anexa 3 to 5), whose 1.5 pt contours and grey levels say which class a
 cell belongs to. Their header fill turns to the house one, and their text reads on every grey
 (`readable_grid`). The consequence matrix

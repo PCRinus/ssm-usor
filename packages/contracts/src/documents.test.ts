@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   datedDocumentTypeKeys,
+  documentNumberOf,
   documentSetGroups,
   documentSetOf,
   documentSetQuerySchema,
@@ -18,6 +19,20 @@ import {
   maxFirstFireDecisionNumber,
 } from './documents';
 import { trainingSheetTypeKeys } from './training-sheets';
+
+describe('documentNumberOf', () => {
+  it.each(documentSets)('numbers every built-in type of the %s set, each once', (set) => {
+    const numbers = documentSetTypeKeys[set].map(documentNumberOf);
+    expect(numbers.filter((number) => number === null)).toEqual([]);
+    expect(new Set(numbers).size).toBe(numbers.length);
+  });
+
+  it('numbers no type outside the binder', () => {
+    expect(Object.values(trainingSheetTypeKeys).map(documentNumberOf)).toEqual([null, null]);
+    expect(documentNumberOf('provider_own_form')).toBeNull();
+    expect(documentNumberOf('constructor')).toBeNull();
+  });
+});
 
 describe('documentSetOf', () => {
   it.each(documentSets)('places every built-in type of the %s set in it', (set) => {

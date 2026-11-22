@@ -79,7 +79,7 @@ describe('typesetting', () => {
   // The outline is what the contents, the PDF's bookmarks and the editor's navigation list:
   // the originals set long runs of articles in the heading styles.
   it.each([
-    ['11_employer_briefing.docx', 19],
+    ['11.1_employer_briefing.docx', 19],
     ['2.2_general_training_material.docx', 19],
     ['3.2_own_instructions.docx', 21],
     ['9_risk_assessment.docx', 20],
@@ -429,7 +429,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
     '2.2_general_training_material.docx',
     '3.2_own_instructions.docx',
     '9_risk_assessment.docx',
-    '11_employer_briefing.docx',
+    '11.1_employer_briefing.docx',
   ];
 
   it.each(contents)(
@@ -525,7 +525,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
   it.each([
     '2.2_general_training_material.docx',
     '3.2_own_instructions.docx',
-    '11_employer_briefing.docx',
+    '11.1_employer_briefing.docx',
   ])('%s sets its articles in a regular style, the labels bold on their own', (name) => {
     const styles = new PizZip(read(name)).file('word/styles.xml')!.asText();
     const article = /<w:style\b[^>]*w:styleId="Paragraph1"[^>]*>[\s\S]*?<\/w:style>/.exec(
@@ -615,7 +615,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
         '2.2_general_training_material.docx',
         '3.2_own_instructions.docx',
         '6_protective_equipment_list.docx',
-        '11_employer_briefing.docx',
+        '11.1_employer_briefing.docx',
         '12_control_regulation.docx',
         '13_signing_regulation_annex.docx',
       ])
@@ -824,7 +824,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
     '2.2_general_training_material.docx',
     '3.2_own_instructions.docx',
     '9_risk_assessment.docx',
-    '11_employer_briefing.docx',
+    '11.1_employer_briefing.docx',
   ])('%s starts every chapter, annex and bibliography on a page, and no subchapter', (name) => {
     const paragraphs = paragraphsOf(bodyOf(name));
     const pageBreak = /<w:pageBreakBefore(?: w:val="(?:true|1|on)")?\/>/;
@@ -841,7 +841,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
   it.each([
     '2.2_general_training_material.docx',
     '9_risk_assessment.docx',
-    '11_employer_briefing.docx',
+    '11.1_employer_briefing.docx',
   ])("%s never leaves a chapter's last short line alone on the page before the next", (name) => {
     const blocks = (
       bodyOf(name).match(
@@ -877,7 +877,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
     '3.2_own_instructions.docx',
     '4.2_training_themes.docx',
     '9_risk_assessment.docx',
-    '11_employer_briefing.docx',
+    '11.1_employer_briefing.docx',
   ])('%s has no empty paragraph right before a chapter that starts a page', (name) => {
     const blocks =
       bodyOf(name).match(
@@ -911,7 +911,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
   it.each([
     '2.2_general_training_material.docx',
     '3.2_own_instructions.docx',
-    '11_employer_briefing.docx',
+    '11.1_employer_briefing.docx',
   ])('%s sets a list close under its lead-in and its sub-lists a tier deeper', (name) => {
     const paragraphs = paragraphsOf(bodyOf(name)).filter(
       (paragraph) => !/^\{\{[#/^][^}]*\}\}$/.test(documentTextOf(paragraph).trim())

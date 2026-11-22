@@ -1903,7 +1903,7 @@ TOC_PLACEHOLDER = (
 # own title. The 3.2 and 2.1 annex lines are a loop of the client's annexes, issued as files
 # of their own, so they stay typed under the table, without page numbers.
 TABLES_OF_CONTENTS = {
-    '11_employer_briefing': {
+    '11.1_employer_briefing': {
         'title': r'^Cuprins material informativ',
         'end': r'^Capitolul I\. ',
         'headings': [(1, r'^Capitolul [IVXLC]+\. '), (2, r'^Subcapitolul [IVXLC]+\.[IVXLC]+\. ')],

@@ -1,6 +1,6 @@
 """Writes the pictures of `pictures/` into the occupational safety set, without an office.
 
-2.2's safety signs and 11's sign types become a catalogue (`pictures/catalogue.ro.json`): under
+2.2's safety signs and 11.1's sign types become a catalogue (`pictures/catalogue.ro.json`): under
 a short heading per kind, two signs to a row of a table without lines, each sign 14 mm wide
 beside its name in bold and, where it says more than the name, one line of its meaning in 9 pt.
 2.2's chapters XIV and XV open with an illustration, and its Fig. 1 shows the two hazard bands
@@ -324,7 +324,7 @@ def main():
     with open(os.path.join(PICTURES, 'catalogue.ro.json'), encoding='utf8') as file:
         data = json.load(file)
     for name, build in (('2.2_general_training_material.docx', lambda package: general_training_material(package, data)),
-                        ('11_employer_briefing.docx', lambda package: employer_briefing(package, data)),
+                        ('11.1_employer_briefing.docx', lambda package: employer_briefing(package, data)),
                         ('9_risk_assessment.docx', risk_assessment)):
         package = Package(name)
         build(package)

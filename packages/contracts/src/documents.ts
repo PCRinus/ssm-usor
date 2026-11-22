@@ -233,6 +233,75 @@ export const fireSafetyDocumentTitles = {
   fire_annual_report: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
 } as const satisfies Record<FireSafetyDocumentTypeKey, string>;
 
+/** A cover is X.0, so a gap such as 2.0 then 2.2 is intended. Held to the manifest by a test. */
+export const occupationalSafetyDocumentNumbers = {
+  cover_decisions: '1.0',
+  decision_training: '1.1',
+  decision_risk_evaluation_team: '1.2',
+  decision_first_aid: '1.3',
+  decision_imminent_danger: '1.4',
+  decision_workers_representative: '1.5',
+  cover_general_training_material: '2.0',
+  general_training_material: '2.2',
+  cover_own_instructions: '3.0',
+  own_instructions: '3.2',
+  cover_training_themes: '4.0',
+  training_themes: '4.2',
+  cover_tests: '5.0',
+  test_hiring: '5.1',
+  protective_equipment_list: '6',
+  cover_event_registers: '7.0',
+  event_registers: '7.2',
+  control_report: '8',
+  risk_assessment: '9',
+  prevention_plan: '10',
+  cover_employer_briefing: '11.0',
+  employer_briefing: '11.1',
+  control_regulation: '12',
+  signing_regulation_annex: '13',
+} as const satisfies Record<DocumentTypeKey, string>;
+
+/** Held to the fire-safety manifest by a test. */
+export const fireSafetyDocumentNumbers = {
+  fire_cover_decisions: '1.0',
+  fire_decision_organization: '1.1',
+  fire_decision_training: '1.2',
+  fire_decision_open_fire: '1.3',
+  fire_decision_smoking: '1.4',
+  fire_decision_technician: '1.5',
+  fire_decision_instructions: '1.6',
+  fire_decision_waste: '1.7',
+  fire_decision_seasons: '1.8',
+  fire_decision_control: '1.9',
+  fire_cover_own_instructions: '2.0',
+  fire_own_instructions: '2.1',
+  fire_cover_training_themes: '3.0',
+  fire_training_themes: '3.1',
+  fire_cover_tests: '4.0',
+  fire_test_hiring: '4.1',
+  fire_test_annual: '4.2',
+  fire_means_list: '5.1',
+  fire_workplace_organization: '5.2',
+  fire_substances_list: '5.3',
+  fire_maintenance_schedules: '5.4',
+  fire_cover_registers: '6.0',
+  fire_registers: '6.1',
+  fire_work_permit: '6.2',
+  fire_installation_register: '6.3',
+  fire_extinguisher_register: '6.4',
+  fire_site_sheet: '7.1',
+  fire_annual_report: '7.2',
+} as const satisfies Record<FireSafetyDocumentTypeKey, string>;
+
+const documentNumbers: ReadonlyMap<string, string> = new Map(
+  Object.entries({ ...occupationalSafetyDocumentNumbers, ...fireSafetyDocumentNumbers })
+);
+
+/** Null for a type outside the binder: a per-employee sheet, a provider's own form. */
+export function documentNumberOf(typeKey: string): string | null {
+  return documentNumbers.get(typeKey) ?? null;
+}
+
 /**
  * The types a client holds once per period rather than once (ADR 020), each period a document
  * with revisions of its own. Mirrors the check `client_documents_period_only_dated`.

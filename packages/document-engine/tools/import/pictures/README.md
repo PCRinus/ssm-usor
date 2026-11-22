@@ -1,6 +1,6 @@
 # Pictures of the occupational safety set
 
-Sources of the pictures `../build_pictures.py` writes into 2.2, 9 and 11. `make_pictures.py` renders
+Sources of the pictures `../build_pictures.py` writes into 2.2, 9 and 11.1. `make_pictures.py` renders
 `svg/` into `png/` (PyMuPDF and Pillow); the PNGs are committed, so building the templates needs neither.
 
 ## Safety signs
@@ -99,7 +99,7 @@ ISO 7010 page between P079 and P081; its Commons drawing dates from 2025. `E015`
 Commons names no author.
 
 `svg/H.svg`, the hydrant sign, has no ISO or Romanian standard drawing; it is drawn here, a white H on fire
-red. `png/tape.png`, the occasional marking tape of 11, is a drawn illustration (below).
+red. `png/tape.png`, the occasional marking tape of 11.1, is a drawn illustration (below).
 
 ## Illustrations
 

@@ -65,8 +65,9 @@ describe('templates outside the pack', () => {
   });
 });
 
-// Every original of the provider's pack is listed, ported or not, under its own number, so
-// the folder shows at a glance what is still to do. Decision 1.5 came later, from a third pack.
+// Every original of the provider's pack is listed, ported or not, under its number in the
+// binder, so the folder shows at a glance what is still to do. A cover is X.0, whatever the
+// original's number. Decision 1.5 came later, from a third pack.
 // The annex on the electronic signature (13, ADR 023) has no original: its wording is ours.
 describe('manifest', () => {
   const manifest = { templates: setEntries('ssm') };
@@ -80,13 +81,19 @@ describe('manifest', () => {
     expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(24);
   });
 
-  it('names each ported template after its original number and its type', () => {
+  it('names each ported template after its number and its type', () => {
     for (const entry of ported) {
       expect(entry.file).toBe(`${entry.number}_${entry.typeKey}.docx`);
       expect(entry.typeKey).toMatch(/^[a-z][a-z0-9_]{1,59}$/);
       expect(entry.title).toBeTruthy();
     }
     expect(new Set(ported.map((entry) => entry.typeKey)).size).toBe(ported.length);
+  });
+
+  it.each(['ssm', 'fire'] as const)('numbers every cover of the %s set X.0', (set) => {
+    const covers = setEntries(set).filter((entry) => /(^|_)cover_/.test(entry.typeKey));
+    expect(covers.length).toBeGreaterThan(4);
+    for (const entry of covers) expect(entry.number).toMatch(/^\d+\.0$/);
   });
 
   it('matches the files in the folder exactly', () => {

@@ -363,6 +363,17 @@ describe('a quote replaced in a templates folder', () => {
     );
   });
 
+  it('replaces the change of a template released under another file name', () => {
+    const root = folder();
+    const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8'));
+    manifest.templates[0].file = '1_source.docx';
+    const renamed = (path: string) =>
+      path === 'manifest.json' ? JSON.stringify(manifest) : releasedAsIs(root)(path);
+    applied(replace(root, { ...patch, change }, renamed));
+    const now = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8'));
+    expect(now.templates[0].change).toEqual({ kind: 'legal', ...change });
+  });
+
   describe('the change a template not yet released already carries', () => {
     const released = (root: string, change: object) => {
       const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8'));
