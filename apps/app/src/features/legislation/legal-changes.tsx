@@ -1,4 +1,4 @@
-import { appliedLegalChangePageSize, numberedTitle, pageCount } from '@ssm-usor/contracts';
+import { appliedLegalChangePageSize, pageCount } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { keepPreviousData } from '@tanstack/react-query';
@@ -23,6 +23,7 @@ import {
   behindTabOf,
   behindText,
   reachOf,
+  titlesOf,
   underReviewSentence,
 } from './legal-change-copy';
 import { ChangePanel, ChangeRow, ChangeRows } from './legal-change-row';
@@ -151,9 +152,7 @@ function OpenRow({ change }: { change: OpenChange }) {
 }
 
 function AppliedRow({ change }: { change: AppliedChange }) {
-  const updated = change.updatedDocuments
-    .map((document) => numberedTitle(document.typeKey, document.title))
-    .join(', ');
+  const updated = titlesOf(change.updatedDocuments).join(', ');
   return (
     <ChangeRow
       changeId={change.id}

@@ -1273,7 +1273,7 @@ describe('the Legislație page', () => {
       'ALFA CONSTRUCT SRL'
     );
     expect(lacking.textContent).toContain(
-      'Decizia privind responsabilii cu primul ajutor nu s-a regenerat'
+      '1.3 Decizia privind responsabilii cu primul ajutor nu s-a regenerat'
     );
     const rows = await within(lacking).findAllByTestId('regeneration-missing-row');
     const alfaId = firstAidBehind.clients[0]!.clientId;
