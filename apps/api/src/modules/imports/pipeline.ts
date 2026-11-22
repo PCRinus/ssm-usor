@@ -105,6 +105,8 @@ export const fileReasons = {
   coverOrIndex: 'Copertă, etichetă sau cuprins: nu conține date despre client.',
   blankForm: 'Formular sau registru necompletat.',
   genericText: 'Text general, fără date despre client.',
+  riskZonesRecord:
+    'Evidența zonelor cu risc ridicat și specific: nu o citim încă. O citim doar dacă ceri.',
   ownInstructions: 'Instrucțiuni proprii: le citim pentru biblioteca ta de instrucțiuni proprii.',
   trainingMaterial:
     'Material de instruire introductiv-generală: text general, nu conține date despre client. Îl citim doar dacă ceri.',

@@ -285,6 +285,7 @@ export function setAsideReason(kind: DocumentKind) {
   if (kind === 'blank_form') return fileReasons.blankForm;
   if (kind === 'generic_text') return fileReasons.genericText;
   if (kind === 'own_instructions') return fileReasons.ownInstructions;
+  if (kind === 'risk_zones_record') return fileReasons.riskZonesRecord;
   if (kind === 'training_material') return fileReasons.trainingMaterial;
   return fileReasons.noClientData;
 }

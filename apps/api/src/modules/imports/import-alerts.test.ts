@@ -140,6 +140,22 @@ describe('the rules checked as a reading ends', () => {
     expect(unreadable).toContain('file 3 of 9, pdf');
   });
 
+  it('trips on a risk zones record found by the sorting, naming only its place and kind', () => {
+    const found = {
+      ...flags,
+      files: { ...flags.files, riskZonesRecords: [{ file: 3, kind: 'risk_zones_record' }] },
+    };
+    const alerts = alertsOf(record({ reading_flags: found }), null, 'read');
+    expect(rules(alerts)).toContain('risk_zones_record');
+    const text = textOf(alerts.filter((alert) => alert.rule === 'risk_zones_record'))[0]!;
+    expect(text).toContain('**Risk zones record found** · production');
+    expect(text).toContain('file 3 of 9, risk zones record');
+    expect(text).not.toMatch(personalData);
+    expect(rules(alertsOf(record({ reading_flags: flags }), null, 'read'))).not.toContain(
+      'risk_zones_record'
+    );
+  });
+
   it('stays quiet on a reading that found what it read', () => {
     const quiet = {
       ...flags,
@@ -562,9 +578,28 @@ describe('daySummary', () => {
         'Proposed values changed or unticked: 10% (2 of 20)',
         'Cost of the imports started: $1.75',
         'Alerts: 4',
+        'Imports with a risk zones record: 0',
         'Clean-up: 2 folders copied, 0 not.',
       ].join('\n')
     );
+  });
+
+  it('counts the imports in which a risk zones record was found', () => {
+    const found = {
+      ...flags,
+      files: { ...flags.files, riskZonesRecords: [{ file: 3, kind: 'risk_zones_record' }] },
+    };
+    const summary = daySummary(
+      [
+        record({ id: 'a', ready_at: '2026-11-03T09:10:00Z', reading_flags: found }),
+        record({ id: 'b', ready_at: '2026-11-03T09:20:00Z', reading_flags: found }),
+        record({ id: 'c', ready_at: '2026-11-03T09:30:00Z', reading_flags: flags }),
+      ],
+      new Date('2026-11-03T00:00:00Z'),
+      new Date('2026-11-04T00:00:00Z'),
+      'nothing to do.'
+    );
+    expect(summary.lines).toContain('Imports with a risk zones record: 2');
   });
 
   it('still posts a day with no import', () => {

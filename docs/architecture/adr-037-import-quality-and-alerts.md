@@ -135,6 +135,10 @@ For the legal review:
 - The copies of employee imports hold blood group and Rh, which are health data (GDPR art. 9). Article 9(2) has no exception written for improving a service; the lawyer says which condition applies, or whether those copies need the blood group removed.
 - The employees, whose data it is, learn of it through their employer's and the provider's information to them; whether the agreement should ask the provider to mention it.
 
+## Amendment 2026-11-23: the risk zones record
+
+[ADR 045](adr-045-risk-zones-record.md) left the import out of the new document 9.2. Before building a reading of it, we want to know whether testers' packs hold one. The sorting now recognises a risk zones record (`risk_zones_record`) and sets it aside like the other set-aside kinds: it is not sent to the client reading, and a member can still send it back to be read. A new rule, "Risk zones record found", trips as a client reading ends when the sorting found at least one such file; its message names the file by its place and kind only, "file 3 of 9, risk zones record". The daily summary counts the imports in which one was found. Nothing of the file is read.
+
 ## Consequences
 
 - Every import, abandoned and failed ones included, now leaves its documents with us for 12 months, where before an abandoned import's were gone in 14 days and a confirmed import's proposal in 30. What members see does not change.

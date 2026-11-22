@@ -14,6 +14,7 @@ export const documentKinds = [
   'contract',
   'training_sheet',
   'blank_form',
+  'risk_zones_record',
   'cover',
   'generic_text',
   'other',
@@ -47,13 +48,15 @@ export const sortingAnswer = answerFormat('import_sorting', sortingSchema, (answ
 
 // Own instructions and the general training material are the longest files of a pack. The own
 // instructions are read apart, by their own request for the library (ADR 034); the general
-// training material is the same in every pack. Neither goes to the client reading (ADR 030).
+// training material is the same in every pack. Neither goes to the client reading (ADR 030). The
+// risk zones record is not read yet: it is only counted, to see whether packs hold one (ADR 037).
 export const setAsideKinds: readonly DocumentKind[] = [
   'cover',
   'blank_form',
   'generic_text',
   'own_instructions',
   'training_material',
+  'risk_zones_record',
 ];
 
 export interface Company {

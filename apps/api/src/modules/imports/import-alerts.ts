@@ -19,6 +19,7 @@ export const alertRules = {
   nothing_found: { title: 'Sorted, but nothing found', severity: 'week' },
   no_required_field: { title: 'Client reading with no required field', severity: 'week' },
   unreadable_files: { title: 'Files we could not open', severity: 'week' },
+  risk_zones_record: { title: 'Risk zones record found', severity: 'week' },
   reported: { title: 'Reported by the member', severity: 'now' },
   mostly_changed: { title: 'Confirmed, but mostly changed', severity: 'week' },
   abandoned_after_reading: { title: 'Abandoned after a reading', severity: 'week' },
@@ -155,6 +156,18 @@ function readingRules(
   if (!part && flags?.files?.unreadable.length) {
     alerts.push(
       alertOf(record, part, 'unreadable_files', describePlaces(flags.files.unreadable, total))
+    );
+  }
+  if (!part && flags?.files?.riskZonesRecords?.length) {
+    alerts.push(
+      alertOf(
+        record,
+        part,
+        'risk_zones_record',
+        flags.files.riskZonesRecords.map(
+          (place) => `file ${place.file} of ${total}, ${place.kind.replaceAll('_', ' ')}`
+        )
+      )
     );
   }
   return alerts;
@@ -396,6 +409,7 @@ export function daySummary(
   let changed = 0;
   let whole = 0;
   let alerts = 0;
+  let withRiskZones = 0;
   for (const record of records) {
     const { row } = record;
     const confirmed = [
@@ -419,6 +433,12 @@ export function daySummary(
       end
     );
     alerts += ownMoments.flatMap((moment) => alertsOf(record, null, moment)).length;
+    if (
+      ownMoments.includes('read') &&
+      flagsOf(row.reading_flags)?.files?.riskZonesRecords?.length
+    ) {
+      withRiskZones++;
+    }
     if (inside(row.reported_at, start, end)) alerts++;
     if (inside(row.expensive_alerted_at, start, end)) alerts++;
     for (const part of record.parts) {
@@ -448,6 +468,7 @@ export function daySummary(
         : 'Proposed values changed or unticked: nothing confirmed',
       `Cost of the imports started: ${usd(cost)}`,
       `Alerts: ${alerts}`,
+      `Imports with a risk zones record: ${withRiskZones}`,
       `Clean-up: ${cleanUpLine}`,
     ],
   };
