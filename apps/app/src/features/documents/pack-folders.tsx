@@ -36,14 +36,15 @@ export function SectionNumber({
 
 // One link restyled from a row on phones to a tile from sm up, not a list and a grid side by side,
 // which would name every section twice to a screen reader. The tab's fill layer also covers the
-// body's top border under it so the outline runs on unbroken; forced colours repaint both layers
-// as background, which would cut the outline, so the tile is a plain box there.
+// body's top border under it so the outline runs on unbroken, and its corner radius is the
+// outline's less its 1px inset, or the fill shows past the outline at the corner. Forced colours
+// repaint both layers as background, which would cut the outline, so the tile is a plain box there.
 const folderLink = cn(
   'relative grid flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 outline-none',
   'max-sm:min-h-17 max-sm:border-t max-sm:px-4 max-sm:py-3.5 max-sm:hover:bg-muted/60 max-sm:focus-visible:ring-[3px] max-sm:focus-visible:ring-ring/50 max-sm:focus-visible:ring-inset',
   'sm:min-h-37.5 sm:grid-cols-[auto_minmax(0,1fr)] sm:grid-rows-[auto_1fr_auto_auto] sm:items-start sm:gap-y-2 sm:rounded-xl sm:rounded-tl-none sm:border sm:border-folder-border sm:bg-folder sm:px-4 sm:pt-3.5 sm:pb-4 sm:hover:border-folder-border-hover',
   "sm:before:absolute sm:before:-top-3.5 sm:before:-left-px sm:before:h-3.5 sm:before:w-32 sm:before:rounded-tl-lg sm:before:bg-folder-border sm:before:[clip-path:polygon(0_0,104px_0,126.4px_100%,0_100%)] sm:before:content-[''] sm:hover:before:bg-folder-border-hover",
-  "sm:after:absolute sm:after:-top-[13px] sm:after:left-0 sm:after:h-[15px] sm:after:w-[127px] sm:after:rounded-tl-[7px] sm:after:bg-folder sm:after:[clip-path:polygon(0_0,102.7px_0,126.7px_100%,0_100%)] sm:after:content-['']",
+  "sm:after:absolute sm:after:-top-[13px] sm:after:left-0 sm:after:h-[15px] sm:after:w-[127px] sm:after:rounded-tl-[calc(var(--radius-lg)-1px)] sm:after:bg-folder sm:after:[clip-path:polygon(0_0,102.7px_0,126.7px_100%,0_100%)] sm:after:content-['']",
   // A box-shadow ring would miss the tab; a drop shadow follows the whole shape.
   'sm:[--halo:color-mix(in_srgb,var(--ring)_50%,var(--card))] sm:focus-visible:border-ring sm:focus-visible:before:bg-ring sm:focus-visible:[filter:drop-shadow(3px_0_0_var(--halo))_drop-shadow(-3px_0_0_var(--halo))_drop-shadow(0_3px_0_var(--halo))_drop-shadow(0_-3px_0_var(--halo))]',
   'sm:[&_[data-status=missing]]:bg-card',
