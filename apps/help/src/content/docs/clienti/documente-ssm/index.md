@@ -51,7 +51,7 @@ Ca să treci prin documentație:
 - săgețile din dreapta sus deschid secțiunea dinainte și pe cea de după; a câta secțiune este din câte scrie lângă ele, iar pe telefon sub titlul secțiunii;
 - la capătul tabelului, butonul **Următoarea secțiune** deschide secțiunea următoare.
 
-Săgețile și **Următoarea secțiune** nu adaugă pași în istoricul browserului, așa că butonul „înapoi” al browserului te duce din orice dosar înapoi la dosare, ca **Toate secțiunile**.
+Săgețile și **Următoarea secțiune** nu adaugă pași în istoricul browserului: după ce ai deschis un dosar de pe pagina cu dosarele, butonul „înapoi” al browserului te duce înapoi la dosare, oricâte secțiuni ai parcurs între timp.
 
 Bara, butoanele de generare și descărcarea întregii documentații nu apar într-un dosar deschis: sunt pe pagina cu toate dosarele.
 
