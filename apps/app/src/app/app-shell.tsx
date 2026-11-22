@@ -671,7 +671,13 @@ export function AppShell() {
             >
               Sari la conținut
             </a>
-            <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
+            {/* On a phone the editor's own bar is the page's only bar, its back arrow the way out. */}
+            <header
+              className={cn(
+                'sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6',
+                editorPage && 'max-sm:hidden'
+              )}
+            >
               <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
                 <SidebarToggle unread={unreadCount + releases.unreadCount} />
                 <Separator orientation="vertical" className="!h-6" />

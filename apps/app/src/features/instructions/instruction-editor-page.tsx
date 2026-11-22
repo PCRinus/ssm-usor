@@ -3,7 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { BookOpenText, Download } from 'lucide-react';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useEffect, useState } from 'react';
 
 import {
   downloadInstructionModule,
@@ -15,6 +15,7 @@ import { ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { useEditorLayout } from '@/app/editor-layout';
 import { BackLink, TitleWithBack } from '@/components/back-link';
+import type { PhoneBar } from '@/features/documents/editor-bar';
 import { editorFrameClassName, saveAs } from '@/features/documents/editor-frame';
 import { EditorPlaceholder } from '@/features/documents/editor-placeholder';
 import { warningBadge } from '@/features/documents/pack-styles';
@@ -137,29 +138,73 @@ export function InstructionEditorPage({
   }
 
   const libraryIsNewer = pinned && module.version.number > loaded.number;
+  const archived = Boolean(module.archivedAt) && !pinned;
+  const archivedNote =
+    'Instrucțiunea e arhivată, așa că o poți doar citi, așa cum se tipărește. Reactiveaz-o din bibliotecă ca să o modifici.';
+  const pinnedNote = libraryIsNewer
+    ? `Versiunea pe care o anexează documentul. Biblioteca are acum versiunea ${module.version.number}, din ${formatRoDate(module.version.createdAt.slice(0, 10))}.`
+    : 'Versiunea pe care o anexează documentul. Este și versiunea curentă din bibliotecă.';
+  const openCurrentLabel = libraryIsNewer ? 'Deschide versiunea curentă' : 'Deschide în bibliotecă';
+  const phoneBar: PhoneBar = {
+    back,
+    title: module.title,
+    heading: module.title,
+    badges: [
+      { label: archived ? 'Arhivată' : `Versiunea ${loaded.number}`, variant: 'default' },
+      ...(pinned
+        ? [
+            libraryIsNewer
+              ? { label: 'Mai veche decât biblioteca', variant: 'warning' as const }
+              : { label: 'Curentă', variant: 'outline' as const },
+          ]
+        : []),
+    ],
+    note: archived ? archivedNote : pinned ? pinnedNote : undefined,
+    main: null,
+    items: [
+      ...(pinned
+        ? [
+            {
+              kind: 'link' as const,
+              label: openCurrentLabel,
+              icon: BookOpenText,
+              link: (content: ReactNode) => (
+                <Link
+                  to="/instructiuni/$moduleId"
+                  params={{ moduleId }}
+                  data-testid="editor-phone-open-current"
+                >
+                  {content}
+                </Link>
+              ),
+            },
+          ]
+        : []),
+      { kind: 'navigation' },
+      {
+        kind: 'action',
+        label: 'Descarcă documentul Word',
+        icon: Download,
+        onSelect: download,
+        testId: 'editor-phone-download',
+      },
+    ],
+  };
   const actions = (
     <div className="flex flex-wrap items-center gap-2 max-sm:flex-1">
       <Badge
         variant="default"
         data-testid="editor-state"
-        title={
-          module.archivedAt && !pinned
-            ? 'Instrucțiunea e arhivată, așa că o poți doar citi, așa cum se tipărește. Reactiveaz-o din bibliotecă ca să o modifici.'
-            : undefined
-        }
+        title={archived ? archivedNote : undefined}
       >
-        {module.archivedAt && !pinned ? 'Arhivată' : `Versiunea ${loaded.number}`}
+        {archived ? 'Arhivată' : `Versiunea ${loaded.number}`}
       </Badge>
       {pinned && (
         <Badge
           variant="outline"
           data-testid="editor-pinned-version"
           className={cn(libraryIsNewer && warningBadge)}
-          title={
-            libraryIsNewer
-              ? `Versiunea pe care o anexează documentul. Biblioteca are acum versiunea ${module.version.number}, din ${formatRoDate(module.version.createdAt.slice(0, 10))}.`
-              : 'Versiunea pe care o anexează documentul. Este și versiunea curentă din bibliotecă.'
-          }
+          title={pinnedNote}
         >
           <span aria-hidden="true" className="xl:hidden">
             {libraryIsNewer ? 'Mai veche' : 'Curentă'}
@@ -179,12 +224,10 @@ export function InstructionEditorPage({
             to="/instructiuni/$moduleId"
             params={{ moduleId }}
             data-testid="editor-open-current"
-            title={libraryIsNewer ? 'Deschide versiunea curentă' : 'Deschide în bibliotecă'}
+            title={openCurrentLabel}
           >
             <BookOpenText aria-hidden="true" />
-            <span className="max-xl:sr-only">
-              {libraryIsNewer ? 'Deschide versiunea curentă' : 'Deschide în bibliotecă'}
-            </span>
+            <span className="max-xl:sr-only">{openCurrentLabel}</span>
           </Link>
         </Button>
       )}
@@ -233,6 +276,7 @@ export function InstructionEditorPage({
                 back={back}
                 handle={null}
                 actions={actions}
+                phoneBar={phoneBar}
                 onReady={() => setReadyVersionId(loaded.versionId)}
                 onFailed={() => setFailedEditorVersionId(loaded.versionId)}
                 onChange={() => {}}
