@@ -126,6 +126,10 @@ The SSM sheet prints them inside its existing line "Traseul de deplasare la/de l
 
 The residence (_adresa unde locuiește_), added the same day, prints on neither sheet: annex 11 has only the domicile.
 
+## Amendment (2026-11-22): the sheets print as form grids
+
+Both sheets print as form grids: the identification block, each hiring training and the admission are ruled boxes, one per rubric of the law's model, its label small at the top and room to read or write under it, the signatures boxes of the same grid. Mircea chose it on 2026-11-22 over keeping the label and value lines, so that each rubric is a box to read or write in, on the sheet drawn before the first signature and on the signed sheet alike. The rubrics, their wording and their order stay the law's; only the look changes, and a running header with the employee's name and the page number keeps a loose page with its sheet. The layout and the measured row counts are in `docs/document-engine.md` (Sheets).
+
 ## Defaults taken instead of asking the provider
 
 Settled with Mircea on 2026-10-16 as defaults a record can depart from, since each is one slot or one proposal and none changes the shape of the data:
