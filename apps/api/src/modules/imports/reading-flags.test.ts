@@ -88,6 +88,7 @@ describe('clientReadingFlags', () => {
         total: 4,
         byKind: { decision: 1, cover: 1, pdf: 1, training_sheet: 1 },
         unreadable: [{ file: 3, kind: 'pdf' }],
+        riskZonesRecords: [],
         setAside: 1,
         forEmployees: 1,
         otherCompany: 0,
