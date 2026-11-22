@@ -25,7 +25,7 @@ from table_style import P_PR_ORDER, R_PR_ORDER, RUN, edit_properties, element, p
 from typography import body_blocks, bold, edit_run, edit_text_range, escaped, set_spacing, spoken, text_of, unescaped
 from typography import lists as lists_spacing
 
-NAME = '9_risk_assessment.docx'
+NAME = '9.1_risk_assessment.docx'
 TIER = 360  # 6.35 mm
 HANG = 567  # 1 cm, the hang of a label wider than a tier ("VI.II.", "F10.")
 GAP = 40

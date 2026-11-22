@@ -18,7 +18,7 @@ const label = /^((?:sub)?capitolul [IVXLC]+\.(?:[IVXLC]+\.)?|anexa(?: nr\.)? \d+
 describe.each([
   '2.1_general_training_material.docx',
   '3.1_own_instructions.docx',
-  '9_risk_assessment.docx',
+  '9.1_risk_assessment.docx',
   '11.1_employer_briefing.docx',
 ])('the contents of %s', (name) => {
   const styles = partOf(read(name), 'word/styles.xml');
@@ -102,7 +102,7 @@ describe.each([
 describe('the headings of 9', () => {
   it("read in sentence case, as 2.1's, and so do its contents", () => {
     const headings = (
-      partOf(read('9_risk_assessment.docx'), 'word/document.xml').match(
+      partOf(read('9.1_risk_assessment.docx'), 'word/document.xml').match(
         /<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?<w:pStyle w:val="Heading[12]"\/>[\s\S]*?<\/w:p>/g
       ) ?? []
     ).map(documentTextOf);

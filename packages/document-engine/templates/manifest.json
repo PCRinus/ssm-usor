@@ -217,12 +217,12 @@
       }
     },
     {
-      "number": "9",
+      "number": "9.1",
       "original": "9._Evaluarea_riscurilor",
       "stage": 3,
       "typeKey": "risk_assessment",
       "title": "Evaluarea riscurilor de accidentare și îmbolnăvire profesională",
-      "file": "9_risk_assessment.docx",
+      "file": "9.1_risk_assessment.docx",
       "change": {
         "kind": "correction",
         "note": "Un tabel nu mai lasă un singur rând pe pagina următoare. Nivelul de risc global pe unitate e o formulă centrată, scrisă ca formulele metodei; titlurile din capitolul VI fără majuscule; cele două moduri de folosire a calculatorului arată la fel."

@@ -82,7 +82,7 @@ describe('typesetting', () => {
     ['11.1_employer_briefing.docx', 19],
     ['2.1_general_training_material.docx', 19],
     ['3.1_own_instructions.docx', 21],
-    ['9_risk_assessment.docx', 20],
+    ['9.1_risk_assessment.docx', 20],
     ['fire/2.1_fire_own_instructions.docx', 25],
   ] as const)('%s has a table of contents, and its %i headings are its titles', (name, count) => {
     const body = bodyOf(name);
@@ -468,7 +468,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
   const contents = [
     '2.1_general_training_material.docx',
     '3.1_own_instructions.docx',
-    '9_risk_assessment.docx',
+    '9.1_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ];
 
@@ -863,7 +863,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
   it.each([
     '2.1_general_training_material.docx',
     '3.1_own_instructions.docx',
-    '9_risk_assessment.docx',
+    '9.1_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ])('%s starts every chapter, annex and bibliography on a page, and no subchapter', (name) => {
     const paragraphs = paragraphsOf(bodyOf(name));
@@ -880,7 +880,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
 
   it.each([
     '2.1_general_training_material.docx',
-    '9_risk_assessment.docx',
+    '9.1_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ])("%s never leaves a chapter's last short line alone on the page before the next", (name) => {
     const blocks = (
@@ -916,7 +916,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
     '2.1_general_training_material.docx',
     '3.1_own_instructions.docx',
     '4.1_training_themes.docx',
-    '9_risk_assessment.docx',
+    '9.1_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ])('%s has no empty paragraph right before a chapter that starts a page', (name) => {
     const blocks =

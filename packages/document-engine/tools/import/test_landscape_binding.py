@@ -89,7 +89,7 @@ class ContentWidthsMarker(unittest.TestCase):
         self.assertEqual(marked.count(f'<w:tblCaption w:val="{CONTENT_WIDTHS}"/>'), 1)
         self.assertTrue(marked.startswith(other))
         self.assertEqual(marked_for_content_widths(marked, '10_prevention_plan.docx'), marked)
-        self.assertEqual(marked_for_content_widths(plan, '9_risk_assessment.docx'), plan)
+        self.assertEqual(marked_for_content_widths(plan, '9.1_risk_assessment.docx'), plan)
 
 
 if __name__ == '__main__':

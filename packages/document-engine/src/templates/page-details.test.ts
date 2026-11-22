@@ -37,7 +37,7 @@ describe('the details of the occupational safety set’s pages', () => {
   it.each([
     '2.1_general_training_material.docx',
     '3.1_own_instructions.docx',
-    '9_risk_assessment.docx',
+    '9.1_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ])('%s keeps a contents entry’s words clear of its page number', (name) => {
     for (const level of [1, 2]) {
@@ -92,7 +92,7 @@ describe('the details of the occupational safety set’s pages', () => {
   });
 
   it('prints 100 % in the total of the risk assessment’s shares', () => {
-    const body = bodyOf('9_risk_assessment.docx');
+    const body = bodyOf('9.1_risk_assessment.docx');
     const total = body.slice(
       body.indexOf('{{factorCount}}'),
       body.indexOf('</w:tr>', body.indexOf('{{factorCount}}'))

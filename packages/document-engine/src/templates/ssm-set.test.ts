@@ -777,10 +777,10 @@ describe('training_themes', () => {
 });
 
 describe('risk_assessment', () => {
-  const text = documentText(read('9_risk_assessment.docx'));
+  const text = documentText(read('9.1_risk_assessment.docx'));
 
   it('heads the two ways of using a computer on the margin, the list under the first one tier in, 1. over a)', () => {
-    const paragraphs = bodyOf('9_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
+    const paragraphs = bodyOf('9.1_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
     const indent = (start: string) => {
       const paragraph = paragraphs.find((xml) => documentTextOf(xml).startsWith(start))!;
       const ind = /<w:ind w:left="(\d+)" w:hanging="(\d+)"\/>/.exec(paragraph)!;
@@ -793,7 +793,7 @@ describe('risk_assessment', () => {
   });
 
   it('runs in the same way after both labels: a bold lead, then regular text hanging from the label', () => {
-    const paragraphs = bodyOf('9_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
+    const paragraphs = bodyOf('9.1_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
     const bolds = (start: string) => {
       const paragraph = paragraphs.find((xml) => documentTextOf(xml).startsWith(start))!;
       expect(paragraph).toContain('<w:ind w:left="360" w:hanging="360"/>');
@@ -816,7 +816,7 @@ describe('risk_assessment', () => {
   });
 
   it("sets the unit's level in chapter VI as a centred formula in (2)'s notation, not as typed text", () => {
-    const paragraphs = bodyOf('9_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
+    const paragraphs = bodyOf('9.1_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
     const at = paragraphs.findIndex((xml) =>
       documentTextOf(xml).startsWith('Nivelul de risc global pe unitate')
     );
@@ -833,7 +833,7 @@ describe('risk_assessment', () => {
   });
 
   it('repeats a subchapter per evaluation, which the contents list from the merged headings', () => {
-    expect(templatePlaceholders(read('9_risk_assessment.docx'))).toEqual(
+    expect(templatePlaceholders(read('9.1_risk_assessment.docx'))).toEqual(
       expect.arrayContaining([
         'riskAssessment.evaluations',
         'components',
@@ -849,7 +849,7 @@ describe('risk_assessment', () => {
       ])
     );
     expect(text.match(/\{\{#riskAssessment\.evaluations\}\}/g)).toHaveLength(2);
-    expect(bodyOf('9_risk_assessment.docx')).toContain(
+    expect(bodyOf('9.1_risk_assessment.docx')).toContain(
       '<w:docPartGallery w:val="Table of Contents"/>'
     );
     expect(text).toContain('{{#sheetComponents}}{{label}}');
@@ -863,7 +863,7 @@ describe('risk_assessment', () => {
   // one cell, never above empty bordered ones.
   it("names a component on a row across the sheet and merges a group's cells down its rows", () => {
     const data = setSamples.find((sample) => sample.label === 'long')!.data;
-    const body = new PizZip(renderDocument(read('9_risk_assessment.docx'), data))
+    const body = new PizZip(renderDocument(read('9.1_risk_assessment.docx'), data))
       .file('word/document.xml')!
       .asText();
     const sheets = (body.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? []).filter((table) =>

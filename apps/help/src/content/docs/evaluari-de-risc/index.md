@@ -55,7 +55,7 @@ sources:
   - apps/api/src/modules/documents/context.ts
 ---
 
-Evaluarea riscurilor se face pe fișe de evaluare a riscurilor: câte una pentru fiecare post al unui client și, unde e cazul, pentru grupurile sensibile și pentru alte persoane expuse. Din aceleași fișe aplicația generează evaluarea riscurilor de accidentare și îmbolnăvire profesională (documentul 9) și planul de prevenire și protecție (documentul 10). Un post pe care îl evaluezi des, ca lucrătorul de birou sau vânzătorul, îl păstrezi în bibliotecă și îl aplici la orice client.
+Evaluarea riscurilor se face pe fișe de evaluare a riscurilor: câte una pentru fiecare post al unui client și, unde e cazul, pentru grupurile sensibile și pentru alte persoane expuse. Din aceleași fișe aplicația generează evaluarea riscurilor de accidentare și îmbolnăvire profesională (documentul 9.1) și planul de prevenire și protecție (documentul 10). Un post pe care îl evaluezi des, ca lucrătorul de birou sau vânzătorul, îl păstrezi în bibliotecă și îl aplici la orice client.
 
 ## Ce este o evaluare de risc
 
@@ -225,7 +225,7 @@ Un factor venit din bibliotecă arată sub descriere „În evaluarea … din bi
 
 ## Ce cer documentele 9 și 10
 
-Evaluarea riscurilor (documentul 9) și planul de prevenire și protecție (documentul 10), din Documentație SSM, se generează din fișele clientului. Ca să le poți genera:
+Evaluarea riscurilor (documentul 9.1) și planul de prevenire și protecție (documentul 10), din Documentație SSM, se generează din fișele clientului. Ca să le poți genera:
 
 - fiecare post actual are fișa de evaluare a riscurilor, cu cel puțin un factor de risc;
 - grupurile sensibile sunt evaluate, cu cel puțin un factor, sau clientul a declarat că nu are lucrători din aceste grupuri;

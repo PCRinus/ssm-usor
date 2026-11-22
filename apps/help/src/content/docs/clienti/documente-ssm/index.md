@@ -59,7 +59,7 @@ Instrucțiunile proprii își arată anexele sub ele, câte una pe rând, fiecar
 
 ## Numerele documentelor
 
-Fiecare document are numărul lui din dosarul tipărit, scris înaintea titlului: **3.1** sunt instrucțiunile proprii, **6** lista de dotare cu echipament individual de protecție, **9** evaluarea riscurilor. Numărul este același la orice client și oriunde apare documentul: în titlul documentului deschis, în ferestrele și mesajele despre el, în **Legislație** și în numele fișierelor descărcate, inclusiv în arhiva documentației.
+Fiecare document are numărul lui din dosarul tipărit, scris înaintea titlului: **3.1** sunt instrucțiunile proprii, **6** lista de dotare cu echipament individual de protecție, **9.1** evaluarea riscurilor. Numărul este același la orice client și oriunde apare documentul: în titlul documentului deschis, în ferestrele și mesajele despre el, în **Legislație** și în numele fișierelor descărcate, inclusiv în arhiva documentației.
 
 Coperta unei secțiuni are numărul **X.0**: 1.0 este coperta deciziilor, 3.0 coperta instrucțiunilor proprii. După copertă, documentele secțiunii urmează în ordine, fără goluri: X.1, X.2 și așa mai departe, ca deciziile 1.1–1.5 după coperta 1.0.
 
@@ -73,7 +73,7 @@ Coperta unei secțiuni are numărul **X.0**: 1.0 este coperta deciziilor, 3.0 co
 | 6. Lista internă de dotare cu EIP                      | 6                                                   |
 | 7. Registrele de evidență a evenimentelor              | 7.0 coperta, 7.1 registrele                         |
 | 8. Referat de control                                  | 8                                                   |
-| 9. Evaluarea riscurilor                                | 9                                                   |
+| 9. Evaluarea riscurilor                                | 9.1                                                 |
 | 10. Planul de prevenire și protecție                   | 10                                                  |
 | 11. Material de informare a angajatorului              | 11.0 coperta, 11.1 materialul                       |
 | 12. Regulament intern privind controlul propriu        | 12                                                  |
