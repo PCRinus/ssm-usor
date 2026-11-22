@@ -14,12 +14,21 @@ def paragraph(*runs, properties='<w:pPr><w:ind w:hanging="0"/></w:pPr>'):
 
 class Formulas(unittest.TestCase):
     def test_every_formula_keeps_to_what_the_in_app_editor_lays_out(self):
-        formulas = [N_R, N_G, R_SET, *LIMITS, submatrix(*LEVEL_ONE)]
-        formulas += [submatrix(*matrix) for _, matrices, _ in LEVELS for matrix in matrices]
-        for formula in formulas:
+        for formula in [N_R, N_G, R_SET, *LIMITS]:
             self.assertNotRegex(formula, r'<w:rPr|<m:rPr|<m:ctrlPr|<m:(d|m|limLow|limUpp|eqArr)\b')
             self.assertEqual(set(re.findall(r'<m:(\w+)', formula)) - {'r', 't', 'f', 'num', 'den', 'sSub', 'e', 'sub', 'sup',
                                                                        'nary', 'naryPr', 'chr', 'limLoc', 'oMath'}, set())
+
+
+    def test_a_submatrix_inside_a_sentence_is_text_at_the_texts_size(self):
+        for matrix in [LEVEL_ONE] + [matrix for _, matrices, _ in LEVELS for matrix in matrices]:
+            written = submatrix(*matrix)
+            self.assertNotIn('<m:', written)
+            self.assertEqual(set(re.findall(r'<w:sz w:val="(\d+)"/>', written)), {'20'})
+        written = submatrix(*LEVEL_ONE)
+        self.assertEqual(re.sub(r'<[^>]+>', '', written).replace('\u00a0', ' '),
+                         'M1,p = ‖(1,1)  (1,2)  (1,3)  (1,4)  (1,5)  (1,6)‖, p = 1,…,6')
+        self.assertRegex(written, r'<w:i/>.*?>M<.*?<w:vertAlign w:val="subscript"/>.*?>1,p<')
 
 
 class Labels(unittest.TestCase):

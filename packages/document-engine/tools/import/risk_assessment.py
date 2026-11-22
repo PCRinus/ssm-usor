@@ -4,9 +4,10 @@ rule finds its place by the text around it and writes the same result whatever i
 Formulas are Word formulas in the subset every reader of the set lays out: the in-app editor
 draws a formula only when no run of it carries properties, no `m:ctrlPr` stands in it, and it
 uses fractions, scripts, radicals and n-ary operators; a delimiter, a matrix, a limit or an
-equation array falls back to its letters run together ("Ng=p=1nrp·Nspp=1nrp"). So a
-submatrix reads M₂,ₚ = ‖(2,2) (2,3) (2,4)‖, p = 2,…,4, and the 7 × 6 matrix of the pairs is a
-small table between double lines. A display formula is centred on its own line, kept with the
+equation array falls back to its letters run together ("Ng=p=1nrp·Nspp=1nrp"). So the 7 × 6
+matrix of the pairs is a small table between double lines, and a submatrix inside a sentence,
+M₂,ₚ = ‖(2,2) (2,3) (2,4)‖, p = 2,…,4, is text: LibreOffice sets a formula at its own 12 pt
+serif whatever the text around it, and the subset has no size to give one. A display formula is centred on its own line, kept with the
 sentence that introduces it; the two the text refers back to, N_r and N_g, carry (1) and (2)
 at the right margin, in a borderless row of three cells: the editor sets a formula after a
 centre tab where the tab is, not around it. Their legend is "unde:", then a symbol, an en dash
@@ -61,10 +62,16 @@ def display_math(content):
     return f'<m:oMathPara><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr>{omath(content)}</m:oMathPara>'
 
 
+NO_BREAK = '\u00a0'
+
+
 def submatrix(index, pairs, counter):
-    """M with its row and column index, the pairs between double bars, then the range."""
-    cells = '  '.join(f'({pair})' for pair in pairs)
-    return omath(sub('M', index) + r('=') + r('‖') + r(cells) + r('‖') + r(',') + r(' ') + r(counter))
+    """M with its row and column index, the pairs between double bars, then the range; a line
+    breaks only before the range."""
+    cells = (NO_BREAK * 2).join(f'({pair})' for pair in pairs)
+    letter, values = counter.split('=')
+    return (symbol('M', index) + run(f'{NO_BREAK}={NO_BREAK}‖{cells}‖, ') + run(letter, i=True)
+            + run(f'{NO_BREAK}={NO_BREAK}{values.replace(" ", NO_BREAK)}'))
 
 
 N_R = (sub('N', 'r') + r('=') +
