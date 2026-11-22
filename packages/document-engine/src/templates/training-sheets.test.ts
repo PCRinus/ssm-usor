@@ -137,6 +137,20 @@ describe('the individual training sheets', () => {
     });
   });
 
+  it("leaves the signed SSM sheet's admission signature field three empty lines tall", () => {
+    const xml = new PizZip(
+      renderDocument(read('fisa_instruire_ssm.docx'), trainingSheetFormSample('ssm'))
+    )
+      .file('word/document.xml')!
+      .asText();
+    const field = xml.split('<w:sdt>').find((each) => each.includes('<w:alias w:val="adm_sig"/>'))!;
+    const content = field.slice(field.indexOf('<w:sdtContent>'), field.indexOf('</w:sdtContent>'));
+    const texts = [...content.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map((match) => match[1]!);
+    expect(texts).toHaveLength(3);
+    for (const text of texts) expect(text).toMatch(/^\u2002+$/);
+    expect(content.match(/<w:br\/>/g)).toHaveLength(2);
+  });
+
   it.each([0, 2, 5])('prints %i test results on the SSM sheet, blank rows up to five', (count) => {
     const { data } = trainingSheetSamples('ssm')[0]!;
     const results = Array.from({ length: count }, (_, index) =>
