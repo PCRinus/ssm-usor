@@ -1341,6 +1341,9 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   the way back); `DocumentEditorPage` builds one from the client's list of documents, and
   `ServiceContractEditor` from `GET …/service-contract`, because that list is the
   documentation set only. "Modifică" on an issued contract works as for any document.
+  The title bar, the browser tab, the print toast and the document dialogs and toasts name a
+  document by its binder number and title, "3.2 Instrucțiuni proprii …", through the contracts'
+  `numberedTitle`; a type outside the binder, such as the service contract, keeps its title.
 - `/clienti/:clientId/alte-documente`: "Alte documente", the tab before "Portal", for owners
   and specialists alike, in `src/features/client-files/` ([ADR 013](architecture/adr-013-client-files.md)).
   `ClientFilesCard` lists `GET /clients/{clientId}/files` on the shared data table, edge to edge
@@ -1774,7 +1777,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   for the logs. The two document tabs (`documents-behind.tsx`) read `GET /documents/behind`
   and keep the types of their set: a toolbar with "N documente la M clienți", the help's question
   mark and the dark "Regenerează toate", then the shared data table, one row per type:
-  "Document" (title, and under it the newest version with its kind, or "Instrucțiuni
+  "Document" (binder number and title, as everywhere in Legislație, and under it the newest version with its kind, or "Instrucțiuni
   schimbate"), "Ce s-a schimbat" (the version's note, or what moved in the instructions,
   and "Vezi modificarea <act>" to `/legislatie/modificari/<id>` for each legal
   change the version answers), "Clienți" (the count, which opens the row on a table of the
