@@ -6,14 +6,15 @@ import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // A worktree has neither `.dev.vars` nor, often, `node_modules`: both come from the main checkout.
+// In the main checkout git names its directory relative to the folder it ran in ("../.git").
+const here = dirname(fileURLToPath(import.meta.url));
 const root = dirname(
   resolve(
-    execFileSync('git', ['rev-parse', '--git-common-dir'], {
-      cwd: dirname(new URL(import.meta.url).pathname),
-      encoding: 'utf8',
-    }).trim()
+    here,
+    execFileSync('git', ['rev-parse', '--git-common-dir'], { cwd: here, encoding: 'utf8' }).trim()
   )
 );
 const require = createRequire(join(root, 'apps/app/package.json'));

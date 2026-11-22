@@ -31,9 +31,11 @@ mergePdfs(files: ArrayBuffer[]): Promise<ArrayBuffer>;
 the instruction modules it annexes ([ADR 012](architecture/adr-012-own-instructions.md)):
 one request to Gotenberg's LibreOffice route with `merge=true`, the files named `0001.docx`,
 `0002.docx` and so on, since Gotenberg merges in the alphanumeric order of the names. For
-either set's own instructions, 3.1 or 2.1, the files are the common part, then per annex its title page and the
-module's file: `[common part, title page 1, module 1, title page 2, module 2, …]`, 1 + 2n
-files, which four digits number up to 9,999. Every LibreOffice conversion sends `updateIndexes=true`, Gotenberg's
+either set's own instructions, 3.1 or 2.1, the files are the common part, then each annex as the engine's
+`renderAnnex` prints it, its title page and text in one file: `[common part, annex 1, annex 2, …]`,
+1 + n files, which four digits number up to 9,999. Each file counts its own pages, so the
+common part's "Pag. X din Y" counts the common part alone and each annex's starts again at 1
+([ADR 034](architecture/adr-034-own-instructions-as-app-text.md)). Every LibreOffice conversion sends `updateIndexes=true`, Gotenberg's
 default said out loud: a table of contents leaves the merge without page numbers, and
 LibreOffice writes them in as it lays the pages out ([the engine](document-engine.md)). It also sends `skipEmptyPages=true`: LibreOffice adds a blank page, without a header, before a section that restarts its numbers at 1 on an even page, as an appended annex does after one of an odd number of pages. The
 occupational safety set's contents reach it already written, their page numbers as `PAGEREF`
