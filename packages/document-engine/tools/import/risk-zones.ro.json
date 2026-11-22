@@ -19,7 +19,7 @@
     },
     {
       "table": {
-        "widths": [5, 17, 18, 27, 33],
+        "widths": [6, 17, 17, 27, 33],
         "left": [1, 2, 3, 4],
         "headerRows": 1,
         "keepWithNext": [0],

@@ -10,6 +10,7 @@ table drawn by the importer's own `fill_section`, so the sweep finishes both ali
 
 import json
 import sys
+import zipfile
 
 import uno
 from com.sun.star.style.ParagraphAdjust import CENTER
@@ -18,8 +19,13 @@ sys.path.insert(0, '/work/tools/import')
 from import_templates import (  # noqa: E402
     FONT, HANDOVER, MARGINS, SMALL_PRINT, TITLE_SIZE, _elements, add_branding, build_header,
     fill_section, insert_handover, prop, start_office, sweep, write_paragraph)
+from table_style import TBL_PR_ORDER, edit_properties, put, top_level_tables  # noqa: E402
 
 MARKER = '@@content@@'
+# The merge keeps a short table whole and moves it, with the sentence before it, to the next
+# page, which would leave the first page with little but the hand-over block
+# (`src/table-keep.ts`).
+FLOWING_ROWS = '<w:tblCaption w:val="FlowingRows"/>'
 
 
 def set_up_pages(document):
@@ -58,7 +64,24 @@ def build(desktop, definition):
     document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
     document.close(True)
     sweep(target)
+    let_rows_flow(target)
     print(definition['file'])
+
+
+def let_rows_flow(path):
+    with zipfile.ZipFile(path) as archive:
+        entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
+    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
+        for item, data in entries:
+            if item.filename == 'word/document.xml':
+                xml = data.decode('utf8')
+                for start, end in reversed(list(top_level_tables(xml))):
+                    if '{{#riskZones.zones}}' in xml[start:end]:
+                        table = edit_properties(xml[start:end], 'tblPr', lambda inner: put(
+                            inner, 'tblCaption', FLOWING_ROWS, TBL_PR_ORDER))
+                        xml = xml[:start] + table + xml[end:]
+                data = xml.encode('utf8')
+            archive.writestr(item, data)
 
 
 def main():

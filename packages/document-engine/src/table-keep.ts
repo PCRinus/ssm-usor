@@ -504,7 +504,12 @@ function closesItsPage(following: string) {
   return length > 0 && length <= closingLength;
 }
 
+// 9.2's builder marks its table: it may break between rows from the first page, the header
+// tied to the first row, as the first page holds little else (`build_risk_zones.py`).
+export const flowingRows = '<w:tblCaption w:val="FlowingRows"/>';
+
 function laidOut(table: string, closing: boolean, room: number) {
+  const flowing = table.includes(flowingRows);
   const rows = [...table.matchAll(rowPattern)].map((match) => match[0]);
   let header = 0;
   while (header < rows.length && isHeader(rows[header]!)) header += 1;
@@ -524,8 +529,10 @@ function laidOut(table: string, closing: boolean, room: number) {
       ? row
       : alignedRow(row, grid, alignments, mergedOnto(row, withMarks[index + 1]), signed)
   );
-  const { cantSplit, keeps } = keepTogether(marked, header, grid, room);
-  if (closing && keeps.slice(0, -1).every(Boolean)) keeps[keeps.length - 1] = true;
+  const { cantSplit, keeps } = flowing
+    ? { cantSplit: marked.map(() => true), keeps: marked.map((_, index) => index < header) }
+    : keepTogether(marked, header, grid, room);
+  if (!flowing && closing && keeps.slice(0, -1).every(Boolean)) keeps[keeps.length - 1] = true;
   let index = 0;
   return table.replace(rowPattern, () => {
     const row = withCantSplit(marked[index]!, cantSplit[index]!);

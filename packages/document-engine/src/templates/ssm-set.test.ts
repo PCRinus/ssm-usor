@@ -1055,6 +1055,19 @@ describe('risk_zones_record', () => {
     expect(rows[1]).toContain('<w:cantSplit');
   });
 
+  it('starts the table under the sentence before it, breaking between zones', () => {
+    const body = new PizZip(renderDocument(template, sample('long')))
+      .file('word/document.xml')!
+      .asText();
+    const start = body.lastIndexOf('<w:p>', body.indexOf('Prezenta evidență cuprinde'));
+    const zones = body.slice(start, body.indexOf('</w:tbl>', start));
+    const rows = zones.match(/<w:tr\b[\s\S]*?<\/w:tr>/g)!;
+    expect(zones.slice(0, zones.indexOf('<w:tbl>'))).toContain('<w:keepNext/>');
+    expect(rows.map((row) => row.includes('<w:keepNext/>'))).toEqual([true, false, false, false]);
+    expect(rows.every((row) => row.includes('<w:cantSplit/>'))).toBe(true);
+    expect(zones).not.toContain('tblCaption');
+  });
+
   it('says in one sentence that the client has none, with no table', () => {
     const merged = documentText(renderDocument(template, sample('short')));
     expect(merged).toContain(
