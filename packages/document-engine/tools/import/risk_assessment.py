@@ -80,6 +80,12 @@ N_R = (sub('N', 'r') + r('=') +
 N_G = (sub('N', 'g') + r('=') +
        frac(total(r('p=1'), r('n'), sub('r', 'p') + r('·') + sub('N', 'sp')),
             total(r('p=1'), r('n'), sub('r', 'p'))))
+# The unit's level in (2)'s notation: the workplaces' levels N_rp weighed by their ranks r_p, which
+# the text says equal those levels; the original typed it flat, "Nrg = Σ (Nrgi × Nrgi) / Σ Nrgi".
+N_RG = (sub('N', 'rg') + r('=') +
+        frac(total(r('p=1'), r('n'), sub('r', 'p') + r('·') + sub('N', 'rp')),
+             total(r('p=1'), r('n'), sub('r', 'p'))))
+UNIT_FORMULA = re.compile(r'\sNrg\s*=\s*Σ\s*\(Nrgi\s*×\s*Nrgi\)\s*/\s*Σ\s*Nrgi\.$')
 R_SET = total(r('R=1'), r('7'), sub('N', 'R'))
 LIMITS = (r('y') + r('=') + frac(r('1'), r('0')) + r('→+∞;'), r('y') + r('=') + frac(r('1'), r('+∞')) + r('→0.'))
 
@@ -294,6 +300,13 @@ def formulas(document):
     document = replace_blocks(document, at + 1, end - 1, numbered_display(N_G, 2, NG_LEGEND))
     document = set_gap(document, at, after=0, keep=True)
     document = set_gap(document, find(document, r'^E\. Stabilirea măsurilor de prevenire:'), before=ROOM)
+    at = find(document, r'^Nivelul de risc global pe unitate \(Nrg\) este media ponderată')
+    block = blocks(document)[at]
+    xml = document[block[1]:block[2]]
+    typed = UNIT_FORMULA.search(unescaped(spoken(xml)))
+    if typed:
+        document = document[:block[1]] + replaced_tail(xml, typed.group(0), '') + display(N_RG) + document[block[2]:]
+        document = set_gap(set_gap(document, at, after=0, keep=True), at + 1, keep=True)
     return document
 
 

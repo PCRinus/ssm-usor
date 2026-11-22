@@ -792,6 +792,17 @@ describe('risk_assessment', () => {
     expect(indent('a)durata de viață a echipamentelor')).toBe(720);
   });
 
+  it("sets the unit's level in chapter VI as a centred formula in (2)'s notation, not as typed text", () => {
+    const paragraphs = bodyOf('9_risk_assessment.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g)!;
+    const at = paragraphs.findIndex((xml) =>
+      documentTextOf(xml).startsWith('Nivelul de risc global pe unitate')
+    );
+    expect(documentTextOf(paragraphs[at]!)).toMatch(/nivelul său de risc global:$/);
+    expect(paragraphs[at + 1]).toContain('<m:oMathPara><m:oMathParaPr><m:jc m:val="center"/>');
+    expect(paragraphs[at + 1]).toContain('<m:t xml:space="preserve">rp</m:t>');
+    expect(text).not.toContain('Nrgi');
+  });
+
   it("prints nothing of the first client's posts, levels or premises", () => {
     expect(text).not.toMatch(
       /MANAGER MAGAZIN|Manager magazin|GELATERIE|BARMAN|VIZITATOR|5630|Calea Victoriei|Vestiarele|Stingător P6|2,40|2,55/
