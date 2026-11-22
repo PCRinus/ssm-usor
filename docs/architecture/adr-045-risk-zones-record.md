@@ -1,6 +1,6 @@
 # ADR 045: The record of high and specific risk zones, document 9.2
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-22
 - Amends [ADR 015](adr-015-risk-assessment.md) (the risk assessment becomes 9.1 and its folder holds a second document) and the numbering of the occupational safety set.
 
