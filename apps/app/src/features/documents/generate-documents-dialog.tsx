@@ -4,6 +4,7 @@ import {
   type DocumentSet,
   documentSetTypeKeys,
   isDatedDocumentType,
+  numberedTitle,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -51,6 +52,7 @@ import { todayIso } from '@/lib/dates';
 import {
   appliesAt,
   fireSafetyHeadcountRule,
+  notGeneratedTitles,
   periodHint,
   workersRepresentativesRule,
 } from './document-labels';
@@ -148,6 +150,21 @@ function GenerateDocumentsForm({
         set,
       })
     : [];
+  // A document that exists is not generated with the set, whatever it waits for.
+  const waiting = (readiness.data?.waitingDocuments ?? [])
+    .filter((each) => !generatedTypeKeys.includes(each.typeKey))
+    .map((each) => ({
+      typeKey: each.typeKey,
+      title: numberedTitle(each.typeKey, notGeneratedTitles[each.typeKey]),
+      groups: documentMissingGroups({
+        missing: each.missing,
+        clientId,
+        clash: null,
+        undecidedJobPositions: [],
+        canEditOrganization: isOwner,
+        set,
+      }),
+    }));
   // The cached answer predates what was filled in since, so it waits for the one asked above.
   const checking = readiness.isPending || (readiness.isFetching && !readiness.isFetchedAfterMount);
   const ready = !checking && readiness.data?.ready === true;
@@ -351,6 +368,29 @@ function GenerateDocumentsForm({
               )}
             </div>
           )}
+          {!checking &&
+            waiting.map((each) => (
+              <div key={each.typeKey} data-testid="generate-waiting" className="grid gap-3">
+                <p className="text-sm">
+                  <strong className="font-semibold">{each.title}</strong>{' '}
+                  <span className="text-muted-foreground">
+                    se generează după ce completezi ce lipsește mai jos. Celelalte documente nu o
+                    așteaptă.
+                  </span>
+                </p>
+                <MissingDataList
+                  groups={each.groups}
+                  testId="generate-waiting"
+                  onFollow={() =>
+                    startWayBack({
+                      userId,
+                      clientId,
+                      to: occupationalSafety ? 'documents' : 'fire-safety-documents',
+                    })
+                  }
+                />
+              </div>
+            ))}
           {errors.root?.server && (
             <Notice variant="destructive" data-testid="generate-error">
               {errors.root.server.message}

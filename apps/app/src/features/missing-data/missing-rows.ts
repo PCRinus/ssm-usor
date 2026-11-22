@@ -351,6 +351,20 @@ export const documentMissingData: Record<
     detail: 'Fiecare factor cu măsuri are nevoie de un termen și de o persoană care răspunde.',
     target: ({ clientId }) => to.positions(clientId),
   },
+  'risk_zones.decided': {
+    place: 'riskEvaluations',
+    label: 'Zonele cu risc ridicat și specific',
+    detail:
+      'Adaugă zonele clientului sau declară că nu are, pentru evidența zonelor, documentul 9.2.',
+    target: ({ clientId }) => to.positions(clientId),
+  },
+  'risk_zones.measures': {
+    place: 'riskEvaluations',
+    label: 'Măsurile zonelor cu risc ridicat și specific',
+    detail:
+      'O zonă nu mai are niciun factor de risc legat, pentru că factorii au fost șterși sau posturile arhivate. Leagă-i un factor de risc sau scrie-i măsurile.',
+    target: ({ clientId }) => to.positions(clientId),
+  },
   'documents.own_instructions': {
     place: 'documents',
     label: 'Instrucțiunile proprii, generate înaintea tematicii',

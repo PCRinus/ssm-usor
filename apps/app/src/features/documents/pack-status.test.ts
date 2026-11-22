@@ -113,7 +113,11 @@ describe('build pack', () => {
     expect(titlesOf(pack, 'signing-regulation-annex')).toEqual([
       'Anexă la Regulamentul intern privind semnarea electronică a fișelor de instruire',
     ]);
-    expect(pack.counts).toEqual({ update: 0, draft: 1, issued: 0, missing: 23 });
+    expect(titlesOf(pack, 'risk-assessment')).toEqual([
+      'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
+      'Evidența zonelor cu risc ridicat și specific',
+    ]);
+    expect(pack.counts).toEqual({ update: 0, draft: 1, issued: 0, missing: 24 });
   });
 
   it('lists every fire-safety document, a missing one by its template title', () => {
@@ -169,7 +173,7 @@ describe('build pack', () => {
       'decision_first_aid',
       'decision_imminent_danger',
     ]);
-    expect(pack.counts.missing).toBe(23);
+    expect(pack.counts.missing).toBe(24);
   });
 
   it('leaves out a section none of whose documents apply or exist', () => {

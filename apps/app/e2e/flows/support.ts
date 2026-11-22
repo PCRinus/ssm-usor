@@ -286,6 +286,8 @@ export async function completeDocumentData(
       training_first_month: 2,
       training_day_from: 2,
       training_day_to: 7,
+      // Document 9.2 waits for the client's risk zones (ADR 045).
+      risk_zones_state: 'none',
       ...clientOverrides,
     })
     .eq('id', clientId);
