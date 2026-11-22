@@ -87,7 +87,8 @@ export function DocumentsCard<Set extends DocumentSet>({
   const existing = new Set(items.map((item) => item.typeKey));
   const notApplicable = new Set<string>(documents.data?.notApplicable);
   const typeKeys: readonly BuiltInDocumentTypeKey[] = documentSetTypeKeys[set];
-  const lacking = typeKeys.filter((key) => !existing.has(key) && !notApplicable.has(key)).length;
+  const lackingTypeKeys = typeKeys.filter((key) => !existing.has(key) && !notApplicable.has(key));
+  const lacking = lackingTypeKeys.length;
   // A dated type can always be generated for another year while the client needs it.
   const dated = typeKeys.some(
     (key) => isDatedDocumentType(key) && appliesAt(key, documents.data?.currentEmployeeCount ?? 0)
@@ -324,6 +325,7 @@ export function DocumentsCard<Set extends DocumentSet>({
         generatedTypeKeys={items
           .filter((item) => item.draft || item.issued)
           .map((item) => item.typeKey)}
+        lackingTypeKeys={lackingTypeKeys}
         onClose={() => setGenerating(false)}
       />
       {confirming && (

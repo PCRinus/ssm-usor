@@ -451,6 +451,35 @@ describe('client documents', () => {
     expect(screen.queryByTestId('documents-generate')).toBeNull();
   });
 
+  it('offers no generation while the only document the client lacks waits for its risk zones', async () => {
+    mockApi({
+      items: documentTypeKeys
+        .filter(
+          (typeKey) =>
+            typeKey !== 'decision_workers_representative' && typeKey !== 'risk_zones_record'
+        )
+        .map((typeKey) => ({ ...report, id: crypto.randomUUID(), typeKey })),
+      notApplicable: ['decision_workers_representative'],
+      readiness: {
+        ready: true,
+        missing: [],
+        waitingDocuments: [{ typeKey: 'risk_zones_record', missing: ['risk_zones.decided'] }],
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    const waiting = await screen.findByTestId('generate-waiting');
+    expect(waiting.textContent).toContain(
+      '9.2 Evidența zonelor cu risc ridicat și specific se generează după ce completezi ce lipsește mai jos.'
+    );
+    expect(waiting.textContent).not.toContain('Celelalte documente');
+    expect(screen.queryByTestId('generate-submit')).toBeNull();
+    expect(screen.queryByTestId('generate-issue-date')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Renunță' })).toBeNull();
+  });
+
   const sectionNumbers = async () =>
     (await screen.findAllByTestId('pack-folder')).map(
       (entry) => entry.firstElementChild?.textContent
