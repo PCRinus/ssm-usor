@@ -170,6 +170,7 @@ export function ClientArchiveDialog({
             </Button>
             <Button
               data-testid="client-archive-confirm"
+              variant={change.action === 'archive' ? 'destructive-soft' : 'default'}
               disabled={busy}
               onClick={() => void confirm(change)}
             >
