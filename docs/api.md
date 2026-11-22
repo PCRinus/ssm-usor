@@ -2345,14 +2345,18 @@ for that year. The database view `documents_behind` decides it, under the caller
 
 `GET /documents/behind` lists the organization's documents behind by type, in the pack's
 order: the template's `title`, its `set`, its `newestVersion` (`version`, `kind`, `note`),
-`legalChanges`, the legal changes that version answers (`id`, `actName`, from
-`template_version_legal_changes`), the `runningJobId` of a regeneration of that type still under
+`pendingVersions`, every version newer than the oldest `version` among its clients, newest
+first, each with the same three fields and `legalChanges`, the legal changes it answers (`id`,
+`actName`, from `template_version_legal_changes`), the `runningJobId` of a regeneration of that type still under
 way, or null, and the `clients` behind, by name, each with its `documentId`, the `version` its
 newest revision came from, that revision's `status` (`draft` or `issued`) and `issueDate`, the
 date it carries, `editedDraft` when it is a draft edited by hand, `behindTemplate`, and
 `instructionChanges`: per module, `module_version` with `newestVersionAt`, the date of the
 library's newest version, `module_added` or `module_removed`, with the module's `title`; empty
-for a document behind its template alone. A type nobody is behind on is left out. The view is read a page at a time, as the regenerations read it too, so the list, the jobs and the counts agree however many documents are behind. The themes
+for a document behind its template alone. A type nobody is behind on is left out. The newest
+version can be a `layout` one while an older pending one is `legal` or `correction`, so the app
+names a client's reason from the versions newer than its own: the newest `legal`, else the
+newest `correction`. The view is read a page at a time, as the regenerations read it too, so the list, the jobs and the counts agree however many documents are behind. The themes
 cite the newest own instructions revision, so regenerating 4.1 while 3.1 is itself behind
 leaves 4.1 behind: the app says to regenerate the own instructions first.
 
