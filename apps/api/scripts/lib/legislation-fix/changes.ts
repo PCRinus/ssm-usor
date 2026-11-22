@@ -13,6 +13,7 @@ export type FixDatabase = SupabaseClient<Database>;
 export const passageSchema = z.object({
   manifest: z.string(),
   template_file: z.string(),
+  type_key: z.string().nullable(),
   paragraph: z.number(),
   citation_form: z.enum(['quote', 'reference']),
   locator: z.string().nullable(),
@@ -75,7 +76,7 @@ export async function readOpenChanges(db: FixDatabase): Promise<OpenChange[]> {
   const { data, error } = await db
     .from('legal_changes')
     .select(
-      'id, act_id, consolidated_on, compared_with, amending_act, outcome, amending_acts, amended_units, review, act:legal_acts(id, name, portal_id), passages:legal_change_passages(manifest, template_file, paragraph, citation_form, locator, unit_label, status, old_text, new_text)'
+      'id, act_id, consolidated_on, compared_with, amending_act, outcome, amending_acts, amended_units, review, act:legal_acts(id, name, portal_id), passages:legal_change_passages(manifest, template_file, type_key, paragraph, citation_form, locator, unit_label, status, old_text, new_text)'
     )
     .eq('resolution', 'open')
     .in('outcome', ['quote_differs', 'needs_review'])

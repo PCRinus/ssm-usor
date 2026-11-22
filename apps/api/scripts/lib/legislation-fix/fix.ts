@@ -94,11 +94,16 @@ function citedPassages(change: OpenChange, citations: Citation[]): CitedPassages
   const groups = new Map<string, CitedPassages>();
   for (const passage of change.passages) {
     if (passage.citation_form !== 'quote') continue;
-    const key = `${passage.template_file}\u0000${passage.paragraph}`;
+    const key = `${passage.type_key ?? passage.template_file}\u0000${passage.paragraph}`;
     if (!groups.has(key)) {
+      // A template renamed after the passage was stored keeps its type key, not its file name.
       const quotes = citations.filter(
         (each) =>
-          each.form === 'quote' && each.act === change.act.id && each.file === passage.template_file
+          each.form === 'quote' &&
+          each.act === change.act.id &&
+          (passage.type_key
+            ? each.typeKey === passage.type_key
+            : each.file === passage.template_file)
       );
       const citation =
         quotes.find((each) => each.paragraph === passage.paragraph) ??

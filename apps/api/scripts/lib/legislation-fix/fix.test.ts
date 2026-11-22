@@ -28,6 +28,7 @@ const roads: OpenChange = {
     {
       manifest: 'ssm',
       template_file: '2.1_general_training_material.docx',
+      type_key: 'general_training_material',
       paragraph: 2048,
       citation_form: 'quote',
       locator: 'Art. 36 alin. (1) – (3)',
@@ -250,6 +251,18 @@ describe('a change whose quote differs', () => {
     expect(discord.send.mock.calls[0]![0].content).toContain(
       'Issue: <https://github.com/PCRinus/ssm-usor/issues/951>'
     );
+  });
+
+  it('finds the quote of a template renamed after the passage was stored', async () => {
+    const renamed = {
+      ...roads,
+      passages: [{ ...roads.passages[0]!, template_file: '2.2_general_training_material.docx' }],
+    };
+    const { deps, tool } = setup({ changes: [renamed] });
+    await runLegislationFix(deps, options);
+    expect(tool.mock.calls[0]![0]).toMatchObject({
+      citation: { file: '2.1_general_training_material.docx' },
+    });
   });
 
   it('opens an issue when the citation index no longer lists the quote', async () => {
