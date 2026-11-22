@@ -12,7 +12,7 @@ import type {
   RegenerationJobResponseJob,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
-import { instructionChangeText } from '@/features/documents/behind-labels';
+import { instructionChangeText, templateReason } from '@/features/documents/behind-labels';
 import { commonFailure } from '@/lib/api-errors';
 
 export type BehindType = DocumentsBehindResponseItemsItem;
@@ -38,6 +38,13 @@ export const regenerable = (type: BehindType) =>
 
 export const behindTemplate = (type: BehindType) =>
   type.clients.some((client) => client.behindTemplate);
+
+export function typeTemplateReason(type: BehindType) {
+  const versions = type.clients
+    .filter((client) => client.behindTemplate)
+    .map((client) => client.version);
+  return versions.length === 0 ? null : templateReason(type.pendingVersions, Math.min(...versions));
+}
 
 export const behindInstructions = (type: BehindType) =>
   type.clients.some((client) => client.instructionChanges.length > 0);

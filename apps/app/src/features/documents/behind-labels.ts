@@ -2,15 +2,57 @@ import type {
   DocumentsBehindResponseItemsItem,
   DocumentsBehindResponseItemsItemClientsItem,
   DocumentsBehindResponseItemsItemClientsItemInstructionChangesItem,
+  DocumentsBehindResponseItemsItemPendingVersionsItem,
 } from '@/api/generated/api';
 import { formatRoDate } from '@/lib/dates';
 
 type BehindClient = DocumentsBehindResponseItemsItemClientsItem;
 type InstructionChange = DocumentsBehindResponseItemsItemClientsItemInstructionChangesItem;
+type PendingVersion = DocumentsBehindResponseItemsItemPendingVersionsItem;
 
 const day = (timestamp: string) => formatRoDate(timestamp.slice(0, 10));
 
 export const behindInstructions = (client: BehindClient) => client.instructionChanges.length > 0;
+
+const kindOrder = ['legal', 'correction', 'layout'] as const;
+
+/**
+ * The version that says why a document made from version `since` is behind: the newest legal one
+ * after it, else the newest correction, else the newest layout one. The template's newest version
+ * can be a layout one that asks for nothing while an older pending correction does.
+ */
+export function templateReason(versions: readonly PendingVersion[], since: number) {
+  const pending = versions.filter((version) => version.version > since);
+  for (const kind of kindOrder) {
+    const newest = pending
+      .filter((version) => version.kind === kind)
+      .reduce<PendingVersion | null>(
+        (found, version) => (found && found.version > version.version ? found : version),
+        null
+      );
+    if (newest) {
+      const others = pending
+        .filter((other) => other !== newest)
+        .sort((a, b) => a.version - b.version);
+      return { reason: newest, others };
+    }
+  }
+  return null;
+}
+
+export function otherVersionsLine(
+  others: readonly PendingVersion[],
+  kindLabels: Record<PendingVersion['kind'], string>
+) {
+  const named = others.map(
+    (version) => `${version.version} (${kindLabels[version.kind].toLowerCase()})`
+  );
+  if (named.length === 0) return null;
+  const last = named.pop()!;
+  return named.length === 0
+    ? `Regenerarea aduce și versiunea ${last}.`
+    : `Regenerarea aduce și versiunile ${named.join(', ')} și ${last}.`;
+}
 
 export function instructionChangeText(change: InstructionChange) {
   const name = `Instrucțiunea „${change.title}”`;

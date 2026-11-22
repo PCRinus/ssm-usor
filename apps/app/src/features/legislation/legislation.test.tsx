@@ -311,7 +311,14 @@ const firstAidBehind = {
   title: 'Decizia privind responsabilii cu primul ajutor',
   set: 'occupational_safety',
   newestVersion: { version: 4, kind: 'correction', note: 'Diacriticele din antet sunt corectate.' },
-  legalChanges: [] as { id: string; actName: string }[],
+  pendingVersions: [
+    {
+      version: 4,
+      kind: 'correction',
+      note: 'Diacriticele din antet sunt corectate.',
+      legalChanges: [] as { id: string; actName: string }[],
+    },
+  ],
   runningJobId: null as string | null,
   clients: [
     {
@@ -344,7 +351,14 @@ const extinguisherBehind = {
   title: 'Registru de evidență a controlului stingătoarelor de incendiu',
   set: 'fire_safety',
   newestVersion: { version: 2, kind: 'legal', note: 'Rubricile urmează OMAI 163/2007.' },
-  legalChanges: [{ id: lawChangeId, actName: 'OMAI 163/2007' }],
+  pendingVersions: [
+    {
+      version: 2,
+      kind: 'legal',
+      note: 'Rubricile urmează OMAI 163/2007.',
+      legalChanges: [{ id: lawChangeId, actName: 'OMAI 163/2007' }],
+    },
+  ],
   runningJobId: null as string | null,
   clients: [
     {
@@ -366,7 +380,14 @@ const materialBehind = {
   title: 'Material de instruire introductiv-generală',
   set: 'occupational_safety',
   newestVersion: { version: 5, kind: 'legal', note: updatedMaterial.note },
-  legalChanges: [{ id: roadChangeId, actName: 'O.U.G. 195/2002' }],
+  pendingVersions: [
+    {
+      version: 5,
+      kind: 'legal',
+      note: updatedMaterial.note,
+      legalChanges: [{ id: roadChangeId, actName: 'O.U.G. 195/2002' }],
+    },
+  ],
   runningJobId: null as string | null,
   clients: [
     { ...firstAidBehind.clients[0]!, documentId: '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d' },
@@ -865,6 +886,42 @@ describe('the Legislație page', () => {
     expect(within(type!).getByTestId('behind-clients-toggle').textContent).toBe('1 client');
   });
 
+  it('names the legal change a document misses, not the newer correction or layout versions', async () => {
+    mockLegislationApi({
+      behind: [
+        {
+          ...extinguisherBehind,
+          newestVersion: { version: 4, kind: 'layout', note: 'Rândurile tabelului stau împreună.' },
+          pendingVersions: [
+            {
+              version: 4,
+              kind: 'layout',
+              note: 'Rândurile tabelului stau împreună.',
+              legalChanges: [],
+            },
+            { version: 3, kind: 'correction', note: 'Antetul are diacritice.', legalChanges: [] },
+            ...extinguisherBehind.pendingVersions,
+          ],
+        },
+      ],
+    });
+    mount('/legislatie/documente-su');
+
+    const [type] = await screen.findAllByTestId('behind-type');
+    expect(within(type!).getByTestId('behind-version').textContent).toBe(
+      'Versiunea 2 · Modificare legislativă'
+    );
+    expect(within(type!).getByTestId('behind-note').textContent).toBe(
+      'Rubricile urmează OMAI 163/2007.'
+    );
+    expect(within(type!).getByTestId('behind-legal-change').getAttribute('href')).toBe(
+      `/legislatie/modificari/${lawChangeId}`
+    );
+    expect(within(type!).getByTestId('behind-other-versions').textContent).toBe(
+      'Regenerarea aduce și versiunile 3 (corectură) și 4 (aranjare în pagină).'
+    );
+  });
+
   it('opens the clients of a document, saying what regenerating does to each', async () => {
     mockLegislationApi({ behind: [firstAidBehind] });
     mount();
@@ -918,7 +975,7 @@ describe('the Legislație page', () => {
       title: 'Tematica și programul de instruire',
       set: 'occupational_safety',
       newestVersion: { version: 2, kind: 'layout', note: null },
-      legalChanges: [],
+      pendingVersions: [],
       runningJobId: null,
       clients: [
         {
@@ -1590,7 +1647,12 @@ describe('the Legislație page', () => {
   it('starts one job per document type behind a change, across both sets', async () => {
     const fireBehind = {
       ...extinguisherBehind,
-      legalChanges: [{ id: roadChangeId, actName: 'O.U.G. 195/2002' }],
+      pendingVersions: [
+        {
+          ...extinguisherBehind.pendingVersions[0]!,
+          legalChanges: [{ id: roadChangeId, actName: 'O.U.G. 195/2002' }],
+        },
+      ],
     };
     mockLegislationApi({
       behind: [materialBehind, fireBehind],
@@ -1638,7 +1700,12 @@ describe('the Legislație page', () => {
   const bothSetsDetail = () => {
     const fireBehind = {
       ...extinguisherBehind,
-      legalChanges: [{ id: roadChangeId, actName: 'O.U.G. 195/2002' }],
+      pendingVersions: [
+        {
+          ...extinguisherBehind.pendingVersions[0]!,
+          legalChanges: [{ id: roadChangeId, actName: 'O.U.G. 195/2002' }],
+        },
+      ],
     };
     return {
       behind: [materialBehind, fireBehind],

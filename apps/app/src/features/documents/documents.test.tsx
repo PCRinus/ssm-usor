@@ -672,6 +672,7 @@ describe('client documents', () => {
           typeKey: 'decision_first_aid',
           title: firstAid.title,
           newestVersion: { version: 4, kind: 'legal', note: null },
+          pendingVersions: [{ version: 4, kind: 'legal', note: null, legalChanges: [] }],
           runningJobId: null,
           clients: [
             {
@@ -788,12 +789,21 @@ describe('client documents', () => {
     expect(requests('/documents/generate', 'POST')).toHaveLength(0);
   });
 
-  it('marks a document generated from an older template version than the newest', async () => {
+  it('marks a document behind its template with the correction it misses, not a newer layout version', async () => {
     const newestVersion = {
-      version: 4,
-      kind: 'correction',
-      note: 'Diacriticele din antet sunt corectate.',
+      version: 5,
+      kind: 'layout',
+      note: 'Tabelul nu mai lasă un rând singur pe pagină.',
     };
+    const pendingVersions = [
+      { ...newestVersion, legalChanges: [] },
+      {
+        version: 4,
+        kind: 'correction',
+        note: 'Diacriticele din antet sunt corectate.',
+        legalChanges: [],
+      },
+    ];
     mockApi({
       items: [firstAid, report],
       behind: [
@@ -801,6 +811,7 @@ describe('client documents', () => {
           typeKey: 'decision_first_aid',
           title: firstAid.title,
           newestVersion,
+          pendingVersions,
           runningJobId: null,
           clients: [
             {
@@ -818,6 +829,7 @@ describe('client documents', () => {
           typeKey: 'control_report',
           title: report.title,
           newestVersion,
+          pendingVersions,
           runningJobId: null,
           clients: [
             {
@@ -945,6 +957,7 @@ describe('client documents', () => {
           typeKey: 'own_instructions',
           title: 'Instrucțiuni proprii de securitate și sănătate în muncă',
           newestVersion: { version: 2, kind: 'layout', note: null },
+          pendingVersions: [],
           runningJobId: null,
           clients: [behindClient(instructionsId, [newVersion])],
         },
@@ -952,6 +965,7 @@ describe('client documents', () => {
           typeKey: 'training_themes',
           title: 'Tematica și programul de instruire',
           newestVersion: { version: 2, kind: 'layout', note: null },
+          pendingVersions: [],
           runningJobId: null,
           clients: [
             behindClient(themesId, [

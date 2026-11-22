@@ -24,7 +24,7 @@ const type = (typeKey: string, clients: BehindType['clients']): BehindType => ({
   title: typeKey,
   set: 'occupational_safety',
   newestVersion: { version: 2, kind: 'legal', note: null },
-  legalChanges: [],
+  pendingVersions: [],
   runningJobId: null,
   clients,
 });
