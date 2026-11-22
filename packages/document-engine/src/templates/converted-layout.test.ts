@@ -39,12 +39,12 @@ async function linesOf(pdf: Uint8Array) {
 
 const covers = [
   '1.0_cover_decisions.docx',
-  '2.1_cover_general_training_material.docx',
-  '3.1_cover_own_instructions.docx',
-  '4.1_cover_training_themes.docx',
+  '2.0_cover_general_training_material.docx',
+  '3.0_cover_own_instructions.docx',
+  '4.0_cover_training_themes.docx',
   '5.0_cover_tests.docx',
-  '7.1_cover_event_registers.docx',
-  '11.1_cover_employer_briefing.docx',
+  '7.0_cover_event_registers.docx',
+  '11.0_cover_employer_briefing.docx',
 ];
 const longName =
   'S.C. ÎNTREPRINDEREA DE CONSTRUCȚII, INSTALAȚII TERMICE, SANITARE ȘI ELECTRICE PENTRU INDUSTRIE ȘI AGRICULTURĂ BANAT-CRIȘANA S.R.L.';
@@ -94,7 +94,7 @@ describe.skipIf(!converter)('the converted pages of the occupational safety set'
 
   it.each([
     ['1.1_decision_training.docx', [1, 2, 3]],
-    ['11_employer_briefing.docx', [1, 2, 3]],
+    ['11.1_employer_briefing.docx', [1, 2, 3]],
     ['12_control_regulation.docx', [1, 2]],
   ])(
     '%s steps each list tier 6.35 mm in from the one before, numbers, letters and dashes alike',

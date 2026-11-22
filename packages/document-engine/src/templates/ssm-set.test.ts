@@ -360,7 +360,7 @@ describe('decision_workers_representative', () => {
 });
 
 describe('employer_briefing', () => {
-  const template = read('11_employer_briefing.docx');
+  const template = read('11.1_employer_briefing.docx');
 
   it("prints the client's periodic training duration from the field decision 1.1 prints", () => {
     expect(templatePlaceholders(template)).toContain('training.periodicDuration');
@@ -380,7 +380,7 @@ describe('employer_briefing', () => {
 
   // A reference list reads better as a list than as a grid of cells.
   it('lists the acts, its own documents and the other materials under headings, not in tables', () => {
-    const body = bodyOf('11_employer_briefing.docx');
+    const body = bodyOf('11.1_employer_briefing.docx');
     const blocks = body.match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
     const texts = blocks.map(documentTextOf);
     const part = blocks.slice(
@@ -408,7 +408,7 @@ describe('employer_briefing', () => {
   });
 
   it('hands its documents over without an article number, the contents on a page of their own, Art. 1 opening chapter I', () => {
-    const body = bodyOf('11_employer_briefing.docx');
+    const body = bodyOf('11.1_employer_briefing.docx');
     const paragraphs = body.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
     const contents = body.indexOf('<w:docPartGallery w:val="Table of Contents"/>');
     const before = paragraphs.filter((paragraph) => body.indexOf(paragraph) < contents);

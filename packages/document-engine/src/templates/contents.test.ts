@@ -19,7 +19,7 @@ describe.each([
   '2.2_general_training_material.docx',
   '3.2_own_instructions.docx',
   '9_risk_assessment.docx',
-  '11_employer_briefing.docx',
+  '11.1_employer_briefing.docx',
 ])('the contents of %s', (name) => {
   const styles = partOf(read(name), 'word/styles.xml');
   const sample = setSamples.find((each) => each.label === 'long')!.data;

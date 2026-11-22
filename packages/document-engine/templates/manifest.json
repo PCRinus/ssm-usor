@@ -73,12 +73,12 @@
       }
     },
     {
-      "number": "2.1",
+      "number": "2.0",
       "original": "2.1._Coperta_MISSMIG",
       "stage": 1,
       "typeKey": "cover_general_training_material",
       "title": "Copertă – Material de instruire introductiv-generală",
-      "file": "2.1_cover_general_training_material.docx",
+      "file": "2.0_cover_general_training_material.docx",
       "change": {
         "kind": "layout",
         "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; „introductiv-generală” nu se mai desparte."
@@ -97,12 +97,12 @@
       }
     },
     {
-      "number": "3.1",
+      "number": "3.0",
       "original": "3.1._Coperta_IPSSM",
       "stage": 2,
       "typeKey": "cover_own_instructions",
       "title": "Copertă – Instrucțiuni proprii",
-      "file": "3.1_cover_own_instructions.docx",
+      "file": "3.0_cover_own_instructions.docx",
       "change": {
         "kind": "correction",
         "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; rândul dinaintea clientului spune doar „pentru”."
@@ -121,12 +121,12 @@
       }
     },
     {
-      "number": "4.1",
+      "number": "4.0",
       "original": "4.1._Coperta_Tematica",
       "stage": 2,
       "typeKey": "cover_training_themes",
       "title": "Copertă – Tematica de instruire",
-      "file": "4.1_cover_training_themes.docx",
+      "file": "4.0_cover_training_themes.docx",
       "change": {
         "kind": "layout",
         "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile."
@@ -181,12 +181,12 @@
       }
     },
     {
-      "number": "7.1",
+      "number": "7.0",
       "original": "7.1_Coperta_Registre",
       "stage": 1,
       "typeKey": "cover_event_registers",
       "title": "Copertă – Registrele de evidență a evenimentelor",
-      "file": "7.1_cover_event_registers.docx",
+      "file": "7.0_cover_event_registers.docx",
       "change": {
         "kind": "layout",
         "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile; lista are rândurile aliniate."
@@ -241,24 +241,24 @@
       }
     },
     {
-      "number": "11.1",
+      "number": "11.0",
       "original": "11.1._Coperta_Informare angajator",
       "stage": 1,
       "typeKey": "cover_employer_briefing",
       "title": "Copertă – Material de informare a angajatorului",
-      "file": "11.1_cover_employer_briefing.docx",
+      "file": "11.0_cover_employer_briefing.docx",
       "change": {
         "kind": "layout",
         "note": "Tabelele stau pe marginile textului. Fiecare semnatar are 25 mm pentru semnătură și ștampilă, la aceeași înălțime pe ambele coloane. Titlul și predarea-primirea stau la aceeași înălțime pe toate coperțile."
       }
     },
     {
-      "number": "11",
+      "number": "11.1",
       "original": "11._Informare_angajator",
       "stage": 1,
       "typeKey": "employer_briefing",
       "title": "Material de informare a angajatorului",
-      "file": "11_employer_briefing.docx",
+      "file": "11.1_employer_briefing.docx",
       "change": {
         "kind": "correction",
         "note": "Tabelele și caseta din antet stau pe marginile textului și au același aspect în tot setul: linii negre, cap de tabel gri-verde repetat pe fiecare pagină; cele scurte nu se mai rup între pagini. 25 mm pentru semnătură și ștampilă. „…”, „și/sau”; testul la angajare, numit nou. Acte și materiale în liste; panouri standard explicate. Articole neîngroșate, sursa pe rând aparte peste alineate; subliste în trepte. Predarea documentelor nu mai e articol; cuprinsul și capitolele încep pe pagină nouă."

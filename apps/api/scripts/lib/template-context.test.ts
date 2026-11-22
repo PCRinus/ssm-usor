@@ -3,9 +3,11 @@ import { readFileSync } from 'node:fs';
 import {
   documentSetTypeKeys,
   documentTypeKeys,
+  fireSafetyDocumentNumbers,
   fireSafetyDocumentTypeKeys,
   fireSafetyMissingDocumentData,
   isDatedDocumentType,
+  occupationalSafetyDocumentNumbers,
   trainingSheetTypeKeys,
 } from '@ssm-usor/contracts';
 import {
@@ -85,6 +87,12 @@ describe('the per-employee templates', () => {
 describe('the built-in templates', () => {
   it('are the document types of the contracts, in the same order', () => {
     expect(manifest.templates.map((entry) => entry.typeKey)).toEqual([...documentTypeKeys]);
+  });
+
+  it('are numbered as the contracts number them', () => {
+    expect(
+      Object.fromEntries(manifest.templates.map((entry) => [entry.typeKey, entry.number]))
+    ).toEqual(occupationalSafetyDocumentNumbers);
   });
 
   const reversed: typeof facts = {
@@ -896,6 +904,12 @@ describe('the fire-safety templates', () => {
     expect(fireManifest.templates.map((entry) => entry.typeKey)).toEqual([
       ...fireSafetyDocumentTypeKeys,
     ]);
+  });
+
+  it('are numbered as the contracts number them', () => {
+    expect(
+      Object.fromEntries(fireManifest.templates.map((entry) => [entry.typeKey, entry.number]))
+    ).toEqual(fireSafetyDocumentNumbers);
   });
 
   // Nothing optional: no authorization, no smoking place, no contractor, no specific measures, no

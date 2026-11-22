@@ -435,7 +435,7 @@ def plain_articles(document, styles_xml):
 # The long documents quote the law article by article: an alineat's or a letter's label typed
 # at the head of a paragraph is bold, as the articles' are, and an article's body regular even
 # where a run of the original says bold.
-ARTICLE_DOCUMENTS = ('2.2_general_training_material.docx', '3.2_own_instructions.docx', '11_employer_briefing.docx')
+ARTICLE_DOCUMENTS = ('2.2_general_training_material.docx', '3.2_own_instructions.docx', '11.1_employer_briefing.docx')
 LEADING_LABEL = re.compile(r'\s*(\(\d+\)|[a-z]\))(?=\s)')
 
 
