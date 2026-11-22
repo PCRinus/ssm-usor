@@ -12,7 +12,7 @@ the original numbered as an article (11's „Odată cu prezentul material inform
 import re
 
 from table_style import P_PR_ORDER, edit_properties, put
-from typography import body_blocks
+from typography import CHAPTER, SUBCHAPTER, body_blocks, set_spacing
 
 LABEL = re.compile(r'^((?:SUB)?CAPITOLUL [IVXLC]+\.(?:(?:[IVXLC]+|\{\{roman\}\})\.)?|Anexa Nr\. \d+\.)')
 TAG = re.compile(r'\{\{[^}]*\}\}')
@@ -106,8 +106,11 @@ UNDOTTED_SUBCHAPTER = re.compile(r'(>(?i:subcapitolul) [IVXLC]+\.[IVXLC]+)(?= )'
 
 def typed_heading(paragraph):
     """A chapter or subchapter typed as text ("SUBCAPITOLUL I.I PLANUL") in sentence case, its
-    label closed by a dot as the contents' labels are."""
+    label closed by a dot as the contents' labels are, with the headings' room around it."""
+    scale = CHAPTER if TYPED_CHAPTER.match(text_of(paragraph)) else SUBCHAPTER
+    paragraph = set_spacing(paragraph, scale['before'], scale['after'])
     return in_sentence_case(UNDOTTED_SUBCHAPTER.sub(r'\1.', paragraph, count=1))
+
 HEADING_1 = '<w:pStyle w:val="Heading1"/>'
 
 

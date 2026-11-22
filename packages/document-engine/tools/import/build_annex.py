@@ -44,7 +44,7 @@ STYLES = {
 LABEL_TEXT = 800
 ARTICLE_TAB = 1905
 HOUSE_STYLES = {
-    'AnnexHeading': {'bold': True, 'above': 9, 'below': 3, 'keep': True},
+    'AnnexHeading': {'bold': True, 'above': 12, 'below': 6, 'keep': True},
     'AnnexArticle': {'above': 6, 'tab': ARTICLE_TAB},
     'AnnexParagraph': {'above': 2},
     'AnnexItem1': {'above': 2, 'left': HANG + LABEL_TEXT, 'hang': LABEL_TEXT},

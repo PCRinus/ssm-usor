@@ -20,7 +20,7 @@ is a dash list, each member's name bold, the client named once in the line above
 import re
 
 from table_style import P_PR_ORDER, R_PR_ORDER, RUN, edit_properties, element, put
-from typography import body_blocks, bold, edit_run, edit_text_range, escaped, spoken, text_of, unescaped
+from typography import body_blocks, bold, edit_run, edit_text_range, escaped, set_spacing, spoken, text_of, unescaped
 from typography import lists as lists_spacing
 
 NAME = '9_risk_assessment.docx'
@@ -512,7 +512,13 @@ def lettered_instruments(numbering, document):
     return numbering[:definition.start()] + relettered + numbering[definition.end():]
 
 
+POST_PARTS = r'^I\. (?i:definirea locului de muncă)'
+
+
 def posts(document):
+    # The first part of a post's evaluation, right under the post's subchapter, takes only the
+    # subchapter's room above it.
+    document = edit_paragraphs(document, POST_PARTS, lambda xml, *_: set_spacing(xml, before=0), count=1)
     for field in ('Executant', 'Sarcina de muncă', 'Mijloacele de producție', 'Mediul de muncă'):
         document = edit_paragraphs(document, rf'^{field}: \{{\{{workSystem\.', lambda xml, *_: indented(
             xml, left=0, hanging=0, before=0, after=ROOM if field == 'Mediul de muncă' else GAP), count=1)

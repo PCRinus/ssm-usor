@@ -5,7 +5,8 @@ their articles in a copy of a bold 16 pt heading style, so every paragraph that 
 bold off printed bold. A "(Preluare din …)" note is italic. "Art. N." stands on the margin with
 a tab to its text, and over numbered paragraphs or a list it and its note are a line of their
 own (`heading_line_of_its_own`). Headings follow one scale, a chapter
-12 pt and a subchapter 11 pt, both centred, and only real headings reach the outline. A
+12 pt and a subchapter 11 pt, both centred, each nearer its own text than what comes before it
+(`heading_scale`), and only real headings reach the outline. A
 sub-list hangs one tier deeper than the item that introduces it, a list's number or letter is
 bold and its bullet an en dash; a list sits 2 pt under its lead-in, its items 2 pt apart, and
 the room comes after its last item. Dash lines a table cell joined with line breaks become
@@ -24,8 +25,10 @@ BOLD_ON = re.compile(rf'<w:b{ON}/>')
 BOLD = re.compile(r'<w:b(?: w:val="(\w+)")?/>')
 
 BODY = 20  # half-points
-CHAPTER = {'size': 24, 'before': 360, 'after': 120}
-SUBCHAPTER = {'size': 22, 'before': 240, 'after': 80}
+# Mircea (2026-11-22), after a textbook's sections at a 10 pt body: a chapter starts a page, so a
+# breath under the header box is all it needs above.
+CHAPTER = {'size': 24, 'before': 120, 'after': 200}
+SUBCHAPTER = {'size': 22, 'before': 240, 'after': 120}
 HEADINGS = {'Heading1': CHAPTER, 'Heading2': SUBCHAPTER}
 
 ITEM_GAP = 40  # twips: between list items, and under the line that introduces a list
@@ -490,19 +493,56 @@ def article_labels(document, styles_xml):
 
 
 def heading_scale(document):
-    def paragraph(match):
-        xml = match.group(0)
-        style = re.search(r'<w:pStyle w:val="(Heading[12])"/>', own_properties(xml))
-        if not style:
-            return xml
-        scale = HEADINGS[style.group(1)]
-        xml = set_spacing(xml, scale['before'], scale['after'])
-        xml = edit_properties(xml, 'pPr', lambda inner: put(without(inner, 'ind'), 'jc', '<w:jc w:val="center"/>', P_PR_ORDER))
-        xml = edit_properties(xml, 'pPr', lambda inner: without(inner, 'tabs'))
-        change = lambda inner: sized(scale['size'])(bold(True)(inner))  # noqa: E731
-        xml = edit_properties(xml, 'pPr', lambda inner: put(inner, 'rPr', f'<w:rPr>{change(rpr_inner(inner))}</w:rPr>', P_PR_ORDER))
-        return RUN.sub(lambda run: edit_run(run.group(0), change), xml)
-    return re.sub(r'<w:p\b[^>]*>(?:(?!</w:p>).)*</w:p>', paragraph, document, flags=re.S)
+    """Every heading on the scale. A subchapter right under its chapter is only the chapter's
+    room below it, not the larger of the two. An empty paragraph beside a heading goes, as it
+    would add its line and both rooms."""
+    document = without_spacers_by_headings(document)
+    edits, previous = [], None
+    for kind, start, end in body_blocks(document):
+        xml = document[start:end]
+        if kind == 'p' and is_loop_tags(xml):
+            continue
+        style = re.search(r'<w:pStyle w:val="(Heading[12])"/>', own_properties(xml)) if kind == 'p' else None
+        if style:
+            scale = HEADINGS[style.group(1)]
+            under_chapter = style.group(1) == 'Heading2' and previous == 'Heading1'
+            changed = scaled_heading(xml, scale, 0 if under_chapter else scale['before'])
+            edits.append((start, end, changed))
+        previous = style.group(1) if style else kind
+    for start, end, changed in reversed(edits):
+        document = document[:start] + changed + document[end:]
+    return document
+
+
+def scaled_heading(xml, scale, before):
+    xml = set_spacing(xml, before, scale['after'])
+    xml = edit_properties(xml, 'pPr', lambda inner: put(inner, 'spacing', re.sub(
+        r'\s*w:line(?:Rule)?="[^"]*"', '', element(inner, 'spacing')), P_PR_ORDER))
+    xml = edit_properties(xml, 'pPr', lambda inner: put(without(inner, 'ind'), 'jc', '<w:jc w:val="center"/>', P_PR_ORDER))
+    xml = edit_properties(xml, 'pPr', lambda inner: without(inner, 'tabs'))
+    change = lambda inner: sized(scale['size'])(bold(True)(inner))  # noqa: E731
+    xml = edit_properties(xml, 'pPr', lambda inner: put(inner, 'rPr', f'<w:rPr>{change(rpr_inner(inner))}</w:rPr>', P_PR_ORDER))
+    return RUN.sub(lambda run: edit_run(run.group(0), change), xml)
+
+
+SPACER_KEPT = re.compile(r'<w:(?:t|drawing|pict|object|sectPr|bookmarkStart|fldChar|instrText|br|numPr)\b|<m:oMath')
+
+
+def without_spacers_by_headings(document):
+    blocks = list(body_blocks(document))
+    empty = [kind == 'p' and not SPACER_KEPT.search(document[start:end]) for kind, start, end in blocks]
+    dropped = set()
+    for index, (kind, start, end) in enumerate(blocks):
+        if kind != 'p' or not re.search(r'<w:pStyle w:val="Heading[12]"/>', own_properties(document[start:end])):
+            continue
+        for step in (-1, 1):
+            beside = index + step
+            while 0 <= beside < len(blocks) and empty[beside]:
+                dropped.add(beside)
+                beside += step
+    for index in sorted(dropped, reverse=True):
+        document = document[:blocks[index][1]] + document[blocks[index][2]:]
+    return document
 
 
 def rpr_inner(inner):

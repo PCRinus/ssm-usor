@@ -448,6 +448,51 @@ describe('Word 2013 layout of the occupational safety set', () => {
     }
   );
 
+  const tablesAsLines = (xml: string) => {
+    let depth = 0;
+    let out = '';
+    let from = 0;
+    for (const tag of xml.matchAll(/<(\/?)w:tbl>/g)) {
+      if (tag[1]) {
+        depth -= 1;
+        if (depth === 0) from = tag.index + tag[0].length;
+      } else {
+        if (depth === 0)
+          out += `${xml.slice(from, tag.index)}<w:p><w:r><w:t>[tabel]</w:t></w:r></w:p>`;
+        depth += 1;
+      }
+    }
+    return out + xml.slice(from);
+  };
+
+  it.each(contents)(
+    '%s sets a heading nearer its own text than what comes before it, with no empty line beside it',
+    (name) => {
+      const paragraphs = paragraphsOf(tablesAsLines(bodyOf(name))).filter(
+        (paragraph) => !/^(\{\{[#/^][^}]*\}\})+$/.test(documentTextOf(paragraph))
+      );
+      paragraphs.forEach((paragraph, index) => {
+        const level = /<w:pStyle w:val="Heading([12])"\/>/.exec(paragraph)?.[1];
+        if (!level) return;
+        const previous = paragraphs[index - 1] ?? '';
+        const spacing = /<w:spacing\b[^>]*\/>/.exec(paragraph)![0];
+        const side = (key: string) => Number(new RegExp(`w:${key}="(\\d+)"`).exec(spacing)?.[1]);
+        const sitsRightUnder = level === '2' && /<w:pStyle w:val="Heading1"\/>/.test(previous);
+        const label = documentTextOf(paragraph);
+        expect([side('before'), side('after')], label).toEqual(
+          level === '1' ? [sitsRightUnder ? 0 : 120, 200] : [sitsRightUnder ? 0 : 240, 120]
+        );
+        expect(spacing, label).not.toContain('w:line=');
+        for (const neighbour of [previous, paragraphs[index + 1] ?? 'x'])
+          expect(
+            documentTextOf(neighbour).trim() !== '' ||
+              /<w:(numPr|sectPr|drawing|br|fldChar)\b/.test(neighbour),
+            label
+          ).toBe(true);
+      });
+    }
+  );
+
   it.each(ssmFiles.map(([name]) => name).filter((name) => !contents.includes(name)))(
     '%s gives none of its paragraphs an outline level, so its PDF has no bookmarks of body text',
     (name) => {

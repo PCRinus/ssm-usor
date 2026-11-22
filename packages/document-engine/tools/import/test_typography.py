@@ -4,7 +4,8 @@ import re
 import unittest
 
 from typography import (article_labels, article_levels, article_paragraphs, dash_bullets, dash_lines_in_cells,
-                        heading_line_of_its_own, house_order, lists, plain_articles, typed_hyphens, typography)
+                        heading_line_of_its_own, heading_scale, house_order, lists, plain_articles, typed_hyphens,
+                        typography)
 
 STYLES = ('<w:styles><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/>'
           '<w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr><w:rPr><w:sz w:val="20"/></w:rPr></w:style>'
@@ -233,6 +234,26 @@ class Again(unittest.TestCase):
         once = typography(document, STYLES, NUMBERING, False)
         twice = typography(*once, False)
         self.assertEqual(once, twice)
+
+
+class Headings(unittest.TestCase):
+    def spacing(self, xml, text):
+        found = next(p for p in re.findall(r'<w:p\b.*?</w:p>', xml) if f'>{text}<' in p)
+        spacing = re.search(r'<w:spacing\b[^>]*/>', found).group(0)
+        return tuple(re.search(rf'w:{side}="(\d+)"', spacing).group(1) for side in ('before', 'after'))
+
+    def test_puts_a_heading_nearer_its_text_than_what_comes_before_it(self):
+        xml = heading_scale(body(paragraph('Capitolul I. A', style='Heading1'), paragraph('text'),
+                                 paragraph('Subcapitolul I.I. B', style='Heading2'), paragraph('text')))
+        self.assertEqual(self.spacing(xml, 'Capitolul I. A'), ('120', '200'))
+        self.assertEqual(self.spacing(xml, 'Subcapitolul I.I. B'), ('240', '120'))
+
+    def test_a_subchapter_right_under_its_chapter_takes_only_the_chapters_room(self):
+        spacer = '<w:p><w:pPr><w:rPr><w:sz w:val="2"/></w:rPr></w:pPr><w:r></w:r></w:p>'
+        xml = heading_scale(body(paragraph('Capitolul V. A', style='Heading1'), spacer, spacer, paragraph('{{#posts}}'),
+                                 paragraph('Subcapitolul V.{{roman}}. B', style='Heading2'), spacer, paragraph('text')))
+        self.assertEqual(self.spacing(xml, 'Subcapitolul V.{{roman}}. B'), ('0', '120'))
+        self.assertNotIn('<w:sz w:val="2"/>', xml)
 
 
 if __name__ == '__main__':
