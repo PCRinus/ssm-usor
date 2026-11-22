@@ -53,14 +53,27 @@ describe('what 9.2 waits for', () => {
     expect(riskZonesGaps(facts)).toEqual([]);
   });
 
-  it("waits for a zone's measures once none of its factors is current", () => {
-    const left = zone({ factors: [factor(1, archived, [5, 3])] });
+  it('waits for the measures of a zone that would print none', () => {
+    const measured = [{ kind: 'technical' as const, description: 'Împământare.' }];
+    const left = zone({ factors: [factor(1, archived, [5, 3], measured)] });
     expect(riskZonesGaps(withZones([left]))).toEqual(['risk_zones.measures']);
     expect(riskZonesGaps(withZones([{ ...left, measures: ' \n – \n' }]))).toEqual([
       'risk_zones.measures',
     ]);
     expect(riskZonesGaps(withZones([{ ...left, measures: 'Acces restricționat.' }]))).toEqual([]);
-    expect(riskZonesGaps(withZones([zone({ factors: [factor(2, office, [2, 2])] })]))).toEqual([]);
+    const bare = zone({ factors: [factor(2, office, [2, 2])] });
+    expect(riskZonesGaps(withZones([bare]))).toEqual(['risk_zones.measures']);
+    expect(
+      riskZonesGaps(
+        withZones([
+          zone({ factors: [factor(2, office, [2, 2], [{ kind: 'other', description: ' ' }])] }),
+        ])
+      )
+    ).toEqual(['risk_zones.measures']);
+    expect(riskZonesGaps(withZones([{ ...bare, measures: 'Acces restricționat.' }]))).toEqual([]);
+    expect(
+      riskZonesGaps(withZones([zone({ factors: [factor(2, office, [2, 2], measured)] })]))
+    ).toEqual([]);
   });
 
   it('keeps the rest of the set from waiting for it', () => {
@@ -133,6 +146,7 @@ describe('the record of risk zones', () => {
             factor(4, workshop, [5, 3]),
             factor(5, office, [2, 2], [], 0),
           ],
+          measures: 'Acces restricționat.',
         }),
       ])
     )!;

@@ -362,7 +362,7 @@ export const documentMissingData: Record<
     place: 'riskEvaluations',
     label: 'Măsurile zonelor cu risc ridicat și specific',
     detail:
-      'O zonă nu mai are niciun factor de risc legat, pentru că factorii au fost șterși sau posturile arhivate. Leagă-i un factor de risc sau scrie-i măsurile.',
+      'O zonă nu are măsuri de tipărit: factorii legați nu au măsuri sau nu mai sunt în evaluări. Leagă-i un factor cu măsuri sau scrie-i măsurile.',
     target: ({ clientId }) => to.positions(clientId),
   },
   'documents.own_instructions': {

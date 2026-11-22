@@ -385,7 +385,7 @@ export const missingDocumentData = [
   'documents.own_instructions',
   // Only for 9.2 (ADR 045): the client neither lists a risk zone nor declares it has none.
   'risk_zones.decided',
-  // Only for 9.2: a zone with neither a current linked factor nor measures of its own.
+  // Only for 9.2: a zone that would print no measures, from its current linked factors or its own.
   'risk_zones.measures',
   'fire.trainingSchedule',
   'fire.smokingPolicy',

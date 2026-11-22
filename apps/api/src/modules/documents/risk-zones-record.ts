@@ -167,9 +167,7 @@ function currentZones({ riskZones, riskEvaluations, jobPositions }: RiskZonesInp
 /** What 9.2 waits for (ADR 045); nothing else in the set does. */
 export function riskZonesGaps(input: RiskZonesInput): MissingDocumentData[] {
   if (input.riskZones.state === 'undecided') return ['risk_zones.decided'];
-  const unmeasured = currentZones(input).some(
-    (zone) => zone.factors.length === 0 && typedItems(zone.measures).length === 0
-  );
+  const unmeasured = currentZones(input).some((zone) => zoneMeasures(zone).length === 0);
   return unmeasured ? ['risk_zones.measures'] : [];
 }
 
@@ -188,6 +186,7 @@ function zoneMeasures(zone: ReturnType<typeof currentZones>[number]) {
         factor.measures
           .filter((measure) => measure.kind === kind)
           .map((measure) => measure.description.trim())
+          .filter(Boolean)
       )
     )
   );

@@ -625,8 +625,12 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     expect(zones.searchParams.get('order')).toBe('created_at.asc,id.asc');
   });
 
-  it('waits for the measures of a zone left with no current factor', async () => {
-    const zone = (factorEvaluationId: string, measures: string | null) => ({
+  it('waits for the measures of a zone that would print none', async () => {
+    const zone = (
+      factorEvaluationId: string,
+      measures: string | null,
+      factorMeasures: string[] = []
+    ) => ({
       name: 'Tabloul electric',
       location: null,
       measures,
@@ -640,7 +644,12 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
             gravity_class: 5,
             probability_class: 3,
             sort_order: 0,
-            prevention_measures: [],
+            prevention_measures: factorMeasures.map((description, index) => ({
+              id: `a0a0a0a0-0000-4000-8000-00000000000${index}`,
+              kind: 'technical',
+              description,
+              sort_order: index,
+            })),
           },
         },
       ],
@@ -658,7 +667,10 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       { typeKey: 'risk_zones_record', missing: ['risk_zones.measures'] },
     ]);
     expect(await readinessWith(zone(archived, 'Ușa ținută încuiată.'))).toEqual([]);
-    expect(await readinessWith(zone(evaluationRows[1]!.id, null))).toEqual([]);
+    expect(await readinessWith(zone(evaluationRows[1]!.id, null))).toEqual([
+      { typeKey: 'risk_zones_record', missing: ['risk_zones.measures'] },
+    ]);
+    expect(await readinessWith(zone(evaluationRows[1]!.id, null, ['Împământare.']))).toEqual([]);
   });
 
   it('drops the hint about the risk evaluator once the organization names one', async () => {
