@@ -13,7 +13,7 @@ from pyhanko.sign.fields import FieldMDPAction, FieldMDPSpec
 from pyhanko.sign.validation.pdf_embedded import async_validate_pdf_signature
 from pyhanko_certvalidator import ValidationContext
 
-from app import forms
+from app import forms, signing
 from app.forms import MULTILINE, Field, form_fields, locked_by_signatures
 from app.main import app
 
@@ -503,3 +503,37 @@ def test_pyhanko_default_policy_still_refuses_the_valid_sheet():
         )
     )
     assert status.intact and not status.docmdp_ok
+
+
+def half_em(line: str) -> float:
+    return len(line) * 0.5
+
+
+STAMP = ['Constantinescu-Munteanu Alexandra Ioana', 'semnat electronic', '23.11.2026']
+
+
+def test_a_stamp_keeps_the_name_on_one_line_in_a_box_wide_enough_for_it():
+    assert signing.stamp_lines(STAMP, 400, 60, half_em) == STAMP
+
+
+def test_a_stamp_breaks_the_name_at_its_spaces_when_that_prints_it_larger():
+    assert signing.stamp_lines(STAMP, 60, 32, half_em) == [
+        'Constantinescu-',
+        'Munteanu',
+        'Alexandra Ioana',
+        'semnat electronic',
+        '23.11.2026',
+    ]
+
+
+def test_a_stamp_breaks_a_double_name_after_its_hyphen():
+    lines = signing.stamp_lines(
+        ['CONSTANTINESCU-MUNTEANU Ioana', 'semnat electronic', '23.11.2026'], 60, 40, half_em
+    )
+    assert lines[:2] == ['CONSTANTINESCU-', 'MUNTEANU Ioana']
+
+
+def test_a_stamp_leaves_a_one_word_name_and_an_invisible_field_alone():
+    one_word = ['Popescu', 'semnat electronic', '23.11.2026']
+    assert signing.stamp_lines(one_word, 30, 32, half_em) == one_word
+    assert signing.stamp_lines(STAMP, 0, 0, half_em) == STAMP
