@@ -97,6 +97,8 @@ export const riskZonesResponseSchema = z.object({
   state: riskZonesStateSchema,
   zones: z.array(riskZoneSchema),
   suggestions: z.array(riskZoneSuggestionSchema),
+  /** Every factor a zone may link: those of current posts and client-level evaluations, any level. */
+  factors: z.array(riskZoneFactorSchema),
 });
 
 export type RiskZonesResponse = z.infer<typeof riskZonesResponseSchema>;

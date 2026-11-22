@@ -112,18 +112,21 @@ function toZone(row: ZoneRow, factors: Map<string, Placed>): RiskZone {
   };
 }
 
-export function suggestZones(
-  evaluations: EvaluationRow[],
-  zones: Pick<RiskZone, 'id' | 'name' | 'factors'>[]
-): RiskZoneSuggestion[] {
-  const linked = new Set(zones.flatMap((zone) => zone.factors.map((factor) => factor.id)));
-  const groups = new Map<string, { name: string; placed: Placed[] }>();
-  const current = evaluations
+function currentEvaluations(evaluations: EvaluationRow[]) {
+  return evaluations
     .filter(
       (row) => row.kind !== 'job_position' || (row.job_positions && !row.job_positions.archived_at)
     )
     .map((row) => ({ ...row, jobPosition: row.job_positions }))
     .sort(byEvaluationOrder);
+}
+
+function suggestZones(
+  current: EvaluationRow[],
+  zones: Pick<RiskZone, 'id' | 'name' | 'factors'>[]
+): RiskZoneSuggestion[] {
+  const linked = new Set(zones.flatMap((zone) => zone.factors.map((factor) => factor.id)));
+  const groups = new Map<string, { name: string; placed: Placed[] }>();
   for (const row of current) {
     const evaluation = { id: row.id, kind: row.kind, title: evaluationTitle(row) };
     const label = suggestionLabel(row);
@@ -165,7 +168,15 @@ export function buildRiskZones(
   const zones = [...zoneRows]
     .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
     .map((row) => toZone(row, factors));
-  return { state, zones, suggestions: suggestZones(evaluations, zones) };
+  const current = currentEvaluations(evaluations);
+  return {
+    state,
+    zones,
+    suggestions: suggestZones(current, zones),
+    factors: current.flatMap((row) =>
+      [...row.risk_factors].sort(bySortOrder).map((factor) => factors.get(factor.id)!.factor)
+    ),
+  };
 }
 
 export async function loadRiskZones(db: DataClient, clientId: string): Promise<RiskZonesResponse> {

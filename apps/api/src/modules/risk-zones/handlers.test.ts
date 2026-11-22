@@ -203,6 +203,12 @@ describe('GET /clients/{clientId}/risk-zones', () => {
     expect(suggestions[2]!.factors[0]!.evaluation.kind).toBe('sensitive_groups');
   });
 
+  it('offers every factor of current posts and evaluations to link, acceptable ones too', async () => {
+    mock();
+    const { factors } = riskZonesResponseSchema.parse(await (await request(base)).json());
+    expect(factors.map((f) => f.id)).toEqual([5, 1, 2, 3, 4, 8, 9, 7].map(id));
+  });
+
   it('answers 404 for a client outside the organization', async () => {
     mock({ '/rest/v1/clients': () => [] });
     expect((await request(base)).status).toBe(404);

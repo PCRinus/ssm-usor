@@ -5407,10 +5407,66 @@ export type RiskZonesResponseSuggestionsItem = {
   existingZoneId: string | null;
 };
 
+export type RiskZonesResponseFactorsItemComponent =
+  (typeof RiskZonesResponseFactorsItemComponent)[keyof typeof RiskZonesResponseFactorsItemComponent];
+
+export const RiskZonesResponseFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RiskZonesResponseFactorsItemEvaluationKind =
+  (typeof RiskZonesResponseFactorsItemEvaluationKind)[keyof typeof RiskZonesResponseFactorsItemEvaluationKind];
+
+export const RiskZonesResponseFactorsItemEvaluationKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+export type RiskZonesResponseFactorsItemEvaluation = {
+  id: string;
+  kind: RiskZonesResponseFactorsItemEvaluationKind;
+  title: string;
+};
+
+export type RiskZonesResponseFactorsItemMeasuresItemKind =
+  (typeof RiskZonesResponseFactorsItemMeasuresItemKind)[keyof typeof RiskZonesResponseFactorsItemMeasuresItemKind];
+
+export const RiskZonesResponseFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type RiskZonesResponseFactorsItemMeasuresItem = {
+  id: string;
+  kind: RiskZonesResponseFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type RiskZonesResponseFactorsItem = {
+  id: string;
+  component: RiskZonesResponseFactorsItemComponent;
+  group: string;
+  description: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  riskLevel: number;
+  evaluation: RiskZonesResponseFactorsItemEvaluation;
+  measures: RiskZonesResponseFactorsItemMeasuresItem[];
+};
+
 export interface RiskZonesResponse {
   state: RiskZonesResponseState;
   zones: RiskZonesResponseZonesItem[];
   suggestions: RiskZonesResponseSuggestionsItem[];
+  factors: RiskZonesResponseFactorsItem[];
 }
 
 export interface RiskZoneRequest {
@@ -29163,7 +29219,7 @@ export const getListRiskZonesUrl = (clientId: string) => {
 };
 
 /**
- * The zones in the order they were added, each with its workplace and its linked factors, the highest level first, with their level, evaluation and prevention measures as the evaluation holds them now; the client’s `state`; and the `suggestions` (ADR 045): the unacceptable factors (level above 3) of current posts and client-level evaluations that no zone links yet, grouped by the position’s work zone, or the position’s name without one, or the evaluation’s title outside the posts, each offered as a zone named after its group. `existingZoneId` names a zone of the client with that name already. Nothing is saved until a zone is added.
+ * The zones in the order they were added, each with its workplace and its linked factors, the highest level first, with their level, evaluation and prevention measures as the evaluation holds them now; the client’s `state`; `factors`, every factor of current posts and client-level evaluations a zone may link, whatever its level, in the evaluations’ order; and the `suggestions` (ADR 045): the unacceptable factors (level above 3) of current posts and client-level evaluations that no zone links yet, grouped by the position’s work zone, or the position’s name without one, or the evaluation’s title outside the posts, each offered as a zone named after its group. `existingZoneId` names a zone of the client with that name already. Nothing is saved until a zone is added.
  * @summary Read a client's zones of high and specific risk
  */
 export const listRiskZones = async (
