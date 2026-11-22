@@ -6,6 +6,8 @@ import { signingTypeKeys } from '../signing';
 import { documentText } from '../text';
 import { bodyOf, decisionFiles, documentTextOf, entries, read, typesetFiles } from './read';
 
+const suSheet = 'fire/fisa_instructaj_su.docx';
+
 // The house style the import script typesets every template to.
 describe('typesetting', () => {
   const paragraphsOf = (xml: string) => xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
@@ -61,12 +63,15 @@ describe('typesetting', () => {
       // after a table: at the end, or between two tables that would otherwise be saved as one;
       // a page break that a section prints for some items of a loop only; and an article's
       // "Art. N." on a line of its own, which prints its number.
-      // A page that opens on a spacer of exact height holds a single text placed low: LibreOffice
-      // drops the space above a paragraph at the top of a page.
+      // The fire-safety sheet's cover back opens on a spacer of exact height that places its
+      // warning low: LibreOffice drops the space above a paragraph at the top of a page.
       const empty = paragraphsOf(body).filter(
         (paragraph) =>
           documentTextOf(paragraph).trim() === '' &&
-          !/<w:pageBreakBefore(?: w:val="true")?\/>[\s\S]*w:lineRule="exact"/.test(paragraph) &&
+          !(
+            name === suSheet &&
+            /<w:pageBreakBefore(?: w:val="true")?\/>[\s\S]*w:lineRule="exact"/.test(paragraph)
+          ) &&
           !/<w:numPr>/.test(paragraph) &&
           !/<w:drawing|<w:object|<w:pict|<mc:AlternateContent|<w:br w:type="page"\/>/.test(
             paragraph
@@ -106,10 +111,13 @@ describe('typesetting', () => {
 
   it.each(typesetFiles)('%s uses one font, the body and title sizes, and Romanian', (name) => {
     // The back of the fire-safety sheet's cover holds the model's warning alone, set large.
-    const xml = bodyOf(name).replace(
-      /<w:p\b(?:(?!<\/w:p>)[\s\S])*?(?:ATENȚIE!|Nicio persoană nu va fi admisă la lucru)[\s\S]*?<\/w:p>/g,
-      ''
-    );
+    const xml =
+      name === suSheet
+        ? bodyOf(name).replace(
+            /<w:p\b(?:(?!<\/w:p>)[\s\S])*?(?:ATENȚIE!|Nicio persoană nu va fi admisă la lucru)[\s\S]*?<\/w:p>/g,
+            ''
+          )
+        : bodyOf(name);
     // Of the runs that carry text, here and below: a paragraph's end mark may keep a font, a
     // size or a language of its own, which nothing shows and LibreOffice does not let go of.
     const fonts = new Set(

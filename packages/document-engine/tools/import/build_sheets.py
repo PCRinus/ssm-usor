@@ -41,6 +41,8 @@ LINE = '<w:{side} w:val="single" w:sz="8" w:space="0" w:color="000000"/>'
 THIN = '<w:{side} w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
 TABLE_PADDING = 55
 GRID_PADDING = 85
+# The law's longest captions, „Semnătura celui care a efectuat instruirea”, on one line in a third.
+CAPTION_PADDING = 55
 GRID_UNITS = 12
 RUBRIC_HEIGHT = 620
 # The house signing space: 25 mm for a signature and a stamp.
@@ -124,7 +126,7 @@ def inline_paragraph(inner, *, size=FIELD_SIZE, align='left', line=None, after=0
                      runs=inner)
 
 
-def cell(width, content, *, borders=(), span=1, merge=None, valign='top', line=LINE):
+def cell(width, content, *, borders=(), span=1, merge=None, valign='top', line=LINE, sides=None):
     """`content` is a list of paragraphs; `borders` the sides that draw a line."""
     lines = ''.join(line.format(side=side) for side in ('top', 'left', 'bottom', 'right') if side in borders)
     props = f'<w:tcW w:w="{width}" w:type="dxa"/>'
@@ -134,7 +136,10 @@ def cell(width, content, *, borders=(), span=1, merge=None, valign='top', line=L
         props += '<w:vMerge w:val="restart"/>'
     elif merge == 'continue':
         props += '<w:vMerge/>'
-    props += f'<w:tcBorders>{lines}</w:tcBorders><w:vAlign w:val="{valign}"/>'
+    props += f'<w:tcBorders>{lines}</w:tcBorders>'
+    if sides is not None:
+        props += f'<w:tcMar><w:left w:w="{sides}" w:type="dxa"/><w:right w:w="{sides}" w:type="dxa"/></w:tcMar>'
+    props += f'<w:vAlign w:val="{valign}"/>'
     return f'<w:tc><w:tcPr>{props}</w:tcPr>{"".join(content) or cell_paragraph()}</w:tc>'
 
 
@@ -219,7 +224,7 @@ def signature_rows(slots):
     """The signature boxes of a block across the grid: the law's caption at the top, then the
     signing room, whose `content(room)` stands at its foot."""
     units = GRID_UNITS // len(slots)
-    captions = [{'units': units, 'sides': ('top', 'left', 'right'), 'valign': 'top',
+    captions = [{'units': units, 'sides': ('top', 'left', 'right'), 'valign': 'top', 'padding': CAPTION_PADDING,
                  'content': lambda room, caption=caption: [cell_paragraph(caption, size=8, align='center')]}
                 for caption, _ in slots]
     rooms = [{'units': units, 'height': SIGNING_ROOM, 'sides': ('left', 'bottom', 'right'), 'valign': 'bottom',
@@ -246,9 +251,10 @@ def form_grid(lines):
         cells, at = [], 0
         for box in line:
             width = sum(GRID[at:at + box['units']])
-            content = box['content'](width - 2 * GRID_PADDING)
+            padding = box.get('padding')
+            content = box['content'](width - 2 * (padding or GRID_PADDING))
             cells.append(cell(width, content, borders=box['sides'], span=box['units'], valign=box['valign'],
-                              line=THIN))
+                              line=THIN, sides=padding))
             at += box['units']
         heights = [box['height'] for box in line if 'height' in box]
         drawn.append(row(cells, height=max(heights, default=None)))
