@@ -1,17 +1,21 @@
 import hashlib
+import re
 import secrets
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from io import BytesIO
+from itertools import pairwise
 
 from asn1crypto import algos, cms, x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from pyhanko.pdf_utils import layout
-from pyhanko.pdf_utils.text import TextBoxStyle
+from pyhanko.pdf_utils.form_tools import annot_width_height
+from pyhanko.pdf_utils.text import DEFAULT_TEXT_BOX_MARGIN, TextBoxStyle
 from pyhanko.sign.fields import FieldMDPAction, FieldMDPSpec, MDPPerm, SigSeedSubFilter
 from pyhanko.sign.signers.cms_embedder import (
     PdfCMSEmbedder,
@@ -48,6 +52,65 @@ APPEARANCE_LAYOUT = layout.SimpleBoxLayoutRule(
     inner_content_scaling=layout.InnerScaling.SHRINK_TO_FIT,
 )
 APPEARANCE_FONT_SIZE = 10
+
+
+def stamp_lines(
+    lines: list[str], width: float, height: float, advance: Callable[[str], float]
+) -> list[str]:
+    """
+    The stamp shrinks as a whole to its box, so a name wider than a narrow box (a periodic row's
+    column) would shrink every line with it. Broken at its spaces or after a hyphen, the name may
+    let the stamp print larger; the layout that prints largest wins, and the name on one line on a
+    tie.
+    """
+    if not lines or width <= 0 or height <= 0:
+        return lines
+    name, rest = lines[0], lines[1:]
+    words = [
+        (match.group(), ' ' if match.start() > 0 and name[match.start() - 1].isspace() else '')
+        for match in re.finditer(r'\S+?-(?=\S)|\S+', name)
+    ]
+
+    def size(candidate: list[str]) -> float:
+        return stamp_size(candidate, width, height, advance)
+
+    best = lines
+    for count in range(2, min(len(words), 3) + 1):
+        for cuts in _cuts(len(words), count):
+            bounds = [0, *cuts, len(words)]
+            broken = [_joined(words[a:b]) for a, b in pairwise(bounds)]
+            candidate = [*broken, *rest]
+            if size(candidate) > size(best):
+                best = candidate
+    return best
+
+
+def stamp_size(
+    lines: list[str], width: float, height: float, advance: Callable[[str], float]
+) -> float:
+    # The text box keeps pyHanko's own margin inside the stamp and rounds each line's extent; the
+    # layout then shrinks that whole box, margin included.
+    room_x = width - APPEARANCE_LAYOUT.margins.left - APPEARANCE_LAYOUT.margins.right
+    room_y = height - APPEARANCE_LAYOUT.margins.top - APPEARANCE_LAYOUT.margins.bottom
+    margin = 2 * DEFAULT_TEXT_BOX_MARGIN
+    natural_width = max(round(advance(line) * APPEARANCE_FONT_SIZE) for line in lines)
+    natural_height = APPEARANCE_FONT_SIZE * len(lines)
+    scale = min(1, room_x / (natural_width + margin), room_y / (natural_height + margin))
+    return APPEARANCE_FONT_SIZE * scale
+
+
+def _joined(words: list[tuple[str, str]]) -> str:
+    return ''.join(glue + word if index else word for index, (word, glue) in enumerate(words))
+
+
+def _cuts(words: int, lines: int) -> list[tuple[int, ...]]:
+    if lines == 1:
+        return [()]
+    return [
+        (first, *(first + cut for cut in rest))
+        for first in range(1, words - lines + 2)
+        for rest in _cuts(words - first, lines - 1)
+    ]
 
 
 @dataclass
@@ -144,6 +207,16 @@ async def begin_signature(pdf: bytes, options: BeginOptions) -> tuple[bytes, byt
     estimate = await signer.async_sign(bytes(32), DIGEST, dry_run=True, use_pades=True)
     bytes_reserved = 2 * len(estimate.dump()) + 512
 
+    font = SharedSubset(writer)
+    engine = font.create_font_engine(writer)
+    width, height = annot_width_height(target.widgets[0])
+    lines = stamp_lines(
+        options.appearance_lines,
+        float(width),
+        float(height),
+        lambda line: engine.shape(line).x_advance,
+    )
+
     embedder = PdfCMSEmbedder().write_cms(
         field_name=options.field, writer=writer, existing_fields_only=True
     )
@@ -173,15 +246,13 @@ async def begin_signature(pdf: bytes, options: BeginOptions) -> tuple[bytes, byt
             appearance_setup=SigAppearanceSetup(
                 style=TextStampStyle(
                     stamp_text='%(lines)s',
-                    text_box_style=TextBoxStyle(
-                        font=SharedSubset(writer), font_size=APPEARANCE_FONT_SIZE
-                    ),
+                    text_box_style=TextBoxStyle(font=font, font_size=APPEARANCE_FONT_SIZE),
                     border_width=0,
                     inner_content_layout=APPEARANCE_LAYOUT,
                 ),
                 timestamp=signed_at,
                 name=None,
-                text_params={'lines': '\n'.join(options.appearance_lines)},
+                text_params={'lines': '\n'.join(lines)},
             ),
         )
     )

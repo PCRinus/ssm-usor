@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import re
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from pathlib import Path
@@ -13,7 +14,7 @@ from pyhanko.sign.fields import FieldMDPAction, FieldMDPSpec
 from pyhanko.sign.validation.pdf_embedded import async_validate_pdf_signature
 from pyhanko_certvalidator import ValidationContext
 
-from app import forms
+from app import forms, signing
 from app.forms import MULTILINE, Field, form_fields, locked_by_signatures
 from app.main import app
 
@@ -503,3 +504,60 @@ def test_pyhanko_default_policy_still_refuses_the_valid_sheet():
         )
     )
     assert status.intact and not status.docmdp_ok
+
+
+def half_em(line: str) -> float:
+    return len(line) * 0.5
+
+
+STAMP = ['Constantinescu-Munteanu Alexandra Ioana', 'semnat electronic', '23.11.2026']
+
+
+def test_a_stamp_keeps_the_name_on_one_line_in_a_box_wide_enough_for_it():
+    assert signing.stamp_lines(STAMP, 400, 60, half_em) == STAMP
+
+
+@pytest.mark.parametrize(
+    ('width', 'height', 'name_lines'),
+    [
+        (60, 32, ['Constantinescu-Munteanu', 'Alexandra Ioana']),
+        (90, 60, ['Constantinescu-', 'Munteanu', 'Alexandra Ioana']),
+    ],
+)
+def test_a_stamp_breaks_the_name_where_that_prints_it_largest(width, height, name_lines):
+    lines = signing.stamp_lines(STAMP, width, height, half_em)
+    assert lines == [*name_lines, *STAMP[1:]]
+    assert signing.stamp_size(lines, width, height, half_em) > signing.stamp_size(
+        STAMP, width, height, half_em
+    )
+
+
+def test_a_stamp_keeps_the_space_a_name_has_after_a_hyphen():
+    lines = signing.stamp_lines(
+        ['Ion- Maria Popescu Ionescu', 'semnat electronic', '23.11.2026'], 70, 70, half_em
+    )
+    assert lines[:2] == ['Ion- Maria', 'Popescu Ionescu']
+
+
+def test_a_stamp_leaves_a_one_word_name_and_an_invisible_field_alone():
+    one_word = ['Popescu', 'semnat electronic', '23.11.2026']
+    assert signing.stamp_lines(one_word, 30, 32, half_em) == one_word
+    assert signing.stamp_lines(STAMP, 0, 0, half_em) == STAMP
+
+
+def test_the_stamp_prints_at_the_size_its_layout_was_chosen_for():
+    lines = ['Alexandru-Gabriel Constantinescu', 'semnat electronic', '23.11.2026']
+    body = begin_body(prepared_sheet(), trainee, 'row1_trainee', [])
+    body['appearanceLines'] = lines
+    reader = PdfFileReader(BytesIO(unb64(post('/sign/begin', body)['prepared'])))
+    field = next(
+        each.get_object()
+        for each in reader.root['/AcroForm']['/Fields']
+        if each.get_object().get('/T') == 'row1_trainee'
+    )
+    stream = field['/AP']['/N'].data.decode('latin1')
+    drawn = float(re.match(r'q q ([\d.]+) 0 0 [\d.]+ ', stream).group(1))
+    engine = forms.SharedSubset(forms.open_writer(sheet())).create_font_engine(None)
+    chosen = signing.stamp_lines(lines, 120, 30, lambda line: engine.shape(line).x_advance)
+    expected = signing.stamp_size(chosen, 120, 30, lambda line: engine.shape(line).x_advance)
+    assert drawn == pytest.approx(expected / signing.APPEARANCE_FONT_SIZE, abs=0.01)

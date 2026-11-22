@@ -265,6 +265,10 @@ The private key never leaves the API, so a signature takes two calls.
    `toSign` is the DER of the CMS signed attributes, which hold that digest (content type,
    message digest and the signing certificate; no signing-time attribute, which PAdES leaves
    to `/M`).
+   The visible text is shrunk as a whole to fit its box. In a narrow box, a periodic row's
+   column, the signer breaks the first line, the name, at its spaces or after a hyphen when
+   that prints the whole text larger, so a long name does not shrink the stamp to an
+   unreadable size.
 2. The API signs `toSign` as it is, with WebCrypto: ECDSA P-256 with SHA-256, which answers
    raw r||s, 64 bytes.
 3. `finishSignature` turns r||s into the DER that CMS expects, checks it against the
