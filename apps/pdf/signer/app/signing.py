@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from pyhanko.pdf_utils import layout
 from pyhanko.pdf_utils.form_tools import annot_width_height
-from pyhanko.pdf_utils.text import TextBoxStyle
+from pyhanko.pdf_utils.text import DEFAULT_TEXT_BOX_MARGIN, TextBoxStyle
 from pyhanko.sign.fields import FieldMDPAction, FieldMDPSpec, MDPPerm, SigSeedSubFilter
 from pyhanko.sign.signers.cms_embedder import (
     PdfCMSEmbedder,
@@ -66,16 +66,13 @@ def stamp_lines(
     if not lines or width <= 0 or height <= 0:
         return lines
     name, rest = lines[0], lines[1:]
-    words = re.findall(r'\S+?-(?=\S)|\S+', name)
-    room_x = width - APPEARANCE_LAYOUT.margins.left - APPEARANCE_LAYOUT.margins.right
-    room_y = height - APPEARANCE_LAYOUT.margins.top - APPEARANCE_LAYOUT.margins.bottom
+    words = [
+        (match.group(), ' ' if match.start() > 0 and name[match.start() - 1].isspace() else '')
+        for match in re.finditer(r'\S+?-(?=\S)|\S+', name)
+    ]
 
     def size(candidate: list[str]) -> float:
-        widest = max(advance(line) for line in candidate)
-        fits = [APPEARANCE_FONT_SIZE, room_y / len(candidate)]
-        if widest > 0:
-            fits.append(room_x / widest)
-        return min(fits)
+        return stamp_size(candidate, width, height, advance)
 
     best = lines
     for count in range(2, min(len(words), 3) + 1):
@@ -88,11 +85,22 @@ def stamp_lines(
     return best
 
 
-def _joined(words: list[str]) -> str:
-    return ''.join(
-        word if index == 0 or words[index - 1].endswith('-') else f' {word}'
-        for index, word in enumerate(words)
-    )
+def stamp_size(
+    lines: list[str], width: float, height: float, advance: Callable[[str], float]
+) -> float:
+    # The text box keeps pyHanko's own margin inside the stamp and rounds each line's extent; the
+    # layout then shrinks that whole box, margin included.
+    room_x = width - APPEARANCE_LAYOUT.margins.left - APPEARANCE_LAYOUT.margins.right
+    room_y = height - APPEARANCE_LAYOUT.margins.top - APPEARANCE_LAYOUT.margins.bottom
+    margin = 2 * DEFAULT_TEXT_BOX_MARGIN
+    natural_width = max(round(advance(line) * APPEARANCE_FONT_SIZE) for line in lines)
+    natural_height = APPEARANCE_FONT_SIZE * len(lines)
+    scale = min(1, room_x / (natural_width + margin), room_y / (natural_height + margin))
+    return APPEARANCE_FONT_SIZE * scale
+
+
+def _joined(words: list[tuple[str, str]]) -> str:
+    return ''.join(glue + word if index else word for index, (word, glue) in enumerate(words))
 
 
 def _cuts(words: int, lines: int) -> list[tuple[int, ...]]:
