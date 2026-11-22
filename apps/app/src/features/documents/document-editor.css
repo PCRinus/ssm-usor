@@ -189,3 +189,10 @@
 [data-editor-phone-bar] .docx-toolbar__separator:has(+ .docx-toolbar__group:empty) {
   display: none;
 }
+
+/* The toolbar folds whole groups into „⋯”: with the packaged margin and padding a phone leaves
+   too little room for the first group, and the bar shows only „⋯”. */
+[data-editor-phone-bar] .docx-toolbar {
+  margin: 0.5rem;
+  padding-inline: 0.25rem;
+}

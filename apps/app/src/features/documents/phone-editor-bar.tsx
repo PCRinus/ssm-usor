@@ -315,18 +315,19 @@ function HistoryButtons() {
 
 // The packaged toolbar takes no parts, so a phone gets its own, without what the bar above
 // already offers (undo, redo) or what a draft never needs (the editing mode, and comments, which
-// need a module the app does not load).
+// need a module the app does not load). It folds whole groups into „⋯”, and the group from bold
+// to link fits a 320 px screen only without strikethrough and link, which the documents rarely use.
 function FormattingToolbar() {
   const t = useChromeTranslate();
   return (
-    <div className="px-3 py-2">
-      <DocxEditor.Toolbar t={t}>
-        <DocxEditor.Toolbar.Undo hidden />
-        <DocxEditor.Toolbar.Redo hidden />
-        <DocxEditor.Toolbar.EditingMode hidden />
-        <DocxEditor.Toolbar.Comments hidden />
-      </DocxEditor.Toolbar>
-    </div>
+    <DocxEditor.Toolbar t={t}>
+      <DocxEditor.Toolbar.Undo hidden />
+      <DocxEditor.Toolbar.Redo hidden />
+      <DocxEditor.Toolbar.Strike hidden />
+      <DocxEditor.Toolbar.Link hidden />
+      <DocxEditor.Toolbar.EditingMode hidden />
+      <DocxEditor.Toolbar.Comments hidden />
+    </DocxEditor.Toolbar>
   );
 }
 

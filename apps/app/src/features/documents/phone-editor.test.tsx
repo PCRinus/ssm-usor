@@ -66,7 +66,7 @@ vi.mock('@docx-editor.dev/react', async () => {
   const Part = ({ hidden }: { hidden?: boolean }) => (hidden ? null : <span>part</span>);
   const Toolbar = Object.assign(
     ({ children }: { children: ReactNode }) => <div data-testid="fake-toolbar">{children}</div>,
-    { Undo: Part, Redo: Part, EditingMode: Part, Comments: Part }
+    { Undo: Part, Redo: Part, Strike: Part, Link: Part, EditingMode: Part, Comments: Part }
   );
   return {
     DocxEditor: Object.assign(Editor, { Toolbar }),
