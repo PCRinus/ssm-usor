@@ -17,6 +17,7 @@ import {
   type TrainingPhase,
   type TrainingSource,
 } from '@ssm-usor/contracts';
+import { textWidth } from '@ssm-usor/document-engine';
 
 import { fileNameWords } from '../../lib/content-disposition';
 import { listed, runOn, withoutFinalStop } from '../../lib/romanian';
@@ -134,6 +135,8 @@ export type TrainingSheetData = {
   client: { legalName: string };
   employee: {
     name: string;
+    /** The name as the running header prints it, on one line. */
+    headerName: string;
     employeeNumber: string;
     bloodGroup: string;
     homeAddress: string;
@@ -434,6 +437,20 @@ export function blankRowsAfter(rows: SheetRow[], domain: TrainingDomain) {
   return Array.from({ length: Math.floor(left / rowTwips) }, () => ({}));
 }
 
+// The running header beside „Pag. X din Y” (build_sheets.py), in twips at 8 pt. A second line took
+// the room of a table row, which then spilled onto a page of its own, so a name too long for the
+// line ends in an ellipsis there; the first page prints it whole.
+const headerRoom = 8155 - 20;
+const headerPrefix: Record<TrainingDomain, string> = { ssm: 'Fișa SSM · ', su: 'Fișa SU · ' };
+
+export function headerName(name: string, domain: TrainingDomain) {
+  const room = headerRoom - textWidth(headerPrefix[domain], 16);
+  if (textWidth(name, 16) <= room) return name;
+  let cut = name;
+  while (cut && textWidth(`${cut}…`, 16) > room) cut = cut.slice(0, -1);
+  return `${cut.trimEnd()}…`;
+}
+
 function sheetParts(facts: TrainingSheetFacts) {
   const { domain, employee, records } = facts;
   const place = placeOfWork(facts);
@@ -469,11 +486,13 @@ function sheetParts(facts: TrainingSheetFacts) {
     domain === 'ssm' ? [...facts.testResults].sort(chronologicalResults).map(testResultRow) : [];
   const supplementary = [...supplementaryRecords].sort(chronological).map(sheetRow);
   const admission = workplace?.admission ?? null;
+  const printedName = `${employee.lastName.trim().toLocaleUpperCase('ro')} ${employee.firstName.trim()}`;
   return {
     branding: () => facts.branding,
     client: () => ({ legalName: facts.client.legalName }),
     employee: () => ({
-      name: `${employee.lastName.trim().toLocaleUpperCase('ro')} ${employee.firstName.trim()}`,
+      name: printedName,
+      headerName: headerName(printedName, domain),
       employeeNumber: text(employee.employeeNumber),
       bloodGroup: joined(' ', employee.bloodGroup, employee.rhFactor && `Rh${employee.rhFactor}`),
       homeAddress: text(employee.homeAddress),

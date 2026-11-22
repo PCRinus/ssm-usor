@@ -44,6 +44,7 @@ const unrecorded = {
 
 const identity = {
   name: 'CONSTANTINESCU-MUNTEANU Alexandra-Ioana',
+  headerName: 'CONSTANTINESCU-MUNTEANU Alexandra-Ioana',
   employeeNumber: '0042',
   bloodGroup: 'A(II) Rh+',
   homeAddress: 'Str. Lungă nr. 12, bl. A3, sc. 2, ap. 14, Timișoara, jud. Timiș',
@@ -204,6 +205,7 @@ function suSample(recorded: boolean) {
 
 const longEmployee = {
   name: 'CONSTANTINESCU-MUNTEANU-POPOVICIU Alexandra-Ioana-Maria-Magdalena',
+  headerName: 'CONSTANTINESCU-MUNTEANU-POPOVICIU Alexandra-Ioana-Maria-Magdalena',
   employeeNumber: 'MARCA-2026-000123456',
   bloodGroup: 'AB(IV) Rh−',
   homeAddress:
@@ -226,6 +228,7 @@ const longTrainerJobTitle =
   'Inspector de specialitate în domeniul securității și sănătății în muncă, serviciu extern de prevenire și protecție';
 const longTrainer = 'Dan-Alexandru MARINESCU-VLĂDESCU';
 const longAdmitter = 'Ion-Cristian POPESCU-STĂNESCU';
+const longAdmitterJobTitle = 'Șef de secție producție, atelier sudură, vopsitorie și montaj';
 
 function longSample(domain: SheetDomain) {
   const base = domain === 'ssm' ? ssmSample(true) : suSample(true);
@@ -255,7 +258,7 @@ function longSample(domain: SheetDomain) {
     admission: {
       ...base.admission,
       name: longAdmitter,
-      jobTitle: 'Șef de secție producție, atelier sudură, vopsitorie și montaj',
+      jobTitle: longAdmitterJobTitle,
     },
     signers: {
       introductory: { trainer: longTrainer, verifier: longTrainer },
@@ -264,21 +267,38 @@ function longSample(domain: SheetDomain) {
   };
 }
 
+/** What the long sample's workplace training fills the signed sheet's fields with. */
+export const longWorkplaceTraining = {
+  trainer: longAdmitter,
+  trainerJobTitle: longTrainerJobTitle,
+  material: longMaterial,
+  place: longEmployee.workplace,
+  occupation: longEmployee.contractTitle,
+  admitter: longAdmitter,
+  admitterJobTitle: longAdmitterJobTitle,
+};
+
 export function trainingSheetSamples(domain: SheetDomain) {
   const sample = domain === 'ssm' ? ssmSample : suSample;
   return [
     { label: 'records', data: sample(true) },
     { label: 'empty', data: sample(false) },
     { label: 'long', data: longSample(domain) },
+    { label: 'signed-long', data: trainingSheetFormSample(domain, 'long') },
   ];
 }
 
 /**
  * The first page of a signed sheet (ADR 023): the introductory training, the first two
- * periodic rows and the first test result recorded from paper, every other row a field.
+ * periodic rows and the first test result recorded from paper, every other row a field. With
+ * `long` values, the workplace training's material field is drawn for the long material.
  */
-export function trainingSheetFormSample(domain: SheetDomain) {
-  const { data } = trainingSheetSamples(domain)[0]!;
+export function trainingSheetFormSample(
+  domain: SheetDomain,
+  values: 'records' | 'long' = 'records'
+) {
+  const sample = domain === 'ssm' ? ssmSample : suSample;
+  const data = values === 'long' ? longSample(domain) : sample(true);
   const form = paperForm(domain);
   for (const key of Object.keys(form.rows)) form.rows[key] = !['p1', 'p2', 't1'].includes(key);
   return {
@@ -291,8 +311,8 @@ export function trainingSheetFormSample(domain: SheetDomain) {
       ...form,
       on: true,
       h1: { paper: true, materialPlaceholder: '' },
-      // One line of the field's width, as the API draws it for the sample's workplace material.
-      h2: { paper: false, materialPlaceholder: materialFieldLines(1) },
+      // As the API draws it for the sample's workplace material: one line, or five for the long.
+      h2: { paper: false, materialPlaceholder: materialFieldLines(values === 'long' ? 5 : 1) },
     },
   };
 }

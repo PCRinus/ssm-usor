@@ -7,7 +7,6 @@ import { documentTextOf, entries, fireFiles, read } from './read';
 
 // tools/import/table_style.py says why.
 const houseTable = '<w:tblStyle w:val="HouseTable"/>';
-// The training sheets' rubrics, ruled in 0.5 pt throughout as a form.
 const formGrid = '<w:tblCaption w:val="FormGrid"/>';
 const houseLines =
   '<w:tblBorders><w:top w:val="single" w:sz="8" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="8" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="8" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="8" w:space="0" w:color="000000"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tblBorders>';

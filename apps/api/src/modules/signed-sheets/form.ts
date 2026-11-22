@@ -173,8 +173,35 @@ const testBoxes: Record<string, Box> = {
   material: { chars: 47, lines: 3 },
   examiner: { chars: 25, lines: 2 },
 };
-// The material's box spans the hiring block's grid, the text column less its padding.
-const hiringBoxes: Record<string, Box> = { material: { chars: 91, lines: 5 } };
+// The hiring blocks and the admission are build_sheets.py's grids of twelve columns at 10 pt: a
+// field holds as many characters a line as its rubric's columns, the material the whole width.
+const material: Box = { chars: 91, lines: 5 };
+const twoLines = (chars: number): Box => ({ chars, lines: 2 });
+const hiringBoxes: Record<TrainingDomain, Record<'h1' | 'h2', Record<string, Box>>> = {
+  ssm: {
+    h1: { trainer: twoLines(21), trainer_job_title: twoLines(28), material },
+    h2: {
+      place: twoLines(67),
+      trainer: twoLines(28),
+      trainer_job_title: twoLines(44),
+      material,
+    },
+  },
+  su: {
+    h1: { trainer: twoLines(21), trainer_job_title: twoLines(28), material },
+    h2: {
+      place: twoLines(44),
+      occupation: twoLines(21),
+      trainer: twoLines(28),
+      trainer_job_title: twoLines(44),
+      material,
+    },
+  },
+};
+const admissionBoxes: Record<TrainingDomain, Record<string, Box>> = {
+  ssm: { name: twoLines(44), job_title: twoLines(44) },
+  su: { name: twoLines(36), job_title: twoLines(28) },
+};
 const noteBox: Box = { chars: 11, lines: 2 };
 
 function linesAt(text: string, width: number) {
@@ -205,10 +232,9 @@ export function wrapToBox(text: string, box: Box) {
  * the field by: as many as the material wraps to when the sheet is drawn up with it, else as
  * many as the box holds, for a material recorded later.
  */
-export function materialPlaceholder(material?: string) {
-  const box = hiringBoxes.material!;
-  const lines = material === undefined ? box.lines : wrapToBox(material, box).split('\n').length;
-  return Array.from({ length: lines }, () => '\u2002'.repeat(box.chars)).join('\n');
+export function materialPlaceholder(text?: string) {
+  const lines = text === undefined ? material.lines : wrapToBox(text, material).split('\n').length;
+  return Array.from({ length: lines }, () => '\u2002'.repeat(material.chars)).join('\n');
 }
 
 function boxed(values: Record<string, string>, boxes: Record<string, Box>, rowKey: string) {
@@ -278,13 +304,19 @@ export function rowValues(
     hiring.place = place;
     if (domain === 'su') hiring.occupation = record.occupation;
   }
-  const values = { ...boxed(hiring, hiringBoxes, rowKey), ...note };
+  const values = {
+    ...boxed(hiring, hiringBoxes[domain][rowKey === 'h2' ? 'h2' : 'h1'], rowKey),
+    ...note,
+  };
   if (rowKey !== 'h2') return values;
   const { admission } = record;
   return {
     ...values,
-    adm_name: admission?.name ?? '',
-    adm_job_title: admission?.jobTitle ?? '',
+    ...boxed(
+      { name: admission?.name ?? '', job_title: admission?.jobTitle ?? '' },
+      admissionBoxes[domain],
+      'adm'
+    ),
     adm_date: admission ? printedDate(admission.admittedOn) : '',
   };
 }

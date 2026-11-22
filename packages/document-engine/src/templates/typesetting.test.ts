@@ -110,14 +110,15 @@ describe('typesetting', () => {
   });
 
   it.each(typesetFiles)('%s uses one font, the body and title sizes, and Romanian', (name) => {
+    const xml = bodyOf(name);
     // The back of the fire-safety sheet's cover holds the model's warning alone, set large.
-    const xml =
+    const sized =
       name === suSheet
-        ? bodyOf(name).replace(
+        ? xml.replace(
             /<w:p\b(?:(?!<\/w:p>)[\s\S])*?(?:ATENȚIE!|Nicio persoană nu va fi admisă la lucru)[\s\S]*?<\/w:p>/g,
             ''
           )
-        : bodyOf(name);
+        : xml;
     // Of the runs that carry text, here and below: a paragraph's end mark may keep a font, a
     // size or a language of its own, which nothing shows and LibreOffice does not let go of.
     const fonts = new Set(
@@ -129,7 +130,7 @@ describe('typesetting', () => {
     );
     const sizes = new Set(
       [
-        ...xml.matchAll(
+        ...sized.matchAll(
           /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:sz w:val="(\d+)"\/>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/g
         ),
       ].map((match) => Number(match[1]) / 2)
@@ -148,7 +149,7 @@ describe('typesetting', () => {
     // cover page. Smaller only inside a table too wide for the body size and for the label of a
     // signing space, never for a heading over running text.
     expect([...sizes].filter((size) => ![7, 8, 9, 10, 11, 12, 14, 16].includes(size))).toEqual([]);
-    const outsideTables = xml
+    const outsideTables = sized
       .replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '')
       .replace(/<w:p\b(?:(?!<\/w:p>)[\s\S])*?>semnătura și ștampila<\/w:t><\/w:r><\/w:p>/g, '');
     expect(outsideTables).not.toMatch(
@@ -239,11 +240,9 @@ describe('typesetting', () => {
     expect(bodyOf(name)).not.toContain('<w:hyperlink');
   });
 
-  // The training sheets name the employee from their second page, the fire-safety one after its
-  // covers (tools/import/build_sheets.py).
   const sheetHeaders: Record<string, string[]> = {
-    'fisa_instruire_ssm.docx': ['Fișa SSM · {{employee.name}}Pag. 1 din 1', 'Pag. 1 din 1'],
-    'fire/fisa_instructaj_su.docx': ['Fișa SU · {{employee.name}}Pag. 1 din 1'],
+    'fisa_instruire_ssm.docx': ['Fișa SSM · {{employee.headerName}}Pag. 1 din 1', 'Pag. 1 din 1'],
+    'fire/fisa_instructaj_su.docx': ['Fișa SU · {{employee.headerName}}Pag. 1 din 1'],
   };
 
   it.each(typesetFiles)(

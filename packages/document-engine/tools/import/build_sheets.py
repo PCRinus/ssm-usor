@@ -47,6 +47,9 @@ GRID_UNITS = 12
 RUBRIC_HEIGHT = 620
 # The house signing space: 25 mm for a signature and a stamp.
 SIGNING_ROOM = 1417
+# The signer never wraps a value, it sets a line too long for its field smaller: a name, a job title,
+# a place or an occupation gets two lines, which the API wraps it to (`form.ts`).
+TWO_LINE_FIELDS = ('trainer', 'trainer_job_title', 'place', 'occupation', 'name', 'job_title')
 # The rows of a periodic table the signed sheet holds, those of a page (rowCapacity in contracts).
 ROW_CAPACITY = 17
 # The signed sheet's rows of test results: the five the paper sheet prints at the least.
@@ -56,12 +59,12 @@ TRANSCRIPTION_LINE_FIELD = 'transcription_line'
 CONTROL_IDS = itertools.count(1)
 # Apple's viewers draw a multiline field's text at about 1.2 times the size plus 1.2 pt a line, and
 # take 3.5 pt more for the field (APPLE_LEADING, APPLE_LINE_GAP, APPLE_PADDING in the signer),
-# where LibreOffice gives a 10 pt line 11.7 pt: a field the merge sizes to its text has its lines
-# spaced to Apple's and a 7 pt line after them (the smallest size of the house style), so that it
-# holds the text at the body size.
+# where LibreOffice gives a 10 pt line 11.7 pt: a field of several lines at the body size has its
+# lines spaced to Apple's and a 7 pt line after them (the smallest size of the house style), so
+# that the signer sets its text at the body size and no smaller.
 MERGED_FIELD_LINE = 272
 MERGED_FIELD_PADDING_SIZE = 7
-HEADER_LINES = {'ssm': 'Fișa SSM · {{employee.name}}', 'su': 'Fișa SU · {{employee.name}}'}
+HEADER_LINES = {'ssm': 'Fișa SSM · {{employee.headerName}}', 'su': 'Fișa SU · {{employee.headerName}}'}
 HEADER_ID = 'rIdSheetHeader'
 FIRST_HEADER_ID = 'rIdSheetFirstHeader'
 
@@ -174,25 +177,24 @@ def block_title(text):
     return paragraph(text, bold=True, before=240, after=80, keep=True)
 
 
-def control(name, room, lines=1, size=FIELD_SIZE, placeholder=None):
+def control(name, room, lines=1, size=FIELD_SIZE, placeholder=None, spaced=False):
     """A plain-text content control titled `name`, in a cell whose text is `room` twips wide.
     LibreOffice exports it as a text field as wide and as tall as its placeholder, so the
     placeholder is lines of en spaces across the cell, or `placeholder`, a tag the merge fills
-    with as many such lines as the field is to hold."""
+    with as many such lines as the field is to hold. `spaced` lines are set to Apple's leading
+    (MERGED_FIELD_LINE), as a placeholder's are."""
     r = rpr(size)
 
     def filler(size):
         count = max(1, int((room - 60) // (size * 10)))
         return f'<w:r>{rpr(size)}<w:t xml:space="preserve">{chr(0x2002) * count}</w:t></w:r>'
 
+    # The last line as wide as the others: LibreOffice takes the field's width from it.
+    padding = f'<w:r>{rpr(MERGED_FIELD_PADDING_SIZE)}<w:br/></w:r>{filler(MERGED_FIELD_PADDING_SIZE)}'
     if placeholder:
-        # The last line as wide as the others: LibreOffice takes the field's width from it.
-        content = (
-            f'<w:r>{r}<w:t xml:space="preserve">{placeholder}</w:t></w:r>'
-            f'<w:r>{rpr(MERGED_FIELD_PADDING_SIZE)}<w:br/></w:r>{filler(MERGED_FIELD_PADDING_SIZE)}'
-        )
+        content = f'<w:r>{r}<w:t xml:space="preserve">{placeholder}</w:t></w:r>{padding}'
     else:
-        content = f'<w:r>{r}<w:br/></w:r>'.join([filler(size)] * lines)
+        content = f'<w:r>{r}<w:br/></w:r>'.join([filler(size)] * lines) + (padding if spaced else '')
     multiline = ' w:multiLine="1"' if lines > 1 or placeholder else ''
     return (
         f'<w:sdt><w:sdtPr>{r}<w:alias w:val="{name}"/><w:tag w:val="{name}"/>'
@@ -216,8 +218,11 @@ def text_value(value):
 
 
 def field_value(name, placeholder=None):
-    line = MERGED_FIELD_LINE if placeholder else None
-    return lambda room: inline_paragraph(control(name, room, size=10, placeholder=placeholder), size=10, line=line)
+    lines = 2 if name.split('_', 1)[1] in TWO_LINE_FIELDS else 1
+    spaced = bool(placeholder) or lines > 1
+    return lambda room: inline_paragraph(
+        control(name, room, lines, size=10, placeholder=placeholder, spaced=spaced), size=10,
+        line=MERGED_FIELD_LINE if spaced else None)
 
 
 def signature_rows(slots):
@@ -244,8 +249,7 @@ def signature_field(name):
 
 
 def form_grid(lines):
-    """`lines` of boxes (`rubric`, `signature_rows`) on a grid of twelve units. The block moves to
-    the next page whole: every row but the last keeps with the next."""
+    """`lines` of boxes (`rubric`, `signature_rows`) on a grid of twelve units."""
     drawn = []
     for line in lines:
         cells, at = [], 0
@@ -765,9 +769,6 @@ def has_covers(body):
 
 
 def document_xml(body, namespaces):
-    """The occupational safety sheet's first page shows the page number alone, its title block
-    naming the sheet; the fire-safety covers, a section of their own, show nothing, and the pages
-    after them count from the front cover."""
     # Word needs a paragraph after a closing table; at 1 pt it cannot spill onto a page of its own.
     closing = (
         '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:spacing w:before="0" w:after="0" w:line="20" '

@@ -4,6 +4,7 @@ import {
   blankRowsAfter,
   buildTrainingSheetData,
   commuteMeansPhrase,
+  headerName,
   hoursOf,
   missingSheetDataOf,
   type SheetRecord,
@@ -141,6 +142,7 @@ describe('buildTrainingSheetData', () => {
   it('prints the identification block from the employee, the position and the workplace', () => {
     expect(buildTrainingSheetData(facts).employee).toEqual({
       name: 'ȘTEFĂNESCU Ana Maria',
+      headerName: 'ȘTEFĂNESCU Ana Maria',
       employeeNumber: '0042',
       bloodGroup: 'A(II) Rh+',
       homeAddress: 'Str. Lungă 12, Timișoara',
@@ -548,5 +550,21 @@ describe('trainingSheetFileName', () => {
     expect(
       trainingSheetFileName('su', { lastName: 'Ștefănescu-Țurcanu', firstName: 'ana maria' })
     ).toBe('Fisa-SU-Stefanescu-Turcanu-Ana-Maria.pdf');
+  });
+});
+
+describe('headerName', () => {
+  it('keeps a name that fits the running header whole', () => {
+    const name = 'CONSTANTINESCU-MUNTEANU-POPOVICIU Alexandra-Ioana-Maria-Magdalena';
+    expect(headerName(name, 'ssm')).toBe(name);
+  });
+
+  it('cuts a name too long for the line with an ellipsis, a little more for the longer prefix', () => {
+    const name = `${'CONSTANTINESCU-MUNTEANU-POPOVICIU-VLĂDESCU '.repeat(3)}Alexandra-Ioana`;
+    const ssm = headerName(name, 'ssm');
+    const su = headerName(name, 'su');
+    expect(ssm.endsWith('…')).toBe(true);
+    expect(name.startsWith(ssm.slice(0, -1))).toBe(true);
+    expect(su.length).toBeGreaterThanOrEqual(ssm.length);
   });
 });
