@@ -309,6 +309,11 @@ describe('typesetting', () => {
           /\{\{#branding\}\}Document generat cu SSM Ușor · ssmusor\.ro\{\{\/branding\}\}$/
         );
       }
+      // A first page of its own prints no footer unless its section names one for it.
+      for (const section of sections.filter((each) =>
+        /<w:titlePg(?: w:val="(?:true|1)")?\/>/.test(each)
+      ))
+        expect(section).toContain('<w:footerReference w:type="first"');
     }
   );
 
