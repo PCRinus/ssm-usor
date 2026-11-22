@@ -779,7 +779,12 @@ def document_xml(body, namespaces):
     if has_covers(body):
         last = section_properties(running)
     else:
-        last = section_properties(running + f'<w:headerReference w:type="first" r:id="{FIRST_HEADER_ID}"/>')
+        # A first page of its own takes no footer from the default one, so it names it again.
+        last = section_properties(
+            running
+            + f'<w:headerReference w:type="first" r:id="{FIRST_HEADER_ID}"/>'
+            + '<w:footerReference w:type="first" r:id="rId5"/>'
+        )
     return (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
         f'<w:document {namespaces}><w:body>{body}{closing}{last}</w:body></w:document>'
