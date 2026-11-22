@@ -18,7 +18,9 @@ export const Route = createFileRoute('/_authenticated/clienti/import/$importId')
         })
       );
       return {
-        crumb: detail.intoExistingClient ? 'Completare din documentație' : 'Import din documente',
+        crumb: detail.intoExistingClient
+          ? 'Import pentru un client existent'
+          : 'Import din documente',
       };
     } catch {
       return { crumb: 'Import din documente' };

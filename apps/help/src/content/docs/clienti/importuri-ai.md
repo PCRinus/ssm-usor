@@ -44,7 +44,7 @@ Lângă fiecare import vezi când a fost pornit și de cine. Un grup fără nici
 
 Pe **Deschise**, **Import nou** pornește un import:
 
-- pe tabul **Clienți**, alegi **Client nou din documente**, ca să creezi un client din documentația lui, sau **Completează un client din documente**, ca să alegi întâi clientul și apoi să încarci documentația lui; meniul îți arată și câte credite AI îți mai rămân;
+- pe tabul **Clienți**, alegi **Client nou din documente**, ca să creezi un client din documentația lui, sau **Client existent din documente**, ca să alegi întâi clientul și apoi să încarci documentația lui; meniul îți arată și câte credite AI îți mai rămân;
 - pe tabul **Lucrători**, alegi clientul, apoi încarci fotografiile fișelor lui de instruire.
 
 Ce urmează e la fel ca atunci când pornești importul din pagina clientului. Vezi [Importul unui client din documente](/clienti/import/#importul-unui-client-din-documente) și [Importul lucrătorilor din fișe](/clienti/import/#importul-lucrătorilor-din-fișe).

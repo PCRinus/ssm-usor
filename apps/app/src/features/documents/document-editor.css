@@ -25,17 +25,89 @@
 /* The editor declares the same colour names as the app (--primary, --input…) on its own root, in
    another format, so inside it the app's colours are reached through names it does not use. */
 :root {
-  --app-primary: var(--primary);
-  --app-secondary: var(--secondary);
+  --app-background: var(--background);
   --app-foreground: var(--foreground);
+  --app-primary: var(--primary);
+  --app-primary-foreground: var(--primary-foreground);
+  --app-secondary: var(--secondary);
+  --app-secondary-foreground: var(--secondary-foreground);
   --app-muted: var(--muted);
   --app-muted-foreground: var(--muted-foreground);
+  --app-accent: var(--accent);
+  --app-accent-foreground: var(--accent-foreground);
+  --app-destructive: var(--destructive);
   --app-card: var(--card);
   --app-input: var(--input);
   --app-border: var(--border);
   --app-section-tab: var(--section-tab);
   --app-unfilled-mark: color-mix(in srgb, var(--warning-border) 45%, transparent);
   --app-unfilled-mark-active: var(--warning-border);
+}
+
+/* The editor ships its own unlayered .bg-primary, .text-foreground… reading hsl(var(--primary)).
+   They outrank Tailwind's layered utilities and, given the app's hex values, resolve to nothing,
+   so the utilities our controls use are restated here with the app's colours. */
+.docx-editor :is([data-editor-title-back], [data-editor-title-actions]) {
+  .bg-primary {
+    background-color: var(--app-primary);
+  }
+  .bg-secondary {
+    background-color: var(--app-secondary);
+  }
+  .bg-muted {
+    background-color: var(--app-muted);
+  }
+  .bg-background {
+    background-color: var(--app-background);
+  }
+  .bg-destructive {
+    background-color: var(--app-destructive);
+  }
+  .text-primary {
+    color: var(--app-primary);
+  }
+  .text-primary-foreground {
+    color: var(--app-primary-foreground);
+  }
+  .text-secondary-foreground {
+    color: var(--app-secondary-foreground);
+  }
+  .text-foreground {
+    color: var(--app-foreground);
+  }
+  .text-muted-foreground {
+    color: var(--app-muted-foreground);
+  }
+  .text-destructive {
+    color: var(--app-destructive);
+  }
+  .border-border {
+    border-color: var(--app-border);
+  }
+  .border-input {
+    border-color: var(--app-input);
+  }
+  .hover\:bg-muted:hover {
+    background-color: var(--app-muted);
+  }
+  .hover\:bg-accent:hover {
+    background-color: var(--app-accent);
+  }
+  .hover\:text-foreground:hover {
+    color: var(--app-foreground);
+  }
+  .hover\:text-accent-foreground:hover {
+    color: var(--app-accent-foreground);
+  }
+  .hover\:bg-primary\/90:hover {
+    background-color: color-mix(in srgb, var(--app-primary) 90%, transparent);
+  }
+  .hover\:bg-secondary\/80:hover {
+    background-color: color-mix(in srgb, var(--app-secondary) 80%, transparent);
+  }
+  .hover\:bg-destructive\/90:hover {
+    background-color: color-mix(in srgb, var(--app-destructive) 90%, transparent);
+  }
 }
 
 .docx-editor .docx-nav {
@@ -95,4 +167,32 @@
   color: var(--app-primary) !important;
   text-decoration: underline !important;
   text-decoration-skip-spaces: none !important;
+}
+
+/* A phone has one bar of ours instead of the editor's title row and toolbar (PhoneEditorBar). The
+   editor sets its row's padding and its title's display inline, which only `!important`
+   outranks. The packaged toolbar stays mounted, hidden, beside the bar's own. */
+.docx-editor:has([data-editor-phone-bar]) div:has(> .docx-toolbar:not([data-editor-phone-bar] *)) {
+  display: none;
+}
+
+:has(> [data-editor-phone-bar]) {
+  padding: 0 !important;
+}
+
+:has(> [data-editor-phone-bar]) > :has(+ [data-editor-phone-bar]) {
+  display: none !important;
+}
+
+/* A group whose parts are all hidden still renders, empty, with its separator. */
+[data-editor-phone-bar] .docx-toolbar__group:empty + .docx-toolbar__separator,
+[data-editor-phone-bar] .docx-toolbar__separator:has(+ .docx-toolbar__group:empty) {
+  display: none;
+}
+
+/* The toolbar folds whole groups into „⋯”: with the packaged margin and padding a phone leaves
+   too little room for the first group, and the bar shows only „⋯”. */
+[data-editor-phone-bar] .docx-toolbar {
+  margin: 0.5rem;
+  padding-inline: 0.25rem;
 }

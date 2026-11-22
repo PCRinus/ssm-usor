@@ -277,7 +277,7 @@ describe('the Importuri AI page', () => {
     await user.click(await screen.findByTestId('imports-complete-client'));
     const picker = await screen.findByTestId('imports-client-picker');
     expect(
-      within(picker).getByRole('heading', { name: 'Completează un client din documente' })
+      within(picker).getByRole('heading', { name: 'Client existent din documente' })
     ).toBeTruthy();
     const continueButton = within(picker).getByTestId('imports-client-continue');
     expect((continueButton as HTMLButtonElement).disabled).toBe(true);
@@ -287,9 +287,7 @@ describe('the Importuri AI page', () => {
     await user.click(continueButton);
 
     const completing = await screen.findByTestId('import-upload-dialog');
-    expect(
-      within(completing).getByRole('heading', { name: 'Completează din documentație' })
-    ).toBeTruthy();
+    expect(within(completing).getByRole('heading', { name: 'Importă cu AI' })).toBeTruthy();
     expect(within(completing).getByTestId('import-upload-one-client').textContent).toContain(
       'Hotel Carpați Sinaia SRL'
     );

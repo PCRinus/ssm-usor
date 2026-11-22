@@ -33,7 +33,7 @@ const clientWays: { way: NewImportWay; label: string; icon: LucideIcon; testId: 
   },
   {
     way: 'complete',
-    label: 'Completează un client din documente',
+    label: 'Client existent din documente',
     icon: FilePen,
     testId: 'imports-complete-client',
   },

@@ -37,6 +37,7 @@ export function ServiceContractEditor({
         invalidate: () => queryClient.invalidateQueries({ queryKey }),
         // Every contract has the same title, so the company is named beside it.
         arrow: back,
+        company: companyName,
         back: (
           <span className={cn('flex min-w-0 items-center', backGap)}>
             {back}
