@@ -1,4 +1,4 @@
-import type { DocumentFileFormat } from '@ssm-usor/contracts';
+import { type DocumentFileFormat, numberedTitle } from '@ssm-usor/contracts';
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { requireDocx } from '../../lib/docx';
@@ -43,7 +43,7 @@ export async function documentDownloadLink(
   const { data, error } = await db
     .from('document_revisions')
     .select(
-      'docx_path, pdf_path, revision, client_documents(title, period), document_signed_copies(storage_path)'
+      'docx_path, pdf_path, revision, client_documents(title, period, type_key), document_signed_copies(storage_path)'
     )
     .eq('id', revisionId)
     .eq('document_id', documentId)
@@ -132,5 +132,11 @@ export async function documentAnnexFile(
 const annexCodes = { ssm: 'I.P.S.S.M.', su: 'I.P.S.U.' } as const;
 
 // A dated document's year tells its files apart from the other years'.
-export const documentFileName = (document: { title: string; period: number | null }) =>
-  fileNameOf([document.title, document.period].filter(Boolean).join(' '));
+export const documentFileName = (document: {
+  type_key: string;
+  title: string;
+  period: number | null;
+}) =>
+  fileNameOf(
+    numberedTitle(document.type_key, [document.title, document.period].filter(Boolean).join(' '))
+  );

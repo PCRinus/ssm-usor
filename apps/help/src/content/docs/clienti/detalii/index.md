@@ -72,7 +72,7 @@ Denumirea și CUI-ul sunt deasupra tabului, în capul paginii clientului, așa c
 
 Persoana care reprezintă legal firma, de obicei administratorul. Pe rândul **Reprezentant legal** vezi numele, iar dedesubt funcția și, când e legat de un lucrător, „și lucrător al firmei” cu numele lucrătorului, care îi deschide pagina. **Modifică** de pe rând deschide câmpurile lui; cât timp nu are nici nume, nici funcție, butonul se numește **Adaugă**.
 
-Numele și funcția lui se tipăresc în deciziile generate, în alte documente din seturile SSM și SU, cum e fișa obiectivului, și în actul adițional privind semnarea electronică.
+Numele și funcția lui se tipăresc în deciziile generate, în alte documente din seturile SSM și SU, cum e fișa obiectivului (7.1), și în actul adițional privind semnarea electronică.
 
 Cât timp lipsește numele sau funcția, seturile de documente SSM și SU nu se pot genera, iar lucrătorii nu pot primi actul adițional în portal. Contractul de prestări servicii le cere și el.
 

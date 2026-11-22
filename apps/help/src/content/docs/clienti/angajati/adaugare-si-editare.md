@@ -196,7 +196,7 @@ Unde lucrează lucrătorul, dintre punctele de lucru ale clientului. Când adaug
 
 La un client cu mai multe puncte de lucru active, fișele cer punctul de lucru, pentru că „Locul de muncă” de pe fișă tipărește punctul de lucru împreună cu zona de lucru a postului, de exemplu „Str. Fabricii 3 – Atelier”. De aceea formularul nu-l marchează nici obligatoriu, nici opțional: poți salva lucrătorul fără el, dar la un astfel de client fișele lui nu se pot întocmi până nu-l alegi.
 
-Fișa obiectivului din setul SU numără lucrătorii fiecărei clădiri, de exemplu „Clădirea 1 (Sediu) – 4; Clădirea 2 (Atelier) – 9”, când fiecare lucrător are ales un punct de lucru care e clădire. Dacă un lucrător nu are punct de lucru, lucrează pe un șantier sau la un sediu unde nu se desfășoară activitate, fișa tipărește doar numărul total și lasă numărul pe clădiri de completat.
+Fișa obiectivului (7.1) din setul SU numără lucrătorii fiecărei clădiri, de exemplu „Clădirea 1 (Sediu) – 4; Clădirea 2 (Atelier) – 9”, când fiecare lucrător are ales un punct de lucru care e clădire. Dacă un lucrător nu are punct de lucru, lucrează pe un șantier sau la un sediu unde nu se desfășoară activitate, fișa tipărește doar numărul total și lasă numărul pe clădiri de completat.
 
 Dacă punctul de lucru lipsește, alege **Adaugă un punct de lucru nou…**: îl adaugi pe loc și formularul îl alege. Un punct de lucru arhivat rămâne la lucrătorii care îl aveau, marcat **Arhivat**, dar nu mai poate fi ales din nou. Dacă punctul ales a fost arhivat între timp, vezi sub câmp „Punctul de lucru ales nu mai este activ la acest client. Alege altul.”
 

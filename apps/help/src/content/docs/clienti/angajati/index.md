@@ -177,7 +177,7 @@ Doar în SU: au trecut 12 luni de la ultimul test promovat, iar testul anual îl
 
 Aplicația numără lucrătorii actuali ai clientului; foștii lucrători nu intră în număr. După acest număr se decide ce documente îi trebuie clientului:
 
-- de la 10 lucrători, setul SSM cere decizia privind reprezentanții lucrătorilor: unul între 10 și 49 de lucrători, doi între 50 și 100, iar peste 100 numărul din art. 60 alin. (3) (HG 1425/2006, art. 53 alin. (2));
+- de la 10 lucrători, setul SSM cere decizia privind reprezentanții lucrătorilor (1.5): unul între 10 și 49 de lucrători, doi între 50 și 100, iar peste 100 numărul din art. 60 alin. (3) (HG 1425/2006, art. 53 alin. (2));
 - de la 10 lucrători, setul SU cuprinde și documentele pe care OMAI 163/2007 le cere doar operatorilor cu cel puțin numărul de salariați al unei întreprinderi mici (art. 20 alin. (1)), adică cel puțin 10 salariați; legea se uită la numărul mediu anual de salariați, iar aplicația numără lucrătorii actuali.
 
 Un document generat când clientul avea 10 lucrători rămâne în set și dacă numărul scade sub 10. Ține deci lista la zi: un lucrător care a plecat și nu e trecut la foști schimbă ce documente îi cere aplicația clientului.

@@ -17,6 +17,7 @@ import {
   generateDocumentsRequestSchema,
   isDatedDocumentType,
   maxFirstFireDecisionNumber,
+  numberedTitle,
 } from './documents';
 import { trainingSheetTypeKeys } from './training-sheets';
 
@@ -31,6 +32,23 @@ describe('documentNumberOf', () => {
     expect(Object.values(trainingSheetTypeKeys).map(documentNumberOf)).toEqual([null, null]);
     expect(documentNumberOf('provider_own_form')).toBeNull();
     expect(documentNumberOf('constructor')).toBeNull();
+  });
+});
+
+describe('numberedTitle', () => {
+  it('puts the binder number before the title', () => {
+    expect(
+      numberedTitle('own_instructions', 'Instrucțiuni proprii de securitate și sănătate în muncă')
+    ).toBe('3.2 Instrucțiuni proprii de securitate și sănătate în muncă');
+    expect(numberedTitle('fire_annual_report', 'Raport anual de evaluare 2026')).toBe(
+      '7.2 Raport anual de evaluare 2026'
+    );
+  });
+
+  it('leaves the title alone for a type outside the binder', () => {
+    expect(numberedTitle('service_contract', 'Contract de prestări servicii')).toBe(
+      'Contract de prestări servicii'
+    );
   });
 });
 

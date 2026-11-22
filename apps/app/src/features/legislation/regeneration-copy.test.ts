@@ -69,7 +69,7 @@ describe('the regeneration copy', () => {
     expect(copy.lines.map((line) => `${line.lead}${line.rest}`)).toEqual([
       '11 documente emise rămân în vigoare. Fiecare primește o ciornă nouă, pe care o emiți de pe pagina clientului.',
       '11 ciorne se înlocuiesc cu ciorne noi.',
-      '2 ciorne editate de mână rămân neatinse, ca să nu pierzi ce ai scris în ele: „event_registers”, la Client 0; „event_registers”, la Client 1.',
+      '2 ciorne editate de mână rămân neatinse, ca să nu pierzi ce ai scris în ele: „7.2 event_registers”, la Client 0; „7.2 event_registers”, la Client 1.',
     ]);
   });
 
@@ -85,7 +85,7 @@ describe('the regeneration copy', () => {
         1
       )
     ).toEqual({
-      title: 'Decizia privind responsabilii cu instruirea, regenerat la 3 clienți',
+      title: '1.1 Decizia privind responsabilii cu instruirea, regenerat la 3 clienți',
       description: '3 ciorne noi de emis. Ciorna editată de mână a rămas neatinsă.',
       shortfall: null,
     });

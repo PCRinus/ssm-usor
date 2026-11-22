@@ -302,6 +302,11 @@ export function documentNumberOf(typeKey: string): string | null {
   return documentNumbers.get(typeKey) ?? null;
 }
 
+export function numberedTitle(typeKey: string, title: string) {
+  const number = documentNumberOf(typeKey);
+  return number ? `${number} ${title}` : title;
+}
+
 /**
  * The types a client holds once per period rather than once (ADR 020), each period a document
  * with revisions of its own. Mirrors the check `client_documents_period_only_dated`.

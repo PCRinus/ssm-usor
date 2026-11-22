@@ -66,7 +66,7 @@ Când îl așteaptă un test pe un lucrător anume, ce vezi pe pagina lui și cu
 
 Cu cât testul are mai multe întrebări active, cu atât o reluare seamănă mai puțin cu încercarea dinainte.
 
-Testul tipărit din documentația clientului cuprinde toate întrebările active ale testului, nu doar zece.
+Testul tipărit din documentația clientului (5.1 în setul SSM; 4.1 și 4.2 în setul SU) cuprinde toate întrebările active ale testului, nu doar zece.
 
 Numărul de întrebări și pragul sunt aceleași pentru toate organizațiile și nu se schimbă din aplicație.
 
@@ -84,7 +84,7 @@ Conținutul întrebărilor e al tău: aplicația nu verifică dacă un răspuns 
 
 ## Minimum zece întrebări active
 
-Fiecare test păstrează cel puțin zece întrebări active, ca să ajungă pentru o susținere în portal. Decizia privind instruirea în domeniul situațiilor de urgență din setul SU al clientului promite chiar asta: „un test grilă de minimum 10 întrebări”.
+Fiecare test păstrează cel puțin zece întrebări active, ca să ajungă pentru o susținere în portal. Decizia privind instruirea în domeniul situațiilor de urgență (1.2) din setul SU al clientului promite chiar asta: „un test grilă de minimum 10 întrebări”.
 
 Lângă numărul de întrebări active scrie **minimum 10** cât timp testul are zece sau mai puține. Atunci **Ascunde din test** nu ascunde întrebarea, ci îți spune: „Testul are minimum 10 întrebări active. Adaugă întâi una proprie, apoi o poți ascunde pe aceasta.” Butonul **Adaugă o întrebare** din mesaj deschide formularul pentru acel test. O întrebare proprie nu se poate șterge din același motiv.
 
@@ -92,6 +92,6 @@ Lângă numărul de întrebări active scrie **minimum 10** cât timp testul are
 
 Temeiul spune pe ce act și articol se sprijină întrebarea, de exemplu „Legea 319/2006, art. 23 alin. (1) lit. e)”. Actele pe care aplicația le urmărește în [Legislație](/legislatie/) apar ca linkuri: fiecare deschide, într-un tab nou, Portalul Legislativ la articolul sau anexa citată, în forma consolidată actuală. Cât timp locul articolului nu e cunoscut, linkul deschide pagina actului.
 
-Ce nu numește un act urmărit rămâne text simplu, de exemplu trimiterile la instrucțiunile proprii (IPSSM, IPSU), care nu au o pagină publică.
+Ce nu numește un act urmărit rămâne text simplu, de exemplu trimiterile la instrucțiunile proprii (IPSSM 3.2, IPSU 2.1), care nu au o pagină publică.
 
 La o întrebare proprie, temeiul îl scrii cum îl scrie toată lumea. Aplicația recunoaște singură actele și articolele din el.

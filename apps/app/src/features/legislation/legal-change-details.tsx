@@ -1,4 +1,4 @@
-import { legalAmendmentOperations } from '@ssm-usor/contracts';
+import { legalAmendmentOperations, numberedTitle } from '@ssm-usor/contracts';
 import { type DiffSegment, wordDiff } from '@ssm-usor/document-engine/token-diff';
 import { Button } from '@ssm-usor/ui/components/button';
 import { ChevronDown } from 'lucide-react';
@@ -53,7 +53,8 @@ function groupPassages(passages: Passage[]): PassageGroup[] {
 }
 
 function placeOf(passage: Passage) {
-  const document = passage.document?.title;
+  const document =
+    passage.document && numberedTitle(passage.document.typeKey, passage.document.title);
   if (passage.citationForm === 'reference') {
     return document ? `trimitere în ${document}` : 'trimitere într-un document';
   }

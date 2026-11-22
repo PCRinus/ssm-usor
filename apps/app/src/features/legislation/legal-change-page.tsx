@@ -23,7 +23,13 @@ import { LoadFailed } from '@/components/load-failed';
 import { formatRoDate } from '@/lib/dates';
 
 import { LegalChangeBack } from './legal-change-back';
-import { appliedSentence, behindText, reachOf, underReviewSentence } from './legal-change-copy';
+import {
+  appliedSentence,
+  behindText,
+  reachOf,
+  titlesOf,
+  underReviewSentence,
+} from './legal-change-copy';
 import { AmendedUnits, ChangedPassages } from './legal-change-details';
 import { LegalChangePending } from './legal-change-pending';
 import { formatDayOf, portalPage } from './legislation-labels';
@@ -34,6 +40,7 @@ import {
   confirmTypesCopy,
   regenerable,
   regenerationFailure,
+  typeTitle,
 } from './regeneration-copy';
 import { useRegenerations } from './regenerations-context';
 import { behindSummaryQueryKey, useBehindSummary } from './use-behind-summary';
@@ -162,6 +169,7 @@ function Summary({ change }: { change: Change }) {
   ];
   const reach = change.resolution === 'open' ? reachOf(touched, change.citedBy) : null;
   const behindKeys = new Set(change.behind.types.map((type) => type.typeKey));
+  const updatedTitles = titlesOf(change.updatedDocuments);
   const behind = change.resolution === 'template_version' && change.behind.documents > 0;
   if (!sentence && !reach && change.updatedDocuments.length === 0 && !behind) return null;
 
@@ -193,10 +201,10 @@ function Summary({ change }: { change: Change }) {
               {index > 0 && '; '}
               {behindKeys.has(document.typeKey) ? (
                 <Link to={documentsTabOf(document.set)} className={textLink}>
-                  {document.title}
+                  {updatedTitles[index]}
                 </Link>
               ) : (
-                document.title
+                updatedTitles[index]
               )}
               , versiunea {document.version} a șablonului
             </Fragment>
@@ -235,7 +243,7 @@ function Regenerate({ change }: { change: Change }) {
     setNotStarted([]);
     try {
       const refused = new Set(await regenerations.startTypes(startable));
-      setNotStarted(startable.filter((type) => refused.has(type.typeKey)).map((t) => t.title));
+      setNotStarted(startable.filter((type) => refused.has(type.typeKey)).map(typeTitle));
     } catch (cause) {
       setFailure(regenerationFailure(cause));
     } finally {

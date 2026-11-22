@@ -30,8 +30,8 @@ function archivedRevision(document: DocumentRow, format: DocumentArchiveFormat) 
 }
 
 /**
- * One file per document of the set, numbered in the binder's order. A Word file holds its
- * annexes, as the PDF made at issuing does.
+ * One file per document of the set, in the binder's order and named by its number in the binder.
+ * A Word file holds its annexes, as the PDF made at issuing does.
  */
 export async function documentArchive(
   db: DataClient,
@@ -64,9 +64,8 @@ export async function documentArchive(
     );
   }
 
-  const digits = Math.max(2, String(entries.length).length);
-  const archived = entries.flatMap(({ document, revision }, index): ArchivedFile[] => {
-    const name = `${String(index + 1).padStart(digits, '0')} ${documentFileName(document)} - rev. ${revision.revision}`;
+  const archived = entries.flatMap(({ document, revision }): ArchivedFile[] => {
+    const name = `${documentFileName(document)} - rev. ${revision.revision}`;
     if (format === 'pdf') {
       return [{ name: `${name}.pdf`, read: () => files.readDocument(revision.pdf_path!) }];
     }

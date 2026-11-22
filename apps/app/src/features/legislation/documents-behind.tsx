@@ -45,6 +45,7 @@ import {
   regenerationFailure,
   setName,
   titleOf,
+  typeTitle,
 } from './regeneration-copy';
 import {
   type FinishedRegeneration,
@@ -227,7 +228,7 @@ export function DocumentsBehind({ set, userId }: { set: DocumentSet; userId: str
             expansion={{
               isOpen: (type) => open.has(type.typeKey),
               onToggle: () => undefined,
-              label: (type) => `Clienții cu ${type.title}`,
+              label: (type) => `Clienții cu ${typeTitle(type)}`,
               render: (type) => <BehindClients type={type} />,
               inline: { detailsId: detailsIdOf },
             }}

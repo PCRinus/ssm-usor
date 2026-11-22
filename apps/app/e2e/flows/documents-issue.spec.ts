@@ -79,7 +79,7 @@ test('a decision is issued with its PDF, and a new draft of it can be made and d
   if (process.env.GOTENBERG_URL) {
     const pdf = await openedPdf(page, firstAid);
     expect(pdf.disposition).toMatch(
-      /^inline; filename="Decizia privind responsabilii cu primul ajutor - rev\. 1\.pdf"; filename\*=UTF-8''/
+      /^inline; filename="1\.3 Decizia privind responsabilii cu primul ajutor - rev\. 1\.pdf"; filename\*=UTF-8''/
     );
     expect(pdf.body.subarray(0, 5).toString()).toBe('%PDF-');
   }

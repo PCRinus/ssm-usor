@@ -1,4 +1,4 @@
-import type { DocumentSet } from '@ssm-usor/contracts';
+import { type DocumentSet, numberedTitle } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
 
 import {
@@ -38,7 +38,10 @@ export async function documentCrumb({
       })
     );
     const item = items.find((each) => each.id === documentId);
-    return { crumb: item && (item.period === null ? item.title : datedTitle(item)) };
+    return {
+      crumb:
+        item && numberedTitle(item.typeKey, item.period === null ? item.title : datedTitle(item)),
+    };
   } catch {
     return { crumb: undefined };
   }

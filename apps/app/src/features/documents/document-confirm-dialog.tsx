@@ -1,4 +1,4 @@
-import { unfilledMark } from '@ssm-usor/contracts';
+import { numberedTitle, unfilledMark } from '@ssm-usor/contracts';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
@@ -88,7 +88,9 @@ export function DocumentConfirmDialog({
       onConfirm={onConfirm}
       onClose={onClose}
     >
-      <span className="font-medium text-foreground">{confirming.document.title}</span>
+      <span className="font-medium text-foreground">
+        {numberedTitle(confirming.document.typeKey, confirming.document.title)}
+      </span>
       {'. '}
       {confirmationText(confirming)}
     </ConfirmDialog>
