@@ -697,8 +697,10 @@ describe('Word 2013 layout of the occupational safety set', () => {
           (each) =>
             each === '<w:p>TABLE</w:p>' || (documentTextOf(each).trim() !== '' && !isItem(each))
         );
+      const quotesOnlyItsFirst =
+        afterNote(texts[index]!) !== texts[index]! && !/[:;]$/u.test(first);
       const alone =
-        (book && first !== '' && more) ||
+        (book && first !== '' && more && !quotesOnlyItsFirst) ||
         (first !== '' && alineats) ||
         /^\(\d+\)/.test(first) ||
         /:\s+\(1\)\s/.test(first) ||

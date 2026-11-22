@@ -528,7 +528,8 @@ def scaled_heading(xml, scale, before):
     return RUN.sub(lambda run: edit_run(run.group(0), change), xml)
 
 
-SPACER_KEPT = re.compile(r'<w:(?:t|drawing|pict|object|sectPr|bookmarkStart|fldChar|instrText|br|numPr)\b|<m:oMath')
+SPACER_KEPT = re.compile(r'<w:(?:t|drawing|pict|object|sectPr|bookmarkStart|bookmarkEnd|fldChar|instrText|br|numPr|pBdr|framePr)\b'
+                         r'|<w:pageBreakBefore(?: w:val="(?:true|1|on)")?/>|<m:oMath')
 
 
 def without_spacers_by_headings(document):
@@ -628,7 +629,7 @@ def is_article(paragraph, styles, numbering):
     return bool(level and re.search(r'<w:lvlText w:val="Art\.', level))
 
 
-def heading_line_of_its_own(first, following, following_is_item, alineat_follows, more=False):
+def heading_line_of_its_own(first, following, following_is_item, alineat_follows, more=False, noted=False):
     """Whether an article's "Art. N." and its "(Preluare din …)" note stand as a line of their
     own, with the article's text from the next line at the margin. Mircea's rule (2026-11-21):
     an article of numbered paragraphs, so "(1)", "(2)" line up, or whose first paragraph
@@ -637,8 +638,13 @@ def heading_line_of_its_own(first, following, following_is_item, alineat_follows
     or a table, which a label run into the first paragraph would leave out (2.2's art. 328, 11's
     art. 65). `first` is the first paragraph's text after the note, `following` the next
     paragraph's after its own, `alineat_follows` whether a later paragraph of the article opens
-    with "(n)", `more` whether it holds such a paragraph or table."""
-    if not first or ALINEAT.match(first) or TITLED.search(first) or alineat_follows or more:
+    with "(n)", `more` whether it holds such a paragraph or table. A `noted` article quotes only
+    its first paragraph unless that introduces what follows, so its note stays run into that
+    paragraph: on a line of its own it would read as the source of the text added after it
+    (2.2's art. 24, 3.2's art. 91 and Legea 307's art. 6)."""
+    if not first or ALINEAT.match(first) or TITLED.search(first) or alineat_follows:
+        return True
+    if more and not (noted and not first.endswith((':', ';'))):
         return True
     return first.endswith(':') and (following_is_item or LABELLED.match(following or '') is not None)
 
@@ -728,7 +734,8 @@ def article_paragraphs(document, styles_xml, numbering_xml, book=False):
         said = unescaped(text_of(xml))
         if not heading_line_of_its_own(after_note(said), after_note(unescaped(text_of(following[1]))) if following[0] == 'p' else None,
                                        is_item, alineat_follows(document, blocks, index, styles, numbering),
-                                       book and holds_more(document, blocks, index, styles, numbering)):
+                                       book and holds_more(document, blocks, index, styles, numbering),
+                                       note_span(said) is not None):
             continue
         end_of_head = note_end(said)
         first = len(said) - len(said[end_of_head:].lstrip())

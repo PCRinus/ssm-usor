@@ -148,6 +148,9 @@ class ArticleLines(unittest.TestCase):
         self.assertFalse(heading_line_of_its_own('Instruirea are ca scop însușirea.', 'Altceva', False, False))
         self.assertFalse(heading_line_of_its_own('Conținutul trusei:', None, False, False))
         self.assertTrue(heading_line_of_its_own('Conținutul trusei:', None, False, False, True))
+        self.assertTrue(heading_line_of_its_own('Conținutul trusei:', None, False, False, True, noted=True))
+        self.assertFalse(heading_line_of_its_own('Măsurile se stabilesc prin lege.', 'Reglementarea aplicabilă', False, False,
+                                                 True, noted=True))
 
     def test_cuts_an_article_after_its_note_and_keeps_the_line_with_its_text(self):
         document = body(paragraph('(Preluare din Legea 319/2006 – Art. 12 alin. (1) lit. c)) (1) Angajatorul asigură', num=1, after=60),
@@ -178,6 +181,11 @@ class ArticleLines(unittest.TestCase):
             self.assertIn('Persoana care observă un incendiu', said)
             self.assertEqual(article_paragraphs(laid, STYLES, NUMBERING, book=True), laid)
             self.assertEqual(article_paragraphs(document, STYLES, NUMBERING), document)
+
+    def test_in_a_book_leaves_a_quoted_first_paragraph_run_into_its_note_over_added_text(self):
+        document = body(paragraph('(Preluare din Legea 319/2006 – Art. 24) Măsurile se stabilesc prin lege.', num=1),
+                        paragraph('Reglementarea aplicabilă este H.G. 355/2007.'))
+        self.assertEqual(article_paragraphs(document, STYLES, NUMBERING, book=True), document)
 
     def test_cuts_an_article_without_a_note_after_its_label(self):
         document = body(paragraph('Periodicitatea controalelor este stabilită astfel:', num=1),
@@ -267,6 +275,16 @@ class Headings(unittest.TestCase):
                                  paragraph('Subcapitolul V.{{roman}}. B', style='Heading2'), spacer, paragraph('text')))
         self.assertEqual(self.spacing(xml, 'Subcapitolul V.{{roman}}. B'), ('0', '120'))
         self.assertNotIn('<w:sz w:val="2"/>', xml)
+
+    def test_keeps_an_empty_paragraph_that_breaks_a_page_draws_a_line_frames_or_ends_a_bookmark(self):
+        kept = ['<w:p><w:pPr><w:pageBreakBefore/></w:pPr></w:p>',
+                '<w:p><w:pPr><w:pBdr><w:bottom w:val="single"/></w:pBdr></w:pPr></w:p>',
+                '<w:p><w:pPr><w:framePr w:w="200"/></w:pPr></w:p>', '<w:p><w:bookmarkEnd w:id="1"/></w:p>']
+        for paragraph_xml in kept:
+            xml = heading_scale(body(paragraph('Capitolul I. A', style='Heading1'), paragraph_xml, paragraph('text')))
+            self.assertIn(paragraph_xml, xml)
+        dropped = '<w:p><w:pPr><w:pageBreakBefore w:val="false"/></w:pPr></w:p>'
+        self.assertNotIn(dropped, heading_scale(body(paragraph('Capitolul I. A', style='Heading1'), dropped, paragraph('text'))))
 
     def test_a_chapter_that_opens_a_section_has_no_room_above_it(self):
         section = '<w:p><w:pPr><w:sectPr><w:pgSz w:orient="landscape"/></w:sectPr></w:pPr></w:p>'
