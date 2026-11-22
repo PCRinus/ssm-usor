@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   FireEquipmentListResponse,
@@ -193,25 +193,44 @@ const firePath = `/clienti/${clientId}/documente-su`;
 
 const mount = (path = firePath) => mountApp(authFixture(makeSession()).client, path);
 
-const contentsEntry = async (number: string) =>
-  (await screen.findAllByTestId('pack-contents-entry')).find(
+const folderOf = async (number: string) =>
+  (await screen.findAllByTestId('pack-folder')).find(
     (entry) => entry.firstElementChild?.textContent === number
   )!;
 
-async function openSection(user: ReturnType<typeof userEvent.setup>, number: string) {
-  const entry = await contentsEntry(number);
-  if (entry.getAttribute('aria-current') !== 'true') await user.click(entry);
-  await waitFor(() => expect(entry.getAttribute('aria-current')).toBe('true'));
+async function showFolders() {
+  const open = screen.queryByTestId('pack-section');
+  if (open) await userEvent.click(within(open).getByTestId('pack-all-sections'));
 }
 
-const summaryOf = async (number: string) =>
-  [...(await contentsEntry(number)).querySelector('[data-testid="pack-section-caption"]')!.children]
+async function openSection(user: ReturnType<typeof userEvent.setup>, number: string) {
+  const open = screen.queryByTestId('pack-section');
+  if (open && within(open).getByTestId('section-number').textContent === number) return;
+  await showFolders();
+  await user.click(await folderOf(number));
+  await waitFor(() =>
+    expect(
+      within(screen.getByTestId('pack-section')).getByTestId('section-number').textContent
+    ).toBe(number)
+  );
+}
+
+const summaryOf = async (number: string) => {
+  await showFolders();
+  return [
+    ...(await folderOf(number)).querySelector('[data-testid="pack-section-caption"]')!.children,
+  ]
     .map((part) => part.textContent)
     .join(' · ');
+};
 
 const shownSection = () => screen.getByTestId('pack-section');
 
 const shownRows = () => within(shownSection()).getAllByRole('row').slice(1);
+
+const titleOf = (row: HTMLElement) =>
+  row.querySelector('[data-testid="document-title"], [data-testid="document-missing-title"]')!
+    .textContent;
 
 const allBuilt = [
   ...(
@@ -275,14 +294,6 @@ afterEach(() => {
 
 installFetchMock();
 
-beforeEach(() => {
-  const media = window.matchMedia;
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn((query: string) => ({ ...media(query), matches: query === '(min-width: 1280px)' }))
-  );
-});
-
 describe('client fire-safety documents', () => {
   it('is a section of the client right after the SSM documents, with a set of its own', async () => {
     mockApi();
@@ -297,9 +308,8 @@ describe('client fire-safety documents', () => {
     });
     expect(tab.getAttribute('aria-current')).toBe('page');
     expect(tab.querySelector('svg')!.getAttribute('class')).toContain('lucide-fire-extinguisher');
-    expect(screen.getByRole('heading', { name: 'Documentația SU' })).toBeTruthy();
     expect((await screen.findByTestId('documents-hint')).textContent).toBe(
-      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente SU, completate cu datele clientului. Cuprinsul din stânga arată ce va conține.'
+      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente SU, completate cu datele clientului. Dosarele de mai jos arată ce va cuprinde: 28 de documente în 7 secțiuni.'
     );
     expect(screen.getByTestId('documents-empty')).toBeTruthy();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
@@ -313,8 +323,8 @@ describe('client fire-safety documents', () => {
     mockApi({ ssmItems: [ssmReport], fireItems: [registers] });
     mount(`/clienti/${clientId}/documente-ssm`);
 
-    await screen.findAllByTestId('pack-contents-entry');
-    expect(screen.getByRole('heading', { name: 'Documentația SSM' })).toBeTruthy();
+    expect((await screen.findAllByTestId('pack-folder')).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('pack-total').textContent).toBe('24 de documente în 13 secțiuni');
     expect(screen.queryByText(/Registre și formulare SU/)).toBeNull();
     expect(requests('/documents').map(({ url }) => url.search)).toEqual(['']);
   });
@@ -323,17 +333,17 @@ describe('client fire-safety documents', () => {
     mockApi();
     mount();
 
-    const entries = await screen.findAllByTestId('pack-empty-entry');
+    const entries = await screen.findAllByTestId('pack-folder');
     expect(entries.map((entry) => entry.textContent)).toEqual([
-      '1Decizii interne10 documente, negenerate',
-      '2Instrucțiuni proprii în domeniul situațiilor de urgență2 documente, negenerate',
-      '3Tematica de instruire2 documente, negenerate',
-      '4Teste de verificare a cunoștințelor3 documente, negenerate',
-      '5Mijloace de apărare și organizarea la locul de muncă4 documente, negenerate',
-      '6Registre și formulare SU5 documente, negenerate',
-      '7Documente pentru inspectorat2 documente, negenerate',
+      '1Decizii interne10 documenteNegenerate',
+      '2Instrucțiuni proprii în domeniul situațiilor de urgență2 documenteNegenerate',
+      '3Tematica de instruire2 documenteNegenerate',
+      '4Teste de verificare a cunoștințelor3 documenteNegenerate',
+      '5Mijloace de apărare și organizarea la locul de muncă4 documenteNegenerate',
+      '6Registre și formulare SU5 documenteNegenerate',
+      '7Documente pentru inspectorat2 documenteNegenerate',
     ]);
-    expect(screen.getByTestId('pack-total').textContent).toBe('28 de documente în 7 secțiuni');
+    expect(screen.queryByTestId('pack-header')).toBeNull();
     expect(screen.queryByTestId('pack-bar')).toBeNull();
     expect(screen.queryByTestId('pack-section')).toBeNull();
     expect(screen.queryByTestId('document-row')).toBeNull();
@@ -347,10 +357,10 @@ describe('client fire-safety documents', () => {
     await openSection(user, '6');
     const missing = within(shownSection()).getAllByTestId('document-missing');
     expect(missing.map((row) => row.textContent)).toEqual([
-      'Copertă – Registrele de evidență în domeniul situațiilor de urgențăNegenerat—',
-      'Permis de lucru cu focNegenerat—',
-      'Registru de control pentru instalațiile de apărare împotriva incendiilorNegenerat—',
-      'Registru de evidență a controlului stingătoarelor de incendiuNegenerat—',
+      '6.0Copertă – Registrele de evidență în domeniul situațiilor de urgențăNegenerat—',
+      '6.2Permis de lucru cu focNegenerat—',
+      '6.3Registru de control pentru instalațiile de apărare împotriva incendiilorNegenerat—',
+      '6.4Registru de evidență a controlului stingătoarelor de incendiuNegenerat—',
     ]);
     expect(shownRows().map((row) => row.getAttribute('data-testid'))).toEqual([
       'document-missing',
@@ -363,7 +373,7 @@ describe('client fire-safety documents', () => {
       within(missing[1]!)
         .getAllByRole('cell')
         .map((cell) => cell.textContent)
-    ).toEqual(['Permis de lucru cu foc', 'Negenerat', '—', '']);
+    ).toEqual(['6.2Permis de lucru cu foc', 'Negenerat', '—', '']);
     for (const row of missing) {
       expect(within(row).queryByRole('link')).toBeNull();
       expect(within(row).queryByRole('button')).toBeNull();
@@ -373,12 +383,7 @@ describe('client fire-safety documents', () => {
     expect(await summaryOf('6')).toBe('0 din 5 emise · 4 negenerate');
 
     await openSection(user, '1');
-    expect(
-      shownRows().map((row) => [
-        row.getAttribute('data-testid'),
-        row.querySelector('td')!.textContent,
-      ])
-    ).toEqual([
+    expect(shownRows().map((row) => [row.getAttribute('data-testid'), titleOf(row)])).toEqual([
       ['document-missing', 'Copertă – Deciziile interne în domeniul situațiilor de urgență'],
       ['document-missing', 'Decizia privind organizarea apărării împotriva incendiilor'],
       ['document-missing', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
@@ -392,12 +397,7 @@ describe('client fire-safety documents', () => {
     ]);
 
     await openSection(user, '2');
-    expect(
-      shownRows().map((row) => [
-        row.getAttribute('data-testid'),
-        row.querySelector('td')!.textContent,
-      ])
-    ).toEqual([
+    expect(shownRows().map((row) => [row.getAttribute('data-testid'), titleOf(row)])).toEqual([
       ['document-missing', 'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență'],
       ['document-missing', 'Instrucțiuni proprii în domeniul situațiilor de urgență'],
     ]);
@@ -406,13 +406,14 @@ describe('client fire-safety documents', () => {
     expect(
       within(shownSection())
         .getAllByTestId('document-missing')
-        .map((row) => row.querySelector('td')!.textContent)
+        .map((row) => titleOf(row))
     ).toEqual([
       'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
       'Tematica de instruire în domeniul situațiilor de urgență',
     ]);
     expect(screen.queryByTestId('documents-hint')).toBeNull();
-    expect(screen.getByTestId('documents-generate').textContent).toContain(
+    await showFolders();
+    expect((await screen.findByTestId('documents-generate')).textContent).toContain(
       'Generează documentele lipsă'
     );
   });
@@ -434,18 +435,18 @@ describe('client fire-safety documents', () => {
     const user = userEvent.setup();
 
     expect(
-      (await screen.findAllByTestId('pack-contents-entry')).map(
+      (await screen.findAllByTestId('pack-folder')).map(
         (entry) => entry.firstElementChild?.textContent
       )
     ).toEqual(['1', '2', '3', '4', '5', '6']);
     await openSection(user, '1');
-    expect(shownRows().map((row) => row.querySelector('td')!.textContent)).not.toContain(
+    expect(shownRows().map((row) => titleOf(row))).not.toContain(
       'Decizia privind perioadele caniculare și sezonul rece'
     );
     expect(shownRows()).toHaveLength(8);
 
     await openSection(user, '5');
-    expect(shownRows().map((row) => row.querySelector('td')!.textContent)).toEqual([
+    expect(shownRows().map((row) => titleOf(row))).toEqual([
       'Lista mijloacelor de apărare împotriva incendiilor',
       'Organizarea apărării împotriva incendiilor la locul de muncă',
       'Lista substanțelor periculoase',
@@ -459,7 +460,8 @@ describe('client fire-safety documents', () => {
       'document-missing',
     ]);
 
-    await user.click(screen.getByTestId('documents-generate'));
+    await showFolders();
+    await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
       '6 lucrători în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 lucrători.'
     );
@@ -495,22 +497,17 @@ describe('client fire-safety documents', () => {
     mockApi({ fireItems: [registers] });
     mount(`${firePath}?section=tests`);
 
-    const entries = await screen.findAllByTestId('pack-contents-entry');
-    await waitFor(() =>
-      expect(entries.map((entry) => entry.getAttribute('aria-current'))).toEqual([
-        null,
-        null,
-        null,
-        'true',
-        null,
-        null,
-        null,
-      ])
-    );
-    expect(screen.getByTestId('pack-section-title').textContent).toBe(
+    expect((await screen.findByTestId('pack-section-title')).textContent).toBe(
       'Teste de verificare a cunoștințelor'
     );
+    expect(screen.queryByTestId('pack-folders')).toBeNull();
+    expect(screen.getByTestId('pack-section-position').textContent).toBe('Secțiunea 4 din 7');
     expect(shownRows().map((row) => row.querySelector('td')!.textContent)).toEqual([
+      '4.0Copertă – Testele de verificare a cunoștințelor',
+      '4.1Test la angajare',
+      '4.2Test anual',
+    ]);
+    expect(shownRows().map((row) => titleOf(row))).toEqual([
       'Copertă – Testele de verificare a cunoștințelor',
       'Test la angajare',
       'Test anual',
@@ -525,8 +522,6 @@ describe('client fire-safety documents', () => {
     await openSection(user, '6');
     expect(await within(shownSection()).findAllByTestId('document-row')).toHaveLength(5);
     expect(screen.queryByTestId('document-missing')).toBeNull();
-    expect(screen.getByTestId('documents-generate').textContent).toBe('Generează pentru alt an');
-    expect(screen.queryByTestId('documents-hint')).toBeNull();
     expect(await Promise.all(['1', '2', '3', '4', '5', '6', '7'].map(summaryOf))).toEqual([
       '0 din 10 emise',
       '0 din 2 emise',
@@ -536,6 +531,8 @@ describe('client fire-safety documents', () => {
       '0 din 5 emise',
       '0 din 2 emise',
     ]);
+    expect(screen.getByTestId('documents-generate').textContent).toBe('Generează pentru alt an');
+    expect(screen.queryByTestId('documents-hint')).toBeNull();
   });
 
   it('lists the registers and forms in the order of the binder, under its number', async () => {
@@ -548,11 +545,11 @@ describe('client fire-safety documents', () => {
     const runtime = mount();
     const user = userEvent.setup();
 
-    const entries = await screen.findAllByTestId('pack-contents-entry');
+    const entries = await screen.findAllByTestId('pack-folder');
     expect(entries.map((entry) => entry.textContent).slice(5)).toEqual([
-      '6Registre și formulare SU0 din 5 emise2 negenerate',
-      '7Documente pentru inspectorat0 din 2 emise2 negenerate',
-      'Alte documente SUCiornă',
+      '6Registre și formulare SU5 documente0 din 5 emise2 negenerate',
+      '7Documente pentru inspectorat2 documenteNegenerate',
+      'Alte documente SU1 documentCiornă',
     ]);
     await openSection(user, '6');
     const rows = within(shownSection()).getAllByTestId('document-row');
@@ -824,7 +821,7 @@ describe('client fire-safety documents', () => {
     expect((await screen.findByTestId('documents-hint')).textContent).toBe(
       'Clientul este arhivat, așa că nu i se mai generează documente.'
     );
-    expect(await screen.findAllByTestId('pack-empty-entry')).toHaveLength(7);
+    expect(await screen.findAllByTestId('pack-folder')).toHaveLength(7);
     expect(screen.getByTestId('documents-empty')).toBeTruthy();
     expect(screen.queryByTestId('documents-generate')).toBeNull();
   });

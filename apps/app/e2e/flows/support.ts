@@ -960,15 +960,33 @@ export async function cleanUp() {
   refuseLeftovers(failures);
 }
 
-// Only the section on show renders its rows; `number` is the binder's. The flows run at
-// 1280 px, where the contents stand beside the section.
+const sectionNumbered = (page: Page, number: string) =>
+  page.getByTestId('section-number').filter({ hasText: new RegExp(`^${number}$`) });
+
+// Only an open folder renders its rows; `number` is the section's in the binder. Another folder
+// leads to this one through the overview of all of them.
 export async function openDocumentSection(page: Page, number: string) {
-  const entry = page
-    .getByTestId('pack-contents-entry')
-    .filter({ has: page.getByText(number, { exact: true }) });
-  if ((await entry.getAttribute('aria-current')) !== 'true') await entry.click();
-  await expect(entry).toHaveAttribute('aria-current', 'true');
+  const open = page.getByTestId('pack-section');
+  if ((await open.count()) > 0) {
+    if ((await open.getByTestId('section-number').textContent()) === number) return;
+    await open.getByTestId('pack-all-sections').click();
+  }
+  await page
+    .getByTestId('pack-folder')
+    .filter({ has: sectionNumbered(page, number) })
+    .click();
+  await expect(open.getByTestId('section-number')).toHaveText(number);
 }
+
+export async function showDocumentFolders(page: Page) {
+  const open = page.getByTestId('pack-section');
+  if ((await open.count()) > 0) await open.getByTestId('pack-all-sections').click();
+  await expect(page.getByTestId('pack-folders')).toBeVisible();
+}
+
+// A row's text starts with the document's number, so a title is matched on its own link.
+export const rowTitled = (rows: Locator, title: RegExp) =>
+  rows.filter({ has: rows.page().getByTestId('document-title').filter({ hasText: title }) });
 
 // Which documents a set holds changes often and is pinned by the API's tests; the flows pin the
 // exact count once per set and size, in documents.spec.ts and fire-safety-documents.spec.ts.

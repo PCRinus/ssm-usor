@@ -10,7 +10,7 @@ export const statusTone: Record<DocumentStatus, string> = {
 export const warningBadge = 'border-warning-border bg-warning text-warning-foreground';
 
 export const packCells = {
-  title: 'min-w-52 whitespace-normal px-3 py-3',
+  title: 'min-w-72 whitespace-normal px-3 py-3',
   status: 'whitespace-normal px-3',
   date: 'text-muted-foreground tabular-nums px-3',
   actions: 'w-11',

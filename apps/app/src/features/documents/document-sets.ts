@@ -65,7 +65,6 @@ export const setParams = (set: DocumentSet) =>
 export const documentSetCopy = {
   occupational_safety: {
     tab: 'Documentație SSM',
-    heading: 'Documentația SSM',
     backLabel: 'Înapoi la documentația SSM',
     name: 'SSM',
     emptyHint:
@@ -74,7 +73,6 @@ export const documentSetCopy = {
   },
   fire_safety: {
     tab: 'Documentație SU',
-    heading: 'Documentația SU',
     backLabel: 'Înapoi la documentația SU',
     name: 'SU',
     emptyHint:
@@ -86,7 +84,6 @@ export const documentSetCopy = {
   DocumentSet,
   {
     tab: string;
-    heading: string;
     backLabel: string;
     name: string;
     emptyHint: string;

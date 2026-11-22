@@ -8,13 +8,21 @@ import type { DocumentStatus, Pack, PackSection, StatusCounts } from './pack-sta
 
 export const statusOrder: readonly DocumentStatus[] = ['issued', 'update', 'draft', 'missing'];
 
-export const contentsLabel = 'Cuprinsul documentației';
+export const foldersLabel = 'Secțiunile documentației';
 
 export const archivedHint = 'Clientul este arhivat, așa că nu i se mai generează documente.';
 
 export const documentCountLabel = (count: number) => countOf(count, 'document', 'documente');
 
 export const sectionCountLabel = (count: number) => countOf(count, 'secțiune', 'secțiuni');
+
+export const folderContentsLabel = (section: PackSection) =>
+  [
+    documentCountLabel(totalOf(section.counts)),
+    section.annexes > 0 && countOf(section.annexes, 'anexă', 'anexe'),
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
 const statusNouns: Record<DocumentStatus, [string, string]> = {
   issued: ['emis', 'emise'],
@@ -61,6 +69,7 @@ export function sectionCaption(section: PackSection): CaptionPart[] {
   const { counts } = section;
   const total = totalOf(counts);
   if (total === 1) return [singleStatus[statusOrder.find((status) => counts[status] > 0)!]];
+  if (counts.missing === total) return [{ text: 'Negenerate', tone: 'plain' }];
   return [
     {
       text: counts.issued === total ? 'Toate emise' : `${counts.issued} din ${total} emise`,
@@ -71,11 +80,6 @@ export function sectionCaption(section: PackSection): CaptionPart[] {
   ].filter((part): part is CaptionPart => part !== false);
 }
 
-export const emptySectionCaption = (section: PackSection) => {
-  const total = totalOf(section.counts);
-  return `${documentCountLabel(total)}, ${total === 1 ? 'negenerat' : 'negenerate'}`;
-};
-
 export const sectionLabel = (section: Pick<PackSection, 'number' | 'title'>) =>
   section.number === null ? section.title : `${section.number}. ${section.title}`;
 
@@ -84,12 +88,14 @@ export const sectionLink = (set: DocumentSet, clientId: string, section?: PackSe
   state: keepOpener,
 });
 
-export function nextSection(pack: Pack, section: PackSection) {
+export function neighbourSections(pack: Pack, section: PackSection) {
   const index = pack.sections.findIndex((each) => each.id === section.id);
-  return index === -1 ? undefined : pack.sections[index + 1];
+  return {
+    position: index + 1,
+    previous: index > 0 ? pack.sections[index - 1] : undefined,
+    next: index === -1 ? undefined : pack.sections[index + 1],
+  };
 }
 
-export function shownSection(pack: Pack, sectionId: string | undefined, wide: boolean) {
-  const named = pack.sections.find((section) => section.id === sectionId);
-  return named ?? (wide ? pack.sections[0] : undefined);
-}
+export const openSection = (pack: Pack, sectionId: string | undefined) =>
+  pack.sections.find((section) => section.id === sectionId);

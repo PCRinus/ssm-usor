@@ -2,39 +2,29 @@ import type { DocumentSet } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import type { ReactNode } from 'react';
 
-import { documentSetCopy } from './document-sets';
-import { PackContents } from './pack-contents';
 import { PackEmpty } from './pack-empty';
-import { isEmptyPack, shownSection } from './pack-labels';
+import { PackFolder } from './pack-folder';
+import { PackFolders } from './pack-folders';
+import { isEmptyPack, openSection } from './pack-labels';
 import { PackBar, PackLegend, PackTotal } from './pack-progress';
-import { PackSectionPane } from './pack-section-pane';
 import type { Pack, PackSection } from './pack-status';
-import { useWideLayout } from './use-wide-layout';
 
-export function PackHeader({
-  set,
-  pack,
-  actions,
-}: {
-  set: DocumentSet;
-  pack?: Pack;
-  actions?: ReactNode;
-}) {
-  const empty = pack !== undefined && isEmptyPack(pack);
-  const wide = useWideLayout();
+function PackHeader({ pack, actions }: { pack: Pack; actions?: ReactNode }) {
   return (
-    <div data-testid="pack-header" className="grid gap-3.5 px-4 pt-5 pb-5 sm:px-6 sm:pt-6">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">{documentSetCopy[set].heading}</h2>
-        {pack && empty && wide && <PackTotal pack={pack} className="text-[0.8125rem]" />}
-        {actions && <div className="flex flex-wrap gap-2 max-sm:grid max-sm:w-full">{actions}</div>}
-      </div>
-      {pack && !empty && (
-        <>
-          <PackBar counts={pack.counts} />
-          <PackLegend pack={pack} />
-        </>
+    <div
+      data-testid="pack-header"
+      className="grid gap-x-4 gap-y-3.5 px-4 pt-5 pb-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6 sm:pt-6"
+    >
+      <PackLegend pack={pack} />
+      {actions && (
+        <div className="flex flex-wrap gap-2 max-sm:order-last max-sm:grid sm:justify-end">
+          {actions}
+        </div>
       )}
+      <div className="flex gap-x-4 gap-y-2 max-sm:flex-col sm:col-span-2 sm:items-center">
+        <PackBar counts={pack.counts} className="sm:flex-1" />
+        <PackTotal pack={pack} className="shrink-0 text-[0.8125rem]" />
+      </div>
     </div>
   );
 }
@@ -60,62 +50,33 @@ export function PackLayout({
   notices?: ReactNode;
   children: (section: PackSection) => ReactNode;
 }) {
-  const wide = useWideLayout();
-  const noticeBlock = notices ? (
-    <div className="grid gap-4 px-4 pb-4 sm:px-6">{notices}</div>
-  ) : null;
-
-  if (isEmptyPack(pack)) {
+  const section = openSection(pack, sectionId);
+  if (section) {
     return (
-      <div data-testid="pack-layout" data-layout={wide ? 'wide' : 'narrow'}>
-        <PackHeader set={set} pack={pack} actions={actions} />
-        {noticeBlock}
-        <PackEmpty
-          set={set}
-          pack={pack}
-          readOnly={readOnly}
-          layout={wide ? 'wide' : 'narrow'}
-          action={generate}
-        />
-      </div>
-    );
-  }
-
-  const section = shownSection(pack, sectionId, wide);
-  if (!wide && section) {
-    return (
-      <div data-testid="pack-layout" data-layout="narrow">
-        {notices && <div className="grid gap-4 px-4 pt-4">{notices}</div>}
-        <PackSectionPane set={set} clientId={clientId} pack={pack} section={section} layout="page">
+      <div data-testid="pack-layout" data-view="folder">
+        <PackFolder set={set} clientId={clientId} pack={pack} section={section} notices={notices}>
           {children(section)}
-        </PackSectionPane>
+        </PackFolder>
       </div>
     );
   }
+
+  const noticeBlock = (className: string) =>
+    notices && <div className={cn('grid gap-4 px-4 sm:px-6', className)}>{notices}</div>;
   return (
-    <div data-testid="pack-layout" data-layout={wide ? 'wide' : 'narrow'}>
-      <PackHeader set={set} pack={pack} actions={actions} />
-      {noticeBlock}
-      <div className={cn(wide && 'grid grid-cols-[19rem_minmax(0,1fr)] border-t')}>
-        <PackContents
-          set={set}
-          clientId={clientId}
-          pack={pack}
-          selected={section}
-          layout={wide ? 'pane' : 'list'}
-        />
-        {wide && section && (
-          <PackSectionPane
-            set={set}
-            clientId={clientId}
-            pack={pack}
-            section={section}
-            layout="pane"
-          >
-            {children(section)}
-          </PackSectionPane>
-        )}
-      </div>
+    <div data-testid="pack-layout" data-view="overview">
+      {isEmptyPack(pack) ? (
+        <>
+          {noticeBlock('pt-4 sm:pt-6')}
+          <PackEmpty set={set} pack={pack} readOnly={readOnly} action={generate} />
+        </>
+      ) : (
+        <>
+          <PackHeader pack={pack} actions={actions} />
+          {noticeBlock('pb-4')}
+        </>
+      )}
+      <PackFolders set={set} clientId={clientId} pack={pack} />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { documentTypeKeys } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   FireEquipmentListResponse,
@@ -184,21 +184,36 @@ const requests = (suffix: string, method: string) =>
 const mount = () =>
   mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/documente-ssm`);
 
-const contentsEntry = async (number: string) =>
-  (await screen.findAllByTestId('pack-contents-entry')).find(
+const folderOf = async (number: string) =>
+  (await screen.findAllByTestId('pack-folder')).find(
     (entry) => entry.firstElementChild?.textContent === number
   )!;
 
-async function openSection(user: ReturnType<typeof userEvent.setup>, number: string) {
-  const entry = await contentsEntry(number);
-  if (entry.getAttribute('aria-current') !== 'true') await user.click(entry);
-  await waitFor(() => expect(entry.getAttribute('aria-current')).toBe('true'));
+async function showFolders() {
+  const open = screen.queryByTestId('pack-section');
+  if (open) await userEvent.click(within(open).getByTestId('pack-all-sections'));
 }
 
-const summaryOf = async (number: string) =>
-  [...(await contentsEntry(number)).querySelector('[data-testid="pack-section-caption"]')!.children]
+async function openSection(user: ReturnType<typeof userEvent.setup>, number: string) {
+  const open = screen.queryByTestId('pack-section');
+  if (open && within(open).getByTestId('section-number').textContent === number) return;
+  await showFolders();
+  await user.click(await folderOf(number));
+  await waitFor(() =>
+    expect(
+      within(screen.getByTestId('pack-section')).getByTestId('section-number').textContent
+    ).toBe(number)
+  );
+}
+
+const summaryOf = async (number: string) => {
+  await showFolders();
+  return [
+    ...(await folderOf(number)).querySelector('[data-testid="pack-section-caption"]')!.children,
+  ]
     .map((part) => part.textContent)
     .join(' · ');
+};
 
 async function openMenu(user: ReturnType<typeof userEvent.setup>, title: string, section = '1') {
   await openSection(user, section);
@@ -214,14 +229,6 @@ afterEach(() => {
 });
 
 installFetchMock();
-
-beforeEach(() => {
-  const media = window.matchMedia;
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn((query: string) => ({ ...media(query), matches: query === '(min-width: 1280px)' }))
-  );
-});
 
 describe('client documents', () => {
   it('is a section of the client, after the data the documents print', async () => {
@@ -402,13 +409,14 @@ describe('client documents', () => {
     mount();
     await openSection(userEvent.setup(), '1');
     expect(await screen.findAllByTestId('document-row')).toHaveLength(5);
-    expect(screen.queryByTestId('documents-generate')).toBeNull();
     expect(screen.queryByTestId('document-missing')).toBeNull();
     expect(await summaryOf('1')).toBe('0 din 5 emise');
+    expect(screen.getByTestId('documents-archive')).toBeTruthy();
+    expect(screen.queryByTestId('documents-generate')).toBeNull();
   });
 
   const sectionNumbers = async () =>
-    (await screen.findAllByTestId('pack-contents-entry')).map(
+    (await screen.findAllByTestId('pack-folder')).map(
       (entry) => entry.firstElementChild?.textContent
     );
 
@@ -698,16 +706,7 @@ describe('client documents', () => {
     );
   });
 
-  it('on a narrow screen points to the document the address names, in its section alone', async () => {
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn((query: string) => ({
-        matches: false,
-        media: query,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      }))
-    );
+  it('points to the document the address names in its folder, which leads back to all of them', async () => {
     mockApi({ items: [firstAid, report] });
     const runtime = mountApp(
       authFixture(makeSession()).client,
@@ -720,12 +719,12 @@ describe('client documents', () => {
         document.getElementById('document-decision_first_aid')?.hasAttribute('data-pointed')
       ).toBe(true)
     );
-    expect(screen.queryByTestId('pack-contents')).toBeNull();
+    expect(screen.queryByTestId('pack-folders')).toBeNull();
     expect(screen.queryByTestId('documents-archive')).toBeNull();
 
-    await user.click(screen.getByTestId('pack-back'));
+    await user.click(screen.getByTestId('pack-all-sections'));
 
-    expect(await screen.findAllByTestId('pack-contents-entry')).toHaveLength(13);
+    expect(await screen.findAllByTestId('pack-folder')).toHaveLength(13);
     expect(screen.queryByTestId('document-row')).toBeNull();
     expect(screen.getByTestId('documents-archive')).toBeTruthy();
     expect(runtime.router.state.location.search).toEqual({});
@@ -851,7 +850,7 @@ describe('client documents', () => {
     expect(requests('/documents/behind', 'GET')).toHaveLength(1);
   });
 
-  it('lists documents in the sections of the binder, the first one open beside them', async () => {
+  it('lists documents in the folders of the binder, each with its number', async () => {
     mockApi({
       items: [
         {
@@ -866,30 +865,43 @@ describe('client documents', () => {
     const user = userEvent.setup();
 
     expect(await summaryOf('1')).toBe('0 din 6 emise · 1 de actualizat · 5 negenerate');
-    expect(await summaryOf('2')).toBe('0 din 2 emise · 2 negenerate');
+    expect(await summaryOf('2')).toBe('Negenerate');
     expect(await summaryOf('8')).toBe('Ciornă');
     expect(await summaryOf('9')).toBe('Negenerat');
     expect(screen.getByTestId('pack-legend').textContent).toBe(
-      '0 emise1 de actualizat1 ciornă22 de negenerate24 de documente în 13 secțiuni'
+      '0 emise1 de actualizat1 ciornă22 de negenerate'
     );
+    expect(screen.getByTestId('pack-total').textContent).toBe('24 de documente în 13 secțiuni');
+    expect(screen.queryByTestId('document-row')).toBeNull();
+    expect(runtime.router.history.location.search).toBe('');
 
-    expect((await contentsEntry('1')).getAttribute('aria-current')).toBe('true');
+    await openSection(user, '1');
     const [decision] = await screen.findAllByTestId('document-row');
     expect(screen.getAllByTestId('document-missing')).toHaveLength(5);
+    expect(screen.getAllByTestId('document-number').map((number) => number.textContent)).toEqual([
+      '1.0',
+      '1.1',
+      '1.2',
+      '1.3',
+      '1.4',
+      '1.5',
+    ]);
+    expect(within(decision!).getByTestId('document-number').textContent).toBe('1.3');
+    expect(within(decision!).getByTestId('document-title').textContent).toBe(firstAid.title);
     expect(decision!.textContent).toContain('Decizia nr. 5 SSM');
     expect(within(decision!).getByTestId('document-issued').textContent).toBe('Emis · rev. 1');
     expect(within(decision!).getByTestId('document-draft').textContent).toBe('Ciornă · rev. 2');
     expect(within(decision!).getByTestId('document-data-changed')).toBeTruthy();
     expect(decision!.textContent).toContain('19.01.2026');
-    expect(runtime.router.history.location.search).toBe('');
+    expect(runtime.router.history.location.search).toBe('?section=decisions');
 
     await openSection(user, '8');
     await waitFor(() => expect(screen.getAllByTestId('document-row')).toHaveLength(1));
     const [form] = screen.getAllByTestId('document-row');
     expect(form!.textContent).toContain('Referat de control');
     expect(within(form!).queryByTestId('document-data-changed')).toBeNull();
+    expect(within(form!).getByTestId('document-number').textContent).toBe('8');
     expect(runtime.router.history.location.search).toBe('?section=control-report');
-    expect(runtime.router.history.length).toBe(2);
   });
 
   it('flags a document behind its instructions, saying which module moved and what to regenerate first', async () => {
@@ -1375,7 +1387,7 @@ describe('client documents', () => {
     const user = userEvent.setup();
 
     expect(await Promise.all(['4', '9', '10'].map(summaryOf))).toEqual([
-      '0 din 2 emise · 2 negenerate',
+      'Negenerate',
       'Negenerat',
       'Negenerat',
     ]);
@@ -1525,8 +1537,8 @@ describe('client documents', () => {
     await user.click(screen.getByTestId('editor-back'));
     await screen.findAllByTestId('document-row');
     expect(runtime.router.history.location.pathname).toBe(`/clienti/${clientId}/documente-ssm`);
-    expect(runtime.router.history.location.search).toBe('');
-    expect(runtime.router.history.length).toBe(2);
+    expect(runtime.router.history.location.search).toBe('?section=decisions');
+    expect(runtime.router.history.length).toBe(3);
   });
 
   it("follows the link to the list from an editor opened directly, to the document's section", async () => {

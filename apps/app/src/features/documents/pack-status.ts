@@ -35,6 +35,8 @@ export type PackSection = {
   title: string;
   rows: PackRow[];
   counts: StatusCounts;
+  // The annexes the current revisions of its documents carry: the own instructions' modules.
+  annexes: number;
 };
 
 export type Pack = {
@@ -61,6 +63,13 @@ function countRows(rows: readonly PackRow[]) {
   const counts: StatusCounts = { update: 0, draft: 0, issued: 0, missing: 0 };
   for (const row of rows) counts[row.status] += 1;
   return counts;
+}
+
+function countAnnexes(rows: readonly PackRow[]) {
+  return rows.reduce(
+    (sum, row) => sum + ((row.document?.draft ?? row.document?.issued)?.annexes.length ?? 0),
+    0
+  );
 }
 
 export function buildPack({ set, items, notApplicable, isBehind }: BuildPackInput): Pack {
@@ -110,7 +119,14 @@ export function buildPack({ set, items, notApplicable, isBehind }: BuildPackInpu
     number: string | null,
     title: string,
     rows: PackRow[]
-  ): PackSection => ({ id, number, title, rows, counts: countRows(rows) });
+  ): PackSection => ({
+    id,
+    number,
+    title,
+    rows,
+    counts: countRows(rows),
+    annexes: countAnnexes(rows),
+  });
   const packSections = [
     ...sections.map((section) =>
       packSection(section.id, section.number, section.title, section.typeKeys.flatMap(rowsOf))

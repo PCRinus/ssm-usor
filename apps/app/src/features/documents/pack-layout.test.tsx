@@ -9,13 +9,14 @@ import {
   RouterProvider,
   useSearch,
 } from '@tanstack/react-router';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import type { ClientDocument } from './document-labels';
 import {
   documentCountLabel,
+  folderContentsLabel,
   sectionCaption,
   sectionCountLabel,
   statusCountLabel,
@@ -42,7 +43,8 @@ function section(
   id: string,
   number: string | null,
   title: string,
-  statuses: readonly DocumentStatus[]
+  statuses: readonly DocumentStatus[],
+  annexes = 0
 ): PackSection {
   return {
     id,
@@ -50,6 +52,7 @@ function section(
     title,
     rows: statuses.map((status, index) => row(`${id}-${index}`, status)),
     counts: countsOf(statuses),
+    annexes,
   };
 }
 
@@ -63,7 +66,7 @@ const filled = packOf([
     'draft',
     'draft',
   ]),
-  section('own-instructions', '3', 'Instrucțiuni proprii', ['issued', 'issued']),
+  section('own-instructions', '3', 'Instrucțiuni proprii', ['issued', 'issued'], 2),
   section('training-themes', '4', 'Tematica de instruire', ['draft', 'update']),
   section('tests', '5', 'Test de verificare a cunoștințelor', ['draft', 'missing']),
   section('protective-equipment', '6', 'Lista internă de dotare cu EIP', ['draft']),
@@ -80,31 +83,17 @@ const empty = packOf([
   section('control-report', '8', 'Referat de control', ['missing']),
 ]);
 
-function screenWidth(wide: boolean) {
-  const media = window.matchMedia;
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn((query: string) => ({
-      ...media(query),
-      matches: wide && query === '(min-width: 1280px)',
-    }))
-  );
-}
-
 async function renderPack({
   pack,
   url = `/clienti/${clientId}/documente-ssm`,
-  wide,
   readOnly = false,
   set = 'occupational_safety',
 }: {
   pack: Pack;
   url?: string;
-  wide: boolean;
   readOnly?: boolean;
   set?: DocumentSet;
 }) {
-  screenWidth(wide);
   function Page() {
     const { section: sectionId } = useSearch({ strict: false });
     return (
@@ -146,9 +135,11 @@ async function renderPack({
   return router;
 }
 
-const entries = () => screen.getAllByTestId('pack-contents-entry');
-const entry = (number: string) =>
-  entries().find((each) => within(each).queryByText(number, { selector: 'span' }) !== null)!;
+const folders = () => screen.getAllByTestId('pack-folder');
+const folder = (number: string) =>
+  folders().find((each) => within(each).getByTestId('section-number').textContent === number)!;
+const folderUrl = (section?: string) =>
+  `/clienti/${clientId}/documente-ssm${section ? `?section=${section}` : ''}`;
 const legend = () =>
   screen.getAllByTestId('pack-legend-item').map((item) => [item.dataset.status, item.textContent]);
 
@@ -220,12 +211,26 @@ describe('the counts', () => {
       [{ text: 'De actualizat', tone: 'warning' }],
       [{ text: 'Negenerat', tone: 'plain' }],
     ]);
+    expect(sectionCaption(section('tests', '5', 'Teste', ['missing', 'missing']))).toEqual([
+      { text: 'Negenerate', tone: 'plain' },
+    ]);
+  });
+
+  it('count the documents of a folder, and the annexes where it has any', () => {
+    expect(filled.sections.slice(0, 3).map(folderContentsLabel)).toEqual([
+      '5 documente',
+      '2 documente',
+      '2 documente · 2 anexe',
+    ]);
+    expect(folderContentsLabel(section('control-report', '8', 'Referat', ['draft']))).toBe(
+      '1 document'
+    );
   });
 });
 
 describe('PackLayout', () => {
   it('shows the bar and the legend over the whole pack, with the states it has', async () => {
-    await renderPack({ pack: filled, wide: true });
+    await renderPack({ pack: filled });
 
     expect(screen.getByRole('img').getAttribute('aria-label')).toBe(
       '4 emise, 2 de actualizat, 15 ciorne, 1 negenerat, din 22 de documente'
@@ -247,12 +252,13 @@ describe('PackLayout', () => {
       ['missing', '1 negenerat'],
     ]);
     expect(screen.getByTestId('pack-total').textContent).toBe('22 de documente în 12 secțiuni');
+    expect(screen.getByTestId('documents-archive')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: /^Documentația/ })).toBeNull();
   });
 
   it('keeps issued and drafts in the legend at zero, and leaves out the others', async () => {
     await renderPack({
       pack: packOf([section('control-report', '8', 'Referat de control', ['issued'])]),
-      wide: true,
     });
 
     expect(legend()).toEqual([
@@ -262,62 +268,92 @@ describe('PackLayout', () => {
     expect(screen.getByTestId('pack-total').textContent).toBe('1 document în 1 secțiune');
   });
 
-  it('on a wide screen opens the first section beside the contents', async () => {
-    await renderPack({ pack: filled, wide: true });
+  it('opens on a folder per section, one document or many, each a link to it', async () => {
+    await renderPack({ pack: filled });
 
-    expect(screen.getByRole('navigation', { name: 'Cuprinsul documentației' })).toBeTruthy();
-    expect(entries()).toHaveLength(12);
-    expect(screen.getByTestId('pack-section-title').textContent).toBe('Decizii interne');
-    expect(entries().map((each) => each.getAttribute('aria-current'))).toEqual([
-      'true',
-      ...Array(11).fill(null),
-    ]);
-    expect(entry('1').className).toContain('bg-success');
-    expect(within(screen.getByTestId('section-rows')).getAllByRole('listitem')).toHaveLength(5);
+    expect(screen.getByRole('list', { name: 'Secțiunile documentației' })).toBeTruthy();
+    expect(folders()).toHaveLength(12);
+    expect(screen.queryByTestId('pack-section')).toBeNull();
+    expect(screen.queryByTestId('section-rows')).toBeNull();
+    expect(folder('3').getAttribute('href')).toBe(folderUrl('own-instructions'));
+    expect(within(folder('3')).getByTestId('pack-folder-contents').textContent).toBe(
+      '2 documente · 2 anexe'
+    );
+    expect(within(folder('8')).getByTestId('pack-folder-contents').textContent).toBe('1 document');
+    expect(within(folder('8')).getByTestId('pack-section-caption').textContent).toBe('Ciornă');
+    expect(within(folder('1')).getByTestId('pack-section-caption').textContent).toBe(
+      '2 din 5 emise1 de actualizat'
+    );
   });
 
-  it('opens the section the URL names, and another one from the contents', async () => {
-    const router = await renderPack({
-      pack: filled,
-      wide: true,
-      url: `/clienti/${clientId}/documente-ssm?section=own-instructions`,
-    });
+  it('opens a folder in a history entry of its own, without the set-wide bar and buttons', async () => {
+    const router = await renderPack({ pack: filled });
 
-    expect(screen.getByTestId('pack-section-title').textContent).toBe('Instrucțiuni proprii');
-    expect(entry('3').getAttribute('aria-current')).toBe('true');
-    expect(entry('1').getAttribute('aria-current')).toBeNull();
-    expect(entry('1').className).not.toContain('bg-success');
-
-    await userEvent.click(entry('4'));
+    await userEvent.click(folder('3'));
 
     expect((await screen.findByTestId('pack-section-title')).textContent).toBe(
-      'Tematica de instruire'
+      'Instrucțiuni proprii'
     );
-    expect(router.state.location.search).toEqual({ section: 'training-themes' });
-    expect(entry('4').getAttribute('aria-current')).toBe('true');
-    expect(entry('4').getAttribute('href')).toBe(
-      `/clienti/${clientId}/documente-ssm?section=training-themes`
-    );
+    expect(router.state.location.search).toEqual({ section: 'own-instructions' });
+    expect(router.history.length).toBe(2);
+    expect(within(screen.getByTestId('section-rows')).getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.queryByTestId('pack-header')).toBeNull();
+    expect(screen.queryByTestId('pack-folders')).toBeNull();
+    expect(screen.queryByTestId('documents-archive')).toBeNull();
+    expect(screen.queryByTestId('documents-generate')).toBeNull();
+    expect(screen.getByTestId('pack-section-position').textContent).toBe('Secțiunea 3 din 12');
+
+    router.history.back();
+
+    expect(await screen.findAllByTestId('pack-folder')).toHaveLength(12);
+    expect(router.state.location.search).toEqual({});
   });
 
-  it('leads to the next section, and to none after the last', async () => {
-    await renderPack({
-      pack: filled,
-      wide: true,
-      url: `/clienti/${clientId}/documente-ssm?section=risk-assessment`,
-    });
+  it('steps to the sections on either side, and back to all of them', async () => {
+    const router = await renderPack({ pack: filled, url: folderUrl('own-instructions') });
 
+    const previous = screen.getByTestId('pack-step-previous');
+    expect(previous.getAttribute('aria-label')).toBe(
+      'Secțiunea anterioară: 2. Material de instruire introductiv-generală'
+    );
+    expect(previous.getAttribute('href')).toBe(folderUrl('general-training'));
+    expect(
+      screen.getByRole('link', { name: 'Secțiunea următoare: 4. Tematica de instruire' })
+    ).toBeTruthy();
     const next = screen.getByTestId('pack-next-section');
-    expect(next.textContent).toBe('Următoarea secțiune: 10. Planul de prevenire și protecție');
+    expect(next.textContent).toBe('Următoarea secțiune: 4. Tematica de instruire');
     expect(next.dataset.slot).toBe('button');
-    await userEvent.click(next);
+
+    await userEvent.click(previous);
     expect((await screen.findByTestId('pack-section-title')).textContent).toBe(
-      'Planul de prevenire și protecție'
+      'Material de instruire introductiv-generală'
     );
 
-    await userEvent.click(entry('12'));
-    await screen.findByText('Regulament intern privind controlul propriu', { selector: 'h3' });
+    const all = screen.getByTestId('pack-all-sections');
+    expect(all.textContent).toBe('Toate secțiunile');
+    expect(all.getAttribute('href')).toBe(folderUrl());
+    await userEvent.click(all);
+
+    expect(await screen.findAllByTestId('pack-folder')).toHaveLength(12);
+    expect(router.state.location.search).toEqual({});
+  });
+
+  it('has no section before the first or after the last', async () => {
+    await renderPack({ pack: filled, url: folderUrl('decisions') });
+
+    expect(screen.queryByTestId('pack-step-previous')).toBeNull();
+    expect(
+      (screen.getByRole('button', { name: 'Secțiunea anterioară' }) as HTMLButtonElement).disabled
+    ).toBe(true);
+
+    await userEvent.click(screen.getByTestId('pack-all-sections'));
+    await userEvent.click(await waitFor(() => folder('12')));
+
+    await screen.findByText('Regulament intern privind controlul propriu', { selector: 'h2' });
     expect(screen.queryByTestId('pack-next-section')).toBeNull();
+    expect(
+      (screen.getByRole('button', { name: 'Secțiunea următoare' }) as HTMLButtonElement).disabled
+    ).toBe(true);
   });
 
   it('names a section without a number by its title alone', async () => {
@@ -326,7 +362,7 @@ describe('PackLayout', () => {
         section('decisions', '1', 'Decizii interne', ['draft']),
         section('other', null, 'Alte documente SSM', ['draft']),
       ]),
-      wide: true,
+      url: folderUrl('decisions'),
     });
 
     expect(screen.getByTestId('pack-next-section').textContent).toBe(
@@ -334,69 +370,44 @@ describe('PackLayout', () => {
     );
   });
 
-  it('on a narrow screen lists the contents until a section is chosen', async () => {
-    await renderPack({ pack: filled, wide: false });
+  it('shows all the folders when the section the URL names is not in the pack', async () => {
+    await renderPack({ pack: filled, url: folderUrl('signing-regulation-annex') });
 
-    expect(screen.getByTestId('pack-layout').dataset.layout).toBe('narrow');
-    expect(screen.getByTestId('pack-bar')).toBeTruthy();
-    expect(entries()).toHaveLength(12);
-    expect(entries().every((each) => each.getAttribute('aria-current') === null)).toBe(true);
+    expect(folders()).toHaveLength(12);
     expect(screen.queryByTestId('pack-section')).toBeNull();
+  });
 
-    await userEvent.click(entry('2'));
+  it('shows what the pack will hold as its folders, under the way to generate it', async () => {
+    await renderPack({ pack: empty });
 
-    expect((await screen.findByTestId('pack-section-title')).textContent).toBe(
-      'Material de instruire introductiv-generală'
-    );
-    expect(screen.queryByTestId('pack-contents')).toBeNull();
     expect(screen.queryByTestId('pack-header')).toBeNull();
-  });
-
-  it('on a narrow screen shows only the section the URL names, with the way back', async () => {
-    const router = await renderPack({
-      pack: filled,
-      wide: false,
-      url: `/clienti/${clientId}/documente-ssm?section=decisions`,
-    });
-
-    expect(screen.getByTestId('pack-section-title').textContent).toBe('Decizii interne');
-    expect(screen.getByTestId('pack-next-section').textContent).toContain(
-      '2. Material de instruire introductiv-generală'
-    );
-    const back = screen.getByTestId('pack-back');
-    expect(back.textContent).toBe('Cuprinsul documentației');
-    expect(back.getAttribute('href')).toBe(`/clienti/${clientId}/documente-ssm`);
-
-    await userEvent.click(back);
-
-    expect(await screen.findAllByTestId('pack-contents-entry')).toHaveLength(12);
-    expect(router.state.location.search).toEqual({});
-  });
-
-  it('shows what the pack will hold beside the way to generate it', async () => {
-    await renderPack({ pack: empty, wide: true });
-
     expect(screen.queryByTestId('pack-bar')).toBeNull();
-    expect(screen.getByTestId('pack-total').textContent).toBe('6 documente în 2 secțiuni');
-    const outline = screen.getByRole('list', { name: 'Cuprinsul documentației' });
     expect(
-      within(outline)
-        .getAllByTestId('pack-section-caption')
-        .map((caption) => caption.textContent)
-    ).toEqual(['5 documente, negenerate', '1 document, negenerat']);
+      folders().map((each) => within(each).getByTestId('pack-section-caption').textContent)
+    ).toEqual(['Negenerate', 'Negenerat']);
     const panel = screen.getByTestId('pack-empty-panel');
     expect(within(panel).getByRole('heading').textContent).toBe(
       'Documentația SSM nu este generată încă'
     );
     expect(within(panel).getByTestId('documents-hint').textContent).toMatch(
-      /^Generează documentația ca să obții .*\. Cuprinsul din stânga arată ce va conține\.$/
+      /^Generează documentația ca să obții .*\. Dosarele de mai jos arată ce va cuprinde: 6 documente în 2 secțiuni\.$/
     );
     expect(within(panel).getByTestId('documents-generate')).toBeTruthy();
     expect(screen.queryByTestId('pack-section')).toBeNull();
   });
 
+  it('opens a folder of a pack not generated yet, with what it will hold', async () => {
+    await renderPack({ pack: empty });
+
+    await userEvent.click(folder('1'));
+
+    expect((await screen.findByTestId('pack-section-title')).textContent).toBe('Decizii interne');
+    expect(within(screen.getByTestId('section-rows')).getAllByRole('listitem')).toHaveLength(5);
+    expect(screen.queryByTestId('pack-empty-panel')).toBeNull();
+  });
+
   it('tells an archived client why nothing is generated, without the button', async () => {
-    await renderPack({ pack: empty, wide: true, readOnly: true, set: 'fire_safety' });
+    await renderPack({ pack: empty, readOnly: true, set: 'fire_safety' });
 
     const panel = screen.getByTestId('pack-empty-panel');
     expect(within(panel).getByRole('heading').textContent).toBe(
@@ -406,33 +417,6 @@ describe('PackLayout', () => {
       'Clientul este arhivat, așa că nu i se mai generează documente.'
     );
     expect(within(panel).queryByTestId('documents-generate')).toBeNull();
-  });
-
-  it('on a narrow screen folds what the pack will hold under the way to generate it', async () => {
-    await renderPack({ pack: empty, wide: false });
-
-    expect(screen.getByTestId('documents-hint').textContent).not.toContain('Cuprinsul');
-    expect(screen.getByTestId('documents-generate')).toBeTruthy();
-    const toggle = screen.getByTestId('pack-empty-outline-toggle');
-    expect(toggle.textContent).toBe('Ce va cuprinde documentația6 documente în 2 secțiuni');
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getAllByTestId('pack-empty-entry').map((each) => each.textContent)).toEqual([
-      '1Decizii interne5 documente',
-      '8Referat de control1 document',
-    ]);
-
-    await userEvent.click(toggle);
-
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByTestId('pack-empty-outline')).toBeNull();
-  });
-
-  it('on a narrow screen keeps the archived hint and drops the button', async () => {
-    await renderPack({ pack: empty, wide: false, readOnly: true });
-
-    expect(screen.getByTestId('documents-hint').textContent).toBe(
-      'Clientul este arhivat, așa că nu i se mai generează documente.'
-    );
-    expect(screen.queryByTestId('documents-generate')).toBeNull();
+    expect(folders()).toHaveLength(2);
   });
 });

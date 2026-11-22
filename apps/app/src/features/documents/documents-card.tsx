@@ -1,5 +1,6 @@
 import {
   type BuiltInDocumentTypeKey,
+  documentNumberOf,
   type DocumentSet,
   documentSetTypeKeys,
   isDatedDocumentType,
@@ -38,7 +39,7 @@ import type { SectionIdOf } from './document-sections';
 import { documentRowId, setParams } from './document-sets';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
 import { isEmptyPack } from './pack-labels';
-import { PackHeader, PackLayout } from './pack-layout';
+import { PackLayout } from './pack-layout';
 import { MissingDocumentRow, PackTable } from './pack-rows';
 import { buildPack, type PackSection } from './pack-status';
 import { useDocumentActions } from './use-document-actions';
@@ -140,6 +141,7 @@ export function DocumentsCard<Set extends DocumentSet>({
         set={set}
         clientId={clientId}
         document={document}
+        number={documentNumberOf(document.typeKey)}
         title={title}
         rowId={rowId}
         readOnly={readOnly}
@@ -166,6 +168,7 @@ export function DocumentsCard<Set extends DocumentSet>({
                     <Button
                       variant="ghost"
                       size="sm"
+                      className={cn(documentNumberOf(key) !== null && 'ml-9.5')}
                       data-testid="document-earlier-toggle"
                       aria-expanded={unfolded}
                       onClick={() => toggleEarlier(key)}
@@ -198,7 +201,7 @@ export function DocumentsCard<Set extends DocumentSet>({
       ref={generateRef}
       data-testid="documents-generate"
       size={empty ? 'lg' : 'default'}
-      className={cn(empty && 'max-sm:h-12')}
+      className={cn(empty && 'max-sm:h-12 max-sm:w-full')}
       onClick={openGenerate}
     >
       <Sparkles aria-hidden="true" />
@@ -284,22 +287,19 @@ export function DocumentsCard<Set extends DocumentSet>({
           {sectionRows}
         </PackLayout>
       ) : (
-        <>
-          <PackHeader set={set} />
-          <div className="px-4 pb-6 sm:px-6">
-            {documents.isError ? (
-              <LoadFailed
-                error={documents.error}
-                busy={documents.isFetching}
-                onRetry={() => void documents.refetch()}
-              >
-                Nu am putut încărca documentele.
-              </LoadFailed>
-            ) : (
-              <Skeleton className="h-40 w-full" />
-            )}
-          </div>
-        </>
+        <div className="px-4 py-6 sm:px-6">
+          {documents.isError ? (
+            <LoadFailed
+              error={documents.error}
+              busy={documents.isFetching}
+              onRetry={() => void documents.refetch()}
+            >
+              Nu am putut încărca documentele.
+            </LoadFailed>
+          ) : (
+            <Skeleton className="h-40 w-full" />
+          )}
+        </div>
       )}
       <input
         ref={fileInput}

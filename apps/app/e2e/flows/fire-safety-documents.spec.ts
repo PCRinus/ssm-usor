@@ -11,6 +11,8 @@ import {
   nameFireSafetyTechnician,
   openDocumentSection,
   openedPdf,
+  rowTitled,
+  showDocumentFolders,
   signIn,
 } from './support';
 
@@ -41,7 +43,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
 
   await expect(page.getByTestId('documents-hint')).toBeVisible();
   await expect(page.getByTestId('documents-empty')).toBeVisible();
-  await expect(page.getByTestId('pack-empty-entry')).toHaveCount(6);
+  await expect(page.getByTestId('pack-folder')).toHaveCount(6);
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-missing-count')).toHaveText('2 date de completat');
   await expect(page.getByTestId('generate-missing-row')).toHaveText([
@@ -61,7 +63,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
     timeout: 30_000,
   });
 
-  await expect(page.getByTestId('pack-contents-entry')).toHaveCount(6);
+  await expect(page.getByTestId('pack-folder')).toHaveCount(6);
   await openDocumentSection(page, '1');
   const decisions = page.getByTestId('document-row');
   await expect(decisions).toHaveCount(8);
@@ -83,16 +85,20 @@ test('the fire-safety set asks for its own data and the first decision number, i
   const rows = page.getByTestId('document-row');
   await expect(rows).toHaveCount(4);
   await expect(page.getByTestId('document-missing')).toHaveCount(0);
-  await expect(page.getByTestId('documents-hint')).toHaveCount(0);
   await expect(rows.nth(0)).toContainText('Copertă – Registrele de evidență');
   await expect(rows.nth(2)).toContainText('Permis de lucru cu foc');
   await expect(rows.nth(3)).toContainText('controlului stingătoarelor de incendiu');
-  await expect(page.getByTestId('documents-generate')).toHaveCount(0);
 
-  const permit = rows.filter({ hasText: /^Permis de lucru cu foc/ });
+  const permit = rowTitled(rows, /^Permis de lucru cu foc/);
   const download = page.waitForEvent('download');
   await act(page, permit, 'document-download-draft');
   expect((await download).suggestedFilename()).toBe('Permis de lucru cu foc - rev. 1.docx');
+
+  await showDocumentFolders(page);
+  await expect(page.getByTestId('documents-archive')).toBeVisible();
+  await expect(page.getByTestId('documents-hint')).toHaveCount(0);
+  await expect(page.getByTestId('documents-generate')).toHaveCount(0);
+  await openDocumentSection(page, '6');
 
   const cover = rows.nth(0);
   await act(page, cover, 'document-issue');
