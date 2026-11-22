@@ -18,7 +18,7 @@ describe('templateOfFile', () => {
       typeKey: 'fire_decision_organization',
       title: 'Decizia privind organizarea apărării împotriva incendiilor',
     });
-    expect(templateOfFile('2.2_general_training_material.docx')?.title).toBe(
+    expect(templateOfFile('2.1_general_training_material.docx')?.title).toBe(
       'Material de instruire introductiv-generală'
     );
   });

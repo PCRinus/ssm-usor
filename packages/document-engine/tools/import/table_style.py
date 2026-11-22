@@ -13,7 +13,7 @@ A table drawn this way names the table style `HOUSE_TABLE`, which holds nothing:
 no other table.
 
 Left as they are: a table with no line or with lines on some sides only (the signature blocks,
-the covers' handover, the sheets' lines to write on, the sign catalogues of 2.2 and 11.1), and the
+the covers' handover, the sheets' lines to write on, the sign catalogues of 2.1 and 11.1), and the
 scales of 9's method (Anexa 3 to 5), whose 1.5 pt contours and grey levels say which class a
 cell belongs to. Their header fill turns to the house one, and their text reads on every grey
 (`readable_grid`). The consequence matrix
@@ -1083,7 +1083,7 @@ def house_tables(xml, file_name=None):
 # annex 7 to H.G. 1425/2006, whose kinds of measure are filled very unevenly from client to client.
 CONTENT_WIDTHS = 'ContentWidths'
 # The registers' headers name up to 18 columns: 7 pt, in all four, over an 8 pt body.
-SMALL_HEADERS = {'7.2_event_registers.docx': 14}
+SMALL_HEADERS = {'7.1_event_registers.docx': 14}
 # The sheets fit a training's rows and signatures on one page in 7 and 9 pt.
 DENSE_FORMS = ('fisa_instruire_ssm.docx', 'fisa_test.docx')
 CONTENT_WIDTH_TABLES = {'10_prevention_plan.docx': '{{#plan}}'}

@@ -53,7 +53,7 @@ O instruire are rubrici pentru cel instruit, pentru instructor, pentru verificat
 
 - pe fișa SSM, la instruirea introductiv-generală ești instructor și verificator;
 - la instruirea la locul de muncă ești verificator: instruirea o ține conducătorul locului de muncă. HG 1425/2006, art. 94, cere ca instruirea la locul de muncă să fie verificată de conducătorul ierarhic al celui care a instruit; dacă la un client verifică altcineva, treci-l pe el în rubrica de verificator;
-- la instruirea periodică și la cea periodică suplimentară ești verificator: instruirea o ține cel pe care tematica de instruire (4.2) îl numește pentru post;
+- la instruirea periodică și la cea periodică suplimentară ești verificator: instruirea o ține cel pe care tematica de instruire (4.1) îl numește pentru post;
 - pe fișa SU semnezi ca instructor acolo unde tu, cadrul tehnic PSI, ai ținut instruirea;
 - la o fișă de test semnezi ca examinator.
 

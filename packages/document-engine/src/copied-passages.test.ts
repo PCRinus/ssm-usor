@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { templatesUrl } from './template-store';
 
 // A template may print a passage of another, copied at import (ADR 019): the fire-safety set's
-// first aid is 3.2's. The import lists each copy in copied-passages.json, since its specs live
+// first aid is 3.1's. The import lists each copy in copied-passages.json, since its specs live
 // outside the repository, and a copy that no longer reads as its source fails here, so a
 // correction cannot reach one set and not the other.
 

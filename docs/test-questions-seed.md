@@ -11,10 +11,10 @@ sitting in the portal draws ten of a test's active questions and shuffles their 
 question counts only when the options chosen are exactly the correct ones. The explanation is
 what the study card shows before the test and what a failed attempt shows after a wrong answer.
 
-Citations name the act the general training material (MISSMIG, 2.2) or the fire-safety own
+Citations name the act the general training material (MISSMIG, 2.1) or the fire-safety own
 instructions (IPSU, 2.1) quote for the answer. Where the answer is a rule of the own instructions
 themselves and no act is quoted, the citation names the document and its article as the
-engine numbers it: I.P.S.S.M. (3.2, common part) or IPSU.
+engine numbers it: I.P.S.S.M. (3.1, common part) or IPSU.
 
 The column _Change_ says what departs from the sample tests of the pack (5.1, fire 4.1 and
 fire 4.2 before ADR 024). An empty cell means the question, its options and its key are the

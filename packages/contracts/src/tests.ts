@@ -409,7 +409,7 @@ export const portalTestsResponseSchema = z.object({
 
 export type PortalTestsResponse = z.infer<typeof portalTestsResponseSchema>;
 
-/** The material a test closes (ADR 024): 2.2 for occupational safety, the IPSU for fire safety. */
+/** The material a test closes (ADR 024): 2.1 for occupational safety, the IPSU for fire safety. */
 export const portalMaterialTypeKeys: Record<TrainingDomain, string> = {
   ssm: 'general_training_material',
   su: 'fire_own_instructions',

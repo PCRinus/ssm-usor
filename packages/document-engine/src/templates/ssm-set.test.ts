@@ -660,11 +660,11 @@ describe('branding', () => {
 });
 
 // ADR 014: the two plans are static text, and their article ranges fall on the chapters of the
-// 2.2 and 3.2 templates.
+// 2.1 and 3.1 templates.
 describe('training_themes', () => {
-  const lines = documentText(read('4.2_training_themes.docx')).split('\n');
+  const lines = documentText(read('4.1_training_themes.docx')).split('\n');
 
-  it('cites the general training material chapter by chapter, 2.2 as it is numbered', () => {
+  it('cites the general training material chapter by chapter, 2.1 as it is numbered', () => {
     expect(lines.filter((line) => line.startsWith('MISSMIG Art.'))).toEqual([
       ...[
         [1, 6],
@@ -708,7 +708,7 @@ describe('training_themes', () => {
   });
 
   it('repeats a block per position, a row per session and a citation per module', () => {
-    const placeholders = templatePlaceholders(read('4.2_training_themes.docx'));
+    const placeholders = templatePlaceholders(read('4.1_training_themes.docx'));
     expect(placeholders).toEqual(
       expect.arrayContaining(['themes.positions', 'sessions', 'modules', 'themes.annexTitles'])
     );
@@ -723,7 +723,7 @@ describe('training_themes', () => {
   it('adds the minutes of every row of a plan, breaks included, up to the total it prints', () => {
     const cellsOf = (row: string) =>
       (row.match(/<w:tc>[\s\S]*?<\/w:tc>/g) ?? []).map(documentTextOf);
-    const plans = (bodyOf('4.2_training_themes.docx').match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? [])
+    const plans = (bodyOf('4.1_training_themes.docx').match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? [])
       .map((table) => (table.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) ?? []).map(cellsOf))
       .filter((rows) => rows.some((cells) => cells.includes('TIMP TOTAL DE INSTRUIRE')));
     expect(plans).toHaveLength(2);
@@ -745,7 +745,7 @@ describe('training_themes', () => {
 
   it('heads each post with its name and sets its details in a key and value block', () => {
     const data = setSamples.find((sample) => sample.label === 'long')!.data;
-    const merged = renderDocument(read('4.2_training_themes.docx'), data);
+    const merged = renderDocument(read('4.1_training_themes.docx'), data);
     const text = documentText(merged).split('\n');
     const posts = (data.themes as { positions: { name: string }[] }).positions;
     for (const { name } of posts) {
@@ -761,7 +761,7 @@ describe('training_themes', () => {
   // A block that keeps with what follows it when no table follows chained every post of
   // chapter II into one run, which moved them all to the next page.
   it('keeps a periodic plan with its block, and no workplace block with the next post', () => {
-    const body = bodyOf('4.2_training_themes.docx');
+    const body = bodyOf('4.1_training_themes.docx');
     const blocks = body.match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
     const keyValue = blocks
       .map((block, index) => ({ block, index }))
@@ -919,7 +919,7 @@ describe('protective_equipment_list', () => {
 describe('prevention_plan', () => {
   const text = documentText(read('10_prevention_plan.docx'));
 
-  // 4.2, 6 and 10 name a post in one form.
+  // 4.1, 6 and 10 name a post in one form.
   it('heads each plan with the post as the app spells it and its work zone beside it', () => {
     const data = setSamples.find((sample) => sample.label === 'long')!.data;
     const merged = documentText(renderDocument(read('10_prevention_plan.docx'), data));

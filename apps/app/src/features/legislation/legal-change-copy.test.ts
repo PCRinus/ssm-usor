@@ -22,7 +22,7 @@ describe('titlesOf', () => {
   it('numbers the titles of one set without naming it', () => {
     expect(titlesOf([ssmTraining, ssmThemes])).toEqual([
       '1.1 Decizia privind responsabilii cu instruirea',
-      '4.2 Tematica și programul de instruire',
+      '4.1 Tematica și programul de instruire',
     ]);
   });
 

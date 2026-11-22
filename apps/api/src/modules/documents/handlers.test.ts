@@ -1519,7 +1519,7 @@ describe('GET /clients/{clientId}/documents/archive', () => {
     expect(await filesOf(response)).toEqual({
       '1.0 Copertă - Deciziile interne - rev. 1.docx': `${path('cover', 1)}.docx`,
       '1.3 Decizia privind primul ajutor - rev. 1 - ciornă.docx': `${path('aid', 1)}.docx`,
-      '3.2 Instrucțiuni proprii SSM - rev. 1.docx': JSON.stringify({
+      '3.1 Instrucțiuni proprii SSM - rev. 1.docx': JSON.stringify({
         common: `${path('own', 1)}.docx`,
         annexes: [annexData(0), annexData(1)],
       }),
@@ -1536,7 +1536,7 @@ describe('GET /clients/{clientId}/documents/archive', () => {
     expect(response.headers.get('Content-Disposition')).toContain('documentatia SSM - PDF.zip');
     expect(await filesOf(response)).toEqual({
       '1.0 Copertă - Deciziile interne - rev. 1.pdf': `${path('cover', 1)}.pdf`,
-      '3.2 Instrucțiuni proprii SSM - rev. 1.pdf': `${path('own', 1)}.pdf`,
+      '3.1 Instrucțiuni proprii SSM - rev. 1.pdf': `${path('own', 1)}.pdf`,
     });
     expect(calls('/rest/v1/instruction_module_versions')).toHaveLength(0);
   });
@@ -1605,7 +1605,7 @@ describe('the Word files of a revision with its annexes', () => {
     const response = await request(`/documents/${documentId}/revisions/${revisionId}/word`);
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Disposition')).toContain(
-      encodeURIComponent('3.2 Instrucțiuni proprii SSM - rev. 1.docx')
+      encodeURIComponent('3.1 Instrucțiuni proprii SSM - rev. 1.docx')
     );
     expect(JSON.parse(await response.text())).toEqual({
       common: 'common part',
@@ -1627,7 +1627,7 @@ describe('the Word files of a revision with its annexes', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Disposition')).toContain(
       encodeURIComponent(
-        '3.2 Instrucțiuni proprii SSM - rev. 1 - Anexa 2 - I.P.S.S.M. Birouri.docx'
+        '3.1 Instrucțiuni proprii SSM - rev. 1 - Anexa 2 - I.P.S.S.M. Birouri.docx'
       )
     );
     expect(JSON.parse(await response.text())).toEqual(annexData(1));

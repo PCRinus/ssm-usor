@@ -33,10 +33,10 @@ insert into public.legal_changes (id, act_id, seen_at, consolidated_on, outcome,
   ('d1d1d1d1-0000-4000-8000-0000000000f9', 'lege-227-2015', '2026-10-21 03:20+00', '2026-10-20', null, null, null);
 
 insert into public.legal_change_passages (change_id, manifest, template_file, type_key, paragraph, citation_form, unit_label, status, old_text, new_text) values
-  ('d1d1d1d1-0000-4000-8000-0000000000c1', 'ssm', '2.2_general_training_material.docx', 'test_material', 2048, 'quote', 'Art. 36 alin. (2)', 'changed', 'casca', 'pe cap cască'),
-  ('d1d1d1d1-0000-4000-8000-0000000000c3', 'ssm', '2.2_general_training_material.docx', 'test_material', 120, 'quote', 'Art. 7', 'changed', 'vechi', 'nou'),
-  ('d1d1d1d1-0000-4000-8000-0000000000f6', 'ssm', '2.2_general_training_material.docx', 'test_material', 300, 'quote', 'Art. 39', 'changed', 'vechi', 'nou'),
-  ('d1d1d1d1-0000-4000-8000-0000000000f8', 'ssm', '2.2_general_training_material.docx', 'test_material', 400, 'quote', 'Art. 342', 'changed', 'vechi', 'nou');
+  ('d1d1d1d1-0000-4000-8000-0000000000c1', 'ssm', '2.1_general_training_material.docx', 'test_material', 2048, 'quote', 'Art. 36 alin. (2)', 'changed', 'casca', 'pe cap cască'),
+  ('d1d1d1d1-0000-4000-8000-0000000000c3', 'ssm', '2.1_general_training_material.docx', 'test_material', 120, 'quote', 'Art. 7', 'changed', 'vechi', 'nou'),
+  ('d1d1d1d1-0000-4000-8000-0000000000f6', 'ssm', '2.1_general_training_material.docx', 'test_material', 300, 'quote', 'Art. 39', 'changed', 'vechi', 'nou'),
+  ('d1d1d1d1-0000-4000-8000-0000000000f8', 'ssm', '2.1_general_training_material.docx', 'test_material', 400, 'quote', 'Art. 342', 'changed', 'vechi', 'nou');
 
 insert into public.document_templates (id, organization_id, type_key, title) values
   ('70000000-0000-4000-8000-0000000000c1', null, 'test_material', 'Material instruire generală'),

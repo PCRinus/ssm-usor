@@ -81,7 +81,7 @@ const quoteDiffers: ChangeAssessment = {
   passages: [
     {
       manifest: 'ssm',
-      file: '2.2_general_training_material.docx',
+      file: '2.1_general_training_material.docx',
       typeKey: 'general_training_material',
       paragraph: 2048,
       form: 'quote',
@@ -95,7 +95,7 @@ const quoteDiffers: ChangeAssessment = {
     },
     {
       manifest: 'ssm',
-      file: '2.2_general_training_material.docx',
+      file: '2.1_general_training_material.docx',
       typeKey: 'general_training_material',
       paragraph: 1970,
       form: 'reference',
@@ -241,7 +241,7 @@ describe('the messages', () => {
     expect(changeDetails(notice(quoteDiffers))).toEqual({
       content: [
         '**O.U.G. 195/2002**, form of 2026-11-06',
-        '**Art. 36 alin. (2)** · 2.2_general_training_material.docx (Art. 36 alin. (1) – (3))',
+        '**Art. 36 alin. (2)** · 2.1_general_training_material.docx (Art. 36 alin. (1) – (3))',
         '```diff',
         `- ${helmetOld}`,
         `+ ${helmetNew}`,

@@ -28,7 +28,7 @@ insert into public.legal_changes (id, act_id, consolidated_on, amending_act) val
 insert into public.legal_change_passages
   (id, change_id, manifest, template_file, paragraph, citation_form, locator, article, unit_label, status, old_text, new_text, hunks)
 values
-  ('f1f1f1f1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000001', 'ssm', '2.2_general_training_material.docx', 2048,
+  ('f1f1f1f1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000001', 'ssm', '2.1_general_training_material.docx', 2048,
    'quote', 'Art. 7 alin. (1)', '7', 'Art. 7 alin. (1)', 'changed', '(1) vechi', '(1) nou',
    '[{"old": "vechi", "new": "nou", "before": "(1)", "after": ""}]');
 
@@ -117,7 +117,7 @@ select throws_ok(
 
 select throws_ok(
   $$ insert into public.legal_change_passages (change_id, manifest, template_file, paragraph, citation_form, unit_label, status, old_text, new_text)
-     values ('d1d1d1d1-0000-4000-8000-000000000001', 'ssm', '2.2_general_training_material.docx', 2048, 'quote', 'Art. 7 alin. (1)', 'changed', 'a', 'b') $$,
+     values ('d1d1d1d1-0000-4000-8000-000000000001', 'ssm', '2.1_general_training_material.docx', 2048, 'quote', 'Art. 7 alin. (1)', 'changed', 'a', 'b') $$,
   '23505',
   null,
   'a citation records a unit once per change'

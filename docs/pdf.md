@@ -31,7 +31,7 @@ mergePdfs(files: ArrayBuffer[]): Promise<ArrayBuffer>;
 the instruction modules it annexes ([ADR 012](architecture/adr-012-own-instructions.md)):
 one request to Gotenberg's LibreOffice route with `merge=true`, the files named `0001.docx`,
 `0002.docx` and so on, since Gotenberg merges in the alphanumeric order of the names. For
-either set's own instructions, 3.2 or 2.1, the files are the common part, then per annex its title page and the
+either set's own instructions, 3.1 or 2.1, the files are the common part, then per annex its title page and the
 module's file: `[common part, title page 1, module 1, title page 2, module 2, …]`, 1 + 2n
 files, which four digits number up to 9,999. Every LibreOffice conversion sends `updateIndexes=true`, Gotenberg's
 default said out loud: a table of contents leaves the merge without page numbers, and

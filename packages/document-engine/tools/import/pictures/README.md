@@ -1,6 +1,6 @@
 # Pictures of the occupational safety set
 
-Sources of the pictures `../build_pictures.py` writes into 2.2, 9 and 11.1. `make_pictures.py` renders
+Sources of the pictures `../build_pictures.py` writes into 2.1, 9 and 11.1. `make_pictures.py` renders
 `svg/` into `png/` (PyMuPDF and Pillow); the PNGs are committed, so building the templates needs neither.
 
 ## Safety signs
@@ -109,5 +109,5 @@ were generated for SSM Ușor with ChatGPT from one shared style prompt, then red
 
 ## Drawn here
 
-`make_pictures.py` draws the hazard bands of 2.2's Fig. 1 (`stripes-*.svg`) and 9's method figures 1.1 to 1.5 b
+`make_pictures.py` draws the hazard bands of 2.1's Fig. 1 (`stripes-*.svg`) and 9's method figures 1.1 to 1.5 b
 (`figure-*.svg`) from their geometry.

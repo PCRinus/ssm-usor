@@ -20,7 +20,7 @@ vi.mock('@ssm-usor/document-engine/legal-quote', async (importOriginal) => ({
 
 const input: PatchInput = {
   citation: {
-    file: '2.2_general_training_material.docx',
+    file: '2.1_general_training_material.docx',
     paragraph: 2048,
     act: 'oug-195-2002',
     locator: 'Art. 36 alin. (2)',
@@ -71,7 +71,7 @@ describe('the quote tool of the scheduled fix', () => {
     }
     expect(thrown).not.toBeInstanceOf(PendingChangeError);
     expect((thrown as Error).message).toBe(
-      `replace-quote failed on 2.2_general_training_material.docx: ${'y'.repeat(1_000)}`
+      `replace-quote failed on 2.1_general_training_material.docx: ${'y'.repeat(1_000)}`
     );
   });
 });

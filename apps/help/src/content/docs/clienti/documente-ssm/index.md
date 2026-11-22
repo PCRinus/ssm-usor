@@ -59,19 +59,19 @@ Instrucțiunile proprii își arată anexele sub ele, câte una pe rând, fiecar
 
 ## Numerele documentelor
 
-Fiecare document are numărul lui din dosarul tipărit, scris înaintea titlului: **3.2** sunt instrucțiunile proprii, **6** lista de dotare cu echipament individual de protecție, **9** evaluarea riscurilor. Numărul este același la orice client și oriunde apare documentul: în titlul documentului deschis, în ferestrele și mesajele despre el, în **Legislație** și în numele fișierelor descărcate, inclusiv în arhiva documentației.
+Fiecare document are numărul lui din dosarul tipărit, scris înaintea titlului: **3.1** sunt instrucțiunile proprii, **6** lista de dotare cu echipament individual de protecție, **9** evaluarea riscurilor. Numărul este același la orice client și oriunde apare documentul: în titlul documentului deschis, în ferestrele și mesajele despre el, în **Legislație** și în numele fișierelor descărcate, inclusiv în arhiva documentației.
 
-Coperta unei secțiuni are numărul **X.0**: 1.0 este coperta deciziilor, 3.0 coperta instrucțiunilor proprii. După copertă, o secțiune poate continua direct cu X.2, ca 2.0 și 2.2: numerele păstrează locul documentelor din dosarul obișnuit, iar lipsa unui număr este voită.
+Coperta unei secțiuni are numărul **X.0**: 1.0 este coperta deciziilor, 3.0 coperta instrucțiunilor proprii. După copertă, documentele secțiunii urmează în ordine, fără goluri: X.1, X.2 și așa mai departe, ca deciziile 1.1–1.5 după coperta 1.0.
 
 | Secțiune                                               | Documente                                           |
 | ------------------------------------------------------ | --------------------------------------------------- |
 | 1. Decizii interne                                     | 1.0 coperta, 1.1–1.5 deciziile                      |
-| 2. Material de instruire introductiv-generală          | 2.0 coperta, 2.2 materialul                         |
-| 3. Instrucțiuni proprii                                | 3.0 coperta, 3.2 instrucțiunile proprii, cu anexele |
-| 4. Tematica de instruire                               | 4.0 coperta, 4.2 tematica și programul de instruire |
+| 2. Material de instruire introductiv-generală          | 2.0 coperta, 2.1 materialul                         |
+| 3. Instrucțiuni proprii                                | 3.0 coperta, 3.1 instrucțiunile proprii, cu anexele |
+| 4. Tematica de instruire                               | 4.0 coperta, 4.1 tematica și programul de instruire |
 | 5. Test de verificare a cunoștințelor                  | 5.0 coperta, 5.1 testul la angajare                 |
 | 6. Lista internă de dotare cu EIP                      | 6                                                   |
-| 7. Registrele de evidență a evenimentelor              | 7.0 coperta, 7.2 registrele                         |
+| 7. Registrele de evidență a evenimentelor              | 7.0 coperta, 7.1 registrele                         |
 | 8. Referat de control                                  | 8                                                   |
 | 9. Evaluarea riscurilor                                | 9                                                   |
 | 10. Planul de prevenire și protecție                   | 10                                                  |

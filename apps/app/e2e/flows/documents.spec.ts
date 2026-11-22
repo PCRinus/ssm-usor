@@ -361,7 +361,7 @@ test('the issued training themes fall behind when a cited instruction gets a new
   await act(page, themes, 'document-regenerate');
   await page.getByTestId('document-confirm').click();
   await expect(
-    page.getByText('„4.2 Tematica și programul de instruire” a fost generat din nou.')
+    page.getByText('„4.1 Tematica și programul de instruire” a fost generat din nou.')
   ).toBeVisible();
   await expect(themes.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
   await expect(themes.getByTestId('document-issued')).toHaveText('Emis · rev. 1');

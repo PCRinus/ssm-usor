@@ -20,7 +20,7 @@ const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.
 
 const helmet = {
   id: 'f2f2f2f2-0000-4000-8000-000000000002',
-  template_file: '2.2_general_training_material.docx',
+  template_file: '2.1_general_training_material.docx',
   type_key: 'general_training_material',
   paragraph: 2048,
   citation_form: 'quote',

@@ -31,9 +31,9 @@ for (const { name, label, docx } of previewDocuments(templatesUrl).documents) {
 const annex = renderAnnex('ssm', ssmAnnexSample, ssmAnnexData);
 writeFileSync(join(out, 'merged', 'annex.ssm.docx'), annex);
 for (const { label, data } of setSamples) {
-  const common = renderDocument(readFileSync(join(templates, '3.2_own_instructions.docx')), data);
+  const common = renderDocument(readFileSync(join(templates, '3.1_own_instructions.docx')), data);
   writeFileSync(
-    join(out, 'merged', `3.2_own_instructions.${label}.with-annex.docx`),
+    join(out, 'merged', `3.1_own_instructions.${label}.with-annex.docx`),
     appendAnnexes(common, [annex])
   );
 }

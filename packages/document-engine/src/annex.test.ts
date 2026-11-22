@@ -368,7 +368,7 @@ describe.each([
     const firstRow = (file: Uint8Array) =>
       paragraphTexts(part(file, 'word/header1.xml').split('</w:tr>')[0]!).join('|');
     const common = read(
-      domain === 'ssm' ? '3.2_own_instructions.docx' : 'fire/2.1_fire_own_instructions.docx'
+      domain === 'ssm' ? '3.1_own_instructions.docx' : 'fire/2.1_fire_own_instructions.docx'
     );
     expect(firstRow(template)).toBe(firstRow(common));
   });
@@ -398,7 +398,7 @@ describe.each([
 });
 
 describe('appendAnnexes', () => {
-  const common = read('3.2_own_instructions.docx');
+  const common = read('3.1_own_instructions.docx');
   const annexes = [
     renderAnnex('ssm', ssmAnnexSample, ssmAnnexData),
     renderAnnex('ssm', ssmAnnexSample, { ...ssmAnnexData, number: 3, title: 'Ajutor de bucătar' }),
@@ -530,7 +530,7 @@ describe.skipIf(!converter)('the converter', () => {
   }, 60_000);
 
   it('opens a common part with annexes appended, each on pages of its own', async () => {
-    const common = read('3.2_own_instructions.docx');
+    const common = read('3.1_own_instructions.docx');
     const annex = renderAnnex('ssm', ssmAnnexSample, ssmAnnexData);
     const pages = pageCount(await convert(common));
     expect(pageCount(await convert(appendAnnexes(common, [annex, annex])))).toBe(pages + 6);

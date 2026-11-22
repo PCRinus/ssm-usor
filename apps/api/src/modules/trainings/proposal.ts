@@ -10,7 +10,7 @@ import type { Identified } from '../documents/people';
 import { monthNames } from '../documents/themes';
 import { resolveTrainer } from '../documents/trainer';
 
-// The content lines of the hiring plans, as the 4.2 and 3.1 templates print them in chapters I
+// The content lines of the hiring plans, as the 4.1 and SU 3.1 templates print them in chapters I
 // and II: static text there, so a plan edited in a Word file is never read back (ADR 021).
 // scripts/lib/training-plans.test.ts holds them to the templates.
 export const hiringPlans = {

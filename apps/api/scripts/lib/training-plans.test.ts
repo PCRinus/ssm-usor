@@ -24,8 +24,8 @@ const totals = (lines: string[]) =>
   lines.flatMap((line, index) => (line === 'TIMP TOTAL DE INSTRUIRE' ? [lines[index + 1]] : []));
 
 describe('the hiring plans a training held is proposed from', () => {
-  it('are the content lines and durations of the training themes 4.2', () => {
-    const text = paragraphs('4.2_training_themes.docx');
+  it('are the content lines and durations of the training themes 4.1', () => {
+    const text = paragraphs('4.1_training_themes.docx');
     expect(text.join('\n')).toContain(
       `Conținutul instruirii\n${hiringPlans.ssm.introductoryGeneral}`
     );
