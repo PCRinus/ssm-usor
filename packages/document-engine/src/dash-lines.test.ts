@@ -97,6 +97,18 @@ describe('hangDashLines', () => {
     expect(textOf(merged.slice(merged.lastIndexOf('<w:p>')))).toBe('–⇥a &amp; b');
   });
 
+  it("hangs the risks of 9.2's column, and leaves a longer heading on risks alone", () => {
+    const merged = paragraph(
+      '<w:r><w:t xml:space="preserve">– Electrocutare (nivel de risc 6)</w:t><w:br/><w:t xml:space="preserve">– Arsuri (nivel de risc 5)</w:t></w:r>'
+    );
+    expect(paragraphsOf(hangDashLines(table(merged, { header: 'Riscuri' }))).map(textOf)).toEqual([
+      '–⇥Electrocutare (nivel de risc 6)',
+      '–⇥Arsuri (nivel de risc 5)',
+    ]);
+    const plan = table(merged, { header: 'Riscuri evaluate' });
+    expect(hangDashLines(plan)).toBe(plan);
+  });
+
   it('finds the dash after a run of spaces, and empty runs and properties do not stop it', () => {
     const spaced = paragraph(
       '<w:r><w:t xml:space="preserve"> </w:t></w:r><w:r/><w:r><w:t xml:space="preserve">– a</w:t></w:r>'

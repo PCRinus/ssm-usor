@@ -68,7 +68,8 @@ describe('templates outside the pack', () => {
 // Every original of the provider's pack is listed, ported or not, under its number in the
 // binder, so the folder shows at a glance what is still to do. A cover is X.0, whatever the
 // original's number. Decision 1.5 came later, from a third pack.
-// The annex on the electronic signature (13, ADR 023) has no original: its wording is ours.
+// The record of risk zones (9.2, ADR 045) and the annex on the electronic signature (13,
+// ADR 023) have no original: their wording is ours.
 describe('manifest', () => {
   const manifest = { templates: setEntries('ssm') };
   const ported = manifest.templates.filter((entry) => entry.file);
@@ -77,8 +78,8 @@ describe('manifest', () => {
     expect(manifest.templates.filter((entry) => entry.original)).toHaveLength(23);
     expect(
       manifest.templates.filter((entry) => !entry.original).map((entry) => entry.typeKey)
-    ).toEqual(['signing_regulation_annex']);
-    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(24);
+    ).toEqual(['risk_zones_record', 'signing_regulation_annex']);
+    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(25);
   });
 
   it('names each ported template after its number and its type', () => {

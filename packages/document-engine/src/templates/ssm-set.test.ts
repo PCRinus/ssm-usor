@@ -987,3 +987,86 @@ describe('prevention_plan', () => {
     }
   });
 });
+
+describe('risk_zones_record', () => {
+  const template = read('9.2_risk_zones_record.docx');
+  const sample = (label: string) => setSamples.find((each) => each.label === label)!.data;
+
+  it('asks for exactly this data', () => {
+    expect(templatePlaceholders(template)).toEqual([
+      '$index',
+      'branding',
+      'client.legalName',
+      'client.representativeName',
+      'client.representativeRole',
+      'issueDate',
+      'measuresText',
+      'name',
+      'place',
+      'provider.legalName',
+      'provider.representativeName',
+      'provider.representativeRole',
+      'riskZones.listed',
+      'riskZones.none',
+      'riskZones.zones',
+      'risksText',
+    ]);
+  });
+
+  it('is laid out as the prevention plan, on an A4 landscape page bound on its top edge', () => {
+    const section = (name: string) => /<w:sectPr>[\s\S]*<\/w:sectPr>/.exec(bodyOf(name))![0];
+    const page = (name: string) => /<w:pgSz [^>]*\/>/.exec(section(name))![0];
+    const margins = (name: string) =>
+      /w:left="(\d+)" w:right="(\d+)"/.exec(section(name))!.slice(1);
+    expect(page('9.2_risk_zones_record.docx')).toBe(page('10_prevention_plan.docx'));
+    expect(margins('9.2_risk_zones_record.docx')).toEqual(margins('10_prevention_plan.docx'));
+  });
+
+  it('prints the zones, their place, risks and measures, under the basis and art. 106', () => {
+    const merged = documentText(renderDocument(template, sample('long')));
+    expect(merged).toContain(
+      'Temei legal: art. 13 lit. k) din Legea 319/2006 și art. 105–107 din H.G. 1425/2006.'
+    );
+    for (const column of ['Nr. crt.', 'Zona', 'Localizare', 'Riscuri', 'Măsuri']) {
+      expect(merged).toContain(column);
+    }
+    expect(merged).toContain('Tabloul electric general');
+    expect(merged).toContain('parter, camera tehnică de lângă intrare');
+    expect(merged).toContain(
+      'Arsuri prin arc electric la manevrarea siguranțelor (nivel de risc 5)'
+    );
+    expect(merged).toContain('Purtarea măștii de sudură și a mănușilor de protecție.');
+    expect(merged).toContain(
+      'Zonele cu risc ridicat și specific se aduc la cunoștința tuturor lucrătorilor cu ocazia instruirii.'
+    );
+    expect(merged).toContain(
+      'Măsurile stabilite pentru fiecare zonă se aduc la cunoștința conducătorilor locurilor de muncă și a lucrătorilor care desfășoară activități în aceste zone.'
+    );
+    expect(merged).not.toContain('nu au fost identificate');
+  });
+
+  it('repeats the heading of the table on every page and never cuts a zone in two', () => {
+    const zones = bodyOf('9.2_risk_zones_record.docx')
+      .match(/<w:tbl>[\s\S]*?<\/w:tbl>/g)!
+      .find((each) => each.includes('{{#riskZones.zones}}'))!;
+    const rows = zones.match(/<w:tr\b[\s\S]*?<\/w:tr>/g)!;
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toContain('<w:tblHeader');
+    expect(rows[1]).toContain('<w:cantSplit');
+  });
+
+  it('says in one sentence that the client has none, with no table', () => {
+    const merged = documentText(renderDocument(template, sample('short')));
+    expect(merged).toContain(
+      'În urma evaluării riscurilor nu au fost identificate zone cu risc ridicat și specific.'
+    );
+    expect(merged).not.toContain('Nr. crt.');
+    expect(merged).not.toContain('se aduc la cunoștința');
+  });
+
+  it('is handed over by the provider and approved by the client', () => {
+    const text = documentText(template);
+    expect(text).toContain('Am întocmit și predat un exemplar');
+    expect(text).toContain('Am primit și aprobat');
+  });
+});

@@ -1284,6 +1284,71 @@ function annualReportSample(people: ReturnType<typeof person>[], long: boolean) 
   };
 }
 
+const riskZonesNone = { state: 'none', listed: false, none: true, zones: [] };
+
+// The measures as the API joins them: a line each, each opened by a dash, one alone as text.
+const riskZonesListed = {
+  state: 'listed',
+  listed: true,
+  none: false,
+  zones: [
+    {
+      name: 'Tabloul electric general',
+      workplace: 'Sediu social',
+      location: 'parter, camera tehnică de lângă intrare',
+      place: 'Sediu social\nparter, camera tehnică de lângă intrare',
+      risks: [
+        {
+          description:
+            'Electrocutare prin atingere directă la elementele aflate sub tensiune ale tabloului',
+          level: 6,
+        },
+        { description: 'Arsuri prin arc electric la manevrarea siguranțelor', level: 5 },
+      ],
+      risksText:
+        '– Electrocutare prin atingere directă la elementele aflate sub tensiune ale tabloului (nivel de risc 6)\n– Arsuri prin arc electric la manevrarea siguranțelor (nivel de risc 5)',
+      measures: [
+        'Ușa tabloului ținută încuiată, cu cheia la conducătorul locului de muncă.',
+        'Verificarea anuală a instalației electrice de către un electrician autorizat ANRE.',
+        'Accesul în camera tehnică numai pentru personalul autorizat.',
+        'Indicatoare de avertizare „Pericol de electrocutare” pe ușa tabloului.',
+      ],
+      measuresText:
+        '– Ușa tabloului ținută încuiată, cu cheia la conducătorul locului de muncă.\n– Verificarea anuală a instalației electrice de către un electrician autorizat ANRE.\n– Accesul în camera tehnică numai pentru personalul autorizat.\n– Indicatoare de avertizare „Pericol de electrocutare” pe ușa tabloului.',
+    },
+    {
+      name: 'Depozitul de substanțe de curățenie și de vopsele de la etajul al doilea al halei de producție',
+      workplace: 'Punct de lucru „Atelier”',
+      location: null,
+      place: 'Punct de lucru „Atelier”',
+      risks: [],
+      risksText: '—',
+      measures: ['Aerisirea zilnică a încăperii și păstrarea substanțelor în ambalajul original.'],
+      measuresText:
+        'Aerisirea zilnică a încăperii și păstrarea substanțelor în ambalajul original.',
+    },
+    {
+      name: 'Zona de sudură',
+      workplace: null,
+      location: 'hala de producție, latura de nord',
+      place: 'hala de producție, latura de nord',
+      risks: [
+        { description: 'Incendiu provocat de scânteile de sudură', level: 5 },
+        { description: 'Inhalarea gazelor și a fumului de sudură', level: 4 },
+      ],
+      risksText:
+        '– Incendiu provocat de scânteile de sudură (nivel de risc 5)\n– Inhalarea gazelor și a fumului de sudură (nivel de risc 4)',
+      measures: [
+        'Ventilație locală cu aspirație la postul de sudură.',
+        'Lucrul cu foc numai pe baza permisului de lucru cu foc.',
+        'Purtarea măștii de sudură și a mănușilor de protecție.',
+      ],
+      measuresText:
+        '– Ventilație locală cu aspirație la postul de sudură.\n– Lucrul cu foc numai pe baza permisului de lucru cu foc.\n– Purtarea măștii de sudură și a mănușilor de protecție.',
+    },
+  ],
+};
+
 function setSample(
   label: string,
   legalName: string,
@@ -1403,6 +1468,7 @@ function setSample(
             ]
           : [],
       noAnnexes: people.length === 1,
+      riskZones: people.length === 1 ? riskZonesNone : riskZonesListed,
       riskAssessment: {
         unit: {
           activity: '2562 – Fabricarea articolelor de feronerie',

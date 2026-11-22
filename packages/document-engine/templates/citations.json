@@ -11117,6 +11117,32 @@
     },
     {
       "manifest": "ssm",
+      "file": "9.2_risk_zones_record.docx",
+      "typeKey": "risk_zones_record",
+      "paragraph": 13,
+      "lastParagraph": 13,
+      "block": null,
+      "form": "reference",
+      "act": "lege-319-2006",
+      "article": "13",
+      "locator": null,
+      "text": null
+    },
+    {
+      "manifest": "ssm",
+      "file": "9.2_risk_zones_record.docx",
+      "typeKey": "risk_zones_record",
+      "paragraph": 13,
+      "lastParagraph": 13,
+      "block": null,
+      "form": "reference",
+      "act": "hg-1425-2006",
+      "article": "105",
+      "locator": null,
+      "text": null
+    },
+    {
+      "manifest": "ssm",
       "file": "11.1_employer_briefing.docx",
       "typeKey": "employer_briefing",
       "paragraph": 33,
