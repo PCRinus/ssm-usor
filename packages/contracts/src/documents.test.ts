@@ -46,6 +46,34 @@ describe('documentNumberOf', () => {
     }
   );
 
+  it.each(documentSets)(
+    'numbers the documents of a section of the %s set without a cover X.1, X.2, … without a gap',
+    (set) => {
+      const numbers = documentSetTypeKeys[set].map((typeKey) => documentNumberOf(typeKey)!);
+      const sections = new Set(
+        numbers.filter((number) => number.includes('.')).map((number) => number.split('.')[0])
+      );
+      const uncovered = [...sections].filter((section) => !numbers.includes(`${section}.0`));
+      for (const section of uncovered) {
+        const places = numbers
+          .filter((number) => number.startsWith(`${section}.`))
+          .map((number) => Number(number.split('.')[1]));
+        expect(places).toEqual(places.map((_, index) => index + 1));
+      }
+    }
+  );
+
+  it('numbers the risk assessment and the record of risk zones 9.1 and 9.2, in that order', () => {
+    const typeKeys = documentSetTypeKeys.occupational_safety;
+    expect(
+      typeKeys.slice(typeKeys.indexOf('risk_assessment'), typeKeys.indexOf('prevention_plan'))
+    ).toEqual(['risk_assessment', 'risk_zones_record']);
+    expect(typeKeys.map(documentNumberOf).filter((number) => number?.startsWith('9.'))).toEqual([
+      '9.1',
+      '9.2',
+    ]);
+  });
+
   it('numbers no type outside the binder', () => {
     expect(Object.values(trainingSheetTypeKeys).map(documentNumberOf)).toEqual([null, null]);
     expect(documentNumberOf('provider_own_form')).toBeNull();

@@ -91,6 +91,8 @@ export const ApiErrorResponseMissingItem = {
   risk_evaluationsmeasures: 'risk_evaluations.measures',
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
+  risk_zonesdecided: 'risk_zones.decided',
+  risk_zonesmeasures: 'risk_zones.measures',
   firetrainingSchedule: 'fire.trainingSchedule',
   firesmokingPolicy: 'fire.smokingPolicy',
   firewaste: 'fire.waste',
@@ -7784,6 +7786,8 @@ export const RegenerationJobResponseJobItemsItemMissingItem = {
   risk_evaluationsmeasures: 'risk_evaluations.measures',
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
+  risk_zonesdecided: 'risk_zones.decided',
+  risk_zonesmeasures: 'risk_zones.measures',
   firetrainingSchedule: 'fire.trainingSchedule',
   firesmokingPolicy: 'fire.smokingPolicy',
   firewaste: 'fire.waste',
@@ -7847,6 +7851,7 @@ export const StartRegenerationRequestTypeKey = {
   event_registers: 'event_registers',
   control_report: 'control_report',
   risk_assessment: 'risk_assessment',
+  risk_zones_record: 'risk_zones_record',
   prevention_plan: 'prevention_plan',
   cover_employer_briefing: 'cover_employer_briefing',
   employer_briefing: 'employer_briefing',
@@ -7959,6 +7964,8 @@ export const DocumentReadinessResponseMissingItem = {
   risk_evaluationsmeasures: 'risk_evaluations.measures',
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
+  risk_zonesdecided: 'risk_zones.decided',
+  risk_zonesmeasures: 'risk_zones.measures',
   firetrainingSchedule: 'fire.trainingSchedule',
   firesmokingPolicy: 'fire.smokingPolicy',
   firewaste: 'fire.waste',
@@ -8029,6 +8036,115 @@ export type DocumentReadinessResponseIncompleteRiskEvaluationsItem = {
   missing: DocumentReadinessResponseIncompleteRiskEvaluationsItemMissingItem[];
 };
 
+export type DocumentReadinessResponseWaitingDocumentsItemTypeKey =
+  (typeof DocumentReadinessResponseWaitingDocumentsItemTypeKey)[keyof typeof DocumentReadinessResponseWaitingDocumentsItemTypeKey];
+
+export const DocumentReadinessResponseWaitingDocumentsItemTypeKey = {
+  cover_decisions: 'cover_decisions',
+  decision_training: 'decision_training',
+  decision_risk_evaluation_team: 'decision_risk_evaluation_team',
+  decision_first_aid: 'decision_first_aid',
+  decision_imminent_danger: 'decision_imminent_danger',
+  decision_workers_representative: 'decision_workers_representative',
+  cover_general_training_material: 'cover_general_training_material',
+  general_training_material: 'general_training_material',
+  cover_own_instructions: 'cover_own_instructions',
+  own_instructions: 'own_instructions',
+  cover_training_themes: 'cover_training_themes',
+  training_themes: 'training_themes',
+  cover_tests: 'cover_tests',
+  test_hiring: 'test_hiring',
+  protective_equipment_list: 'protective_equipment_list',
+  cover_event_registers: 'cover_event_registers',
+  event_registers: 'event_registers',
+  control_report: 'control_report',
+  risk_assessment: 'risk_assessment',
+  risk_zones_record: 'risk_zones_record',
+  prevention_plan: 'prevention_plan',
+  cover_employer_briefing: 'cover_employer_briefing',
+  employer_briefing: 'employer_briefing',
+  control_regulation: 'control_regulation',
+  signing_regulation_annex: 'signing_regulation_annex',
+  fire_cover_decisions: 'fire_cover_decisions',
+  fire_decision_organization: 'fire_decision_organization',
+  fire_decision_training: 'fire_decision_training',
+  fire_decision_open_fire: 'fire_decision_open_fire',
+  fire_decision_smoking: 'fire_decision_smoking',
+  fire_decision_technician: 'fire_decision_technician',
+  fire_decision_instructions: 'fire_decision_instructions',
+  fire_decision_waste: 'fire_decision_waste',
+  fire_decision_seasons: 'fire_decision_seasons',
+  fire_decision_control: 'fire_decision_control',
+  fire_cover_own_instructions: 'fire_cover_own_instructions',
+  fire_own_instructions: 'fire_own_instructions',
+  fire_cover_training_themes: 'fire_cover_training_themes',
+  fire_training_themes: 'fire_training_themes',
+  fire_cover_tests: 'fire_cover_tests',
+  fire_test_hiring: 'fire_test_hiring',
+  fire_test_annual: 'fire_test_annual',
+  fire_means_list: 'fire_means_list',
+  fire_workplace_organization: 'fire_workplace_organization',
+  fire_substances_list: 'fire_substances_list',
+  fire_maintenance_schedules: 'fire_maintenance_schedules',
+  fire_cover_registers: 'fire_cover_registers',
+  fire_registers: 'fire_registers',
+  fire_work_permit: 'fire_work_permit',
+  fire_installation_register: 'fire_installation_register',
+  fire_extinguisher_register: 'fire_extinguisher_register',
+  fire_site_sheet: 'fire_site_sheet',
+  fire_annual_report: 'fire_annual_report',
+} as const;
+
+export type DocumentReadinessResponseWaitingDocumentsItemMissingItem =
+  (typeof DocumentReadinessResponseWaitingDocumentsItemMissingItem)[keyof typeof DocumentReadinessResponseWaitingDocumentsItemMissingItem];
+
+export const DocumentReadinessResponseWaitingDocumentsItemMissingItem = {
+  providerlegalName: 'provider.legalName',
+  providerrepresentativeName: 'provider.representativeName',
+  providerrepresentativeRole: 'provider.representativeRole',
+  providerfireSafetyTechnician: 'provider.fireSafetyTechnician',
+  providerfireSafetyTechnicianCertificate: 'provider.fireSafetyTechnicianCertificate',
+  specialistname: 'specialist.name',
+  specialistprofessionalTitle: 'specialist.professionalTitle',
+  clientrepresentativeName: 'client.representativeName',
+  clientrepresentativeRole: 'client.representativeRole',
+  clienttrainingSchedule: 'client.trainingSchedule',
+  responsibleworkplace_manager: 'responsible.workplace_manager',
+  responsiblefirst_aid: 'responsible.first_aid',
+  responsiblerisk_evaluation_team: 'responsible.risk_evaluation_team',
+  responsibleimminent_danger: 'responsible.imminent_danger',
+  responsibleworkers_representative: 'responsible.workers_representative',
+  responsibleworkers_representatives_two: 'responsible.workers_representatives_two',
+  responsibleworkers_representative_is_legal_representative:
+    'responsible.workers_representative_is_legal_representative',
+  responsiblefire_safety_coordinator: 'responsible.fire_safety_coordinator',
+  responsiblefire_intervention_leader: 'responsible.fire_intervention_leader',
+  positionsany: 'positions.any',
+  positionsequipment: 'positions.equipment',
+  positionsinstructions: 'positions.instructions',
+  positionsrisk_evaluation: 'positions.risk_evaluation',
+  risk_evaluationssensitive_groups: 'risk_evaluations.sensitive_groups',
+  risk_evaluationsmeasures: 'risk_evaluations.measures',
+  risk_evaluationsplan: 'risk_evaluations.plan',
+  documentsown_instructions: 'documents.own_instructions',
+  risk_zonesdecided: 'risk_zones.decided',
+  risk_zonesmeasures: 'risk_zones.measures',
+  firetrainingSchedule: 'fire.trainingSchedule',
+  firesmokingPolicy: 'fire.smokingPolicy',
+  firewaste: 'fire.waste',
+  fireworkplaces: 'fire.workplaces',
+  fireequipment: 'fire.equipment',
+  firesubstances: 'fire.substances',
+  fireinstructions: 'fire.instructions',
+  documentsfire_own_instructions: 'documents.fire_own_instructions',
+} as const;
+
+export type DocumentReadinessResponseWaitingDocumentsItem = {
+  typeKey: DocumentReadinessResponseWaitingDocumentsItemTypeKey;
+  /** @minItems 1 */
+  missing: DocumentReadinessResponseWaitingDocumentsItemMissingItem[];
+};
+
 export type DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem =
   (typeof DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem)[keyof typeof DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem];
 
@@ -8054,6 +8170,7 @@ export interface DocumentReadinessResponse {
   workersRepresentativeClash: DocumentReadinessResponseWorkersRepresentativeClash;
   undecidedJobPositions: DocumentReadinessResponseUndecidedJobPositionsItem[];
   incompleteRiskEvaluations: DocumentReadinessResponseIncompleteRiskEvaluationsItem[];
+  waitingDocuments: DocumentReadinessResponseWaitingDocumentsItem[];
   incompleteFireSubstances: DocumentReadinessResponseIncompleteFireSubstancesItem[];
 }
 
@@ -8286,6 +8403,7 @@ export const ClientDocumentListResponseNotApplicableItem = {
   event_registers: 'event_registers',
   control_report: 'control_report',
   risk_assessment: 'risk_assessment',
+  risk_zones_record: 'risk_zones_record',
   prevention_plan: 'prevention_plan',
   cover_employer_briefing: 'cover_employer_briefing',
   employer_briefing: 'employer_briefing',
@@ -38105,6 +38223,7 @@ export const getUploadClientDocumentUrl = (
     | 'event_registers'
     | 'control_report'
     | 'risk_assessment'
+    | 'risk_zones_record'
     | 'prevention_plan'
     | 'cover_employer_briefing'
     | 'employer_briefing'
@@ -38181,6 +38300,7 @@ export const uploadClientDocument = async (
     | 'event_registers'
     | 'control_report'
     | 'risk_assessment'
+    | 'risk_zones_record'
     | 'prevention_plan'
     | 'cover_employer_briefing'
     | 'employer_briefing'
@@ -38313,6 +38433,7 @@ export type UploadClientDocumentMutationVariables = {
     | 'event_registers'
     | 'control_report'
     | 'risk_assessment'
+    | 'risk_zones_record'
     | 'prevention_plan'
     | 'cover_employer_briefing'
     | 'employer_briefing'

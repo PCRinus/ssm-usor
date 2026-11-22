@@ -5,8 +5,8 @@ import { riskEvaluationKindSchema } from './risk-evaluations';
 
 /**
  * The built-in documents of the occupational safety set, in the order of the provider's pack.
- * Mirrors the manifest of `packages/document-engine/templates`. The last, document 13, is ours,
- * not the provider's (ADR 023).
+ * Mirrors the manifest of `packages/document-engine/templates`. Documents 9.2 (ADR 045) and 13
+ * (ADR 023) are ours, not the provider's.
  */
 export const documentTypeKeys = [
   'cover_decisions',
@@ -28,6 +28,7 @@ export const documentTypeKeys = [
   'event_registers',
   'control_report',
   'risk_assessment',
+  'risk_zones_record',
   'prevention_plan',
   'cover_employer_briefing',
   'employer_briefing',
@@ -187,6 +188,7 @@ export const occupationalSafetyDocumentTitles = {
   event_registers: 'Registrele de evidență a evenimentelor',
   control_report: 'Referat de control',
   risk_assessment: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
+  risk_zones_record: 'Evidența zonelor cu risc ridicat și specific',
   prevention_plan: 'Planul de prevenire și protecție',
   cover_employer_briefing: 'Copertă – Material de informare a angajatorului',
   employer_briefing: 'Material de informare a angajatorului',
@@ -254,6 +256,7 @@ export const occupationalSafetyDocumentNumbers = {
   event_registers: '7.1',
   control_report: '8',
   risk_assessment: '9.1',
+  risk_zones_record: '9.2',
   prevention_plan: '10',
   cover_employer_briefing: '11.0',
   employer_briefing: '11.1',
@@ -380,6 +383,10 @@ export const missingDocumentData = [
   'risk_evaluations.plan',
   // Only for generating the training themes again: they cite the own instructions (ADR 014).
   'documents.own_instructions',
+  // Only for 9.2 (ADR 045): the client neither lists a risk zone nor declares it has none.
+  'risk_zones.decided',
+  // Only for 9.2: a zone with neither a current linked factor nor measures of its own.
+  'risk_zones.measures',
   'fire.trainingSchedule',
   'fire.smokingPolicy',
   'fire.waste',
@@ -480,6 +487,15 @@ export const documentReadinessResponseSchema = z.object({
       jobPositionId: z.uuid().nullable(),
       name: z.string(),
       missing: z.array(riskEvaluationGapSchema).min(1),
+    })
+  ),
+  // The documents the set is generated without while gaps of their own stand (ADR 045), each with
+  // those gaps; the next generation adds them once the gaps are filled. Empty for the fire-safety
+  // set.
+  waitingDocuments: z.array(
+    z.object({
+      typeKey: builtInDocumentTypeKeySchema,
+      missing: z.array(missingDocumentDataSchema).min(1),
     })
   ),
   // The listed substances behind `fire.substances`, each with what the list 5.3 still needs;
