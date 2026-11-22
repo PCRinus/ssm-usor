@@ -32,6 +32,7 @@ async function act(page: Page, row: Locator, action: string, menu = 'document-ac
 
 async function downloadArchive(page: Page, format: string) {
   await expect(page.getByRole('menu')).toHaveCount(0);
+  await showDocumentFolders(page);
   const download = page.waitForEvent('download');
   await page.getByTestId('documents-archive').click();
   await page.getByTestId(format).click();
@@ -266,6 +267,7 @@ test('the own instructions are issued with their annex, which opens in the edito
     expect(Buffer.from(pdf![1].subarray(0, 5)).toString()).toBe('%PDF-');
   }
 
+  await openDocumentSection(page, '3');
   const annex = page.getByTestId('document-annex');
   await expect(annex).toHaveCount(1);
   await expect(annex.getByTestId('document-annex-title')).toContainText(

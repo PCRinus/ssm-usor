@@ -967,7 +967,7 @@ const sectionNumbered = (page: Page, number: string) =>
 // leads to this one through the overview of all of them.
 export async function openDocumentSection(page: Page, number: string) {
   const open = page.getByTestId('pack-section');
-  if ((await open.count()) > 0) {
+  if ((await page.getByTestId('pack-layout').getAttribute('data-view')) === 'folder') {
     if ((await open.getByTestId('section-number').textContent()) === number) return;
     await open.getByTestId('pack-all-sections').click();
   }
@@ -979,8 +979,9 @@ export async function openDocumentSection(page: Page, number: string) {
 }
 
 export async function showDocumentFolders(page: Page) {
-  const open = page.getByTestId('pack-section');
-  if ((await open.count()) > 0) await open.getByTestId('pack-all-sections').click();
+  if ((await page.getByTestId('pack-layout').getAttribute('data-view')) === 'folder') {
+    await page.getByTestId('pack-all-sections').click();
+  }
   await expect(page.getByTestId('pack-folders')).toBeVisible();
 }
 
