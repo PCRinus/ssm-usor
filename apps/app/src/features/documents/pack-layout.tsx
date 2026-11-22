@@ -1,6 +1,6 @@
 import type { DocumentSet } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 
 import { PackEmpty } from './pack-empty';
 import { PackFolder } from './pack-folder';
@@ -50,11 +50,40 @@ export function PackLayout({
   notices?: ReactNode;
   children: (section: PackSection) => ReactNode;
 }) {
-  const section = openSection(pack, sectionId);
+  // An archived client gets nothing generated, so its folders would only list what never comes.
+  const foldersShown = !(readOnly && isEmptyPack(pack));
+  const section = foldersShown ? openSection(pack, sectionId) : undefined;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const stepsRef = useRef<HTMLSpanElement>(null);
+  const shownId = section?.id;
+  const lastShownId = useRef(shownId);
+  useEffect(() => {
+    const from = lastShownId.current;
+    lastShownId.current = shownId;
+    if (from === shownId) return;
+    if (shownId === undefined) {
+      rootRef.current
+        ?.querySelector<HTMLElement>(`[data-testid="pack-folder"][data-section="${from}"]`)
+        ?.focus();
+    } else if (!stepsRef.current?.contains(document.activeElement)) {
+      // Stepping with the arrows keeps the focus on them, unless the arrow just became disabled.
+      headingRef.current?.focus();
+    }
+  }, [shownId]);
+
   if (section) {
     return (
-      <div data-testid="pack-layout" data-view="folder">
-        <PackFolder set={set} clientId={clientId} pack={pack} section={section} notices={notices}>
+      <div ref={rootRef} data-testid="pack-layout" data-view="folder">
+        <PackFolder
+          set={set}
+          clientId={clientId}
+          pack={pack}
+          section={section}
+          notices={notices}
+          headingRef={headingRef}
+          stepsRef={stepsRef}
+        >
           {children(section)}
         </PackFolder>
       </div>
@@ -64,7 +93,7 @@ export function PackLayout({
   const noticeBlock = (className: string) =>
     notices && <div className={cn('grid gap-4 px-4 sm:px-6', className)}>{notices}</div>;
   return (
-    <div data-testid="pack-layout" data-view="overview">
+    <div ref={rootRef} data-testid="pack-layout" data-view="overview">
       {isEmptyPack(pack) ? (
         <>
           {noticeBlock('pt-4 sm:pt-6')}
@@ -76,7 +105,7 @@ export function PackLayout({
           {noticeBlock('pb-4')}
         </>
       )}
-      <PackFolders set={set} clientId={clientId} pack={pack} />
+      {foldersShown && <PackFolders set={set} clientId={clientId} pack={pack} />}
     </div>
   );
 }

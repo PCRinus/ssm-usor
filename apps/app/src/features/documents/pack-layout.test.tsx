@@ -309,7 +309,7 @@ describe('PackLayout', () => {
     expect(router.state.location.search).toEqual({});
   });
 
-  it('steps to the sections on either side, and back to all of them', async () => {
+  it('steps to the sections on either side in the same history entry, and back to all of them', async () => {
     const router = await renderPack({ pack: filled, url: folderUrl('own-instructions') });
 
     const previous = screen.getByTestId('pack-step-previous');
@@ -328,6 +328,9 @@ describe('PackLayout', () => {
     expect((await screen.findByTestId('pack-section-title')).textContent).toBe(
       'Material de instruire introductiv-generală'
     );
+    await userEvent.click(screen.getByTestId('pack-next-section'));
+    await screen.findByText('Instrucțiuni proprii', { selector: 'h2' });
+    expect(router.history.length).toBe(1);
 
     const all = screen.getByTestId('pack-all-sections');
     expect(all.textContent).toBe('Toate secțiunile');
@@ -417,6 +420,46 @@ describe('PackLayout', () => {
       'Clientul este arhivat, așa că nu i se mai generează documente.'
     );
     expect(within(panel).queryByTestId('documents-generate')).toBeNull();
-    expect(folders()).toHaveLength(2);
+    expect(screen.queryByTestId('pack-folders')).toBeNull();
+  });
+
+  it('keeps an archived client with nothing generated on its panel, whatever section the URL names', async () => {
+    await renderPack({ pack: empty, readOnly: true, url: folderUrl('decisions') });
+
+    expect(screen.getByTestId('pack-empty-panel')).toBeTruthy();
+    expect(screen.queryByTestId('pack-section')).toBeNull();
+  });
+
+  it('moves the focus to the heading of an opened folder, and back to its tile on the way out', async () => {
+    const user = userEvent.setup();
+    await renderPack({ pack: filled });
+
+    folder('3').focus();
+    await user.keyboard('{Enter}');
+    const heading = await screen.findByTestId('pack-section-title');
+    await waitFor(() => expect(document.activeElement).toBe(heading));
+
+    await user.click(screen.getByTestId('pack-step-next'));
+    await screen.findByText('Tematica de instruire', { selector: 'h2' });
+    expect(document.activeElement).toBe(screen.getByTestId('pack-step-next'));
+
+    await user.click(screen.getByTestId('pack-all-sections'));
+    await screen.findAllByTestId('pack-folder');
+    await waitFor(() => expect(document.activeElement).toBe(folder('4')));
+  });
+
+  it('keeps the page where it opens on a folder the URL names', async () => {
+    await renderPack({ pack: filled, url: folderUrl('own-instructions') });
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('moves the focus to the heading when the arrow used becomes disabled', async () => {
+    const user = userEvent.setup();
+    await renderPack({ pack: filled, url: folderUrl('general-training') });
+
+    await user.click(screen.getByTestId('pack-step-previous'));
+    const heading = await screen.findByText('Decizii interne', { selector: 'h2' });
+    await waitFor(() => expect(document.activeElement).toBe(heading));
   });
 });

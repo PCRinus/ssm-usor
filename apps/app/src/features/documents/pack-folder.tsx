@@ -2,7 +2,7 @@ import type { DocumentSet } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Link } from '@tanstack/react-router';
 import { ArrowRight, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 import { SectionNumber } from './pack-folders';
 import { neighbourSections, sectionLabel, sectionLink } from './pack-labels';
@@ -35,6 +35,7 @@ function StepLink({
     <Button asChild variant="secondary" size="icon-sm" className={stepButton}>
       <Link
         {...sectionLink(set, clientId, section)}
+        replace
         data-testid={`pack-step-${direction}`}
         aria-label={`${label}: ${sectionLabel(section)}`}
       >
@@ -50,6 +51,8 @@ export function PackFolder({
   pack,
   section,
   notices,
+  headingRef,
+  stepsRef,
   children,
 }: {
   set: DocumentSet;
@@ -57,6 +60,8 @@ export function PackFolder({
   pack: Pack;
   section: PackSection;
   notices?: ReactNode;
+  headingRef: Ref<HTMLHeadingElement>;
+  stepsRef: Ref<HTMLSpanElement>;
   children: ReactNode;
 }) {
   const { position, previous, next } = neighbourSections(pack, section);
@@ -81,7 +86,7 @@ export function PackFolder({
           >
             {positionLabel}
           </span>
-          <span className="flex gap-2 max-sm:ml-auto">
+          <span ref={stepsRef} className="flex gap-2 max-sm:ml-auto">
             <StepLink set={set} clientId={clientId} section={previous} direction="previous" />
             <StepLink set={set} clientId={clientId} section={next} direction="next" />
           </span>
@@ -89,14 +94,16 @@ export function PackFolder({
         <div className="flex items-start gap-3.5 sm:items-center">
           <SectionNumber
             number={section.number}
-            size="lg"
+            size="heading"
             className="bg-primary text-primary-foreground"
           />
           <div className="grid min-w-0 flex-1 gap-1.5 sm:gap-0.5">
             <h2
+              ref={headingRef}
               id={`pack-section-${section.id}`}
+              tabIndex={-1}
               data-testid="pack-section-title"
-              className="text-lg leading-snug font-semibold tracking-tight text-balance"
+              className="text-lg leading-snug font-semibold tracking-tight text-balance outline-none"
             >
               {section.title}
             </h2>
@@ -117,7 +124,7 @@ export function PackFolder({
             variant="secondary"
             className="h-auto min-h-9 py-2 text-left whitespace-normal max-sm:min-h-11 max-sm:w-full max-sm:justify-between"
           >
-            <Link {...sectionLink(set, clientId, next)} data-testid="pack-next-section">
+            <Link {...sectionLink(set, clientId, next)} replace data-testid="pack-next-section">
               <span>Următoarea secțiune: {sectionLabel(next)}</span>
               <ArrowRight aria-hidden="true" />
             </Link>

@@ -821,8 +821,8 @@ describe('client fire-safety documents', () => {
     expect((await screen.findByTestId('documents-hint')).textContent).toBe(
       'Clientul este arhivat, așa că nu i se mai generează documente.'
     );
-    expect(await screen.findAllByTestId('pack-folder')).toHaveLength(7);
     expect(screen.getByTestId('documents-empty')).toBeTruthy();
+    expect(screen.queryByTestId('pack-folders')).toBeNull();
     expect(screen.queryByTestId('documents-generate')).toBeNull();
   });
 });
