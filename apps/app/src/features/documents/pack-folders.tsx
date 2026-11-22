@@ -47,7 +47,8 @@ const folderLink = cn(
   // A box-shadow ring would miss the tab; a drop shadow follows the whole shape.
   'sm:[--halo:color-mix(in_srgb,var(--ring)_50%,var(--card))] sm:focus-visible:border-ring sm:focus-visible:before:bg-ring sm:focus-visible:[filter:drop-shadow(3px_0_0_var(--halo))_drop-shadow(-3px_0_0_var(--halo))_drop-shadow(0_3px_0_var(--halo))_drop-shadow(0_-3px_0_var(--halo))]',
   'sm:[&_[data-status=missing]]:bg-card',
-  'forced-colors:before:hidden forced-colors:after:hidden sm:forced-colors:rounded-tl-xl sm:forced-colors:focus-visible:outline-2'
+  'forced-colors:before:hidden forced-colors:after:hidden sm:forced-colors:rounded-tl-xl',
+  'forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid max-sm:forced-colors:focus-visible:-outline-offset-2'
 );
 
 export function PackFolders({
