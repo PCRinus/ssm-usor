@@ -14,6 +14,7 @@ import {
   behindInstructions,
   type BehindType,
   instructionsSummary,
+  legalChangesOf,
   regenerable,
   typeTemplateReason,
   typeTitle,
@@ -44,7 +45,11 @@ export function DocumentCell({ type }: { type: BehindType }) {
 
 export function ChangedCell({ type }: { type: BehindType }) {
   const template = typeTemplateReason(type);
-  const others = template && otherVersionsLine(template.others, kindLabels);
+  const others =
+    template && otherVersionsLine(template.others, kindLabels, template.furthestBehind);
+  const legalChanges = template
+    ? legalChangesOf([template.reason, ...[...template.others].reverse()])
+    : [];
   return (
     <div className="grid max-w-prose gap-1">
       <p data-testid="behind-note" className="leading-relaxed">
@@ -52,7 +57,7 @@ export function ChangedCell({ type }: { type: BehindType }) {
           ? (template.reason.note ?? 'Versiunea nu spune ce s-a schimbat.')
           : instructionsSummary(type)}
       </p>
-      {template?.reason.legalChanges.map((change) => (
+      {legalChanges.map((change) => (
         <Link
           key={change.id}
           to="/legislatie/modificari/$changeId"

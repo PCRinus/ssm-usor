@@ -43,7 +43,18 @@ export function typeTemplateReason(type: BehindType) {
   const versions = type.clients
     .filter((client) => client.behindTemplate)
     .map((client) => client.version);
-  return versions.length === 0 ? null : templateReason(type.pendingVersions, Math.min(...versions));
+  if (versions.length === 0) return null;
+  const found = templateReason(type.pendingVersions, Math.min(...versions));
+  return found && { ...found, furthestBehind: new Set(versions).size > 1 };
+}
+
+export function legalChangesOf(versions: readonly BehindType['pendingVersions'][number][]) {
+  const changes = versions
+    .filter((version) => version.kind === 'legal')
+    .flatMap((version) => version.legalChanges);
+  return changes.filter(
+    (change, index) => changes.findIndex((other) => other.id === change.id) === index
+  );
 }
 
 export const behindInstructions = (type: BehindType) =>

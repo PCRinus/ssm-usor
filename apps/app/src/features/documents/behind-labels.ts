@@ -42,16 +42,20 @@ export function templateReason(versions: readonly PendingVersion[], since: numbe
 
 export function otherVersionsLine(
   others: readonly PendingVersion[],
-  kindLabels: Record<PendingVersion['kind'], string>
+  kindLabels: Record<PendingVersion['kind'], string>,
+  furthestBehind = false
 ) {
   const named = others.map(
     (version) => `${version.version} (${kindLabels[version.kind].toLowerCase()})`
   );
   if (named.length === 0) return null;
   const last = named.pop()!;
+  const lead = furthestBehind
+    ? 'La clientul cel mai în urmă, regenerarea aduce și'
+    : 'Regenerarea aduce și';
   return named.length === 0
-    ? `Regenerarea aduce și versiunea ${last}.`
-    : `Regenerarea aduce și versiunile ${named.join(', ')} și ${last}.`;
+    ? `${lead} versiunea ${last}.`
+    : `${lead} versiunile ${named.join(', ')} și ${last}.`;
 }
 
 export function instructionChangeText(change: InstructionChange) {

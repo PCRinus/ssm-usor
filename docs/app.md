@@ -1789,8 +1789,9 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   newest correction, with its kind, or "Instrucțiuni
   schimbate"), "Ce s-a schimbat" (that version's note, or what moved in the instructions,
   and "Vezi modificarea <act>" to `/legislatie/modificari/<id>` for each legal
-  change the version answers, then, small and grey, the other versions regenerating brings,
-  each with its kind), "Clienți" (the count, which opens the row on a table of the
+  change a pending legal version answers, the shown one's first, then, small and grey, the other
+  versions regenerating brings the client furthest behind, each with its kind, led by "La
+  clientul cel mai în urmă" when the clients stand at different versions), "Clienți" (the count, which opens the row on a table of the
   clients: each linked to that document's row on its client's documents tab, the version it
   came from and what regenerating does: "Emis pe …, primește o ciornă nouă, de emis",
   "Ciornă, se înlocuiește", "Ciornă editată de mână, se sare" in amber) and a grey-green

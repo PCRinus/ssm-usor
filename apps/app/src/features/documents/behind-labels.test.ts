@@ -54,5 +54,8 @@ describe('otherVersionsLine', () => {
     ).toBe(
       'Regenerarea aduce și versiunile 2 (modificare legislativă), 4 (corectură) și 6 (aranjare în pagină).'
     );
+    expect(otherVersionsLine([version(4, 'layout')], kindLabels, true)).toBe(
+      'La clientul cel mai în urmă, regenerarea aduce și versiunea 4 (aranjare în pagină).'
+    );
   });
 });

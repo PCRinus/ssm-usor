@@ -886,7 +886,7 @@ describe('the Legislație page', () => {
     expect(within(type!).getByTestId('behind-clients-toggle').textContent).toBe('1 client');
   });
 
-  it('names the legal change a document misses, not the newer correction or layout versions', async () => {
+  it('names the newest legal change a document misses, linking every pending one, for the client furthest behind', async () => {
     mockLegislationApi({
       behind: [
         {
@@ -899,8 +899,23 @@ describe('the Legislație page', () => {
               note: 'Rândurile tabelului stau împreună.',
               legalChanges: [],
             },
-            { version: 3, kind: 'correction', note: 'Antetul are diacritice.', legalChanges: [] },
+            {
+              version: 3,
+              kind: 'legal',
+              note: 'Semnalizarea urmează O.U.G. 195/2002.',
+              legalChanges: [{ id: roadChangeId, actName: 'O.U.G. 195/2002' }],
+            },
             ...extinguisherBehind.pendingVersions,
+          ],
+          clients: [
+            ...extinguisherBehind.clients,
+            {
+              ...extinguisherBehind.clients[0]!,
+              documentId: '9c0d1e2f-3a4b-4c5d-8e6f-7a8b9c0d1e2f',
+              clientId: firstAidBehind.clients[1]!.clientId,
+              clientName: 'BETA CAFE SRL',
+              version: 2,
+            },
           ],
         },
       ],
@@ -909,16 +924,21 @@ describe('the Legislație page', () => {
 
     const [type] = await screen.findAllByTestId('behind-type');
     expect(within(type!).getByTestId('behind-version').textContent).toBe(
-      'Versiunea 2 · Modificare legislativă'
+      'Versiunea 3 · Modificare legislativă'
     );
     expect(within(type!).getByTestId('behind-note').textContent).toBe(
-      'Rubricile urmează OMAI 163/2007.'
+      'Semnalizarea urmează O.U.G. 195/2002.'
     );
-    expect(within(type!).getByTestId('behind-legal-change').getAttribute('href')).toBe(
-      `/legislatie/modificari/${lawChangeId}`
-    );
+    expect(
+      within(type!)
+        .getAllByTestId('behind-legal-change')
+        .map((link) => [link.textContent, link.getAttribute('href')])
+    ).toEqual([
+      ['Vezi modificarea O.U.G. 195/2002', `/legislatie/modificari/${roadChangeId}`],
+      ['Vezi modificarea OMAI 163/2007', `/legislatie/modificari/${lawChangeId}`],
+    ]);
     expect(within(type!).getByTestId('behind-other-versions').textContent).toBe(
-      'Regenerarea aduce și versiunile 3 (corectură) și 4 (aranjare în pagină).'
+      'La clientul cel mai în urmă, regenerarea aduce și versiunile 2 (modificare legislativă) și 4 (aranjare în pagină).'
     );
   });
 
