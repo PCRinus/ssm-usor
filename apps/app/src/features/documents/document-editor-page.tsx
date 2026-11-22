@@ -24,6 +24,7 @@ import type { DocumentEditorHandle } from './document-editor';
 import type { ClientDocument } from './document-labels';
 import { sectionOf } from './document-sections';
 import { documentSetCopy, documentsLink, setParams } from './document-sets';
+import type { PhoneBar } from './editor-bar';
 import { editorFrameClassName, saveAs } from './editor-frame';
 import { EditorPlaceholder } from './editor-placeholder';
 import { pdfOf, pdfOfRevision, usePrint } from './print';
@@ -48,6 +49,8 @@ export interface DocumentSource {
   back: ReactNode;
   // The arrow alone, beside a heading, when `back` carries more than the arrow.
   arrow?: ReactNode;
+  // Every contract has the same title, so a phone's bar names the company instead.
+  company?: string;
 }
 
 // `readOnly` is an archived client.
@@ -318,6 +321,67 @@ export function DocumentEditorView({
     </div>
   );
 
+  const phoneBar: PhoneBar = {
+    back: arrow,
+    title: source.company ?? document.title,
+    heading: document.title,
+    subtitle: source.company,
+    badges: [
+      {
+        label: document.draft
+          ? `Ciornă · rev. ${document.draft.revision}`
+          : `Emis · rev. ${revision.revision}`,
+        variant: editable ? 'secondary' : 'default',
+      },
+      ...(readOnly ? [{ label: readOnlyReason.label, variant: 'outline' as const }] : []),
+    ],
+    status: editable
+      ? dirty
+        ? { text: 'Modificări nesalvate', tone: 'warning' }
+        : { text: 'Salvat', tone: 'muted' }
+      : undefined,
+    note: canStartDraft ? issuedNote : readOnly ? readOnlyReason.title : undefined,
+    main: canStartDraft
+      ? {
+          kind: 'button',
+          label: startDraft.isPending ? 'Se pregătește ciorna…' : 'Modifică',
+          icon: Pencil,
+          disabled: startDraft.isPending,
+          onClick: () => void startDraftFromIssued(),
+          testId: 'editor-phone-start-draft',
+        }
+      : editable && dirty
+        ? {
+            kind: 'button',
+            label: saveDraft.isPending ? 'Se salvează…' : 'Salvează',
+            icon: Save,
+            disabled: saveDraft.isPending,
+            onClick: () => void save(),
+            testId: 'editor-phone-save',
+          }
+        : editable
+          ? { kind: 'saved' }
+          : null,
+    items: [
+      { kind: 'navigation' },
+      {
+        kind: 'action',
+        label: 'Descarcă documentul Word',
+        icon: Download,
+        onSelect: () => void download(),
+        testId: 'editor-phone-download',
+      },
+      {
+        kind: 'action',
+        label: printing ? 'Se pregătește…' : 'Tipărește',
+        icon: Printer,
+        disabled: printing,
+        onSelect: () => void printShown(),
+        testId: 'editor-phone-print',
+      },
+    ],
+  };
+
   return (
     <div data-testid="document-editor-page" className="flex min-h-0 flex-1 flex-col gap-3">
       {startError && (
@@ -366,6 +430,7 @@ export function DocumentEditorView({
                 back={back}
                 handle={editor}
                 actions={actions}
+                phoneBar={phoneBar}
                 onReady={() => setReadyRevisionId(loaded.revisionId)}
                 onFailed={() => setFailedEditorRevisionId(loaded.revisionId)}
                 onChange={() => setDirty(true)}

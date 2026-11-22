@@ -168,3 +168,24 @@
   text-decoration: underline !important;
   text-decoration-skip-spaces: none !important;
 }
+
+/* A phone has one bar of ours instead of the editor's title row and toolbar (PhoneEditorBar). The
+   editor sets its row's padding and its title's display inline, which only `!important`
+   outranks. The packaged toolbar stays mounted, hidden, beside the bar's own. */
+.docx-editor:has([data-editor-phone-bar]) div:has(> .docx-toolbar:not([data-editor-phone-bar] *)) {
+  display: none;
+}
+
+:has(> [data-editor-phone-bar]) {
+  padding: 0 !important;
+}
+
+:has(> [data-editor-phone-bar]) > :has(+ [data-editor-phone-bar]) {
+  display: none !important;
+}
+
+/* A group whose parts are all hidden still renders, empty, with its separator. */
+[data-editor-phone-bar] .docx-toolbar__group:empty + .docx-toolbar__separator,
+[data-editor-phone-bar] .docx-toolbar__separator:has(+ .docx-toolbar__group:empty) {
+  display: none;
+}
