@@ -966,7 +966,7 @@ their tab bars read.
   alone: "Toate secțiunile" back to the overview, the previous and next arrows with "Secțiunea N
   din M", the section's number and title, its table, and "Următoarea secțiune". Opening a folder
   adds a history entry; the arrows and "Următoarea secțiune" replace it, so the browser's back
-  button from any folder returns to the overview. Opening a folder moves the focus to its heading
+  button from a folder opened on the overview returns to it. Opening a folder moves the focus to its heading
   and going back to the overview to the tile it came from; a folder the address opens takes no
   focus. A section the pack does not hold shows the overview. Until anything is generated the
   overview shows a panel with "Generează documentația" over the folders as what the pack will
