@@ -1,4 +1,5 @@
 import {
+  type BuiltInDocumentTypeKey,
   countOf,
   decisionTypeKeys,
   type EquipmentAllocation,
@@ -49,6 +50,13 @@ import {
   unitRisks,
   type WorkplaceFacts,
 } from './risk-assessment';
+import {
+  type RiskZonesFacts,
+  riskZonesGaps,
+  riskZonesRecord,
+  type RiskZonesRecordContext,
+  riskZonesRecordTypeKey,
+} from './risk-zones-record';
 import {
   monthNames,
   type OwnInstructionsRevision,
@@ -170,6 +178,7 @@ export type DocumentFacts = {
   fireOwnInstructions: OwnInstructionsRevision | null;
   /** Every evaluation of the client, archived positions' included (ADR 015). */
   riskEvaluations: RiskEvaluationFacts[];
+  riskZones: RiskZonesFacts;
   fireSafety: FireSafetyClientFacts;
   /** The organization's question bank, what the three tests print (ADR 024). */
   testQuestions: TestQuestionFacts;
@@ -276,6 +285,8 @@ export type DocumentContext = {
   hasUnitRisks: boolean;
   noUnitRisks: boolean;
   riskAssessment: RiskAssessmentContext;
+  /** Absent while 9.2 waits for its zones, which no other document prints. */
+  riskZones?: RiskZonesRecordContext;
   /** Every current position, for the table of posts; then only the ones with equipment. */
   positions: PositionContext[];
   equippedPositions: EquippedPositionContext[];
@@ -434,7 +445,21 @@ export function missingDocumentData(facts: SsmSetFacts, typeKey?: string): Missi
     ['risk_evaluations.plan', !lacks(null, 'plan')],
     ['documents.own_instructions', typeKey !== 'training_themes' || facts.ownInstructions !== null],
   ];
-  return checks.filter(([, present]) => !present).map(([code]) => code);
+  return [
+    ...checks.filter(([, present]) => !present).map(([code]) => code),
+    ...(typeKey === riskZonesRecordTypeKey ? riskZonesGaps(facts) : []),
+  ];
+}
+
+/**
+ * The documents the set is generated without while gaps of their own stand, each with those gaps:
+ * 9.2 waits for the client's risk zones (ADR 045), and the rest of the set does not wait for it.
+ */
+export function waitingDocuments(
+  facts: Pick<SsmSetFacts, 'riskZones' | 'riskEvaluations' | 'jobPositions'>
+): { typeKey: BuiltInDocumentTypeKey; missing: MissingDocumentData[] }[] {
+  const gaps = riskZonesGaps(facts);
+  return gaps.length === 0 ? [] : [{ typeKey: riskZonesRecordTypeKey, missing: gaps }];
 }
 
 const imminentDangerWordingNames = [
@@ -503,6 +528,8 @@ const printedAs = {
   'risk_evaluations.measures': riskNames,
   'risk_evaluations.plan': riskNames,
   'documents.own_instructions': ['themes'],
+  'risk_zones.decided': ['riskZones'],
+  'risk_zones.measures': ['riskZones'],
   'responsible.fire_safety_coordinator': [],
   'responsible.fire_intervention_leader': [],
   'fire.trainingSchedule': [],
@@ -761,6 +788,7 @@ function contextParts(facts: SsmSetFacts): ContextParts<DocumentContext> {
         workplaces: facts.workplaces,
         currentEmployeeCount: facts.currentEmployeeCount,
       }),
+    riskZones: () => riskZonesRecord(facts) ?? undefined,
     positions: () => facts.jobPositions.map(positionContext),
     // Not on `positions`: a snapshot keeps all of a name it printed, so an equipment edit would
     // mark every document that prints the posts.

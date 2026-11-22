@@ -14,6 +14,7 @@ import type { DocumentFacts, SsmSetFacts } from './context';
 import type { FireSafetySetFacts, FireYearRecords } from './fire-safety';
 import { loadTestQuestions } from './knowledge-tests';
 import type { RiskEvaluationFacts } from './risk-assessment';
+import { loadRiskZones } from './risk-zones-record';
 import { snapshotAnnexes } from './snapshot';
 
 // Row-level security scopes every query to the caller's organization. With the secret key
@@ -47,7 +48,7 @@ function sharedReads(db: DataClient, clientId: string, preparer: Preparer) {
     db
       .from('clients')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, legal_representative_employee_id, periodic_training_minutes, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at, sensitive_groups_state'
+        'legal_name, legal_representative_name, legal_representative_role, legal_representative_employee_id, periodic_training_minutes, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at, sensitive_groups_state, risk_zones_state'
       )
       .eq('id', clientId)
       .maybeSingle(),
@@ -140,6 +141,7 @@ function occupationalSafetyReads(db: DataClient, clientId: string, preparer: Pre
     loadOwnInstructions(db, clientId),
     loadRiskEvaluations(db, clientId),
     loadTestQuestions(db, preparer.organizationId, ['test_hiring']),
+    loadRiskZones(db, clientId),
   ]);
 }
 
@@ -336,6 +338,7 @@ function sharedFactsOf([
 
   return {
     shared,
+    riskZonesState: client.data.risk_zones_state,
     generated: new Set(conditionalDocuments.data.map((document) => document.type_key)),
     conditionalDocuments: conditionalDocuments.data,
     workplaces: workplaces.data,
@@ -343,8 +346,8 @@ function sharedFactsOf([
 }
 
 function occupationalSafetyFactsOf(
-  { shared, generated }: ReturnType<typeof sharedFactsOf>,
-  [membership, profile, ownInstructions, riskEvaluations, testQuestions]: Awaited<
+  { shared, generated, riskZonesState }: ReturnType<typeof sharedFactsOf>,
+  [membership, profile, ownInstructions, riskEvaluations, testQuestions, riskZones]: Awaited<
     ReturnType<typeof occupationalSafetyReads>
   >
 ): SsmStoredFacts {
@@ -363,6 +366,7 @@ function occupationalSafetyFactsOf(
     workersRepresentativeDecisionGenerated: generated.has('decision_workers_representative'),
     ownInstructions,
     riskEvaluations,
+    riskZones: { state: riskZonesState, zones: riskZones },
   };
 }
 

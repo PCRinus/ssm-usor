@@ -120,6 +120,7 @@ describe('the built-in templates', () => {
       })),
     })),
     currentEmployeeCount: 12,
+    riskZones: { state: 'none', zones: [] },
     responsiblePersons: [
       ...facts.responsiblePersons,
       {
@@ -248,6 +249,20 @@ describe('a document generated again while the set lacks data', () => {
         })),
       },
     ],
+    [
+      'the risk zones, neither listed nor declared absent',
+      { ...facts, riskZones: { state: 'undecided', zones: [] } },
+    ],
+    [
+      'the measures of a zone whose factors were deleted',
+      {
+        ...facts,
+        riskZones: {
+          state: 'listed',
+          zones: [{ ...facts.riskZones.zones[0]!, measures: null, factors: [] }],
+        },
+      },
+    ],
   ];
 
   it('covers every gap of the occupational safety set', () => {
@@ -281,6 +296,8 @@ describe('a document generated again while the set lacks data', () => {
         'risk_evaluations.measures',
         'risk_evaluations.plan',
         'documents.own_instructions',
+        'risk_zones.decided',
+        'risk_zones.measures',
       ].sort()
     );
   });
@@ -359,6 +376,39 @@ describe('the training themes', () => {
     expect(text).toContain('I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică');
     expect(text).not.toMatch(/Testare\.$/m);
     expect(text).toContain('I.P.S.S.M. Art.\u00a0236\u00a0–\u00a0290;');
+  }, 30_000);
+});
+
+describe('the record of risk zones', () => {
+  const entry = manifest.templates.find((template) => template.typeKey === 'risk_zones_record')!;
+  const textFor = (variant: DocumentFacts) =>
+    documentText(
+      renderDocument(
+        readFileSync(new URL(entry.file, templatesUrl)),
+        documentData(buildDocumentContext(variant), 'risk_zones_record')
+      )
+    );
+
+  it('prints a row per zone, with its place, risks and measures, and what art. 106 asks', () => {
+    const text = textFor(facts);
+    expect(text).toContain('Temei legal: art. 13 lit. k) din Legea 319/2006');
+    expect(text).toContain('Tabloul electric general');
+    expect(text).toContain('Sediu social');
+    expect(text).toContain('parter, camera tehnică de lângă intrare');
+    expect(text).toContain('echipament (nivel de risc 4)');
+    expect(text).toContain('Depozitul de substanțe de curățenie');
+    expect(text).toContain('Aerisirea zilnică a încăperii.');
+    expect(text).toContain('se aduc la cunoștința tuturor lucrătorilor');
+    expect(text).not.toContain('nu au fost identificate zone');
+  }, 30_000);
+
+  it('says in one sentence that the client has none', () => {
+    const text = textFor({ ...facts, riskZones: { state: 'none', zones: [] } });
+    expect(text).toContain(
+      'În urma evaluării riscurilor nu au fost identificate zone cu risc ridicat și specific.'
+    );
+    expect(text).not.toContain('Nr. crt.');
+    expect(text).not.toContain('se aduc la cunoștința tuturor lucrătorilor');
   }, 30_000);
 });
 
