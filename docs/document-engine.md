@@ -752,10 +752,9 @@ Dates print as `dd.mm.yyyy`. A duration prints in hours, a whole number as "2" a
 with one decimal and a comma, "1,5". Under a signature the name of the person a record names is
 printed small; the trainee's never, since the signature says who.
 
-While the signatures are collected on paper, the printed sheet is the signed original, and each
-periodic table runs on in blank rows to the foot of its page: `paperSignatureRows` in
-`sheet.ts` is `true`, and with `false` no blank row is printed, which is the switch for the
-electronic signature. The count is reckoned, not measured: a page holds 17 rows of the minimum
+Each periodic table runs on in blank rows to the foot of its page (`blankRowsAfter` in
+`sheet.ts`), so the sheet drawn before the first signature looks like the signed sheet, whose
+empty rows are fields, and a signature collected on paper has a row to go on. The count is reckoned, not measured: a page holds 17 rows of the minimum
 height on the occupational safety tables, 17 on the fire-safety table's first page and 18 after
 it, as LibreOffice lays them out, and a recorded row whose material or occupation runs over more
 lines than that height holds counts as taller, by a word-wrap estimate of the column's width. A

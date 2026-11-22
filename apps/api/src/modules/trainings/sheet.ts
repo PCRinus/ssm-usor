@@ -23,13 +23,6 @@ import { listed, runOn, withoutFinalStop } from '../../lib/romanian';
 import { gapRules } from '../documents/gaps';
 import { resultExaminer } from '../signing/printed-signers';
 
-/**
- * While the signatures are collected on paper the printed sheet is the signed original, so each
- * periodic table runs on in blank rows to the end of its page (ADR 021). Turned off when the
- * electronic signature ships; planned sessions are never pre-printed either way.
- */
-export const paperSignatureRows = true;
-
 export const transcribedNote = 'transcris; semnat pe hârtie';
 
 export const transcriptionLine =
@@ -424,8 +417,10 @@ function linesOf(value: string, perLine: number) {
   return lines;
 }
 
+// Each table runs on to the foot of its page so that the sheet drawn before the first signature
+// looks like the signed sheet, whose empty rows are fields (ADR 021, amended 2026-11-22). Planned
+// sessions are never pre-printed: a row means a training that happened.
 export function blankRowsAfter(rows: SheetRow[], domain: TrainingDomain) {
-  if (!paperSignatureRows) return [];
   const layout = tableLayout[domain];
   let left = layout.firstPage * rowTwips;
   for (const row of rows) {
