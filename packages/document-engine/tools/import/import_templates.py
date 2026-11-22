@@ -45,7 +45,7 @@ from chapters import (articles_from_chapter_one, chapters_on_new_pages, contents
 from citation_notes import citation_notes
 from contents import column_style, column_style_id, label_columns
 from decision_pages import decision_pages
-from fonts import arial_part
+from fonts import arial_part, in_arial_alone
 from signatures import signing_space
 from landscape_binding import landscape_bound_on_top
 from risk_assessment import NAME as RISK_ASSESSMENT, risk_assessment, sized_breaks
@@ -2095,7 +2095,7 @@ PAGE_BREAK_PARAGRAPH = re.compile(
 PAGE_BREAK = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
 
 
-def sweep(path, word_2013=None):
+def sweep(path, word_2013=None, arial=None):
     """A last pass over the saved file, for what LibreOffice's API reaches in most places and
     not in all, or not at all: a dead link that survives clearing, an empty paragraph it writes
     as justified though its own model says otherwise, a picture floating between two lines,
@@ -2108,10 +2108,13 @@ def sweep(path, word_2013=None):
     style (`table_style`), one signing space for every signature (`signatures`), the
     decisions' page numbers and running header (`decision_pages`), landscape pages bound on
     their top edge (`landscape_binding`), 2.2's "Conform …:" notes set like its other
-    quotations (`citation_notes`) and Arial as the only font (`fonts`), which `word_2013` asks for
-    or leaves to the file's place. Safe to run again."""
+    quotations (`citation_notes`), which `word_2013` asks for
+    or leaves to the file's place. In both sets, Arial as the only font (`fonts`), which `arial`
+    asks for or leaves to the file's place. Safe to run again."""
     if word_2013 is None:
         word_2013 = lays_out_as_word_2013(path)
+    if arial is None:
+        arial = in_arial_alone(path)
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
         styles = archive.read('word/styles.xml').decode('utf8')
@@ -2183,10 +2186,13 @@ def sweep(path, word_2013=None):
             if word_2013 and item.filename.endswith('.xml'):
                 data = house_tables_part(item.filename, word_2013_part(item.filename, data.decode('utf8')), house,
                                          os.path.basename(path))
-                data = arial_part(item.filename, data)
+                if arial:
+                    data = arial_part(item.filename, data)
                 if re.fullmatch(r'word/(document|styles|numbering|header\d*|footer\d*)\.xml', item.filename):
                     data = in_schema_order(in_schema_values(data))
                 data = data.encode('utf8')
+            elif arial and item.filename.endswith('.xml'):
+                data = arial_part(item.filename, data.decode('utf8')).encode('utf8')
             archive.writestr(item, data)
 
 

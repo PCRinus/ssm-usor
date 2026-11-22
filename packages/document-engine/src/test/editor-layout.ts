@@ -129,11 +129,11 @@ export function describeEditorLayout(part: number) {
     );
 
     // The editor packages Arial only, and warns on a device without a font the text or its
-    // styles name. The fire-safety set and the contracts are not reviewed yet.
+    // styles name. The contracts are not reviewed yet.
     it.each(
       files
         .filter((_, index) => index % editorLayoutParts === part)
-        .filter((name) => !/^(fire|other)\//.test(name) && name !== suAnnex)
+        .filter((name) => !name.startsWith('other/'))
     )(
       '%s asks the editor for no font but Arial',
       (name) => {

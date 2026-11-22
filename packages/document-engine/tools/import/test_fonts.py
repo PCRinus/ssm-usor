@@ -23,6 +23,22 @@ class RunFonts(unittest.TestCase):
         self.assertEqual(arial_part('word/footer1.xml', once), once)
 
 
+class Bullets(unittest.TestCase):
+    def level(self, text, font):
+        return (f'<w:lvl w:ilvl="3"><w:lvlText w:val="{text}"/><w:rPr>'
+                f'<w:rFonts w:ascii="{font}" w:hAnsi="{font}" w:cs="{font}"/></w:rPr></w:lvl>')
+
+    def test_a_symbol_bullet_becomes_the_one_arial_has(self):
+        for text, font, bullet in (('\uf0b7', 'Symbol', '•'), ('\uf0a7', 'Wingdings', '▪'),
+                                   ('o', 'Courier New', '◦')):
+            result = arial_part('word/numbering.xml', self.level(text, font))
+            self.assertIn(f'<w:lvlText w:val="{bullet}"/>', result)
+            self.assertIn(ARIAL, result)
+
+    def test_a_letter_o_in_another_font_stays(self):
+        self.assertIn('w:val="o"', arial_part('word/numbering.xml', self.level('o', 'Times New Roman')))
+
+
 class DocumentDefault(unittest.TestCase):
     def test_names_arial_when_it_named_another(self):
         xml = ('<w:styles><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman"/>'

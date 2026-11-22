@@ -413,22 +413,23 @@ describe('wording', () => {
   );
 });
 
-// tools/import/word_layout.py says why. The fire-safety set and the contracts keep their layout
-// until they are reviewed too.
-describe('Word 2013 layout of the occupational safety set', () => {
-  const files: [string, Uint8Array][] = [
+// The contracts keep their fonts until they are reviewed.
+describe('fonts of both documentation sets', () => {
+  const fontFiles: [string, Uint8Array][] = [
     ...entries
-      .filter((entry) => entry.set === 'ssm' && entry.typeKey !== signingTypeKeys.agreement)
+      .filter(
+        (entry) =>
+          (entry.set === 'ssm' || entry.set === 'fire') &&
+          entry.typeKey !== signingTypeKeys.agreement
+      )
       .map((entry): [string, Uint8Array] => [entry.path, read(entry.path)]),
     ['the annex template', annexTemplate('ssm')],
+    ['the fire-safety annex template', annexTemplate('su')],
   ];
-
-  const paragraphsOf = (xml: string) => xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
-  const ssmFiles = files.filter(([name]) => name.endsWith('.docx'));
 
   // A style, a list level or the document default naming another font reaches an empty line, a
   // tab or a label, and the in-app editor, which packages Arial only, warns on a device without it.
-  it.each(files)('%s names no font but Arial in any of its parts', (_, bytes) => {
+  it.each(fontFiles)('%s names no font but Arial in any of its parts', (_, bytes) => {
     const zip = new PizZip(bytes);
     const named = new Set<string>();
     for (const part of zip.file(/^word\/.*\.xml$/)) {
@@ -449,6 +450,21 @@ describe('Word 2013 layout of the occupational safety set', () => {
       /<w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"\/>/
     );
   });
+});
+
+// tools/import/word_layout.py says why. The fire-safety set and the contracts keep their layout
+// until they are reviewed too.
+describe('Word 2013 layout of the occupational safety set', () => {
+  const files: [string, Uint8Array][] = [
+    ...entries
+      .filter((entry) => entry.set === 'ssm' && entry.typeKey !== signingTypeKeys.agreement)
+      .map((entry): [string, Uint8Array] => [entry.path, read(entry.path)]),
+    ['the annex template', annexTemplate('ssm')],
+  ];
+
+  const paragraphsOf = (xml: string) => xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+  const ssmFiles = files.filter(([name]) => name.endsWith('.docx'));
+
   const contents = [
     '2.2_general_training_material.docx',
     '3.2_own_instructions.docx',

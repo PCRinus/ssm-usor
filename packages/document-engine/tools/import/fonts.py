@@ -1,4 +1,4 @@
-"""Arial everywhere in a template's saved XML, without an office.
+"""Arial everywhere in a template's saved XML, without an office, in both documentation sets.
 
 The text runs were set in Arial, but the originals kept Times New Roman, Century Gothic and
 others in their document defaults, their styles and their numbering, so an empty line, a tab or
@@ -7,9 +7,13 @@ device without the font, that it shows a substitute. Every font a part names bec
 theme font included, since a theme reference outranks the font beside it. Safe to run again.
 """
 
+import os
 import re
 
 FONT = 'Arial'
+# The contracts keep their fonts until they are reviewed.
+OUTSIDE = ('other',)
+OUTSIDE_FILES = ('act_aditional_semnare_electronica.docx',)
 SLOTS = ('ascii', 'hAnsi', 'eastAsia', 'cs')
 R_FONTS = re.compile(r'<w:rFonts\b([^>]*?)/>')
 SLOT = re.compile(r'\s+w:(ascii|hAnsi|eastAsia|cs)="[^"]*"')
@@ -63,6 +67,29 @@ def font_table_arial(xml):
     return xml[:start] + arial + xml[end:]
 
 
+LEVEL = re.compile(r'<w:lvl\b.*?</w:lvl>', re.S)
+LEVEL_TEXT = re.compile(r'(<w:lvlText w:val=")([^"]*)(")')
+# A symbol font draws these code points as bullets; in Arial they are boxes.
+SYMBOL_BULLETS = {'': '•', '': '▪', '': '◦', '': '•', '': '•'}
+COURIER_O = re.compile(r'w:ascii="Courier New"')
+
+
+def bullets_in_arial(numbering):
+    """A level's bullet drawn by Symbol or Wingdings, or Word's "o" in Courier New, becomes the
+    character Arial has for it."""
+    def level(match):
+        xml = match.group(0)
+        courier = bool(COURIER_O.search(xml))
+
+        def text(found):
+            value = ''.join(SYMBOL_BULLETS.get(char, char) for char in found.group(2))
+            if courier and value == 'o':
+                value = '◦'
+            return f'{found.group(1)}{value}{found.group(3)}'
+        return LEVEL_TEXT.sub(text, xml)
+    return LEVEL.sub(level, numbering)
+
+
 def theme_arial(xml):
     return SCRIPT_FACE.sub('', THEME_FACE.sub(rf'\g<1>{FONT}\g<2>', xml))
 
@@ -75,6 +102,13 @@ def arial_part(name, xml):
         return theme_arial(xml)
     if name == 'word/styles.xml':
         return default_font_arial(runs_in_arial(xml))
+    if name == 'word/numbering.xml':
+        return runs_in_arial(bullets_in_arial(xml))
     if name.startswith('word/') and name.endswith('.xml'):
         return runs_in_arial(xml)
     return xml
+
+
+def in_arial_alone(path):
+    return (os.path.basename(os.path.dirname(path)) not in OUTSIDE
+            and os.path.basename(path) not in OUTSIDE_FILES)
