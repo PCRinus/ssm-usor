@@ -358,13 +358,13 @@ def form(xml):
 
 def control_fields(rows, label_width=3400, height=360):
     """`fields` with a content control for each value, at the body size: rows of `(label, name)`,
-    or `(label, name, height, placeholder)` for a field the merge sizes (`control`)."""
+    `(label, name, height, placeholder)` for a field the merge sizes (`control`), or
+    `(label, name, height, None, lines)` for a field of several lines."""
     value_width = TEXT_WIDTH - label_width
     drawn = []
     for label, name, *rest in rows:
-        tall = rest[0] if rest else height
-        placeholder = rest[1] if len(rest) > 1 else None
-        field = control(name, value_width, size=10, placeholder=placeholder)
+        tall, placeholder, lines = [*rest, *(height, None, 1)[len(rest):]]
+        field = control(name, value_width, lines, size=10, placeholder=placeholder)
         line = MERGED_FIELD_LINE if placeholder else None
         drawn.append(
             row(
@@ -596,7 +596,7 @@ def ssm_body():
                 ('Numele și prenumele', 'adm_name'),
                 ('Funcția (șef secție, atelier, șantier etc.)', 'adm_job_title'),
                 ('Data', 'adm_date'),
-                ('Semnătura', 'adm_sig', 3, SIGNATURE_HEIGHT),
+                ('Semnătura', 'adm_sig', SIGNATURE_HEIGHT, None, 3),
             ]), inverted=True)
         ),
         ssm_periodic('Instruirea periodică', 'Data instruirii', 'periodic', 'p'),
