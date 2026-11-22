@@ -11,6 +11,8 @@ import {
   createEmployee,
   createInstructionModule,
   createOrganization,
+  createRiskZone,
+  createWorkplace,
   evaluateRisks,
   expectSetGenerated,
   moduleFixture,
@@ -160,7 +162,7 @@ test('with a gap elsewhere in the set the cover is generated again, and a decisi
   await expect(page.getByText(`„1.1 ${title}” a fost generat din nou.`)).toBeVisible();
 });
 
-test('a row leads to its field and back, and the client then gets its whole documentation, numbered and dated, the record of risk zones once declared, and downloads a draft', async ({
+test('a row leads to its field and back, and the client then gets its whole documentation, numbered and dated, the record of risk zones once they are listed, and downloads a draft', async ({
   page,
 }) => {
   const owner = await createAccount('documents-owner', 'Dana Documente');
@@ -199,7 +201,12 @@ test('a row leads to its field and back, and the client then gets its whole docu
   const rows = page.getByTestId('document-row');
   await expect(page.getByTestId('pack-folder')).toHaveCount(12);
 
-  await updateClient(clientId, { risk_zones_state: 'none' });
+  const workplaceId = await createWorkplace(organizationId, clientId, { name: 'Atelier Ghiroda' });
+  const { factorDescription } = await createRiskZone(organizationId, clientId, {
+    name: 'Tabloul electric general',
+    workplaceId,
+    location: 'parter, camera tehnică',
+  });
   await page.reload();
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-submit')).toBeVisible();
@@ -211,11 +218,27 @@ test('a row leads to its field and back, and the client then gets its whole docu
   await expect(page.getByTestId('documents-generate')).toHaveCount(0);
   await openDocumentSection(page, '9');
   await expect(page.getByTestId('document-number')).toHaveText(['9.1', '9.2']);
-  await expect(
-    rows
-      .filter({ hasText: 'Evidența zonelor cu risc ridicat și specific' })
-      .getByTestId('document-draft')
-  ).toHaveText('Ciornă · rev. 1');
+  const record = rows.filter({ hasText: 'Evidența zonelor cu risc ridicat și specific' });
+  await expect(record.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
+  const recordDownload = page.waitForEvent('download');
+  await act(page, record, 'document-download-draft');
+  const { readFile } = await import('node:fs/promises');
+  const recordXml = new TextDecoder().decode(
+    unzipSync(new Uint8Array(await readFile(await (await recordDownload).path())))[
+      'word/document.xml'
+    ]
+  );
+  const recordText = recordXml.replace(/<[^>]+>/g, '');
+  for (const printed of [
+    'Tabloul electric general',
+    'Punct de lucru „Atelier Ghiroda”',
+    'parter, camera tehnică',
+    factorDescription.trim().replace(/[.;,]+$/, ''),
+    '(nivel de risc',
+    'Accesul numai pentru personalul autorizat.',
+  ]) {
+    expect(recordText).toContain(printed);
+  }
   await openDocumentSection(page, '6');
   // The equipment list is generated from the positions and their entries (ADR 011).
   await expect(

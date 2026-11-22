@@ -984,6 +984,55 @@ describe('GET /clients/{clientId}/documents', () => {
     expect(body.items[0]!.draft!.dataChanged).toBe(true);
   });
 
+  it('marks a draft of the record of risk zones changed by a zone, or by the zones left undecided', async () => {
+    const zoneRow = (name: string) => ({
+      name,
+      location: null,
+      measures: 'Ușa ținută încuiată.',
+      client_workplaces: null,
+      risk_zone_factors: [],
+    });
+    const listed = async (snapshot: unknown, state: string, rows: ReturnType<typeof zoneRow>[]) => {
+      mockUpstream({
+        clients: () => Response.json({ ...clientRow, risk_zones_state: state }),
+        riskZones: () => Response.json(rows),
+        documents: () =>
+          Response.json([
+            {
+              ...documentRow,
+              type_key: 'risk_zones_record',
+              title: 'Evidența zonelor cu risc ridicat și specific',
+              decision_number: null,
+              document_revisions: [{ ...revisionRow, data_snapshot: { riskZones: snapshot } }],
+            },
+          ]),
+      });
+      return clientDocumentListResponseSchema.parse(
+        await (await request(`/clients/${clientId}/documents`)).json()
+      ).items[0]!.draft!.dataChanged;
+    };
+    const printed = {
+      state: 'listed',
+      listed: true,
+      none: false,
+      zones: [
+        {
+          name: 'Tabloul electric',
+          workplace: null,
+          location: null,
+          place: '—',
+          risks: [],
+          risksText: '—',
+          measures: ['Ușa ținută încuiată.'],
+          measuresText: 'Ușa ținută încuiată.',
+        },
+      ],
+    };
+    expect(await listed(printed, 'listed', [zoneRow('Tabloul electric')])).toBe(false);
+    expect(await listed(printed, 'listed', [zoneRow('Tabloul electric general')])).toBe(true);
+    expect(await listed(printed, 'undecided', [])).toBe(true);
+  });
+
   describe('a test drafted from the question bank', () => {
     const testDraft = (questions: unknown) => () =>
       Response.json([

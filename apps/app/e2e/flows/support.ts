@@ -397,6 +397,39 @@ export async function completeFireSafetyData(organizationId: string, clientId: s
   if (person.error) throw person.error;
 }
 
+export async function createRiskZone(
+  organizationId: string,
+  clientId: string,
+  zone: { name: string; workplaceId: string; location: string }
+) {
+  const factor = await admin
+    .from('risk_factors')
+    .select('id, description')
+    .eq('client_id', clientId)
+    .order('created_at')
+    .limit(1)
+    .single();
+  if (factor.error) throw factor.error;
+  const owner = { organization_id: organizationId, client_id: clientId };
+  const created = await admin
+    .from('risk_zones')
+    .insert({
+      ...owner,
+      name: zone.name,
+      workplace_id: zone.workplaceId,
+      location: zone.location,
+      measures: 'Accesul numai pentru personalul autorizat.',
+    })
+    .select('id')
+    .single();
+  if (created.error) throw created.error;
+  const link = await admin
+    .from('risk_zone_factors')
+    .insert({ ...owner, zone_id: created.data.id, factor_id: factor.data.id });
+  if (link.error) throw link.error;
+  return { factorDescription: factor.data.description as string };
+}
+
 export async function createWorkplace(
   organizationId: string,
   clientId: string,
