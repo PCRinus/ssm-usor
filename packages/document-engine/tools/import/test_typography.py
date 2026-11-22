@@ -266,14 +266,14 @@ class Headings(unittest.TestCase):
     def test_puts_a_heading_nearer_its_text_than_what_comes_before_it(self):
         xml = heading_scale(body(paragraph('Capitolul I. A', style='Heading1'), paragraph('text'),
                                  paragraph('Subcapitolul I.I. B', style='Heading2'), paragraph('text')))
-        self.assertEqual(self.spacing(xml, 'Capitolul I. A'), ('120', '200'))
-        self.assertEqual(self.spacing(xml, 'Subcapitolul I.I. B'), ('240', '120'))
+        self.assertEqual(self.spacing(xml, 'Capitolul I. A'), ('120', '280'))
+        self.assertEqual(self.spacing(xml, 'Subcapitolul I.I. B'), ('240', '160'))
 
     def test_a_subchapter_right_under_its_chapter_takes_only_the_chapters_room(self):
         spacer = '<w:p><w:pPr><w:rPr><w:sz w:val="2"/></w:rPr></w:pPr><w:r></w:r></w:p>'
         xml = heading_scale(body(paragraph('Capitolul V. A', style='Heading1'), spacer, spacer, paragraph('{{#posts}}'),
                                  paragraph('Subcapitolul V.{{roman}}. B', style='Heading2'), spacer, paragraph('text')))
-        self.assertEqual(self.spacing(xml, 'Subcapitolul V.{{roman}}. B'), ('0', '120'))
+        self.assertEqual(self.spacing(xml, 'Subcapitolul V.{{roman}}. B'), ('0', '160'))
         self.assertNotIn('<w:sz w:val="2"/>', xml)
 
     def test_keeps_an_empty_paragraph_that_breaks_a_page_draws_a_line_frames_or_ends_a_bookmark(self):
@@ -289,7 +289,7 @@ class Headings(unittest.TestCase):
     def test_a_chapter_that_opens_a_section_has_no_room_above_it(self):
         section = '<w:p><w:pPr><w:sectPr><w:pgSz w:orient="landscape"/></w:sectPr></w:pPr></w:p>'
         xml = heading_scale(body(paragraph('text'), section, paragraph('Anexa Nr. 3.', style='Heading1')))
-        self.assertEqual(self.spacing(xml, 'Anexa Nr. 3.'), ('0', '200'))
+        self.assertEqual(self.spacing(xml, 'Anexa Nr. 3.'), ('0', '280'))
         self.assertIn('<w:sectPr>', xml)
 
 

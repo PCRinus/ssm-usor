@@ -27,8 +27,8 @@ BOLD = re.compile(r'<w:b(?: w:val="(\w+)")?/>')
 BODY = 20  # half-points
 # Mircea (2026-11-22), after a textbook's sections at a 10 pt body: a chapter starts a page, so a
 # breath under the header box is all it needs above.
-CHAPTER = {'size': 24, 'before': 120, 'after': 200}
-SUBCHAPTER = {'size': 22, 'before': 240, 'after': 120}
+CHAPTER = {'size': 24, 'before': 120, 'after': 280}
+SUBCHAPTER = {'size': 22, 'before': 240, 'after': 160}
 HEADINGS = {'Heading1': CHAPTER, 'Heading2': SUBCHAPTER}
 
 ITEM_GAP = 40  # twips: between list items, and under the line that introduces a list

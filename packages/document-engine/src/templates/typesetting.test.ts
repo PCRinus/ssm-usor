@@ -483,7 +483,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
             : /<w:sectPr\b/.test(previous);
         const label = documentTextOf(paragraph);
         expect([side('before'), side('after')], label).toEqual(
-          level === '1' ? [sitsRightUnder ? 0 : 120, 200] : [sitsRightUnder ? 0 : 240, 120]
+          level === '1' ? [sitsRightUnder ? 0 : 120, 280] : [sitsRightUnder ? 0 : 240, 160]
         );
         expect(spacing, label).not.toContain('w:line=');
         for (const neighbour of [previous, paragraphs[index + 1] ?? 'x'])
@@ -505,11 +505,11 @@ describe('Word 2013 layout of the occupational safety set', () => {
         return `${documentTextOf(paragraph).split(' ')[0]} ${side('before')}/${side('after')}`;
       });
     expect(spacing).toEqual([
-      'Capitolul 0/200',
-      'Subcapitolul 240/120',
-      'Capitolul 120/200',
-      'Subcapitolul 240/120',
-      'Capitolul 120/200',
+      'Capitolul 0/280',
+      'Subcapitolul 240/160',
+      'Capitolul 120/280',
+      'Subcapitolul 240/160',
+      'Capitolul 120/280',
     ]);
   });
 
