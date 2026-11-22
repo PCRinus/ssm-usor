@@ -12,7 +12,7 @@ the original numbered as an article (11's „Odată cu prezentul material inform
 import re
 
 from table_style import P_PR_ORDER, edit_properties, put
-from typography import body_blocks
+from typography import CHAPTER, SUBCHAPTER, body_blocks, set_spacing
 
 LABEL = re.compile(r'^((?:SUB)?CAPITOLUL [IVXLC]+\.(?:(?:[IVXLC]+|\{\{roman\}\})\.)?|Anexa Nr\. \d+\.)')
 TAG = re.compile(r'\{\{[^}]*\}\}')
@@ -64,13 +64,13 @@ def escaped(text):
 TEXT = re.compile(r'(<w:t\b[^>]*>)([^<]*)(</w:t>)')
 
 
-def in_sentence_case(paragraph):
+def in_sentence_case(paragraph, case=sentence_case):
     """A heading paragraph with its text in sentence case, run by run."""
     for tag, renamed in RENAMED_TAGS.items():
         paragraph = paragraph.replace(tag, renamed)
     pieces = [unescaped(match.group(2)) for match in TEXT.finditer(paragraph)]
     whole = ''.join(pieces)
-    cased = sentence_case(whole)
+    cased = case(whole)
     if cased == whole:
         return paragraph
     parts = iter(range(len(pieces)))
@@ -104,10 +104,16 @@ TYPED_HEADING = re.compile(r'^(?i:(?:sub)?capitolul) [IVXLC]+\.')
 UNDOTTED_SUBCHAPTER = re.compile(r'(>(?i:subcapitolul) [IVXLC]+\.[IVXLC]+)(?= )')
 
 
-def typed_heading(paragraph):
+def typed_heading(paragraph, opens=False):
     """A chapter or subchapter typed as text ("SUBCAPITOLUL I.I PLANUL") in sentence case, its
-    label closed by a dot as the contents' labels are."""
+    label closed by a dot as the contents' labels are, with the headings' room around it. One
+    that `opens` the document or a section has none above it, which LibreOffice would print at
+    the top of the page (4.2's chapter I stood 6 pt below the others), nor has a subchapter
+    right under its chapter, which is the chapter's room below it."""
+    scale = CHAPTER if TYPED_CHAPTER.match(text_of(paragraph)) else SUBCHAPTER
+    paragraph = set_spacing(paragraph, 0 if opens else scale['before'], scale['after'])
     return in_sentence_case(UNDOTTED_SUBCHAPTER.sub(r'\1.', paragraph, count=1))
+
 HEADING_1 = '<w:pStyle w:val="Heading1"/>'
 
 
@@ -130,9 +136,14 @@ def chapters_on_new_pages(xml):
         chapters = [(start, end) for start, end in paragraphs if TYPED_CHAPTER.match(text_of(xml[start:end]))][1:]
     edits = {}
     if contents < 0:
-        for start, end in paragraphs:
-            if TYPED_HEADING.match(text_of(xml[start:end])):
-                edits[(start, end)] = [typed_heading]
+        previous = None
+        for kind, start, end in body_blocks(xml):
+            if kind == 'p' and TYPED_HEADING.match(text_of(xml[start:end])):
+                under_chapter = (previous is not None and not TYPED_CHAPTER.match(text_of(xml[start:end]))
+                                 and TYPED_CHAPTER.match(text_of(xml[previous[0]:previous[1]])) is not None)
+                opens = previous is None or '<w:sectPr' in xml[previous[0]:previous[1]] or under_chapter
+                edits[(start, end)] = [lambda paragraph, opens=opens: typed_heading(paragraph, opens)]
+            previous = (start, end)
     for start, end in chapters:
         edits.setdefault((start, end), []).append(on_a_new_page)
         for spacer in spacers_before(xml, start):
