@@ -276,7 +276,7 @@ function GenerateDocumentsForm({
               {isOwner ? '' : ' Îl completează proprietarul organizației.'}
             </Notice>
           )}
-          {checking || !readiness.data || onlyWaiting ? null : !ready ? (
+          {checking || !readiness.data || (onlyWaiting && ready) ? null : !ready ? (
             <div data-testid="generate-missing" className="grid gap-4">
               <p className="text-sm">
                 <strong data-testid="generate-missing-count" className="font-semibold">

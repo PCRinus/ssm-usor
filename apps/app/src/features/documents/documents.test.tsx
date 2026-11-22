@@ -480,6 +480,30 @@ describe('client documents', () => {
     expect(screen.queryByRole('button', { name: 'Renunță' })).toBeNull();
   });
 
+  it('still names what the whole set lacks while the only document missing waits for its zones', async () => {
+    mockApi({
+      items: documentTypeKeys
+        .filter(
+          (typeKey) =>
+            typeKey !== 'decision_workers_representative' && typeKey !== 'risk_zones_record'
+        )
+        .map((typeKey) => ({ ...report, id: crypto.randomUUID(), typeKey })),
+      notApplicable: ['decision_workers_representative'],
+      readiness: {
+        ready: false,
+        missing: ['responsible.first_aid'],
+        waitingDocuments: [{ typeKey: 'risk_zones_record', missing: ['risk_zones.decided'] }],
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    expect(await screen.findByTestId('generate-missing')).toBeTruthy();
+    expect(await screen.findByTestId('generate-waiting')).toBeTruthy();
+    expect(screen.queryByTestId('generate-submit')).toBeNull();
+  });
+
   const sectionNumbers = async () =>
     (await screen.findAllByTestId('pack-folder')).map(
       (entry) => entry.firstElementChild?.textContent
