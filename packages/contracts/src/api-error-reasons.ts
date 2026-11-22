@@ -18,6 +18,7 @@ import { bulkInvitationFailureReasons, participantErrorReasons } from './partici
 import { offersNotInPlanReason } from './plan-features';
 import { releaseErrorReasons } from './releases';
 import { riskEvaluationErrorReasons } from './risk-evaluations';
+import { riskZoneErrorReasons } from './risk-zones';
 import {
   confirmSignedCopyConflictReason,
   contractReturnConflictReasons,
@@ -121,6 +122,7 @@ export const apiErrorReasons = [
   offersNotInPlanReason,
   ...releaseErrorReasons,
   ...riskEvaluationErrorReasons,
+  ...riskZoneErrorReasons,
   ...valuesOf(serviceContractConflictReasons),
   ...valuesOf(contractReturnConflictReasons),
   confirmSignedCopyConflictReason,

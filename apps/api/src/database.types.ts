@@ -1074,6 +1074,7 @@ export type Database = {
           periodic_training_minutes: number | null;
           promoted_at: string | null;
           promoted_by: string | null;
+          risk_zones_state: Database['public']['Enums']['risk_zones_state'];
           sensitive_groups_state: Database['public']['Enums']['sensitive_groups_state'];
           stage: Database['public']['Enums']['client_stage'];
           trade_register_number: string | null;
@@ -1113,6 +1114,7 @@ export type Database = {
           periodic_training_minutes?: number | null;
           promoted_at?: string | null;
           promoted_by?: string | null;
+          risk_zones_state?: Database['public']['Enums']['risk_zones_state'];
           sensitive_groups_state?: Database['public']['Enums']['sensitive_groups_state'];
           stage?: Database['public']['Enums']['client_stage'];
           trade_register_number?: string | null;
@@ -1148,6 +1150,7 @@ export type Database = {
           periodic_training_minutes?: number | null;
           promoted_at?: string | null;
           promoted_by?: string | null;
+          risk_zones_state?: Database['public']['Enums']['risk_zones_state'];
           sensitive_groups_state?: Database['public']['Enums']['sensitive_groups_state'];
           stage?: Database['public']['Enums']['client_stage'];
           trade_register_number?: string | null;
@@ -5023,6 +5026,216 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'evaluation_profile_factors';
             referencedColumns: ['id', 'organization_id'];
+          },
+        ];
+      };
+      risk_zone_factors: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          factor_id: string;
+          organization_id: string;
+          zone_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          factor_id: string;
+          organization_id: string;
+          zone_id: string;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          factor_id?: string;
+          organization_id?: string;
+          zone_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'risk_zone_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'lead_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_factors_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_factors_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_factors_factor_in_client';
+            columns: ['factor_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'risk_factors';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_factors_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_factors_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_factors_zone_in_client';
+            columns: ['zone_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'risk_zones';
+            referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
+      risk_zones: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          location: string | null;
+          measures: string | null;
+          name: string;
+          organization_id: string;
+          updated_at: string;
+          workplace_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          location?: string | null;
+          measures?: string | null;
+          name: string;
+          organization_id: string;
+          updated_at?: string;
+          workplace_id?: string | null;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          location?: string | null;
+          measures?: string | null;
+          name?: string;
+          organization_id?: string;
+          updated_at?: string;
+          workplace_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'risk_zones_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zones_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zones_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
+            foreignKeyName: 'risk_zones_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'lead_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zones_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_zones_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_zones_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_zones_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zones_workplace_in_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_workplace_list';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'risk_zones_workplace_in_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_workplaces';
+            referencedColumns: ['id', 'client_id'];
           },
         ];
       };
@@ -9436,6 +9649,13 @@ export type Database = {
       revoke_client_participant: { Args: { p_participant_id: string }; Returns: boolean };
       revoke_organization_invitation: { Args: { invitation_id: string }; Returns: boolean };
       revoke_participant_invitation: { Args: { p_invitation_id: string }; Returns: boolean };
+      risk_zone_names: {
+        Args: { p_except_client_id?: string };
+        Returns: {
+          measures: string;
+          name: string;
+        }[];
+      };
       save_evaluation_profile_factor: {
         Args: {
           p_actions?: string;
@@ -9484,6 +9704,18 @@ export type Database = {
           p_observations?: string;
           p_probability_class: number;
           p_responsible_person?: string;
+        };
+        Returns: string;
+      };
+      save_risk_zone: {
+        Args: {
+          p_client_id: string;
+          p_factor_ids: string[];
+          p_location?: string;
+          p_measures?: string;
+          p_name: string;
+          p_workplace_id?: string;
+          p_zone_id?: string;
         };
         Returns: string;
       };
@@ -9826,6 +10058,7 @@ export type Database = {
         | 'fire_safety_coordinator'
         | 'fire_intervention_leader';
       risk_evaluation_kind: 'job_position' | 'sensitive_groups' | 'other';
+      risk_zones_state: 'undecided' | 'none' | 'listed';
       sensitive_groups_state: 'undecided' | 'none' | 'evaluated';
       service_contract_state: 'none' | 'draft' | 'issued' | 'sent' | 'received' | 'signed';
       signer_slot: 'trainee' | 'trainer' | 'verifier' | 'admitter' | 'examiner';
@@ -10053,6 +10286,7 @@ export const Constants = {
         'fire_intervention_leader',
       ],
       risk_evaluation_kind: ['job_position', 'sensitive_groups', 'other'],
+      risk_zones_state: ['undecided', 'none', 'listed'],
       sensitive_groups_state: ['undecided', 'none', 'evaluated'],
       service_contract_state: ['none', 'draft', 'issued', 'sent', 'received', 'signed'],
       signer_slot: ['trainee', 'trainer', 'verifier', 'admitter', 'examiner'],

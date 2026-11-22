@@ -5257,6 +5257,264 @@ export interface UpdateSensitiveGroupsStateRequest {
   state: UpdateSensitiveGroupsStateRequestState;
 }
 
+export type RiskZonesResponseState =
+  (typeof RiskZonesResponseState)[keyof typeof RiskZonesResponseState];
+
+export const RiskZonesResponseState = {
+  undecided: 'undecided',
+  none: 'none',
+  listed: 'listed',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RiskZonesResponseZonesItemWorkplace = {
+  id: string;
+  name: string;
+} | null;
+
+export type RiskZonesResponseZonesItemFactorsItemComponent =
+  (typeof RiskZonesResponseZonesItemFactorsItemComponent)[keyof typeof RiskZonesResponseZonesItemFactorsItemComponent];
+
+export const RiskZonesResponseZonesItemFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RiskZonesResponseZonesItemFactorsItemEvaluationKind =
+  (typeof RiskZonesResponseZonesItemFactorsItemEvaluationKind)[keyof typeof RiskZonesResponseZonesItemFactorsItemEvaluationKind];
+
+export const RiskZonesResponseZonesItemFactorsItemEvaluationKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+export type RiskZonesResponseZonesItemFactorsItemEvaluation = {
+  id: string;
+  kind: RiskZonesResponseZonesItemFactorsItemEvaluationKind;
+  title: string;
+};
+
+export type RiskZonesResponseZonesItemFactorsItemMeasuresItemKind =
+  (typeof RiskZonesResponseZonesItemFactorsItemMeasuresItemKind)[keyof typeof RiskZonesResponseZonesItemFactorsItemMeasuresItemKind];
+
+export const RiskZonesResponseZonesItemFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type RiskZonesResponseZonesItemFactorsItemMeasuresItem = {
+  id: string;
+  kind: RiskZonesResponseZonesItemFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type RiskZonesResponseZonesItemFactorsItem = {
+  id: string;
+  component: RiskZonesResponseZonesItemFactorsItemComponent;
+  group: string;
+  description: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  riskLevel: number;
+  evaluation: RiskZonesResponseZonesItemFactorsItemEvaluation;
+  measures: RiskZonesResponseZonesItemFactorsItemMeasuresItem[];
+};
+
+export type RiskZonesResponseZonesItem = {
+  id: string;
+  clientId: string;
+  name: string;
+  /** @nullable */
+  workplace: RiskZonesResponseZonesItemWorkplace;
+  /** @nullable */
+  location: string | null;
+  /** @nullable */
+  measures: string | null;
+  factors: RiskZonesResponseZonesItemFactorsItem[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RiskZonesResponseSuggestionsItemFactorsItemComponent =
+  (typeof RiskZonesResponseSuggestionsItemFactorsItemComponent)[keyof typeof RiskZonesResponseSuggestionsItemFactorsItemComponent];
+
+export const RiskZonesResponseSuggestionsItemFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RiskZonesResponseSuggestionsItemFactorsItemEvaluationKind =
+  (typeof RiskZonesResponseSuggestionsItemFactorsItemEvaluationKind)[keyof typeof RiskZonesResponseSuggestionsItemFactorsItemEvaluationKind];
+
+export const RiskZonesResponseSuggestionsItemFactorsItemEvaluationKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+export type RiskZonesResponseSuggestionsItemFactorsItemEvaluation = {
+  id: string;
+  kind: RiskZonesResponseSuggestionsItemFactorsItemEvaluationKind;
+  title: string;
+};
+
+export type RiskZonesResponseSuggestionsItemFactorsItemMeasuresItemKind =
+  (typeof RiskZonesResponseSuggestionsItemFactorsItemMeasuresItemKind)[keyof typeof RiskZonesResponseSuggestionsItemFactorsItemMeasuresItemKind];
+
+export const RiskZonesResponseSuggestionsItemFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type RiskZonesResponseSuggestionsItemFactorsItemMeasuresItem = {
+  id: string;
+  kind: RiskZonesResponseSuggestionsItemFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type RiskZonesResponseSuggestionsItemFactorsItem = {
+  id: string;
+  component: RiskZonesResponseSuggestionsItemFactorsItemComponent;
+  group: string;
+  description: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  riskLevel: number;
+  evaluation: RiskZonesResponseSuggestionsItemFactorsItemEvaluation;
+  measures: RiskZonesResponseSuggestionsItemFactorsItemMeasuresItem[];
+};
+
+export type RiskZonesResponseSuggestionsItem = {
+  name: string;
+  /** @minItems 1 */
+  factors: RiskZonesResponseSuggestionsItemFactorsItem[];
+  /** @nullable */
+  existingZoneId: string | null;
+};
+
+export type RiskZonesResponseFactorsItemComponent =
+  (typeof RiskZonesResponseFactorsItemComponent)[keyof typeof RiskZonesResponseFactorsItemComponent];
+
+export const RiskZonesResponseFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RiskZonesResponseFactorsItemEvaluationKind =
+  (typeof RiskZonesResponseFactorsItemEvaluationKind)[keyof typeof RiskZonesResponseFactorsItemEvaluationKind];
+
+export const RiskZonesResponseFactorsItemEvaluationKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+export type RiskZonesResponseFactorsItemEvaluation = {
+  id: string;
+  kind: RiskZonesResponseFactorsItemEvaluationKind;
+  title: string;
+};
+
+export type RiskZonesResponseFactorsItemMeasuresItemKind =
+  (typeof RiskZonesResponseFactorsItemMeasuresItemKind)[keyof typeof RiskZonesResponseFactorsItemMeasuresItemKind];
+
+export const RiskZonesResponseFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type RiskZonesResponseFactorsItemMeasuresItem = {
+  id: string;
+  kind: RiskZonesResponseFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type RiskZonesResponseFactorsItem = {
+  id: string;
+  component: RiskZonesResponseFactorsItemComponent;
+  group: string;
+  description: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  riskLevel: number;
+  evaluation: RiskZonesResponseFactorsItemEvaluation;
+  measures: RiskZonesResponseFactorsItemMeasuresItem[];
+};
+
+export interface RiskZonesResponse {
+  state: RiskZonesResponseState;
+  zones: RiskZonesResponseZonesItem[];
+  suggestions: RiskZonesResponseSuggestionsItem[];
+  factors: RiskZonesResponseFactorsItem[];
+}
+
+export interface RiskZoneRequest {
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  name: string;
+  /** @nullable */
+  workplaceId?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 300
+   * @nullable
+   */
+  location?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  measures?: string | null;
+  /** @maxItems 300 */
+  factorIds?: string[];
+}
+
+export type UpdateRiskZonesStateRequestState =
+  (typeof UpdateRiskZonesStateRequestState)[keyof typeof UpdateRiskZonesStateRequestState];
+
+export const UpdateRiskZonesStateRequestState = {
+  undecided: 'undecided',
+  none: 'none',
+} as const;
+
+export interface UpdateRiskZonesStateRequest {
+  state: UpdateRiskZonesStateRequestState;
+}
+
+export type RiskZoneNamesResponseItemsItem = {
+  name: string;
+  /** @nullable */
+  measures: string | null;
+};
+
+export interface RiskZoneNamesResponse {
+  items: RiskZoneNamesResponseItemsItem[];
+}
+
 export type EvaluationProfileListResponseItemsItem = {
   id: string;
   name: string;
@@ -17468,6 +17726,10 @@ export const ListRiskFactorSuggestionsField = {
   observations: 'observations',
 } as const;
 
+export type ListRiskZoneNamesParams = {
+  exceptClientId?: string;
+};
+
 export type ListEvaluationProfilesParams = {
   /**
    * @minimum 1
@@ -28951,6 +29213,680 @@ export const useUpdateSensitiveGroupsState = <
 > => {
   return useMutation(getUpdateSensitiveGroupsStateMutationOptions(options), queryClient);
 };
+
+export const getListRiskZonesUrl = (clientId: string) => {
+  return `/clients/${clientId}/risk-zones`;
+};
+
+/**
+ * The zones in the order they were added, each with its workplace and its linked factors, the highest level first, with their level, evaluation and prevention measures as the evaluation holds them now; the client’s `state`; `factors`, every factor of current posts and client-level evaluations a zone may link, whatever its level, in the evaluations’ order; and the `suggestions` (ADR 045): the unacceptable factors (level above 3) of current posts and client-level evaluations that no zone links yet, grouped by the position’s work zone, or the position’s name without one, or the evaluation’s title outside the posts, each offered as a zone named after its group. `existingZoneId` names a zone of the client with that name already. Nothing is saved until a zone is added.
+ * @summary Read a client's zones of high and specific risk
+ */
+export const listRiskZones = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskZonesResponse> => {
+  return apiFetch<RiskZonesResponse>(getListRiskZonesUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListRiskZonesQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/risk-zones`] as const;
+};
+
+export const getListRiskZonesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRiskZones>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRiskZones>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRiskZonesQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listRiskZones>>> = ({ signal }) =>
+    listRiskZones(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listRiskZones>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListRiskZonesQueryResult = NonNullable<Awaited<ReturnType<typeof listRiskZones>>>;
+export type ListRiskZonesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListRiskZones<
+  TData = Awaited<ReturnType<typeof listRiskZones>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRiskZones>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRiskZones>>,
+          TError,
+          Awaited<ReturnType<typeof listRiskZones>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListRiskZones<
+  TData = Awaited<ReturnType<typeof listRiskZones>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRiskZones>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRiskZones>>,
+          TError,
+          Awaited<ReturnType<typeof listRiskZones>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListRiskZones<
+  TData = Awaited<ReturnType<typeof listRiskZones>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRiskZones>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read a client's zones of high and specific risk
+ */
+
+export function useListRiskZones<
+  TData = Awaited<ReturnType<typeof listRiskZones>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRiskZones>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListRiskZonesQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateRiskZoneUrl = (clientId: string) => {
+  return `/clients/${clientId}/risk-zones`;
+};
+
+/**
+ * A zone links at least one of the client’s risk factors or has measures of its own. Adding one sets the state to `listed`, replacing a declaration that there are none. Two zones of a client differ in name, ignoring case and spaces (reason `risk_zone_name_taken`). Answers with all of the client’s zones, its state and the suggestions, as reading them does.
+ * @summary Add a zone of high and specific risk
+ */
+export const createRiskZone = async (
+  clientId: string,
+  riskZoneRequest: RiskZoneRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskZonesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskZonesResponse>(getCreateRiskZoneUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(riskZoneRequest),
+  });
+};
+
+export const getCreateRiskZoneMutationKey = () => ['createRiskZone'] as const;
+
+export const getCreateRiskZoneMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRiskZone>>,
+    TError,
+    CreateRiskZoneMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRiskZone>>,
+  TError,
+  CreateRiskZoneMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateRiskZoneMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRiskZone>>,
+    CreateRiskZoneMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return createRiskZone(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRiskZoneMutationResult = NonNullable<Awaited<ReturnType<typeof createRiskZone>>>;
+export type CreateRiskZoneMutationBody = RiskZoneRequest;
+export type CreateRiskZoneMutationError = ErrorType<ApiErrorResponse>;
+export type CreateRiskZoneMutationVariables = { clientId: string; data: RiskZoneRequest };
+
+/**
+ * @summary Add a zone of high and specific risk
+ */
+export const useCreateRiskZone = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createRiskZone>>,
+      TError,
+      CreateRiskZoneMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createRiskZone>>,
+  TError,
+  CreateRiskZoneMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateRiskZoneMutationOptions(options), queryClient);
+};
+
+export const getUpdateRiskZoneUrl = (clientId: string, zoneId: string) => {
+  return `/clients/${clientId}/risk-zones/${zoneId}`;
+};
+
+/**
+ * Every field is replaced, and `factorIds` becomes the zone’s whole set of linked factors. A workplace archived after the zone named it may be sent again. Answers with all of the client’s zones, its state and the suggestions, as reading them does.
+ * @summary Replace a zone and its linked factors
+ */
+export const updateRiskZone = async (
+  clientId: string,
+  zoneId: string,
+  riskZoneRequest: RiskZoneRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskZonesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskZonesResponse>(getUpdateRiskZoneUrl(clientId, zoneId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(riskZoneRequest),
+  });
+};
+
+export const getUpdateRiskZoneMutationKey = () => ['updateRiskZone'] as const;
+
+export const getUpdateRiskZoneMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateRiskZone>>,
+    TError,
+    UpdateRiskZoneMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateRiskZone>>,
+  TError,
+  UpdateRiskZoneMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateRiskZoneMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateRiskZone>>,
+    UpdateRiskZoneMutationVariables
+  > = (props) => {
+    const { clientId, zoneId, data } = props ?? {};
+
+    return updateRiskZone(clientId, zoneId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateRiskZoneMutationResult = NonNullable<Awaited<ReturnType<typeof updateRiskZone>>>;
+export type UpdateRiskZoneMutationBody = RiskZoneRequest;
+export type UpdateRiskZoneMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateRiskZoneMutationVariables = {
+  clientId: string;
+  zoneId: string;
+  data: RiskZoneRequest;
+};
+
+/**
+ * @summary Replace a zone and its linked factors
+ */
+export const useUpdateRiskZone = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateRiskZone>>,
+      TError,
+      UpdateRiskZoneMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateRiskZone>>,
+  TError,
+  UpdateRiskZoneMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateRiskZoneMutationOptions(options), queryClient);
+};
+
+export const getRemoveRiskZoneUrl = (clientId: string, zoneId: string) => {
+  return `/clients/${clientId}/risk-zones/${zoneId}`;
+};
+
+/**
+ * Its links go with it; the factors stay. Deleting the last zone sets the state back to `undecided`. Answers with all of the client’s zones, its state and the suggestions, as reading them does.
+ * @summary Delete a zone
+ */
+export const removeRiskZone = async (
+  clientId: string,
+  zoneId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskZonesResponse> => {
+  return apiFetch<RiskZonesResponse>(getRemoveRiskZoneUrl(clientId, zoneId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getRemoveRiskZoneMutationKey = () => ['removeRiskZone'] as const;
+
+export const getRemoveRiskZoneMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeRiskZone>>,
+    TError,
+    RemoveRiskZoneMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeRiskZone>>,
+  TError,
+  RemoveRiskZoneMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRemoveRiskZoneMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeRiskZone>>,
+    RemoveRiskZoneMutationVariables
+  > = (props) => {
+    const { clientId, zoneId } = props ?? {};
+
+    return removeRiskZone(clientId, zoneId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveRiskZoneMutationResult = NonNullable<Awaited<ReturnType<typeof removeRiskZone>>>;
+
+export type RemoveRiskZoneMutationError = ErrorType<ApiErrorResponse>;
+export type RemoveRiskZoneMutationVariables = { clientId: string; zoneId: string };
+
+/**
+ * @summary Delete a zone
+ */
+export const useRemoveRiskZone = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof removeRiskZone>>,
+      TError,
+      RemoveRiskZoneMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof removeRiskZone>>,
+  TError,
+  RemoveRiskZoneMutationVariables,
+  TContext
+> => {
+  return useMutation(getRemoveRiskZoneMutationOptions(options), queryClient);
+};
+
+export const getUpdateRiskZonesStateUrl = (clientId: string) => {
+  return `/clients/${clientId}/risk-zones-state`;
+};
+
+/**
+ * `none` declares that the client has no zones of high and specific risk, so document 9.2 says so; `undecided` withdraws the declaration. `listed` is never sent: the database sets it while the client has a zone, and both values are refused meanwhile (`409`, reason `risk_zones_listed`). Answers with all of the client’s zones, its state and the suggestions, as reading them does.
+ * @summary Say whether a client has zones of high and specific risk
+ */
+export const updateRiskZonesState = async (
+  clientId: string,
+  updateRiskZonesStateRequest: UpdateRiskZonesStateRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskZonesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskZonesResponse>(getUpdateRiskZonesStateUrl(clientId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateRiskZonesStateRequest),
+  });
+};
+
+export const getUpdateRiskZonesStateMutationKey = () => ['updateRiskZonesState'] as const;
+
+export const getUpdateRiskZonesStateMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateRiskZonesState>>,
+    TError,
+    UpdateRiskZonesStateMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateRiskZonesState>>,
+  TError,
+  UpdateRiskZonesStateMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateRiskZonesStateMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateRiskZonesState>>,
+    UpdateRiskZonesStateMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return updateRiskZonesState(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateRiskZonesStateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateRiskZonesState>>
+>;
+export type UpdateRiskZonesStateMutationBody = UpdateRiskZonesStateRequest;
+export type UpdateRiskZonesStateMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateRiskZonesStateMutationVariables = {
+  clientId: string;
+  data: UpdateRiskZonesStateRequest;
+};
+
+/**
+ * @summary Say whether a client has zones of high and specific risk
+ */
+export const useUpdateRiskZonesState = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateRiskZonesState>>,
+      TError,
+      UpdateRiskZonesStateMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateRiskZonesState>>,
+  TError,
+  UpdateRiskZonesStateMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateRiskZonesStateMutationOptions(options), queryClient);
+};
+
+export const getListRiskZoneNamesUrl = (params?: ListRiskZoneNamesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/risk-zone-names?${stringifiedParams}`
+    : `/risk-zone-names`;
+};
+
+/**
+ * The distinct names of the organization’s zones under clients that are not archived, leaving out those of `exceptClientId`, ignoring case and spaces, each with the own measures of its most recently changed zone, in Romanian alphabetical order, at most 200. The zone dialog offers them as the name, and the measures to start from.
+ * @summary The zone names the organization used before
+ */
+export const listRiskZoneNames = async (
+  params?: ListRiskZoneNamesParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskZoneNamesResponse> => {
+  return apiFetch<RiskZoneNamesResponse>(getListRiskZoneNamesUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListRiskZoneNamesQueryKey = (params?: ListRiskZoneNamesParams) => {
+  return [`/risk-zone-names`, ...(params ? [params] : [])] as const;
+};
+
+export const getListRiskZoneNamesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRiskZoneNames>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListRiskZoneNamesParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRiskZoneNames>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRiskZoneNamesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listRiskZoneNames>>> = ({ signal }) =>
+    listRiskZoneNames(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRiskZoneNames>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListRiskZoneNamesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRiskZoneNames>>
+>;
+export type ListRiskZoneNamesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListRiskZoneNames<
+  TData = Awaited<ReturnType<typeof listRiskZoneNames>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: undefined | ListRiskZoneNamesParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRiskZoneNames>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRiskZoneNames>>,
+          TError,
+          Awaited<ReturnType<typeof listRiskZoneNames>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListRiskZoneNames<
+  TData = Awaited<ReturnType<typeof listRiskZoneNames>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListRiskZoneNamesParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRiskZoneNames>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRiskZoneNames>>,
+          TError,
+          Awaited<ReturnType<typeof listRiskZoneNames>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListRiskZoneNames<
+  TData = Awaited<ReturnType<typeof listRiskZoneNames>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListRiskZoneNamesParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRiskZoneNames>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The zone names the organization used before
+ */
+
+export function useListRiskZoneNames<
+  TData = Awaited<ReturnType<typeof listRiskZoneNames>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListRiskZoneNamesParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRiskZoneNames>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListRiskZoneNamesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getListEvaluationProfilesUrl = (params?: ListEvaluationProfilesParams) => {
   const normalizedParams = new URLSearchParams();

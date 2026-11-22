@@ -67,6 +67,7 @@ export * from './protective-equipment';
 export * from './releases';
 export * from './risk-evaluations';
 export * from './risk-levels';
+export * from './risk-zones';
 export * from './romanian';
 export * from './service-contracts';
 export * from './setup';

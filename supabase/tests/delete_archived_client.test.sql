@@ -1,5 +1,5 @@
 begin;
-select plan(25);
+select plan(26);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), '{"provider":"email"}', '{}', now(), now()
@@ -30,6 +30,18 @@ insert into public.job_positions (id, organization_id, client_id, name) values
 
 insert into public.job_position_equipment (organization_id, client_id, job_position_id, risk, item, quantity, duration_months) values
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Împroșcare, stropire (față, ochi)', 'Mască de sudură', 1, 24);
+
+insert into public.risk_evaluations (id, organization_id, client_id, kind, job_position_id) values
+  ('7e000000-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'job_position', 'b1b1b1b1-0000-4000-8000-000000000001');
+
+insert into public.risk_factors (id, organization_id, client_id, evaluation_id, component, factor_group, description, gravity_class, probability_class, sort_order) values
+  ('7f000000-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7e000000-0000-4000-8000-000000000001', 'means_of_production', 'Factori de risc electric', 'Electrocutare', 6, 4, 0);
+
+insert into public.risk_zones (id, organization_id, client_id, name, workplace_id) values
+  ('7d000000-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Tablou electric', 'a0a0a0a0-0000-4000-8000-000000000001');
+
+insert into public.risk_zone_factors (zone_id, factor_id, organization_id, client_id) values
+  ('7d000000-0000-4000-8000-000000000001', '7f000000-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001');
 
 insert into public.employees (id, organization_id, client_id, job_position_id, workplace_id, last_name, first_name, job_title, hired_at) values
   ('e1e1e1e1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 'Popescu', 'Ion', 'Sudor', '2026-01-05'),
@@ -257,6 +269,7 @@ select results_eq(
 select is((select count(*) from public.clients where id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'the client is gone');
 select is((select count(*) from public.client_workplaces where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its workplaces are gone');
 select is((select count(*) from public.job_position_equipment where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its equipment is gone');
+select is((select count(*) from public.risk_zones where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its risk zones are gone, with their links');
 select is((select count(*) from public.employees where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its employees are gone');
 select is((select count(*) from public.training_signatures where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its training signatures are gone');
 select is((select count(*) from public.test_attempt_keys where attempt_id = 'a7a7a7a7-0000-4000-8000-000000000001'), 0::bigint, 'its finished tests are gone');

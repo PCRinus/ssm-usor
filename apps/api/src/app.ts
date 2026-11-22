@@ -38,6 +38,7 @@ import { portalRouter } from './modules/portal';
 import { protectiveEquipmentRouter } from './modules/protective-equipment';
 import { releasesRouter } from './modules/releases';
 import { riskEvaluationsRouter } from './modules/risk-evaluations';
+import { riskZonesRouter } from './modules/risk-zones';
 import { serviceContractsRouter } from './modules/service-contracts';
 import { setupRouter } from './modules/setup';
 import { signingRouter } from './modules/signing';
@@ -130,6 +131,7 @@ export function createApp() {
   app.route('/', protectiveEquipmentRouter);
   app.route('/', instructionModulesRouter);
   app.route('/', riskEvaluationsRouter);
+  app.route('/', riskZonesRouter);
   app.route('/', evaluationProfilesRouter);
   app.route('/', documentDataRouter);
   app.route('/', fireSafetyRouter);

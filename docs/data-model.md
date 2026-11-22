@@ -369,7 +369,7 @@ skip that rule. It refuses a client the organization does not have (`P0002`) and
 signed sheets and their rows, signature requests, test sheets, results and attempts with their
 keys, training records and trainings, invitations and participants (their signing sessions with
 them), signing agreements; the documents' sends, signed copies and revisions, the documents and
-their generations, regeneration items; prevention measures, risk factors and evaluations, the
+their generations, regeneration items; risk zones with their links, prevention measures, risk factors and evaluations, the
 positions' equipment and instructions; the client's imports with their files and its client files;
 responsible persons, employees, the fire-safety rows (buildings, equipment, installations,
 maintenance items, substances, `client_fire_safety`), job positions, workplaces, owner notes,
@@ -449,6 +449,7 @@ calendar will read the same columns:
 | `training_first_month`                    | A month with a training; the others follow by interval, around the year. |
 | `training_day_from`, `training_day_to`    | The days of that month, for example 2 to 7; ordered by a check.          |
 | `sensitive_groups_state`                  | `undecided`, `none` (declared without such workers) or `evaluated`.      |
+| `risk_zones_state`                        | `undecided`, `none` (declared without risk zones) or `listed`.           |
 
 **Workplaces.** `client_workplaces` holds the registered office and the points of work: a
 name, `is_registered_office` (one per client, by a partial unique index), and an address.
@@ -1229,6 +1230,42 @@ under active clients, and create and delete measures. Updates are granted on the
 moves to another position, evaluation or client. No update is granted on
 `source_profile_factor_id`: only the profile functions below set it, and `copy_risk_factors`
 carries it along.
+
+### Risk zones
+
+`risk_zones` holds the client's zones of high and specific risk
+([ADR 045](architecture/adr-045-risk-zones-record.md)), printed in document 9.2: a `name` (2 to
+160 characters, unique within the client ignoring case and the spaces around it), an optional
+`workplace_id`, one of the same client's workplaces by a composite foreign key, an optional
+`location` in it (1 to 300) and optional `measures` of its own (1 to 2000). The API lists them in
+the order they were added. Workplaces are only archived, so a zone keeps one archived after it
+named it. `risk_zone_factors` links a zone to risk factors of the same client, each pair once,
+by composite foreign keys that cascade from both sides: deleting a zone deletes its links, and
+deleting a factor, its evaluation or the position the evaluation is for deletes the factor's
+links and is never refused for a zone. A zone may so be left with neither factors nor measures;
+the document's readiness is where that shows. The zone's level and measures are never copied:
+they are read from the linked factors.
+
+`save_risk_zone` runs as the caller and writes a zone and its whole set of links in one
+transaction: without `p_zone_id` it adds one, with it it replaces the zone's fields and links. It
+returns the zone's id, or null when the client or the zone within it is not the caller's, and
+refuses a zone with neither a linked factor nor measures (`RZN02`), a workplace that is not a
+current one of the client unless the zone already named it (`RZN03`), and a factor that is not
+the client's (`RZN04`). `risk_zone_names(p_except_client_id)` runs as the caller and returns the
+organization's distinct zone names under clients that are not archived, ignoring case and spaces,
+each with the measures of its most recently updated zone, in Romanian alphabetical order
+(`ro-x-icu`), at most 200, for the zone dialog.
+
+`clients.risk_zones_state` follows the sensitive groups' pattern: `undecided` until a member
+says, `none`, a declaration that the client has no such zones, or `listed`. Two triggers keep it
+true: inserting a zone sets `listed`, and deleting the last one sets `undecided` (after the
+statement, so a delete of several zones sees what is left, and as the function's owner); an
+update by hand is refused unless it agrees with the zones' existence (`RZN01`).
+
+Members read, create, update and delete the zones of their organization under active clients,
+and create and delete links; an insert under a lead is refused (`CLL01`) and every write under an
+archived client (`CLA01`). Updates are granted on the zone's `name`, `workplace_id`, `location`
+and `measures` only, and none on the links. Like the evaluations, zones are not in the audit log.
 
 ### Evaluation profiles
 
