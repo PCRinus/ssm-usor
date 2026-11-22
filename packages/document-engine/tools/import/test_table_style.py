@@ -96,7 +96,28 @@ class KeepTogether(unittest.TestCase):
         long = [ROW.format(text) for text in ['Nr.'] + [f'{n}.' for n in range(1, 13)]]
         cant_split, keeps = keep_together(long, 1, grid)
         self.assertEqual(keeps[:3], [True, True, False])
-        self.assertFalse(any(keeps[3:]))
+        self.assertEqual(keeps[3:], [False] * 8 + [True, False])
+
+    def test_a_long_tables_last_row_keeps_with_the_one_before_unless_they_would_not_fit_a_page(self):
+        rows = [ROW.format('Nr.')] + [ROW.format(f'{n}.') for n in range(1, 10)]
+        _, keeps = keep_together(rows, 1, [4000])
+        self.assertEqual(keeps[-3:], [False, True, False])
+        tall_pair = rows[:-2] + [ROW.format('cuvânt ' * 100)] * 2
+        _, keeps = keep_together(tall_pair, 1, [4000])
+        self.assertEqual(keeps[-3:], [False, False, False])
+
+    def test_the_tail_joins_the_head_only_when_the_whole_table_fits_a_page(self):
+        rows = [ROW.format('Nr.')] + [ROW.format('cuvânt ' * 60) for _ in range(3)]
+        _, keeps = keep_together(rows, 1, [4000])
+        self.assertEqual(keeps, [True, True, False, False])
+        _, keeps = keep_together(rows, 1, [4000], room=PORTRAIT_KEEP_ROOM)
+        self.assertEqual(keeps, [True, True, True, False])
+
+    def test_a_table_with_a_very_long_row_still_keeps_its_last_two_short_rows(self):
+        rows = [ROW.format('Nr.'), ROW.format('x ' * 400), ROW.format('1.'), ROW.format('2.')]
+        cant_split, keeps = keep_together(rows, 1, [4000])
+        self.assertEqual(cant_split, [True, False, True, True])
+        self.assertEqual(keeps, [False, False, True, False])
 
     def test_a_table_with_a_very_long_row_ties_nothing(self):
         rows = [ROW.format('Nr.'), ROW.format('x ' * 400)]
