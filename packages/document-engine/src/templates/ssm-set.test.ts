@@ -1045,17 +1045,16 @@ describe('risk_zones_record', () => {
     expect(merged).not.toContain('nu au fost identificate');
   });
 
-  it('repeats the heading of the table on every page and never cuts a zone in two', () => {
+  it('repeats the heading of the table on every page', () => {
     const zones = bodyOf('9.2_risk_zones_record.docx')
       .match(/<w:tbl>[\s\S]*?<\/w:tbl>/g)!
       .find((each) => each.includes('{{#riskZones.zones}}'))!;
     const rows = zones.match(/<w:tr\b[\s\S]*?<\/w:tr>/g)!;
     expect(rows).toHaveLength(2);
     expect(rows[0]).toContain('<w:tblHeader');
-    expect(rows[1]).toContain('<w:cantSplit');
   });
 
-  it('starts the table under the sentence before it, breaking between zones', () => {
+  it('starts the table under the sentence before it, a zone free to run over a page', () => {
     const body = new PizZip(renderDocument(template, sample('long')))
       .file('word/document.xml')!
       .asText();
@@ -1064,7 +1063,7 @@ describe('risk_zones_record', () => {
     const rows = zones.match(/<w:tr\b[\s\S]*?<\/w:tr>/g)!;
     expect(zones.slice(0, zones.indexOf('<w:tbl>'))).toContain('<w:keepNext/>');
     expect(rows.map((row) => row.includes('<w:keepNext/>'))).toEqual([true, false, false, false]);
-    expect(rows.every((row) => row.includes('<w:cantSplit/>'))).toBe(true);
+    expect(rows.map((row) => row.includes('<w:cantSplit/>'))).toEqual([true, false, false, false]);
     expect(zones).not.toContain('tblCaption');
   });
 
