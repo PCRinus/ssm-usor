@@ -1920,7 +1920,7 @@ TABLES_OF_CONTENTS = {
         'pageAfter': True,
         'headings': [(1, r'^Capitolul [IVXLC]+\. '), (2, r'^Subcapitolul [IVXLC]+\.[IVXLC]+\.')],
     },
-    '9_risk_assessment': {
+    '9.1_risk_assessment': {
         'title': r'^Cuprins$',
         'end': r'^CAPITOLUL I\. ',
         'headings': [(1, r'^(?i:capitolul) [IVXLC]+\. '), (2, r'^(?i:subcapitolul) [IVXLC]+\.([IVXLC]+|\{\{roman\}\})\. '),

@@ -77,7 +77,7 @@ describe('one signing space for every signature of the occupational safety set',
   // A form signs in a row of its own: the row keeps the same 25 mm as its least height.
   it.each([
     ['8_control_report.docx', /^Semnătura celui care a întocmit referatul/, 1],
-    ['9_risk_assessment.docx', /^[12]\.(Întocmit|Aprobat)\{\{/, 2],
+    ['9.1_risk_assessment.docx', /^[12]\.(Întocmit|Aprobat)\{\{/, 2],
   ] as const)('%s leaves 25 mm in the rows where a person signs', (name, starts, count) => {
     const rows = rowsOf(bodyOf(name)).filter((row) => starts.test(documentTextOf(row)));
     expect(rows).toHaveLength(count);

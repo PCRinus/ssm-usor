@@ -70,7 +70,7 @@ describe('the table house style of the occupational safety set', () => {
     );
     const scales = left.filter((table) => /w:sz="12"/.test(table));
     expect(left.length - scales.length).toBe(0);
-    expect(scales.length).toBe(name === '9_risk_assessment.docx' ? 3 : 0);
+    expect(scales.length).toBe(name === '9.1_risk_assessment.docx' ? 3 : 0);
   });
 
   it.each(houseTables)(
@@ -159,7 +159,7 @@ describe('the table house style of the occupational safety set', () => {
         .some((row) => cellsOf(row).some((cell) => /^Semnătur/i.test(documentTextOf(cell).trim())))
     );
     expect(signed.map(([name]) => name)).toEqual(
-      expect.arrayContaining(['1.1_decision_training.docx', '9_risk_assessment.docx'])
+      expect.arrayContaining(['1.1_decision_training.docx', '9.1_risk_assessment.docx'])
     );
     for (const [, , table] of signed) {
       for (const row of rowsOf(table).filter((each) => !isHeader(each))) {
@@ -196,7 +196,7 @@ describe('the table house style of the occupational safety set', () => {
   });
 
   it("prints the text of 9's grids in the colour that reads on their grey", () => {
-    const scales = tablesOf('9_risk_assessment.docx').filter((table) => /w:sz="12"/.test(table));
+    const scales = tablesOf('9.1_risk_assessment.docx').filter((table) => /w:sz="12"/.test(table));
     const shaded = scales
       .flatMap(cellsOf)
       .filter((cell) => /<w:shd w:color="auto" w:fill="auto" w:val="(pct\d+|solid)"/.test(cell));

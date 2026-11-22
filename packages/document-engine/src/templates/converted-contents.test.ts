@@ -88,7 +88,7 @@ describe.skipIf(!converter)('the contents of the occupational safety set, in the
   const files = [
     '2.1_general_training_material.docx',
     '3.1_own_instructions.docx',
-    '9_risk_assessment.docx',
+    '9.1_risk_assessment.docx',
     '11.1_employer_briefing.docx',
   ];
   const cases = files.flatMap((name) =>

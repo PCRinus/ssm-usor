@@ -325,7 +325,7 @@ def main():
         data = json.load(file)
     for name, build in (('2.1_general_training_material.docx', lambda package: general_training_material(package, data)),
                         ('11.1_employer_briefing.docx', lambda package: employer_briefing(package, data)),
-                        ('9_risk_assessment.docx', risk_assessment)):
+                        ('9.1_risk_assessment.docx', risk_assessment)):
         package = Package(name)
         build(package)
         package.save()

@@ -253,7 +253,7 @@ export const occupationalSafetyDocumentNumbers = {
   cover_event_registers: '7.0',
   event_registers: '7.1',
   control_report: '8',
-  risk_assessment: '9',
+  risk_assessment: '9.1',
   prevention_plan: '10',
   cover_employer_briefing: '11.0',
   employer_briefing: '11.1',

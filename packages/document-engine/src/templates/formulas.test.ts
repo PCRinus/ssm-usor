@@ -39,7 +39,7 @@ function kinds(geometry: Geometry): string[] {
 
 describe('formulas', () => {
   it('9 is the one template of the set with formulas', () => {
-    expect(withFormulas).toEqual(['9_risk_assessment.docx']);
+    expect(withFormulas).toEqual(['9.1_risk_assessment.docx']);
   });
 
   it.each(withFormulas)(

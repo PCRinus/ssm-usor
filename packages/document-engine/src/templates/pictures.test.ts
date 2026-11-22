@@ -140,8 +140,8 @@ describe('2.1_general_training_material.docx', () => {
   });
 });
 
-describe('9_risk_assessment.docx', () => {
-  const name = '9_risk_assessment.docx';
+describe('9.1_risk_assessment.docx', () => {
+  const name = '9.1_risk_assessment.docx';
   const body = new PizZip(read(name)).file('word/document.xml')!.asText();
 
   it('writes every formula as a formula, none with an empty bound', () => {
