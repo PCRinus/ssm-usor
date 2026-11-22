@@ -6,6 +6,8 @@ import { signingTypeKeys } from '../signing';
 import { documentText } from '../text';
 import { bodyOf, decisionFiles, documentTextOf, entries, read, typesetFiles } from './read';
 
+const suSheet = 'fire/fisa_instructaj_su.docx';
+
 // The house style the import script typesets every template to.
 describe('typesetting', () => {
   const paragraphsOf = (xml: string) => xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
@@ -61,9 +63,15 @@ describe('typesetting', () => {
       // after a table: at the end, or between two tables that would otherwise be saved as one;
       // a page break that a section prints for some items of a loop only; and an article's
       // "Art. N." on a line of its own, which prints its number.
+      // The fire-safety sheet's cover back opens on a spacer of exact height that places its
+      // warning low: LibreOffice drops the space above a paragraph at the top of a page.
       const empty = paragraphsOf(body).filter(
         (paragraph) =>
           documentTextOf(paragraph).trim() === '' &&
+          !(
+            name === suSheet &&
+            /<w:pageBreakBefore(?: w:val="true")?\/>[\s\S]*w:lineRule="exact"/.test(paragraph)
+          ) &&
           !/<w:numPr>/.test(paragraph) &&
           !/<w:drawing|<w:object|<w:pict|<mc:AlternateContent|<w:br w:type="page"\/>/.test(
             paragraph
@@ -103,6 +111,14 @@ describe('typesetting', () => {
 
   it.each(typesetFiles)('%s uses one font, the body and title sizes, and Romanian', (name) => {
     const xml = bodyOf(name);
+    // The back of the fire-safety sheet's cover holds the model's warning alone, set large.
+    const sized =
+      name === suSheet
+        ? xml.replace(
+            /<w:p\b(?:(?!<\/w:p>)[\s\S])*?(?:ATENȚIE!|Nicio persoană nu va fi admisă la lucru)[\s\S]*?<\/w:p>/g,
+            ''
+          )
+        : xml;
     // Of the runs that carry text, here and below: a paragraph's end mark may keep a font, a
     // size or a language of its own, which nothing shows and LibreOffice does not let go of.
     const fonts = new Set(
@@ -114,7 +130,7 @@ describe('typesetting', () => {
     );
     const sizes = new Set(
       [
-        ...xml.matchAll(
+        ...sized.matchAll(
           /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:sz w:val="(\d+)"\/>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/g
         ),
       ].map((match) => Number(match[1]) / 2)
@@ -133,7 +149,7 @@ describe('typesetting', () => {
     // cover page. Smaller only inside a table too wide for the body size and for the label of a
     // signing space, never for a heading over running text.
     expect([...sizes].filter((size) => ![7, 8, 9, 10, 11, 12, 14, 16].includes(size))).toEqual([]);
-    const outsideTables = xml
+    const outsideTables = sized
       .replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '')
       .replace(/<w:p\b(?:(?!<\/w:p>)[\s\S])*?>semnătura și ștampila<\/w:t><\/w:r><\/w:p>/g, '');
     expect(outsideTables).not.toMatch(
@@ -224,6 +240,11 @@ describe('typesetting', () => {
     expect(bodyOf(name)).not.toContain('<w:hyperlink');
   });
 
+  const sheetHeaders: Record<string, string[]> = {
+    'fisa_instruire_ssm.docx': ['Fișa SSM · {{employee.headerName}}Pag. 1 din 1', 'Pag. 1 din 1'],
+    'fire/fisa_instructaj_su.docx': ['Fișa SU · {{employee.headerName}}Pag. 1 din 1'],
+  };
+
   it.each(typesetFiles)(
     '%s has the house margins, no header but the document details, and a footer that ends with the branding line',
     (name) => {
@@ -263,6 +284,12 @@ describe('typesetting', () => {
           'Decizia nr. {{decisionNumber}} SSM din {{issueDate}} · {{client.legalName}}Pag. 1 din 1',
           'Pag. 1 din 1',
         ]);
+      } else if (sheetHeaders[name]) {
+        for (const section of sections) {
+          expect(section).toMatch(/<w:pgMar [^>]*w:top="1134"/);
+          expect(section).toMatch(/<w:pgMar [^>]*w:header="680"/);
+        }
+        expect([...headers].sort()).toEqual(sheetHeaders[name]);
       } else if (headers.every((text) => text === '')) {
         for (const section of sections)
           expect(section).toMatch(new RegExp(`<w:pgMar [^>]*w:top="${1134 + lower(section)}"`));
@@ -453,11 +480,16 @@ describe('fonts of both documentation sets', () => {
 });
 
 // tools/import/word_layout.py says why. The fire-safety set and the contracts keep their layout
-// until they are reviewed too.
+// until they are reviewed too, but for the fire-safety training sheet, a form drawn like the
+// occupational safety one.
 describe('Word 2013 layout of the occupational safety set', () => {
   const files: [string, Uint8Array][] = [
     ...entries
-      .filter((entry) => entry.set === 'ssm' && entry.typeKey !== signingTypeKeys.agreement)
+      .filter(
+        (entry) =>
+          (entry.set === 'ssm' && entry.typeKey !== signingTypeKeys.agreement) ||
+          entry.path === 'fire/fisa_instructaj_su.docx'
+      )
       .map((entry): [string, Uint8Array] => [entry.path, read(entry.path)]),
     ['the annex template', annexTemplate('ssm')],
   ];
@@ -605,7 +637,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
   });
 
   // The sheets fit a training on one page in 7 and 9 pt.
-  it.each(ssmFiles.filter(([name]) => !name.startsWith('fisa_')))(
+  it.each(ssmFiles.filter(([name]) => !/^(fire\/)?fisa_/.test(name)))(
     "%s sets its house tables at 10 or 8 pt, the registers' headers at 7",
     (name, bytes) => {
       for (const table of houseTablesOf(bytes)) {

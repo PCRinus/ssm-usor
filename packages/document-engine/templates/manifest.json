@@ -293,8 +293,8 @@
       "title": "Fișa individuală de instruire SSM",
       "file": "fisa_instruire_ssm.docx",
       "change": {
-        "kind": "layout",
-        "note": "Pe fișa semnată electronic, caseta de semnătură de la „Admis la lucru” e mai înaltă, cât pentru trei rânduri, așa că semnătura electronică nu mai iese micșorată."
+        "kind": "correction",
+        "note": "Fișa arată ca un formular: fiecare rubrică e o casetă, cu eticheta mică sus și loc de scris dedesubt, iar semnăturile au casete pe aceeași grilă, cu numele celui care semnează la bază. O instruire la angajare nu se mai rupe între pagini, ci trece întreagă pe pagina următoare. De la a doua pagină, sus scrie „Fișa SSM” cu numele angajatului și numărul paginii. Pe fișa semnată electronic, câmpurile stau în aceleași casete."
       }
     },
     {

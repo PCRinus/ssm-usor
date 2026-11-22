@@ -348,8 +348,8 @@
       "title": "Fișa individuală de instructaj SU",
       "file": "fisa_instructaj_su.docx",
       "change": {
-        "kind": "layout",
-        "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
+        "kind": "correction",
+        "note": "Fișa arată ca un formular: fiecare rubrică e o casetă, cu eticheta mică sus și loc de scris dedesubt, iar semnăturile au casete pe aceeași grilă. Un instructaj la angajare nu se mai rupe între pagini. Pe spatele copertei, avertismentul „ATENȚIE!” apare singur, mare, fără chenar. După copertă, sus scrie „Fișa SU” cu numele angajatului și numărul paginii. Tabelul instructajului periodic arată ca pe fișa SSM."
       }
     }
   ]

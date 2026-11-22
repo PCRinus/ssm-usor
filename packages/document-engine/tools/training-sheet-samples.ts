@@ -1,12 +1,13 @@
 // Merge data for the two individual training sheets (ADR 021), in the shape
 // apps/api/src/modules/trainings/sheet.ts builds: an employee with every training of the domain
-// recorded, and a new hire with none, whose sheet prints the hiring blocks blank.
+// recorded, a new hire with none, whose sheet prints the hiring blocks blank, and the first
+// employee again with values as long as the forms meet, to try the layout.
 
 export type SheetDomain = 'ssm' | 'su';
 
 const blank = (count: number) => Array.from({ length: count }, () => ({}));
 const materialFieldLines = (count: number) =>
-  Array.from({ length: count }, () => '\u2002'.repeat(57)).join('\n');
+  Array.from({ length: count }, () => '\u2002'.repeat(91)).join('\n');
 
 /** The paper sheet's choice of every form variant (ADR 023): the template prints as on paper. */
 export function paperForm(domain: SheetDomain) {
@@ -43,6 +44,7 @@ const unrecorded = {
 
 const identity = {
   name: 'CONSTANTINESCU-MUNTEANU Alexandra-Ioana',
+  headerName: 'CONSTANTINESCU-MUNTEANU Alexandra-Ioana',
   employeeNumber: '0042',
   bloodGroup: 'A(II) Rh+',
   homeAddress: 'Str. Lungă nr. 12, bl. A3, sc. 2, ap. 14, Timișoara, jud. Timiș',
@@ -201,20 +203,102 @@ function suSample(recorded: boolean) {
   };
 }
 
+const longEmployee = {
+  name: 'CONSTANTINESCU-MUNTEANU-POPOVICIU Alexandra-Ioana-Maria-Magdalena',
+  headerName: 'CONSTANTINESCU-MUNTEANU-POPOVICIU Alexandra-Ioana-Maria-Magdalena',
+  employeeNumber: 'MARCA-2026-000123456',
+  bloodGroup: 'AB(IV) Rh−',
+  homeAddress:
+    'Str. General Constantin Budișteanu nr. 128, bl. C4, sc. B, et. 10, ap. 147, sector 1, București, cod poștal 010773',
+  birth: '14.03.1988, Câmpulung Moldovenesc, jud. Suceava',
+  qualification:
+    'Inginer de securitate și sănătate în muncă, specializarea construcții civile și industriale',
+  education: 'Facultatea de Construcții Civile, Industriale și Agricole, UTCB',
+  contractTitle: 'Operator la instalațiile de tratare și epurare a apelor reziduale industriale',
+  workplace:
+    'Punct de lucru Șoseaua Industriilor nr. 45, Pantelimon, jud. Ilfov – Hala de producție nr. 3, atelier sudură, vopsitorie și montaj',
+  authorizations:
+    'ISCIR – macaragiu și stivuitorist (RSVTI); ANRE – electrician autorizat gradul II B; atestat pentru lucru la înălțime; permis de conducere categoriile B, C, CE',
+  commute:
+    'Str. General Constantin Budișteanu – Bd. Magheru – Piața Romană – Bd. Dacia – Șoseaua Pantelimon – Șoseaua Industriilor, cu metroul M1, autobuzul 101 și pe jos, cu mașina proprie când lucrează în tura de noapte (1 oră și 25 de minute)',
+};
+const longMaterial =
+  'Conform IPSSM art. 1 – 328 și instrucțiunilor proprii pentru sudură, vopsitorie, lucru la înălțime și manipularea substanțelor periculoase; Legea 319/2006 și H.G. 1425/2006; măsuri de acordare a primului ajutor; prevenirea și stingerea incendiilor; evacuarea lucrătorilor; riscurile specifice postului din fișa de evaluare a riscurilor; utilizarea echipamentului individual de protecție; demonstrații practice la postul de lucru.';
+const longTrainerJobTitle =
+  'Inspector de specialitate în domeniul securității și sănătății în muncă, serviciu extern de prevenire și protecție';
+const longTrainer = 'Dan-Alexandru MARINESCU-VLĂDESCU';
+const longAdmitter = 'Ion-Cristian POPESCU-STĂNESCU';
+const longAdmitterJobTitle = 'Șef de secție producție, atelier sudură, vopsitorie și montaj';
+
+function longSample(domain: SheetDomain) {
+  const base = domain === 'ssm' ? ssmSample(true) : suSample(true);
+  return {
+    ...base,
+    client: {
+      legalName:
+        'S.C. INSTALAȚII TERMICE, SANITARE ȘI DE VENTILAȚIE BANAT CONSTRUCT ȘI SERVICII INDUSTRIALE S.R.L.',
+    },
+    employee: longEmployee,
+    hiring: {
+      introductory: {
+        ...base.hiring.introductory,
+        trainer: longTrainer,
+        trainerJobTitle: longTrainerJobTitle,
+        material: longMaterial,
+      },
+      workplace: {
+        ...base.hiring.workplace,
+        trainer: longAdmitter,
+        trainerJobTitle: longTrainerJobTitle,
+        material: longMaterial,
+        place: longEmployee.workplace,
+        occupation: longEmployee.contractTitle,
+      },
+    },
+    admission: {
+      ...base.admission,
+      name: longAdmitter,
+      jobTitle: longAdmitterJobTitle,
+    },
+    signers: {
+      introductory: { trainer: longTrainer, verifier: longTrainer },
+      workplace: { trainer: longAdmitter, verifier: longTrainer },
+    },
+  };
+}
+
+/** What the long sample's workplace training fills the signed sheet's fields with. */
+export const longWorkplaceTraining = {
+  trainer: longAdmitter,
+  trainerJobTitle: longTrainerJobTitle,
+  material: longMaterial,
+  place: longEmployee.workplace,
+  occupation: longEmployee.contractTitle,
+  admitter: longAdmitter,
+  admitterJobTitle: longAdmitterJobTitle,
+};
+
 export function trainingSheetSamples(domain: SheetDomain) {
   const sample = domain === 'ssm' ? ssmSample : suSample;
   return [
     { label: 'records', data: sample(true) },
     { label: 'empty', data: sample(false) },
+    { label: 'long', data: longSample(domain) },
+    { label: 'signed-long', data: trainingSheetFormSample(domain, 'long') },
   ];
 }
 
 /**
  * The first page of a signed sheet (ADR 023): the introductory training, the first two
- * periodic rows and the first test result recorded from paper, every other row a field.
+ * periodic rows and the first test result recorded from paper, every other row a field. With
+ * `long` values, the workplace training's material field is drawn for the long material.
  */
-export function trainingSheetFormSample(domain: SheetDomain) {
-  const { data } = trainingSheetSamples(domain)[0]!;
+export function trainingSheetFormSample(
+  domain: SheetDomain,
+  values: 'records' | 'long' = 'records'
+) {
+  const sample = domain === 'ssm' ? ssmSample : suSample;
+  const data = values === 'long' ? longSample(domain) : sample(true);
   const form = paperForm(domain);
   for (const key of Object.keys(form.rows)) form.rows[key] = !['p1', 'p2', 't1'].includes(key);
   return {
@@ -227,8 +311,8 @@ export function trainingSheetFormSample(domain: SheetDomain) {
       ...form,
       on: true,
       h1: { paper: true, materialPlaceholder: '' },
-      // Two lines of the field's width, as the API draws it for the sample's workplace material.
-      h2: { paper: false, materialPlaceholder: materialFieldLines(2) },
+      // As the API draws it for the sample's workplace material: one line, or five for the long.
+      h2: { paper: false, materialPlaceholder: materialFieldLines(values === 'long' ? 5 : 1) },
     },
   };
 }

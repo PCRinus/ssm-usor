@@ -10,7 +10,7 @@ import {
 } from '../../tools/training-sheet-samples';
 import { renderDocument, templatePlaceholders } from '../render';
 import { documentText } from '../text';
-import { perEmployeeEntries, read, sheetEntries } from './read';
+import { documentTextOf, perEmployeeEntries, read, sheetEntries } from './read';
 
 describe('the individual training sheets', () => {
   it('are, with the signing agreement and the test sheet, the per-employee entries of their manifests, with no number', () => {
@@ -67,7 +67,10 @@ describe('the individual training sheets', () => {
       }
       expect(text).toContain(data.hiring.workplace.place);
       expect(text).toContain(data.admission.name);
-      expect(text.split(data.employee.name)).toHaveLength(2);
+      const body = documentTextOf(
+        new PizZip(renderDocument(read(name), data)).file('word/document.xml')!.asText()
+      );
+      expect(body.split(data.employee.name)).toHaveLength(2);
     });
 
     it('marks the transcribed rows and blocks, and prints the line on them only when there are some', () => {
@@ -204,7 +207,9 @@ describe('the individual training sheets', () => {
       'FIȘĂ INDIVIDUALĂ',
       'de instructaj în domeniul situațiilor de urgență',
       'ATENȚIE!',
-      'Nicio persoană nu va fi admisă la lucru fără efectuarea instructajului introductiv general și a instructajului la locul de muncă.',
+      'Nicio persoană nu va fi admisă la lucru',
+      'fără efectuarea instructajului introductiv general',
+      'și a instructajului la locul de muncă.',
       'Date personale',
       'Calificarea (specialitatea, meseria)',
       'Semnătura salariatului (persoanei care a verificat însușirea cunoștințelor)',
