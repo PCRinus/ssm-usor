@@ -28,8 +28,8 @@ vi.mock('./document-editor', async () => {
         copy: () => Promise<Uint8Array | null>;
       }>;
       actions: React.ReactNode;
+      download: { label: string; onClick: () => void };
       onReady: () => void;
-      onFailed: () => void;
       onChange: () => void;
       onSaveShortcut: () => void;
     }) {
@@ -39,8 +39,7 @@ vi.mock('./document-editor', async () => {
       }));
       useEffect(() => {
         editorMock.releaseReady = props.onReady;
-        if (editorMock.fail) props.onFailed();
-        else if (!editorMock.holdReady) props.onReady();
+        if (editorMock.fail || !editorMock.holdReady) props.onReady();
         // eslint-disable-next-line react-hooks/exhaustive-deps -- once, like the real editor
       }, []);
       return (
@@ -54,6 +53,13 @@ vi.mock('./document-editor', async () => {
             {props.title}
             {props.actions}
           </header>
+          {editorMock.fail && (
+            <div role="dialog" data-testid="fake-open-failure">
+              <button type="button" onClick={props.download.onClick}>
+                {props.download.label}
+              </button>
+            </div>
+          )}
           <button type="button" data-testid="fake-type" onClick={props.onChange}>
             type
           </button>
@@ -389,7 +395,7 @@ describe('the document editor page', () => {
     expect(screen.getByTestId('editor-read-only').textContent).toBe('Client arhivat');
   });
 
-  it('offers the download when the editor cannot lay the document out', async () => {
+  it('offers the download in the editor dialog when the document does not open', async () => {
     editorMock.fail = true;
     mockApi();
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
@@ -400,12 +406,8 @@ describe('the document editor page', () => {
     mount();
     const user = userEvent.setup();
 
-    const fallback = await screen.findByTestId('editor-failed');
-    expect(within(fallback).getByRole('heading').textContent).toBe(
-      '1.3 Decizia privind responsabilii cu primul ajutor'
-    );
-    expect(fallback.textContent).toContain('editorul din aplicație nu o poate afișa');
-    await user.click(screen.getByRole('button', { name: 'Descarcă documentul' }));
+    const dialog = await screen.findByTestId('fake-open-failure');
+    await user.click(within(dialog).getByRole('button', { name: 'Descarcă documentul' }));
     await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
     expect((click.mock.contexts[0] as HTMLAnchorElement).download).toBe('Decizia - rev. 1.docx');
   });

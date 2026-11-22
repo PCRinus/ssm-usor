@@ -1,4 +1,5 @@
 import '@docx-editor.dev/core/styles/editor.css';
+import '@/features/documents/editor-theme.css';
 import './source-word-view.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
@@ -37,7 +38,7 @@ function QuotePassage({
 }) {
   useHighlights('import-quote', ranges, { priority: 20 });
   const editor = useDocxEditor();
-  const failed = useEditorState((state) => state.parseError !== null);
+  const failed = useEditorState((state) => state.parseError !== null || Boolean(state.openFailure));
   const reportPainted = useEffectEvent(onPainted);
   // The editor tells of no paint, and its snapshot calls the document open before a page is laid
   // out, so the first page drawn is the sign.

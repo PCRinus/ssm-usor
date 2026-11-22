@@ -14,6 +14,10 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     dismiss: 'Ascunde',
   },
   disabledReason: {
+    contentLocked: 'Acest conținut este blocat',
+    lockedParagraphFormat:
+      'Acest conținut este blocat; se pot schimba doar alinierea, indentul, spațierea și sfârșiturile de rând și de pagină',
+    boundParagraphFormat: 'Acest conținut este legat la date și nu poate fi schimbat',
     editorNotReady: 'Editorul nu este încă pregătit',
     notWired: 'Acest buton nu este legat de o comandă a editorului',
     viewing: 'Documentul este deschis doar pentru citire',
@@ -29,7 +33,22 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     commentSelection: 'Selectați un text înainte de a adăuga un comentariu',
     mergeUnsupported: 'Aceste celule nu pot fi unite',
     splitUnsupported: 'Această celulă nu poate fi scindată',
+    mergeNeedsRectangle:
+      'Selectați două sau mai multe celule care formează un dreptunghi pentru a le uni',
+    mergeNeedsSelection: 'Selectați două sau mai multe celule pentru a le uni',
+    splitNeedsOneCell: 'Selectați o singură celulă pentru a o scinda',
+    splitRowsNotDivisor:
+      'O celulă unită se scindează doar într-un număr de rânduri care împarte exact numărul rândurilor ei',
+    cellTooNarrow: 'Celula este prea îngustă pentru a fi scindată în atâtea coloane',
+    splitNeedsGrid:
+      'Tabelul nu are o grilă de coloane, așa că celula se scindează doar într-un număr de coloane care împarte exact coloanele pe care le cuprinde',
+    selectTableRowUnsupported: 'Selectarea unui rând întreg din tabel nu este disponibilă',
+    selectTableColumnUnsupported: 'Selectarea unei coloane întregi din tabel nu este disponibilă',
+    legacyMerge:
+      'Tabelul folosește un tip mai vechi de celule unite, care nu poate fi modificat aici',
+    tableGridUnplaceable: 'Tabelul are o celulă care nu se încadrează în grila lui de coloane',
     imageSuggesting: 'Imaginile nu pot fi modificate în modul de sugestii',
+    pictureSelected: 'Este selectată o imagine. Puneți cursorul în text pentru a insera o imagine.',
     invalidValue: 'Valoarea nu este validă pentru această comandă',
     unavailable: 'Comanda nu este disponibilă',
     bodyOnlySectionBreak: 'Sfârșiturile de secțiune se pun în corpul documentului.',
@@ -45,6 +64,11 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
       'Textul este blocat de un control de conținut, așa că secțiunea nu poate fi întreruptă aici.',
     nothingToCopyFormatting: 'Selectați un text pentru a-i copia formatarea',
     nothingToPaint: 'Selectați un text pentru a-i aplica formatarea',
+    nothingToUndo: 'Nu există nimic de anulat',
+    nothingToRedo: 'Nu există nimic de refăcut',
+    outermostLevel: 'Selecția este deja la primul nivel',
+    cannotIndentFurther: 'Indentul selecției nu mai poate fi mărit',
+    noBookmarkDialog: 'Aici nu se pot adăuga marcaje',
   },
   toolbar: {
     ariaLabel: 'Bara de formatare',
@@ -101,6 +125,7 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
   toc: {
     refresh: 'Actualizează cuprinsul',
     refreshPageNumbers: 'Actualizează numerele de pagină',
+    remove: 'Elimină cuprinsul',
   },
   formattingBar: {
     label: 'Comenzi de formatare',
@@ -175,6 +200,8 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     addSpaceAfter: 'Adaugă spațiu după paragraf',
     removeSpaceAfter: 'Elimină spațiul de după paragraf',
     options: 'Opțiuni de spațiere între rânduri…',
+    exactlyPoints: 'Exact {value} pt',
+    atLeastPoints: 'Cel puțin {value} pt',
   },
   styles: {
     selectAriaLabel: 'Alegeți stilul paragrafului',
@@ -184,6 +211,12 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     heading1: 'Titlu 1',
     heading2: 'Titlu 2',
     heading3: 'Titlu 3',
+    normal: 'Normal',
+    headingLevel: 'Titlu {level}',
+    noSpacing: 'Fără spațiere',
+    quote: 'Citat',
+    intenseQuote: 'Citat intens',
+    listParagraph: 'Listă paragraf',
   },
   font: {
     selectAriaLabel: 'Alegeți fontul',
@@ -250,6 +283,10 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
       brightGreen: 'Verde aprins',
     },
     apply: 'Aplică',
+    lighterPercent: '{color}, mai deschis cu {percent}%',
+    darkerPercent: '{color}, mai închis cu {percent}%',
+    hexColor: 'Cod de culoare hex',
+    invalidHex: 'Introduceți culoarea în forma #RRGGBB.',
   },
   dialogs: {
     imageProperties: {
@@ -379,6 +416,35 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
       mixed: 'Diferite',
       notShown: 'Nu se afișează aici',
     },
+    bookmark: {
+      title: 'Marcaj',
+      name: 'Numele marcajului',
+      list: 'Marcaje',
+      empty: 'Documentul nu are marcaje.',
+      sortBy: 'Sortare după',
+      sortName: 'Nume',
+      sortLocation: 'Locație',
+      showHidden: 'Marcaje ascunse',
+      add: 'Adaugă',
+      delete: 'Șterge',
+      goTo: 'Salt la',
+      nameEmpty: 'Introduceți un nume pentru marcaj.',
+      nameTooLong: 'Numele unui marcaj are cel mult 40 de caractere.',
+      nameInvalidStart: 'Numele unui marcaj începe cu o literă.',
+      nameInvalidCharacter: 'Folosiți doar litere, cifre și caractere de subliniere.',
+      nameExists: 'Există deja un marcaj cu acest nume. „Adaugă” îl mută la selecție.',
+      refused: 'Marcajul nu a putut fi modificat.',
+      duplicates:
+        '{count, plural, one {Numele este folosit și în # alt loc.} few {Numele este folosit și în alte # locuri.} other {Numele este folosit și în alte # de locuri.}} Linkurile și „Salt la” îl folosesc pe primul.',
+      keepFirst: 'Păstrează primul',
+    },
+    splitCell: {
+      columns: 'Număr de coloane',
+      rows: 'Număr de rânduri',
+      range: 'Introduceți un număr întreg de la 1 la {max}',
+      oneCell: 'Scindați în cel puțin două celule',
+      submit: 'Scindează',
+    },
   },
   comments: {
     unknown: 'Necunoscut',
@@ -457,15 +523,17 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     noHeadings: 'Nu s-au găsit titluri. Adăugați titluri în document pentru a le vedea aici.',
   },
   navigation: {
-    ariaLabel: 'Cuprins și căutare',
-    title: 'Cuprins și căutare',
-    openAriaLabel: 'Deschide cuprinsul și căutarea',
-    openTitle: 'Cuprins și căutare',
-    closeAriaLabel: 'Închide cuprinsul și căutarea',
+    ariaLabel: 'Navigare',
+    title: 'Navigare',
+    openAriaLabel: 'Deschide navigarea',
+    openTitle: 'Navigare',
+    openShortcutTitle: 'Navigare ({shortcut})',
+    closeAriaLabel: 'Închide navigarea',
     closeTitle: 'Închide',
     tabs: {
       headings: 'Cuprins',
       find: 'Căutare',
+      goto: 'Marcaje',
     },
     headings: {
       noHeadings: 'Documentul nu are titluri de capitol.',
@@ -486,6 +554,35 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
       counterTruncated: 'Rezultatul {current} din {total}+',
       total: '{total, plural, one {# rezultat} few {# rezultate} other {# de rezultate}}',
       totalTruncated: '{total, plural, few {#+ rezultate} other {#+ de rezultate}}',
+    },
+    goTo: {
+      tabTitle: 'Salt la un marcaj ({shortcut})',
+      label: 'Marcaj',
+      placeholder: 'Caută marcaje',
+      listAriaLabel: 'Marcaje',
+      countFiltered: '{shown} din {total}',
+      enterHint: 'Apăsați Enter pentru a sări la marcajul evidențiat.',
+      notFound: 'Niciun marcaj nu se numește „{name}”.',
+      failed: 'Marcajul nu a putut fi afișat.',
+      typeName: 'Tastați numele unui marcaj sau alegeți unul din listă.',
+      empty: 'Documentul nu are marcaje.',
+      emptyHint: 'Selectați un text, apoi adăugați un marcaj pentru a-i da un nume.',
+      add: 'Adaugă un marcaj…',
+      noMatches: 'Niciun marcaj nu se potrivește.',
+      atCaret: 'Conține cursorul',
+      places: {
+        header: 'Antet',
+        footer: 'Subsol',
+        footnote: 'Notă de subsol',
+        endnote: 'Notă de final',
+      },
+      groups: {
+        body: 'Textul principal',
+        header: 'Anteturi',
+        footer: 'Subsoluri',
+        footnote: 'Note de subsol',
+        endnote: 'Note de final',
+      },
     },
   },
   viewer: {
@@ -604,13 +701,22 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
       ariaLabel: 'Opțiuni de așezare a imaginii',
     },
   },
+  drop: {
+    errors: {
+      readOnly: 'Documentul este deschis doar pentru citire.',
+      noTarget: 'Plasați elementul pe un text care se poate edita.',
+      unsupported: 'Plasați o imagine PNG, JPEG sau GIF ori un text.',
+    },
+  },
   imageInsert: {
     errors: {
+      title: 'Imaginea nu poate fi inserată',
       emptyFile: 'Fișierul ales este gol.',
       invalidSignature: 'Fișierul nu este o imagine PNG, JPEG sau GIF acceptată.',
       unsupportedFormat: 'Acest format de imagine nu poate fi inserat.',
       oversize: 'Imaginea depășește dimensiunea maximă permisă.',
       refused: 'Imaginea nu a putut fi inserată.',
+      staleTarget: 'Documentul sau locul de plasare s-a schimbat. Plasați din nou imaginea.',
     },
   },
   imageProperties: {
@@ -724,6 +830,10 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     chromeAriaLabel: 'Editarea antetului și a subsolului',
     header: 'Antet',
     footer: 'Subsol',
+    addHeaderHint: 'Faceți dublu clic pentru a adăuga un antet',
+    addFooterHint: 'Faceți dublu clic pentru a adăuga un subsol',
+    editHeaderHint: 'Faceți dublu clic pentru a edita antetul',
+    editFooterHint: 'Faceți dublu clic pentru a edita subsolul',
     firstPageHeader: 'Antetul primei pagini',
     firstPageFooter: 'Subsolul primei pagini',
     evenPageHeader: 'Antetul paginilor pare',
@@ -745,9 +855,26 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     insertSectionPages: 'Inserează numărul de pagini al secțiunii',
     insertPageXofY: 'Inserează „pagina X din Y”',
   },
+  formattingMarks: {
+    pageBreak: 'Sfârșit de pagină',
+    columnBreak: 'Sfârșit de coloană',
+    sectionBreakContinuous: 'Sfârșit de secțiune (continuu)',
+    sectionBreakNextPage: 'Sfârșit de secțiune (pagina următoare)',
+    sectionBreakEvenPage: 'Sfârșit de secțiune (pagină pară)',
+    sectionBreakOddPage: 'Sfârșit de secțiune (pagină impară)',
+    sectionBreakNextColumn: 'Sfârșit de secțiune (coloană nouă)',
+  },
   image: {
     unsupportedFormat: 'Format de imagine neacceptat ({format})',
-    nonPictureGraphic: 'Element grafic neacceptat ({kind})',
+    placeholder: {
+      chart: 'Graficul nu este afișat',
+      diagram: 'Diagramă neacceptată',
+      shape: 'Formă neacceptată',
+      group: 'Grup de forme neacceptat',
+      textbox: 'Casetă text neacceptată',
+      canvas: 'Pânză de desen neacceptată',
+      graphic: 'Element grafic neacceptat',
+    },
     missingResource: 'Imagine lipsă',
     externalResource: 'Imaginea externă nu a fost încărcată',
     invalidResource: 'Imagine nevalidă',
@@ -758,6 +885,9 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
   },
   imageOverlay: {
     selection: 'Imaginea selectată',
+    selectionShape: 'Forma selectată',
+    locked: 'Această casetă nu poate fi mutată sau redimensionată',
+    textLocked: 'Textul din această casetă nu poate fi editat',
     handle: {
       n: 'Redimensionează de la marginea de sus',
       ne: 'Redimensionează din colțul din dreapta sus',
@@ -782,6 +912,22 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
   loading: {
     label: 'Se încarcă',
   },
+  openFailure: {
+    title: 'Fișierul nu s-a deschis',
+    reasons: {
+      damaged:
+        'Fișierul nu a putut fi citit: poate fi deteriorat sau poate fi alt tip de fișier. Deschideți-l în Word, salvați-l ca .docx și încercați din nou.',
+      notDocx:
+        'Acest fișier nu este un document .docx. Salvați-l ca .docx în Word și încercați din nou.',
+      tooLarge:
+        'Fișierul este prea mare sau prea complex pentru a fi deschis aici. Încercați o copie mai mică, de exemplu una cu mai puține pagini sau imagini.',
+      blocked:
+        'Fișierul conține elemente pe care editorul nu le deschide, din motive de securitate. Salvați-l din nou ca .docx în Word și încercați din nou.',
+      unknown:
+        'Editorul din aplicație nu poate afișa acest fișier. Descărcați-l și deschideți-l în Word; conținutul lui nu este afectat.',
+    },
+    code: 'Cod de eroare: {code}',
+  },
   notes: {
     delete: 'Șterge nota',
     convertToEndnote: 'Transformă în notă de final',
@@ -791,6 +937,7 @@ export const editorStrings: NonNullable<DocxEditorProps['i18n']> = {
     scopeSection: 'Această secțiune',
     previewFallback: 'Notă de subsol',
     chromeAriaLabel: 'Editarea notei',
+    menuAriaLabel: 'Acțiuni pentru notă',
     footnoteKind: 'Nota de subsol',
     endnoteKind: 'Nota de final',
     convertAllFootnotes: 'Transformă toate notele de subsol în note de final',

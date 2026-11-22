@@ -1,0 +1,37 @@
+/* The editor declares the same colour names as the app (--primary, --input…) on its own root, in
+   another format, so inside it the app's colours are reached through names it does not use. */
+:root {
+  --app-background: var(--background);
+  --app-foreground: var(--foreground);
+  --app-primary: var(--primary);
+  --app-primary-foreground: var(--primary-foreground);
+  --app-secondary: var(--secondary);
+  --app-secondary-foreground: var(--secondary-foreground);
+  --app-muted: var(--muted);
+  --app-muted-foreground: var(--muted-foreground);
+  --app-accent: var(--accent);
+  --app-accent-foreground: var(--accent-foreground);
+  --app-destructive: var(--destructive);
+  --app-card: var(--card);
+  --app-input: var(--input);
+  --app-border: var(--border);
+  --app-ring: var(--ring);
+  --app-section-tab: var(--section-tab);
+  --app-unfilled-mark: color-mix(in srgb, var(--warning-border) 45%, transparent);
+  --app-unfilled-mark-active: var(--warning-border);
+}
+
+/* The editor's dialogs, such as the one for a file that does not open, open outside the page;
+   the selector outranks the editor's own colours on the same element. */
+.docx-editor.docx-dialog {
+  --doc-primary: var(--app-primary);
+  --doc-primary-hover: color-mix(in srgb, var(--app-primary) 90%, black);
+  --doc-on-primary: var(--app-primary-foreground);
+  --doc-text: var(--app-foreground);
+  --doc-surface: var(--app-card);
+  --doc-border: var(--app-border);
+  --doc-bg-hover: var(--app-muted);
+  --doc-dialog-radius: 0.75rem;
+  --doc-dialog-font-family: var(--font-body);
+  --doc-dialog-font-size: 14px;
+}

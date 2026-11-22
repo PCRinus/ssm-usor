@@ -22,28 +22,6 @@
   }
 }
 
-/* The editor declares the same colour names as the app (--primary, --input…) on its own root, in
-   another format, so inside it the app's colours are reached through names it does not use. */
-:root {
-  --app-background: var(--background);
-  --app-foreground: var(--foreground);
-  --app-primary: var(--primary);
-  --app-primary-foreground: var(--primary-foreground);
-  --app-secondary: var(--secondary);
-  --app-secondary-foreground: var(--secondary-foreground);
-  --app-muted: var(--muted);
-  --app-muted-foreground: var(--muted-foreground);
-  --app-accent: var(--accent);
-  --app-accent-foreground: var(--accent-foreground);
-  --app-destructive: var(--destructive);
-  --app-card: var(--card);
-  --app-input: var(--input);
-  --app-border: var(--border);
-  --app-section-tab: var(--section-tab);
-  --app-unfilled-mark: color-mix(in srgb, var(--warning-border) 45%, transparent);
-  --app-unfilled-mark-active: var(--warning-border);
-}
-
 /* The editor ships its own unlayered .bg-primary, .text-foreground… reading hsl(var(--primary)).
    They outrank Tailwind's layered utilities and, given the app's hex values, resolve to nothing,
    so the utilities our controls use are restated here with the app's colours. */
@@ -121,6 +99,7 @@
   --doc-bg-input: var(--app-card);
   --doc-border-input: var(--app-input);
   --doc-border-light: var(--app-border);
+  --doc-focus-ring: var(--app-ring);
 
   font-family: var(--font-body);
 }
@@ -131,18 +110,12 @@
   box-shadow: inset 3px 0 0 var(--app-primary);
 }
 
-/* On a phone the pane would leave a sliver of page beside it; it covers the page instead, and
-   closes when a chapter or a result is picked. */
-@media (width <= 40rem) {
-  .docx-editor .docx-nav {
-    width: 100%;
-  }
-
-  .docx-editor .docx-nav__panel-shell {
-    inset-inline: 0;
-    width: auto;
-    padding-inline: 0.75rem;
-  }
+/* On a phone the editor lays the pane over the page with a strip of page on either side; it
+   covers the page instead. */
+.docx-editor .docx-nav--overlay .docx-nav__panel-shell {
+  inset-inline: 0;
+  width: auto;
+  padding-inline: 0.75rem;
 }
 
 /* The outline's filter box reads like the search beside it, and twenty chapters need no filter. */
@@ -184,14 +157,7 @@
   display: none !important;
 }
 
-/* A group whose parts are all hidden still renders, empty, with its separator. */
-[data-editor-phone-bar] .docx-toolbar__group:empty + .docx-toolbar__separator,
-[data-editor-phone-bar] .docx-toolbar__separator:has(+ .docx-toolbar__group:empty) {
-  display: none;
-}
-
-/* The toolbar folds whole groups into „⋯”: with the packaged margin and padding a phone leaves
-   too little room for the first group, and the bar shows only „⋯”. */
+/* With the packaged margin and padding a phone's row holds fewer controls before „⋯”. */
 [data-editor-phone-bar] .docx-toolbar {
   margin: 0.5rem;
   padding-inline: 0.25rem;

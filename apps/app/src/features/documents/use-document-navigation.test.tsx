@@ -59,7 +59,7 @@ describe('the chapter and search pane', () => {
     render(<Page />);
     expect(pane().dataset.open).toBe('false');
     expect(pane().dataset.toggle).toBe('false');
-    const button = screen.getByRole('button', { name: /Cuprins/ });
+    const button = screen.getByRole('button', { name: /Navigare/ });
     expect(button.getAttribute('aria-expanded')).toBe('false');
 
     await userEvent.click(button);
@@ -146,7 +146,7 @@ describe('the chapter and search pane', () => {
 
   it('closes on Esc anywhere while open, leaving the focus where it is outside the pane', async () => {
     render(<Page />);
-    await userEvent.click(screen.getByRole('button', { name: /Cuprins/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Navigare/ }));
     draft().focus();
 
     expect(press(draft(), { key: 'Escape' })).toBe(false);
@@ -195,25 +195,5 @@ describe('the chapter and search pane', () => {
     const { unmount } = render(<Page />);
     unmount();
     expect(fireEvent.keyDown(document.body, cmdF)).toBe(true);
-  });
-
-  it('closes after a chapter is picked on a phone, so the page shows', async () => {
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn((query: string) => ({ matches: true, media: query }))
-    );
-    render(<Page />);
-    await userEvent.click(screen.getByRole('button', { name: /Cuprins/ }));
-
-    await userEvent.click(screen.getByRole('button', { name: 'Capitolul VIII. Semnalizarea' }));
-    expect(pane().dataset.open).toBe('false');
-  });
-
-  it('stays open after a chapter is picked on a wide screen', async () => {
-    render(<Page />);
-    await userEvent.click(screen.getByRole('button', { name: /Cuprins/ }));
-
-    await userEvent.click(screen.getByRole('button', { name: 'Capitolul VIII. Semnalizarea' }));
-    expect(pane().dataset.open).toBe('true');
   });
 });

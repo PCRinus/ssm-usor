@@ -45,14 +45,12 @@ export function InstructionEditorPage({
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [failedVersionId, setFailedVersionId] = useState<string | null>(null);
   const [readyVersionId, setReadyVersionId] = useState<string | null>(null);
-  const [failedEditorVersionId, setFailedEditorVersionId] = useState<string | null>(null);
 
   const module = query.data?.module;
   const versionId = pinnedVersionId ?? module?.version.id;
   const currentNumber = module?.version.number;
   const pinned = pinnedVersionId !== undefined;
   const ready = versionId !== undefined && readyVersionId === versionId;
-  const failed = versionId !== undefined && failedEditorVersionId === versionId;
   const loadError = versionId !== undefined && failedVersionId === versionId;
 
   useEffect(() => {
@@ -246,46 +244,27 @@ export function InstructionEditorPage({
 
   return (
     <div data-testid="instruction-editor-page" className="flex min-h-0 flex-1 flex-col gap-3">
-      {failed ? (
-        <div
-          data-testid="editor-failed"
-          role="alert"
-          className="grid max-w-xl gap-4 rounded-lg border p-6"
-        >
-          <TitleWithBack back={back} line="text-lg">
-            <h1 className="text-lg font-semibold">{module.title}</h1>
-          </TitleWithBack>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Instrucțiunea nu a putut fi afișată. O poți descărca și citi în Word.
-          </p>
-          <Button className="w-fit" onClick={download}>
-            <Download aria-hidden="true" />
-            Descarcă fișierul
-          </Button>
+      <div data-testid="editor-frame" data-ready={ready} className={editorFrameClassName}>
+        {!ready && <EditorPlaceholder back={back} />}
+        <div className="h-full" aria-hidden={!ready} inert={!ready}>
+          <Suspense fallback={null}>
+            <DocumentEditor
+              key={loaded.versionId}
+              bytes={loaded.bytes}
+              title={module.title}
+              editable={false}
+              back={back}
+              handle={null}
+              actions={actions}
+              phoneBar={phoneBar}
+              download={{ label: 'Descarcă fișierul', onClick: download }}
+              onReady={() => setReadyVersionId(loaded.versionId)}
+              onChange={() => {}}
+              onSaveShortcut={() => {}}
+            />
+          </Suspense>
         </div>
-      ) : (
-        <div data-testid="editor-frame" data-ready={ready} className={editorFrameClassName}>
-          {!ready && <EditorPlaceholder back={back} />}
-          <div className="h-full" aria-hidden={!ready} inert={!ready}>
-            <Suspense fallback={null}>
-              <DocumentEditor
-                key={loaded.versionId}
-                bytes={loaded.bytes}
-                title={module.title}
-                editable={false}
-                back={back}
-                handle={null}
-                actions={actions}
-                phoneBar={phoneBar}
-                onReady={() => setReadyVersionId(loaded.versionId)}
-                onFailed={() => setFailedEditorVersionId(loaded.versionId)}
-                onChange={() => {}}
-                onSaveShortcut={() => {}}
-              />
-            </Suspense>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

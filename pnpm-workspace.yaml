@@ -11,9 +11,9 @@ allowBuilds:
   workerd: true
 
 catalog:
-  '@docx-editor.dev/core': 2.26.0
-  '@docx-editor.dev/fonts': 2.26.0
-  '@docx-editor.dev/react': 2.26.0
+  '@docx-editor.dev/core': 2.39.0
+  '@docx-editor.dev/fonts': 2.39.0
+  '@docx-editor.dev/react': 2.39.0
   '@lingui/cli': 6.9.1
   '@lingui/core': 6.9.1
   '@lingui/format-po': 6.9.1
@@ -30,7 +30,7 @@ overrides:
 # browser rounds to 0, 1 or 2 screen pixels by where it falls: lines vanished at 80 % zoom in
 # Firefox and Safari, and sat thick and thin side by side in Chrome. The patch paints it as a
 # CSS border, as the editor already does for dashed and dotted lines, which all three engines
-# draw a whole number of pixels thick and never thinner than one. Upstream 2.35.0 still paints
+# draw a whole number of pixels thick and never thinner than one. Upstream 2.39.0 still paints
 # boxes; check a newer release before carrying this over.
 patchedDependencies:
-  '@docx-editor.dev/core@2.26.0': patches/@docx-editor.dev__core@2.26.0.patch
+  '@docx-editor.dev/core@2.39.0': patches/@docx-editor.dev__core@2.39.0.patch
