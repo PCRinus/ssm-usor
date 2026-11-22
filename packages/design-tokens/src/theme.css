@@ -44,6 +44,9 @@
   --color-section-tab: var(--section-tab);
   --color-section-tab-hover: var(--section-tab-hover);
   --color-section-tab-foreground: var(--section-tab-foreground);
+  --color-folder: var(--folder);
+  --color-folder-border: var(--folder-border);
+  --color-folder-border-hover: var(--folder-border-hover);
   --color-table-head: var(--table-head);
   --color-table-head-hover: var(--table-head-hover);
   --color-table-head-foreground: var(--table-head-foreground);

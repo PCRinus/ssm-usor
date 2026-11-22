@@ -44,6 +44,9 @@
     --section-tab: #e3e8e0;
     --section-tab-hover: #d8dfd4;
     --section-tab-foreground: #4d5c55;
+    --folder: #edf2ea;
+    --folder-border: #cdd8c9;
+    --folder-border-hover: #9fb5a8;
     --table-head: var(--section-tab);
     --table-head-hover: var(--section-tab-hover);
     --table-head-foreground: var(--section-tab-foreground);
