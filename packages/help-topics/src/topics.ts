@@ -382,6 +382,10 @@ export const helpTopics = {
     path: '/evaluari-de-risc/',
     anchor: 'unde-este-folosită-o-evaluare',
   },
+  'evaluari-de-risc.zone-cu-risc': {
+    path: '/evaluari-de-risc/',
+    anchor: 'zonele-cu-risc-ridicat-și-specific',
+  },
   'fisiere.alte-documente': { path: '/clienti/fisiere/', anchor: 'alte-documente' },
   'fisiere.cautare-filtre': { path: '/clienti/fisiere/', anchor: 'căutarea-și-filtrele' },
   'fisiere.documentele-lucratorului': {

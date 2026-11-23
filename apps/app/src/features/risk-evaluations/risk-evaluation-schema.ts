@@ -30,6 +30,8 @@ export type RiskEvaluationSummary = RiskEvaluationListResponse['items'][number];
 // links.
 export const clientEvaluationsSection = 'client-risk-evaluations';
 
+export const riskZonesSection = 'risk-zones';
+
 export const evaluationSections = {
   result: 'result',
   workSystem: 'work-system',

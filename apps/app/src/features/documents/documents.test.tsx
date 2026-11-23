@@ -391,7 +391,7 @@ describe('client documents', () => {
     );
     const [row] = within(waiting).getAllByTestId('generate-waiting-row');
     expect(row!.textContent).toContain('Zonele cu risc ridicat și specific');
-    expect(row!.getAttribute('href')).toBe(`/clienti/${clientId}/posturi`);
+    expect(row!.getAttribute('href')).toBe(`/clienti/${clientId}/posturi#risk-zones`);
     expect(screen.getByTestId('generate-submit')).toBeTruthy();
   });
 

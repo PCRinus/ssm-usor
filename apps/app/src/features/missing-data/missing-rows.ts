@@ -24,6 +24,7 @@ import { type PositionSection, positionSections } from '@/features/job-positions
 import {
   clientEvaluationsSection,
   evaluationSections,
+  riskZonesSection,
 } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { responsibleRoleLabels } from '@/features/training/responsible-person-schema';
 
@@ -70,6 +71,8 @@ const to = {
     }),
   positions: (clientId: string) =>
     linkOptions({ to: '/clienti/$clientId/posturi', params: { clientId } }),
+  riskZones: (clientId: string) =>
+    linkOptions({ to: '/clienti/$clientId/posturi', params: { clientId }, hash: riskZonesSection }),
   documentSection: (clientId: string, section: DocumentSectionId) =>
     linkOptions({
       to: '/clienti/$clientId/documente-ssm',
@@ -356,14 +359,14 @@ export const documentMissingData: Record<
     label: 'Zonele cu risc ridicat și specific',
     detail:
       'Adaugă zonele clientului sau declară că nu are, pentru evidența zonelor, documentul 9.2.',
-    target: ({ clientId }) => to.positions(clientId),
+    target: ({ clientId }) => to.riskZones(clientId),
   },
   'risk_zones.measures': {
     place: 'riskEvaluations',
     label: 'Măsurile zonelor cu risc ridicat și specific',
     detail:
       'O zonă nu are măsuri de tipărit: factorii legați nu au măsuri sau nu mai sunt în evaluări. Leagă-i un factor cu măsuri sau scrie-i măsurile.',
-    target: ({ clientId }) => to.positions(clientId),
+    target: ({ clientId }) => to.riskZones(clientId),
   },
   'documents.own_instructions': {
     place: 'documents',
