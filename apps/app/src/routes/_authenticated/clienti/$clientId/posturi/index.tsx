@@ -5,6 +5,7 @@ import { jobPositionListSearch } from '@/features/job-positions/job-position-lis
 import { JobPositionsCard } from '@/features/job-positions/job-positions-card';
 import { focusSearch, jobPositionsFocus } from '@/features/missing-data/focus';
 import { ClientRiskEvaluationsCard } from '@/features/risk-evaluations/client-risk-evaluations-card';
+import { RiskZonesCard } from '@/features/risk-zones/risk-zones-card';
 
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/posturi/')({
   validateSearch: focusSearch(jobPositionsFocus).extend(jobPositionListSearch),
@@ -24,6 +25,11 @@ function JobPositionsPage() {
     <div data-testid="job-positions-page" className="grid gap-4">
       <JobPositionsCard clientId={client.id} readOnly={client.archivedAt !== null} focus={focus} />
       <ClientRiskEvaluationsCard clientId={client.id} readOnly={client.archivedAt !== null} />
+      <RiskZonesCard
+        clientId={client.id}
+        clientName={client.legalName}
+        readOnly={client.archivedAt !== null}
+      />
     </div>
   );
 }

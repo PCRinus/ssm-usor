@@ -42,6 +42,7 @@ Variants live in `packages/ui/src/components/button.tsx`.
 - `default` (dark forest): the single main action of a page, tab or panel. One dark button per tab or panel, and only when there is a step to take. A second action beside it is not dark.
 - `secondary` (#edf0eb, pencil or plus icon): in-card actions such as Modifică and Adaugă (`EditAction` in `components/section-card.tsx`; `SheetAction` in `features/clients/details/sheet-action.tsx`). Never lime for add.
 - Filtre and the selection bar are the only lime. The Filtre look in code is the success-token outline recipe in `components/list-filters/list-filters.tsx` (pale lime, subtle border), not `tonal`.
+- `bordered` (no fill, a visible `--input` border, the ghost's hover): a dismissing action that must still read as a button beside secondary ones, such as "Ignoră" on a suggested zone (`features/risk-zones/risk-zones-card.tsx`). Not for the main or the in-card add and edit actions.
 - No plain white `outline` as a design choice. Existing outlines stay where a convention holds: the no-results "Șterge filtrele" and the shared failed-load retry. Do not sweep them.
 - Consequential but not destructive (move a worker to former workers): the red Filtre recipe, `destructive-soft` (or `destructive-outline`): red border, soft red fill, red text and icon; the dialog's confirm too. The reverse action stays neutral.
 - A `⋯` menu only with two or more actions. One action is a visible button.

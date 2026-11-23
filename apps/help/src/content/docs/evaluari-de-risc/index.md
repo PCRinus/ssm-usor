@@ -40,6 +40,8 @@ topics:
     heading: Factorii altei fișe a clientului
   - id: evaluari-de-risc.provenienta
     heading: Factorii veniți din bibliotecă
+  - id: evaluari-de-risc.zone-cu-risc
+    heading: Zonele cu risc ridicat și specific
   - id: evaluari-de-risc.documente
     heading: Ce cer documentele 9.1, 9.2 și 10
 sources:
@@ -52,6 +54,10 @@ sources:
   - apps/app/src/features/evaluation-profiles/*.ts
   - apps/app/src/features/risk-evaluations/*.tsx
   - apps/app/src/features/risk-evaluations/*.ts
+  - apps/app/src/features/risk-zones/*.tsx
+  - apps/app/src/features/risk-zones/*.ts
+  - packages/contracts/src/risk-zones.ts
+  - apps/api/src/modules/risk-zones/zones.ts
   - apps/app/src/features/missing-data/missing-rows.ts
   - apps/api/src/modules/documents/context.ts
   - apps/api/src/modules/documents/risk-zones-record.ts
@@ -225,6 +231,40 @@ Planul are o coloană pentru fiecare dintre aceste câmpuri și pentru fiecare f
 
 Un factor venit din bibliotecă arată sub descriere „În evaluarea … din bibliotecă”, cu legătură spre evaluarea respectivă, iar cardul **Factori de risc** spune câți factori ai fișei vin din fiecare evaluare și câți nu sunt în bibliotecă. Originea rămâne și după ce modifici factorul în fișă: arată de unde a pornit, nu că cele două sunt la fel.
 
+## Zonele cu risc ridicat și specific
+
+O zonă cu risc ridicat și specific este un loc anume din unitate unde un pericol deosebit cere măsuri proprii: camera tabloului electric general, depozitul de substanțe de curățenie, zona de sudură, camera centralei termice. Legea nr. 319/2006, art. 13 lit. k), cere angajatorului să țină evidența acestor zone, iar H.G. nr. 1425/2006, art. 105, spune ce cuprinde evidența: numele și localizarea zonelor și măsurile stabilite pentru ele în urma evaluării riscurilor. Art. 106 cere ca zonele să fie aduse la cunoștința tuturor lucrătorilor, iar art. 107 face din acțiunile pentru aceste zone o prioritate a planului de prevenire și protecție.
+
+Pe tabul **Posturi de lucru** al clientului, cardul **Zone cu risc ridicat și specific** ține zonele clientului. Fiecare zonă are o denumire, locul de muncă și localizarea în el, de exemplu „parter, camera tehnică de lângă intrare”, factorii de risc legați de ea, fiecare cu nivelul lui de risc și cu fișa din care vine, și măsurile.
+
+### Sugestiile din fișele de evaluare
+
+Sub zone, aplicația propune zone din fișele de evaluare ale clientului: factorii peste nivelul 3, inacceptabili, pe care nicio zonă nu îi leagă încă, grupați după zona de lucru a postului. Un post fără zonă de lucru dă o sugestie cu numele lui, iar o fișă în afara posturilor, cu numele fișei. Sub fiecare sugestie vezi de unde vine, de exemplu „Zona de lucru a postului Gestionar”, și factorii ei; numele postului te duce la fișa lui de evaluare.
+
+Un nivel de risc mare nu face singur o zonă: un factor inacceptabil poate ține de o sarcină, nu de un loc, iar camera tabloului electric e o zonă cu risc ridicat și specific oricare ar fi nivelurile posturilor care trec prin ea. Tu hotărăști, iar evidența nu numește nicio zonă pe care n-ai confirmat-o:
+
+- **Confirmă zona** adaugă zona așa cum e propusă, cu denumirea și factorii ei;
+- **Modifică și confirmă** deschide zona completată, ca să schimbi denumirea, să alegi locul de muncă, să scrii localizarea, să adaugi sau să scoți factori și să scrii măsurile proprii, apoi **Confirmă zona**;
+- **Ignoră** scoate sugestia din listă. Aplicația ține minte factorii ignorați, unul câte unul: dacă la același post apare mai târziu un factor nou peste nivelul 3, sugestia revine doar cu factorul nou.
+
+Când clientul are deja o zonă cu denumirea sugestiei, sugestia oferă **Adaugă la zona** cu numele ei, care leagă factorii noi de zona existentă, în loc de o a doua zonă cu același nume.
+
+Sub sugestii, legătura **Arată** de lângă numărul sugestiilor ignorate le afișează, fiecare cu **Repune în sugestii**, care o readuce printre sugestii. **Ascunde** le strânge la loc.
+
+### O zonă adăugată de mână
+
+Zonele pe care scorurile nu le arată le adaugi cu **Adaugă o zonă**. **Denumire** îți propune numele folosite la ceilalți clienți ai organizației; dacă alegi unul și n-ai scris încă măsurile proprii, ele se completează cu măsurile proprii ale acelei zone, pe care le poți schimba. **Loc de muncă** și **Localizare** sunt opționale. La **Factori de risc** alegi, dintre factorii fișelor clientului, pe cei care țin de zonă; cei inacceptabili sunt primii în fiecare fișă, iar căutarea găsește un factor după descriere sau după fișă.
+
+O zonă are nevoie de cel puțin un factor legat sau de măsuri proprii, pentru că evidența cere măsurile fiecărei zone. Sub formular, **Ce scrie evidența la Măsuri** îți arată măsurile pe care le va tipări documentul 9.2: măsurile de prevenire ale factorilor aleși, pe feluri și fiecare o singură dată, apoi măsurile proprii ale zonei. O măsură schimbată în fișa de evaluare se schimbă și în evidență, pentru că zona leagă factorul, nu îi copiază măsurile.
+
+Din meniul de lângă o zonă, **Modifică** o deschide din nou, iar **Șterge** o șterge; factorii ei rămân în fișele de evaluare.
+
+### Declarația că nu există zone
+
+Cât timp clientul nu are nicio zonă, butonul **Nu există zone cu risc ridicat și specific** înregistrează că, în urma evaluării riscurilor, nu au fost identificate astfel de zone. Cât timp declarația stă, sugestiile nu se mai arată, nici cele ignorate. **Modifică** retrage declarația, iar **Adaugă totuși o zonă** deschide o zonă nouă; zona adăugată înlocuiește declarația. Dacă ștergi ultima zonă, întrebarea se redeschide.
+
+Cât timp nu ai adăugat nicio zonă și nici n-ai declarat că nu există, cardul îți spune că documentul 9.2 așteaptă zonele clientului sau declarația. Documentul 9.2 tipărește zonele într-un tabel, cu riscurile și măsurile lor, sau, după declarație, o singură propoziție; vezi mai jos ce cer documentele.
+
 ## Ce cer documentele 9.1, 9.2 și 10
 
 Evaluarea riscurilor (documentul 9.1) și planul de prevenire și protecție (documentul 10), din Documentație SSM, se generează din fișele clientului. Ca să le poți genera:
@@ -238,9 +278,9 @@ Formularul de generare îți arată ce lipsește, fișă cu fișă, cu o legătu
 
 Evaluarea riscurilor are un subcapitol pentru fiecare fișă: întâi posturile, în ordinea alfabetică a denumirilor, apoi grupurile sensibile și celelalte fișe. Planul are câte un tabel pentru fiecare fișă. Un rând al lui e un factor care are cel puțin o măsură, întâi cei inacceptabili, apoi după nivel.
 
-Evidența zonelor cu risc ridicat și specific (documentul 9.2) așteaptă o hotărâre luată pe tabul **Posturi** al clientului: adaugi zonele cu risc ridicat și specific ale clientului sau declari că nu are astfel de zone. Legea nr. 319/2006, art. 13 lit. k), cere angajatorului să țină evidența acestor zone, iar H.G. nr. 1425/2006, art. 105, spune ce cuprinde: numele și localizarea zonelor și măsurile stabilite pentru ele în urma evaluării riscurilor. De aceea fiecare zonă are nevoie de măsuri: de la factorii de risc legați sau scrise pentru zonă. O zonă ai cărei factori nu au măsuri de prevenire, au fost șterși sau țin de posturi arhivate așteaptă un factor cu măsuri sau măsurile ei.
+Evidența zonelor cu risc ridicat și specific (documentul 9.2) așteaptă o hotărâre luată în cardul **Zone cu risc ridicat și specific** de pe tabul **Posturi de lucru** al clientului: adaugi zonele cu risc ridicat și specific ale clientului sau declari că nu are astfel de zone. Legea nr. 319/2006, art. 13 lit. k), cere angajatorului să țină evidența acestor zone, iar H.G. nr. 1425/2006, art. 105, spune ce cuprinde: numele și localizarea zonelor și măsurile stabilite pentru ele în urma evaluării riscurilor. De aceea fiecare zonă are nevoie de măsuri: de la factorii de risc legați sau scrise pentru zonă. O zonă ai cărei factori nu au măsuri de prevenire, au fost șterși sau țin de posturi arhivate așteaptă un factor cu măsuri sau măsurile ei.
 
-Până atunci, restul documentației se generează fără documentul 9.2. Formularul de generare arată deoparte ce așteaptă el, cu o legătură spre tabul **Posturi**; după ce ai hotărât, îl generezi cu **Generează documentele lipsă**.
+Până atunci, restul documentației se generează fără documentul 9.2. Formularul de generare arată deoparte ce așteaptă el, cu o legătură spre cardul zonelor; după ce ai hotărât, îl generezi cu **Generează documentele lipsă**.
 
 Evidența are un rând pentru fiecare zonă, în ordinea în care le-ai adăugat: denumirea, locul de muncă și localizarea, riscurile și măsurile. Riscurile sunt factorii legați de zonă, fiecare cu nivelul lui de risc, cel mai mare întâi; factorii unui post arhivat nu se tipăresc. Măsurile sunt măsurile de prevenire ale acestor factori, fiecare o singură dată, întâi cele tehnice, apoi cele organizatorice, igienico-sanitare și de altă natură, iar la sfârșit măsurile proprii ale zonei. Sub tabel, evidența spune că zonele se aduc la cunoștința tuturor lucrătorilor la instruire, iar măsurile la cunoștința conducătorilor locurilor de muncă și a lucrătorilor din aceste zone, cum cere art. 106 din aceeași hotărâre. Dacă ai declarat că clientul nu are astfel de zone, evidența spune doar că în urma evaluării riscurilor nu au fost identificate zone cu risc ridicat și specific.
 

@@ -21,6 +21,7 @@ import {
   jobPositionRecord,
   pageOf,
 } from '@/test/records';
+import { noRiskZones, riskZonesPath } from '@/test/risk-zones';
 
 import { type EvaluationProfile, profileTotalsLabel } from './profile-schema';
 
@@ -202,6 +203,7 @@ function mockProfilesApi({
     if (pathname === `${positionsPath}/${accountant.id}/risk-evaluation`) {
       return Response.json({ evaluation: current });
     }
+    if (pathname === riskZonesPath(clientId)) return Response.json(noRiskZones);
     if (pathname === evaluationsPath) {
       return Response.json({ items: [summaryOf(current)] });
     }

@@ -23,6 +23,8 @@ const buttonVariants = cva(
           'bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklab,var(--secondary)_90%,var(--foreground))]',
         ghost:
           'hover:bg-[color-mix(in_oklab,var(--muted)_90%,var(--foreground))] hover:text-foreground',
+        bordered:
+          'border border-input bg-transparent hover:bg-[color-mix(in_oklab,var(--muted)_90%,var(--foreground))] hover:text-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {

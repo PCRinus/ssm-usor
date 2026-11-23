@@ -444,6 +444,56 @@ export async function createWorkplace(
   return workplace.data.id as string;
 }
 
+export type PositionRisk = {
+  description: string;
+  level: [gravity: number, probability: number];
+  measures?: [PreventionMeasureKind, string][];
+};
+
+export async function createEvaluatedPosition(
+  organizationId: string,
+  clientId: string,
+  position: {
+    name: string;
+    workZone: string | null;
+    moduleId: string;
+    risks: PositionRisk[];
+  }
+) {
+  const id = await createJobPosition(
+    organizationId,
+    clientId,
+    position.name,
+    { risk: 'Arsuri, tăieri', item: 'Mănuși de protecție', durationMonths: 12 },
+    position.moduleId
+  );
+  const placed = await admin
+    .from('job_positions')
+    .update({ work_zone: position.workZone })
+    .eq('id', id);
+  if (placed.error) throw placed.error;
+  await insertEvaluation(
+    { organization_id: organizationId, client_id: clientId },
+    { kind: 'job_position', job_position_id: id },
+    {
+      ...workshopEvaluation,
+      factors: position.risks.map((risk) => ({
+        component: 'work_environment',
+        group: 'Factori de risc fizic',
+        description: risk.description,
+        gravityClass: risk.level[0],
+        probabilityClass: risk.level[1],
+        measures: (risk.measures ?? []).map(([kind, description]) => ({ kind, description })),
+        actions: null,
+        deadline: risk.measures ? 'Permanent' : null,
+        responsiblePerson: risk.measures ? 'Administratorul' : null,
+        observations: null,
+      })),
+    }
+  );
+  return id;
+}
+
 // A gap left after the documentation was generated, as a member could leave one.
 export async function updateClient(clientId: string, values: Record<string, unknown>) {
   const { error } = await admin.from('clients').update(values).eq('id', clientId);

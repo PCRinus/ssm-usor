@@ -12,6 +12,7 @@ import { bodiesOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/te
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 import { clientId, clientRecord, jobPositionRecord, pageOf } from '@/test/records';
+import { noRiskZones, riskZonesPath } from '@/test/risk-zones';
 
 import { instructionStateLabel, moduleCountLabel } from './instruction-schema';
 
@@ -209,6 +210,7 @@ function mockInstructionsApi({
     if (pathname === `/clients/${clientId}/job-positions`) {
       return Response.json({ items: [welder, fitter] });
     }
+    if (pathname === riskZonesPath(clientId)) return Response.json(noRiskZones);
     if (pathname === `/clients/${clientId}/risk-evaluations`) {
       return Response.json({
         items: [],

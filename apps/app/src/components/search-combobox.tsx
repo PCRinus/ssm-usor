@@ -47,6 +47,7 @@ export function SearchCombobox({
   invalid,
   describedBy,
   descriptionClassName,
+  descriptionInTrigger = true,
   note,
   personal = false,
 }: {
@@ -81,6 +82,8 @@ export function SearchCombobox({
   invalid?: boolean;
   describedBy?: string;
   descriptionClassName?: string;
+  // Off where the description helps to choose but would read as part of the chosen value.
+  descriptionInTrigger?: boolean;
   // A row above the items until something is typed, for an entry that cannot be chosen yet and
   // says where to complete it.
   note?: ReactNode;
@@ -93,6 +96,11 @@ export function SearchCombobox({
   const trigger = useRef<HTMLButtonElement>(null);
   const [insideDialog, setInsideDialog] = useState(false);
   const selected = [...items, ...(section?.items ?? [])].find((item) => item.value === value);
+  const shownDescription = descriptionInTrigger
+    ? selected
+      ? selected.description
+      : renderUnknown?.(value)
+    : undefined;
   const candidate = unknownValue?.(search) ?? null;
   const labelReplay = personal ? replayMask : {};
 
@@ -162,16 +170,16 @@ export function SearchCombobox({
               <span
                 className={cn(
                   'font-medium tabular-nums',
-                  selected?.description || renderUnknown ? 'shrink-0' : 'truncate'
+                  descriptionInTrigger && (selected?.description || renderUnknown)
+                    ? 'shrink-0'
+                    : 'truncate'
                 )}
                 {...labelReplay}
               >
                 {selected?.label ?? value}
               </span>
-              {(selected ? selected.description : renderUnknown?.(value)) && (
-                <span className="truncate text-muted-foreground">
-                  {selected ? selected.description : renderUnknown?.(value)}
-                </span>
+              {shownDescription && (
+                <span className="truncate text-muted-foreground">{shownDescription}</span>
               )}
             </span>
           ) : (

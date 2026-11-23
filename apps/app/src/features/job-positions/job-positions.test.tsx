@@ -7,6 +7,7 @@ import { bodiesOf, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
 import { clientId, clientRecord, jobPositionRecord } from '@/test/records';
+import { noRiskZones, riskZonesPath } from '@/test/risk-zones';
 
 import { employeeCountLabel } from './job-position-schema';
 
@@ -74,6 +75,7 @@ function mockPositionsApi({
     const method = init?.method ?? 'GET';
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
+    if (pathname === riskZonesPath(clientId)) return Response.json(noRiskZones);
     if (pathname === `/clients/${clientId}/risk-evaluations`) {
       return Response.json({ items: evaluations });
     }

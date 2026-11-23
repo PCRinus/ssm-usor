@@ -8,6 +8,7 @@ import { bodiesOf, fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
 import { clientId, clientRecord, jobPositionRecord } from '@/test/records';
+import { noRiskZones, riskZonesPath } from '@/test/risk-zones';
 
 import { evaluationFailure } from './evaluation-failure';
 import {
@@ -241,6 +242,7 @@ function mockEvaluationsApi({
       groupsState = body.state as typeof groupsState;
       return Response.json({ state: groupsState });
     }
+    if (pathname === riskZonesPath(clientId)) return Response.json(noRiskZones);
     if (pathname === evaluationsPath) {
       if (method === 'POST') {
         const response = (create ?? created)(init, url);

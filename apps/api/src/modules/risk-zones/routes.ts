@@ -4,6 +4,7 @@ import {
   riskZoneNamesResponseSchema,
   riskZoneRequestSchema,
   riskZonesResponseSchema,
+  riskZoneSuggestionFactorsRequestSchema,
   updateRiskZonesStateRequestSchema,
 } from '@ssm-usor/contracts';
 
@@ -50,7 +51,7 @@ export const listRiskZonesRoute = createRoute({
   operationId: 'listRiskZones',
   summary: "Read a client's zones of high and specific risk",
   description:
-    'The zones in the order they were added, each with its workplace and its linked factors, the highest level first, with their level, evaluation and prevention measures as the evaluation holds them now; the client’s `state`; `factors`, every factor of current posts and client-level evaluations a zone may link, whatever its level, in the evaluations’ order; and the `suggestions` (ADR 045): the unacceptable factors (level above 3) of current posts and client-level evaluations that no zone links yet, grouped by the position’s work zone, or the position’s name without one, or the evaluation’s title outside the posts, each offered as a zone named after its group. `existingZoneId` names a zone of the client with that name already. Nothing is saved until a zone is added.',
+    'The zones in the order they were added, each with its workplace and its linked factors, the highest level first, with their level, evaluation and prevention measures as the evaluation holds them now; the client’s `state`; `factors`, every factor of current posts and client-level evaluations a zone may link, whatever its level, in the evaluations’ order; and the `suggestions` (ADR 045): the unacceptable factors (level above 3) of current posts and client-level evaluations that no zone links yet, grouped by the position’s work zone (`origin` `work_zone`), or the position’s name without one, or the evaluation’s title outside the posts (`evaluation`), each offered as a zone named after its group. `existingZoneId` names a zone of the client with that name already. The factors whose suggestion was ignored are left out of `suggestions` and grouped the same way under `ignoredSuggestions`. Nothing is saved until a zone is added.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams },
@@ -173,6 +174,57 @@ export const riskZoneNamesRoute = createRoute({
       },
     },
     400: { description: 'Invalid query', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+const suggestionFactorsBody = {
+  required: true,
+  content: {
+    'application/json': {
+      schema: riskZoneSuggestionFactorsRequestSchema.meta({
+        id: 'RiskZoneSuggestionFactorsRequest',
+      }),
+    },
+  },
+};
+
+export const ignoreRiskZoneSuggestionRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/risk-zone-suggestions/ignore',
+  operationId: 'ignoreRiskZoneSuggestion',
+  summary: 'Ignore a suggested zone',
+  description: `Keeps the factors out of the suggestions, each on its own: a factor that becomes unacceptable later is suggested again, without those ignored before. Ignoring a factor twice changes nothing. ${zonesAnswer}`,
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams, body: suggestionFactorsBody },
+  responses: {
+    200: { description: 'The zones after the change', content: zonesContent },
+    400: {
+      description:
+        'Invalid path or body, or a factor that is not one of the client’s (`factorIds`)',
+      content: errorContent,
+    },
+    404: clientNotFoundResponse,
+    409: { description: 'The client is archived or a lead', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const restoreRiskZoneSuggestionRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/risk-zone-suggestions/restore',
+  operationId: 'restoreRiskZoneSuggestion',
+  summary: 'Return ignored factors to the suggestions',
+  description: `A factor that was not ignored is left as it is. ${zonesAnswer}`,
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams, body: suggestionFactorsBody },
+  responses: {
+    200: { description: 'The zones after the change', content: zonesContent },
+    400: { description: 'Invalid path or body', content: errorContent },
+    404: clientNotFoundResponse,
+    409: { description: 'The client is archived (`client_archived`)', content: errorContent },
     ...membershipErrors,
   },
 });

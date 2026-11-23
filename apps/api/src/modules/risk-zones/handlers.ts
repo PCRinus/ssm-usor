@@ -12,8 +12,10 @@ import { ApiError } from '../../lib/errors';
 import { clientNotFound, requireClient, requireWritableClient } from '../clients/lookup';
 import type {
   createRiskZoneRoute,
+  ignoreRiskZoneSuggestionRoute,
   listRiskZonesRoute,
   removeRiskZoneRoute,
+  restoreRiskZoneSuggestionRoute,
   riskZoneNamesRoute,
   updateRiskZoneRoute,
   updateRiskZonesStateRoute,
@@ -132,4 +134,45 @@ export const listRiskZoneNames: RouteHandler<typeof riskZoneNamesRoute, ApiEnv> 
     { items: data.map((row) => ({ name: row.name, measures: row.measures ?? null })) },
     200
   );
+};
+
+export const ignoreRiskZoneSuggestion: RouteHandler<
+  typeof ignoreRiskZoneSuggestionRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const { factorIds } = c.req.valid('json');
+  const db = createDataClient(c);
+  await requireWritableClient(db, clientId, { lead: 'refused' });
+  const organizationId = c.get('membership').organizationId;
+  const createdBy = c.get('user').id;
+  const { error } = await db.from('risk_zone_ignored_factors').upsert(
+    [...new Set(factorIds)].map((factorId) => ({
+      factor_id: factorId,
+      client_id: clientId,
+      organization_id: organizationId,
+      created_by: createdBy,
+    })),
+    { onConflict: 'factor_id', ignoreDuplicates: true }
+  );
+  if (error?.code === '23503')
+    throw invalid('factorIds', 'Ignore only risk factors of this client.');
+  if (error) throw fromDatabaseError(error, 'ignore risk zone suggestion');
+  return c.json(await loadRiskZones(db, clientId), 200);
+};
+
+export const restoreRiskZoneSuggestion: RouteHandler<
+  typeof restoreRiskZoneSuggestionRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const { factorIds } = c.req.valid('json');
+  const db = createDataClient(c);
+  const { error } = await db
+    .from('risk_zone_ignored_factors')
+    .delete()
+    .eq('client_id', clientId)
+    .in('factor_id', factorIds);
+  if (error) throw fromDatabaseError(error, 'restore risk zone suggestion');
+  return c.json(await loadRiskZones(db, clientId), 200);
 };

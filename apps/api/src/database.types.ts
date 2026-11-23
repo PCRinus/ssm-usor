@@ -5128,6 +5128,95 @@ export type Database = {
           },
         ];
       };
+      risk_zone_ignored_factors: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          factor_id: string;
+          organization_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          factor_id: string;
+          organization_id: string;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          factor_id?: string;
+          organization_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'risk_zone_ignored_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_ignored_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_ignored_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_ignored_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'lead_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_ignored_factors_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_ignored_factors_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_ignored_factors_factor_in_client';
+            columns: ['factor_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'risk_factors';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_ignored_factors_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_zone_ignored_factors_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       risk_zones: {
         Row: {
           client_id: string;
