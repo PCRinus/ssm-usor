@@ -70,6 +70,13 @@ describe('what 9.2 waits for', () => {
         ])
       )
     ).toEqual(['risk_zones.measures']);
+    expect(
+      riskZonesGaps(
+        withZones([
+          zone({ factors: [factor(2, office, [2, 2], [{ kind: 'other', description: '.' }])] }),
+        ])
+      )
+    ).toEqual(['risk_zones.measures']);
     expect(riskZonesGaps(withZones([{ ...bare, measures: 'Acces restricționat.' }]))).toEqual([]);
     expect(
       riskZonesGaps(withZones([zone({ factors: [factor(2, office, [2, 2], measured)] })]))

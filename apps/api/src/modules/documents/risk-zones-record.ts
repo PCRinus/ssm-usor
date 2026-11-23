@@ -176,7 +176,7 @@ function zoneMeasures(zone: ReturnType<typeof currentZones>[number]) {
   const once = (texts: readonly string[]) =>
     texts.filter((text) => {
       const key = sameText(text);
-      if (seen.has(key)) return false;
+      if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
     });
