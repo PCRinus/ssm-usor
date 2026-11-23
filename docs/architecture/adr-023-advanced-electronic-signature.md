@@ -3,6 +3,7 @@
 - Status: accepted
 - Date: 2026-10-18
 - Amended 2026-11-12 by [ADR 042](adr-042-paper-history-as-written.md): a paper row of the signed sheet reads _transcris; semnat pe hârtie_ and the sheet says where the signed original is; see the note below.
+- Amended 2026-11-24 by [ADR 046](adr-046-ssm-duties-for-job-descriptions.md): the annex to the regulament intern on the electronic signature becomes document 14 of the SSM pack, since 13 is now the SSM duties of the job descriptions, which every client gets. The worker's acknowledgement of those duties is the next document meant for this signing pipeline, together with a wider signing agreement.
 
 ## Context
 
