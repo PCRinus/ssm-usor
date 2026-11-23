@@ -346,7 +346,7 @@ export const helpTopics = {
   },
   'evaluari-de-risc.documente': {
     path: '/evaluari-de-risc/',
-    anchor: 'ce-cer-documentele-9-și-10',
+    anchor: 'ce-cer-documentele-91-92-și-10',
   },
   'evaluari-de-risc.evaluare-noua': { path: '/evaluari-de-risc/', anchor: 'o-evaluare-nouă' },
   'evaluari-de-risc.factori': { path: '/evaluari-de-risc/', anchor: 'factorii-de-risc' },

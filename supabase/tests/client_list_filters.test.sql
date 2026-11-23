@@ -142,10 +142,10 @@ select results_eq(
   $$ select legal_name, documentation_state::text, documentation_issued_count, documentation_total_count
      from public.client_list where archived_at is null order by legal_name $$,
   $$ values
-    ('Alfa Construct S.R.L.', 'in_progress', 3, 24),
-    ('Beta', 'issued', 22, 22),
-    ('Delta', 'none', 0, 23),
-    ('Gama', 'none', 0, 23) $$,
+    ('Alfa Construct S.R.L.', 'in_progress', 3, 25),
+    ('Beta', 'issued', 23, 23),
+    ('Delta', 'none', 0, 24),
+    ('Gama', 'none', 0, 24) $$,
   'the occupational safety set counts what was generated and each built-in document that applies: the representative from ten employees or once generated, the annex with someone invited'
 );
 
@@ -261,7 +261,7 @@ reset role;
 
 select is(
   (select count(*)::integer from public.built_in_document_types()),
-  52,
+  53,
   'every built-in document of both sets'
 );
 

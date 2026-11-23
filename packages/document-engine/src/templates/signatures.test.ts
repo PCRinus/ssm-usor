@@ -59,7 +59,7 @@ describe('one signing space for every signature of the occupational safety set',
     }
   });
 
-  it('gives every signer of the set the space: the decisions, the covers and the blocks of 6, 10, 11.1, 12', () => {
+  it('gives every signer of the set the space: the decisions, the covers and the blocks of 6, 9.2, 10, 11.1, 12', () => {
     const signers = Object.fromEntries(
       setFiles.map((name) => [
         name,
@@ -69,7 +69,7 @@ describe('one signing space for every signature of the occupational safety set',
     );
     expect(Object.entries(signers).filter(([, count]) => count > 0)).toEqual(
       setFiles
-        .filter((name) => /_decision_|_cover_|^(6|10|11\.1|12)_/.test(name))
+        .filter((name) => /_decision_|_cover_|^(6|9\.2|10|11\.1|12)_/.test(name))
         .map((name) => [name, decisionFiles.includes(name) ? 1 : 2])
     );
   });

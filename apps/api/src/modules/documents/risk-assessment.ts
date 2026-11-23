@@ -108,18 +108,19 @@ type MeasuresByKind = Record<keyof typeof measureKinds, string>;
 
 // Several items get a dash each, so a wrapped line does not read as the start of the next; a
 // single one is plain text.
-const measureLines = (measures: readonly string[]) =>
+export const measureLines = (measures: readonly string[]) =>
   orDash(
     measures.length === 1 ? measures[0] : measures.map((measure) => `– ${measure}`).join('\n')
   );
 
-const actionLines = (actions: string | null) =>
-  measureLines(
-    (actions ?? '')
-      .split(/\r?\n/)
-      .map((line) => line.replace(/^(?:\s*(?:[–—•*]\s*|-(?:\s+|$)))+/u, '').trim())
-      .filter(Boolean)
-  );
+/** A text typed as a list, each line one item, without the dash or bullet it was typed with. */
+export const typedItems = (text: string | null) =>
+  (text ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^(?:\s*(?:[–—•*]\s*|-(?:\s+|$)))+/u, '').trim())
+    .filter(Boolean);
+
+const actionLines = (actions: string | null) => measureLines(typedItems(actions));
 
 function measuresByKind(measures: RiskFactorFacts['measures']): MeasuresByKind {
   return Object.fromEntries(
@@ -626,7 +627,7 @@ const workplaceKinds = {
 const comparable = (text: string) =>
   text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
-function workplaceLabel(workplace: Pick<WorkplaceFacts, 'name' | 'registeredOffice'>) {
+export function workplaceLabel(workplace: Pick<WorkplaceFacts, 'name' | 'registeredOffice'>) {
   const kinds = workplaceKinds[workplace.registeredOffice ? 'registeredOffice' : 'other'];
   const name = workplace.name.trim();
   return kinds.some((kind) => comparable(kind) === comparable(name))
@@ -679,7 +680,7 @@ export function riskAssessment({
   };
 }
 
-const sameText = (text: string) =>
+export const sameText = (text: string) =>
   text
     .trim()
     .replace(/\s+/g, ' ')

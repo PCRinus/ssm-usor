@@ -6,6 +6,7 @@ sources:
   - docs/architecture/adr-010-conditional-documents.md
   - docs/architecture/adr-012-own-instructions.md
   - docs/architecture/adr-017-legislation-monitoring.md
+  - docs/architecture/adr-045-risk-zones-record.md
   - packages/contracts/src/documents.ts
   - apps/app/src/features/documents/documents-card.tsx
   - apps/app/src/features/documents/document-sections.ts
@@ -61,7 +62,7 @@ Instrucțiunile proprii își arată anexele sub ele, câte una pe rând, fiecar
 
 Fiecare document are numărul lui din dosarul tipărit, scris înaintea titlului: **3.1** sunt instrucțiunile proprii, **6** lista de dotare cu echipament individual de protecție, **9.1** evaluarea riscurilor. Numărul este același la orice client și oriunde apare documentul: în titlul documentului deschis, în ferestrele și mesajele despre el, în **Legislație** și în numele fișierelor descărcate, inclusiv în arhiva documentației.
 
-Coperta unei secțiuni are numărul **X.0**: 1.0 este coperta deciziilor, 3.0 coperta instrucțiunilor proprii. După copertă, documentele secțiunii urmează în ordine, fără goluri: X.1, X.2 și așa mai departe, ca deciziile 1.1–1.5 după coperta 1.0.
+Coperta unei secțiuni are numărul **X.0**: 1.0 este coperta deciziilor, 3.0 coperta instrucțiunilor proprii. După copertă, documentele secțiunii urmează în ordine, fără goluri: X.1, X.2 și așa mai departe, ca deciziile 1.1–1.5 după coperta 1.0. O secțiune fără copertă care are mai multe documente le numerotează tot de la X.1: secțiunea 9 are evaluarea riscurilor, **9.1**, și evidența zonelor cu risc ridicat și specific, **9.2**.
 
 | Secțiune                                               | Documente                                           |
 | ------------------------------------------------------ | --------------------------------------------------- |
@@ -73,7 +74,7 @@ Coperta unei secțiuni are numărul **X.0**: 1.0 este coperta deciziilor, 3.0 co
 | 6. Lista internă de dotare cu EIP                      | 6                                                   |
 | 7. Registrele de evidență a evenimentelor              | 7.0 coperta, 7.1 registrele                         |
 | 8. Referat de control                                  | 8                                                   |
-| 9. Evaluarea riscurilor                                | 9.1                                                 |
+| 9. Evaluarea riscurilor                                | 9.1 evaluarea riscurilor, 9.2 evidența zonelor      |
 | 10. Planul de prevenire și protecție                   | 10                                                  |
 | 11. Material de informare a angajatorului              | 11.0 coperta, 11.1 materialul                       |
 | 12. Regulament intern privind controlul propriu        | 12                                                  |
@@ -120,6 +121,8 @@ Documentul face parte din documentația clientului, dar nu a fost generat încă
 Cât timp documentația nu are niciun document, tabul arată un panou verde, „Documentația SSM nu este generată încă”, cu butonul **Generează documentația**, iar dedesubt aceleași dosare, toate negenerate: arată ce va cuprinde documentația înainte să o generezi. Poți deschide un dosar ca să vezi documentele lui.
 
 Fereastra de generare îți cere data documentelor, de obicei data de început a contractului de prestări servicii cu clientul, și numărul primei decizii. Dacă lipsesc date pe care documentele le tipăresc, fereastra le arată pe rânduri, fiecare ducând la câmpul lui; documentele nu lasă niciun câmp gol.
+
+Evidența zonelor cu risc ridicat și specific, documentul 9.2, nu oprește restul documentației. Cât timp clientul nu are zone adăugate și nici declarația că nu are, fereastra o arată deoparte, cu ce așteaptă, iar celelalte documente se generează fără ea. O generezi apoi cu **Generează documentele lipsă**. Ce cere este în [Evaluări de risc](/evaluari-de-risc/#ce-cer-documentele-91-92-și-10).
 
 După prima generare, butonul devine **Generează documentele lipsă** cât timp lipsește vreun document, apoi dispare.
 

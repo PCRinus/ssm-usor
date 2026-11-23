@@ -69,6 +69,19 @@ describe('keeping the house tables together once merged', () => {
     expect(rows.every(staysWhole)).toBe(true);
   });
 
+  it('lets a table marked to flow break anywhere after its header, tied to the first row', () => {
+    const marked = house + '<w:tblCaption w:val="FlowingRows"/>';
+    const xml = new PizZip(
+      renderDocument(docx(table(marked, header + loopRow)), { people: people(3) })
+    )
+      .file('word/document.xml')!
+      .asText();
+    const rows = xml.match(/<w:tr>[\s\S]*?<\/w:tr>/g)!;
+    expect(rows.map(keepsWithNext)).toEqual([true, false, false, false]);
+    expect(rows.map(staysWhole)).toEqual([true, false, false, false]);
+    expect(xml).not.toContain('tblCaption');
+  });
+
   it('leaves its last two rows apart when they would not fit on a page together', () => {
     const rows = rowsOf(
       renderDocument(docx(table(house, header + loopRow)), {

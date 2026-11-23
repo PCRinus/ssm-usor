@@ -56,8 +56,8 @@ export const documentSections = [
   {
     id: 'risk-assessment',
     number: '9',
-    title: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
-    typeKeys: ['risk_assessment'],
+    title: 'Evaluarea riscurilor',
+    typeKeys: ['risk_assessment', 'risk_zones_record'],
   },
   {
     id: 'prevention-plan',

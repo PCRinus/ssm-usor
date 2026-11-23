@@ -8,7 +8,12 @@ import type { ApiEnv } from '../../lib/env';
 import { createFileStore } from '../../lib/files';
 import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
 import { documentArchive } from './archive';
-import { hasRiskEvaluator, undecidedJobPositions, workersRepresentativeClash } from './context';
+import {
+  hasRiskEvaluator,
+  undecidedJobPositions,
+  waitingDocuments,
+  workersRepresentativeClash,
+} from './context';
 import {
   documentAnnexFile,
   documentDownloadLink,
@@ -110,6 +115,7 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
               facts.client.sensitiveGroupsState
             )
           : [],
+      waitingDocuments: facts.set === 'occupational_safety' ? waitingDocuments(facts) : [],
       incompleteFireSubstances:
         facts.set === 'fire_safety' ? incompleteFireSubstances(facts.fireSafety.substances) : [],
     },

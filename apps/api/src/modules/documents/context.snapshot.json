@@ -1921,6 +1921,50 @@
     "name": "Dan MARIN",
     "professionalTitle": "Evaluator de risc SSM"
   },
+  "riskZones": {
+    "listed": true,
+    "none": false,
+    "state": "listed",
+    "zones": [
+      {
+        "location": "parter, camera tehnică de lângă intrare",
+        "measures": [
+          "Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).",
+          "Verificarea periodică a instalației electrice de către un electrician autorizat.",
+          "Anunțarea imediată a conducătorului locului de muncă la orice defect electric.",
+          "Interzicerea intervențiilor la instalația electrică de către persoane neautorizate."
+        ],
+        "measuresText": "– Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).\n– Verificarea periodică a instalației electrice de către un electrician autorizat.\n– Anunțarea imediată a conducătorului locului de muncă la orice defect electric.\n– Interzicerea intervențiilor la instalația electrică de către persoane neautorizate.",
+        "name": "Tabloul electric general",
+        "place": "Sediu social\nparter, camera tehnică de lângă intrare",
+        "risks": [
+          {
+            "description": "Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.",
+            "level": 4
+          },
+          {
+            "description": "Electrocutare prin atingere directă la prize, prelungitoare sau echipamente cu izolația deteriorată.",
+            "level": 3
+          }
+        ],
+        "risksText": "– Electrocutare prin atingere indirectă, la defectarea împământării unui echipament (nivel de risc 4)\n– Electrocutare prin atingere directă la prize, prelungitoare sau echipamente cu izolația deteriorată (nivel de risc 3)",
+        "workplace": "Sediu social"
+      },
+      {
+        "location": null,
+        "measures": [
+          "Acces numai pentru personalul instruit.",
+          "Aerisirea zilnică a încăperii."
+        ],
+        "measuresText": "– Acces numai pentru personalul instruit.\n– Aerisirea zilnică a încăperii.",
+        "name": "Depozitul de substanțe de curățenie",
+        "place": "—",
+        "risks": [],
+        "risksText": "—",
+        "workplace": null
+      }
+    ]
+  },
   "specialist": {
     "name": "Dan MARIN",
     "professionalTitle": "Evaluator de risc SSM"

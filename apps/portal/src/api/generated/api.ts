@@ -114,6 +114,8 @@ export const ApiErrorResponseMissingItem = {
   risk_evaluationsmeasures: 'risk_evaluations.measures',
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
+  risk_zonesdecided: 'risk_zones.decided',
+  risk_zonesmeasures: 'risk_zones.measures',
   firetrainingSchedule: 'fire.trainingSchedule',
   firesmokingPolicy: 'fire.smokingPolicy',
   firewaste: 'fire.waste',

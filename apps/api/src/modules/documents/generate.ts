@@ -23,7 +23,13 @@ import {
   missingDocumentDataError,
   type Template,
 } from '../../lib/templates';
-import { buildDocumentContext, decisionNumberOf, documentApplies, documentData } from './context';
+import {
+  buildDocumentContext,
+  decisionNumberOf,
+  documentApplies,
+  documentData,
+  waitingDocuments,
+} from './context';
 import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
 import { buildFireSafetyContext, fireSafetyDocumentData } from './fire-safety';
 import { fireFirstDecisionNumber, inSetOrder, presentDocument, presentDocuments } from './present';
@@ -98,8 +104,14 @@ export async function generateClientDocuments(
       .filter((document) => ofAskedPeriod(document) && document.document_revisions.length > 0)
       .map((d) => d.type_key)
   );
+  const waiting = new Set<string>(
+    facts.set === 'occupational_safety' ? waitingDocuments(facts).map((each) => each.typeKey) : []
+  );
   const wanted = templates.filter(
-    (template) => !complete.has(template.typeKey) && documentApplies(facts, template.typeKey)
+    (template) =>
+      !complete.has(template.typeKey) &&
+      documentApplies(facts, template.typeKey) &&
+      !waiting.has(template.typeKey)
   );
   if (wanted.length === 0) return { created: [], skipped: [...complete] };
 

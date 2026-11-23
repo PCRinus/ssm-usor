@@ -1,6 +1,6 @@
 ---
 title: Evaluări de risc
-description: Biblioteca de evaluări de risc a organizației, fișele de evaluare a riscurilor ale unui client, cu factorii, clasele și măsurile lor, și ce cer evaluarea riscurilor și planul de prevenire și protecție ca să se genereze.
+description: Biblioteca de evaluări de risc a organizației, fișele de evaluare a riscurilor ale unui client, cu factorii, clasele și măsurile lor, și ce cer evaluarea riscurilor, evidența zonelor cu risc ridicat și specific și planul de prevenire și protecție ca să se genereze.
 topics:
   - id: evaluari-de-risc.ce-este
     heading: Ce este o evaluare de risc
@@ -41,9 +41,10 @@ topics:
   - id: evaluari-de-risc.provenienta
     heading: Factorii veniți din bibliotecă
   - id: evaluari-de-risc.documente
-    heading: Ce cer documentele 9 și 10
+    heading: Ce cer documentele 9.1, 9.2 și 10
 sources:
   - docs/architecture/adr-015-risk-assessment.md
+  - docs/architecture/adr-045-risk-zones-record.md
   - docs/architecture/adr-036-risk-library-and-import.md
   - packages/contracts/src/risk-evaluations.ts
   - packages/contracts/src/risk-levels.ts
@@ -53,6 +54,7 @@ sources:
   - apps/app/src/features/risk-evaluations/*.ts
   - apps/app/src/features/missing-data/missing-rows.ts
   - apps/api/src/modules/documents/context.ts
+  - apps/api/src/modules/documents/risk-zones-record.ts
 ---
 
 Evaluarea riscurilor se face pe fișe de evaluare a riscurilor: câte una pentru fiecare post al unui client și, unde e cazul, pentru grupurile sensibile și pentru alte persoane expuse. Din aceleași fișe aplicația generează evaluarea riscurilor de accidentare și îmbolnăvire profesională (documentul 9.1) și planul de prevenire și protecție (documentul 10). Un post pe care îl evaluezi des, ca lucrătorul de birou sau vânzătorul, îl păstrezi în bibliotecă și îl aplici la orice client.
@@ -223,7 +225,7 @@ Planul are o coloană pentru fiecare dintre aceste câmpuri și pentru fiecare f
 
 Un factor venit din bibliotecă arată sub descriere „În evaluarea … din bibliotecă”, cu legătură spre evaluarea respectivă, iar cardul **Factori de risc** spune câți factori ai fișei vin din fiecare evaluare și câți nu sunt în bibliotecă. Originea rămâne și după ce modifici factorul în fișă: arată de unde a pornit, nu că cele două sunt la fel.
 
-## Ce cer documentele 9 și 10
+## Ce cer documentele 9.1, 9.2 și 10
 
 Evaluarea riscurilor (documentul 9.1) și planul de prevenire și protecție (documentul 10), din Documentație SSM, se generează din fișele clientului. Ca să le poți genera:
 
@@ -236,4 +238,10 @@ Formularul de generare îți arată ce lipsește, fișă cu fișă, cu o legătu
 
 Evaluarea riscurilor are un subcapitol pentru fiecare fișă: întâi posturile, în ordinea alfabetică a denumirilor, apoi grupurile sensibile și celelalte fișe. Planul are câte un tabel pentru fiecare fișă. Un rând al lui e un factor care are cel puțin o măsură, întâi cei inacceptabili, apoi după nivel.
 
-Documentele generate nu se schimbă singure: dacă modifici o fișă după generare, generezi din nou evaluarea riscurilor și planul ca să ia schimbarea.
+Evidența zonelor cu risc ridicat și specific (documentul 9.2) așteaptă o hotărâre luată pe tabul **Posturi** al clientului: adaugi zonele cu risc ridicat și specific ale clientului sau declari că nu are astfel de zone. Legea nr. 319/2006, art. 13 lit. k), cere angajatorului să țină evidența acestor zone, iar H.G. nr. 1425/2006, art. 105, spune ce cuprinde: numele și localizarea zonelor și măsurile stabilite pentru ele în urma evaluării riscurilor. De aceea fiecare zonă are nevoie de măsuri: de la factorii de risc legați sau scrise pentru zonă. O zonă ai cărei factori nu au măsuri de prevenire, au fost șterși sau țin de posturi arhivate așteaptă un factor cu măsuri sau măsurile ei.
+
+Până atunci, restul documentației se generează fără documentul 9.2. Formularul de generare arată deoparte ce așteaptă el, cu o legătură spre tabul **Posturi**; după ce ai hotărât, îl generezi cu **Generează documentele lipsă**.
+
+Evidența are un rând pentru fiecare zonă, în ordinea în care le-ai adăugat: denumirea, locul de muncă și localizarea, riscurile și măsurile. Riscurile sunt factorii legați de zonă, fiecare cu nivelul lui de risc, cel mai mare întâi; factorii unui post arhivat nu se tipăresc. Măsurile sunt măsurile de prevenire ale acestor factori, fiecare o singură dată, întâi cele tehnice, apoi cele organizatorice, igienico-sanitare și de altă natură, iar la sfârșit măsurile proprii ale zonei. Sub tabel, evidența spune că zonele se aduc la cunoștința tuturor lucrătorilor la instruire, iar măsurile la cunoștința conducătorilor locurilor de muncă și a lucrătorilor din aceste zone, cum cere art. 106 din aceeași hotărâre. Dacă ai declarat că clientul nu are astfel de zone, evidența spune doar că în urma evaluării riscurilor nu au fost identificate zone cu risc ridicat și specific.
+
+Documentele generate nu se schimbă singure: dacă modifici o fișă după generare, generezi din nou evaluarea riscurilor și planul ca să ia schimbarea. La fel evidența zonelor, când schimbi o zonă sau un factor legat de ea.

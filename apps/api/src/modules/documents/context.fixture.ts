@@ -298,6 +298,30 @@ export const facts: DocumentFacts = {
       exposedPersons: null,
     },
   ],
+  riskZones: {
+    state: 'listed',
+    zones: [
+      {
+        name: ' Tabloul electric general ',
+        workplace: { name: 'Sediul social', registeredOffice: true },
+        location: 'parter, camera tehnică de lângă intrare',
+        measures: null,
+        factors: [1, 0].map((index) => ({
+          id: `f0f0f0f0-0000-4000-8000-00000000000${index + 1}`,
+          evaluationId: 'e0e0e0e0-0000-4000-8000-000000000001',
+          sortOrder: index,
+          ...officeEvaluation.factors[index]!,
+        })),
+      },
+      {
+        name: 'Depozitul de substanțe de curățenie',
+        workplace: null,
+        location: null,
+        measures: '- Acces numai pentru personalul instruit.\n- Aerisirea zilnică a încăperii.',
+        factors: [],
+      },
+    ],
+  },
   fireSafety: {
     card: {
       periodicTrainingHours: 2,

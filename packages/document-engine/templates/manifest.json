@@ -229,6 +229,17 @@
       }
     },
     {
+      "number": "9.2",
+      "stage": 3,
+      "typeKey": "risk_zones_record",
+      "title": "Evidența zonelor cu risc ridicat și specific",
+      "file": "9.2_risk_zones_record.docx",
+      "change": {
+        "kind": "legal",
+        "note": "Document nou, cerut de art. 13 lit. k) din Legea 319/2006: zonele cu risc ridicat și specific ale clientului, cu localizarea, riscurile și măsurile lor, sau constatarea că nu are astfel de zone."
+      }
+    },
+    {
       "number": "10",
       "original": "10._Plan_de_prevenire_si_protectie",
       "stage": 3,

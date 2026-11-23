@@ -1,0 +1,55 @@
+{
+  "file": "9.2_risk_zones_record.docx",
+  "header": {
+    "code": "EZRRS",
+    "title": "Evidența zonelor cu risc ridicat și specific"
+  },
+  "title": "EVIDENȚA ZONELOR CU RISC RIDICAT ȘI SPECIFIC DIN CADRUL {{client.legalName}}",
+  "handover": [
+    ["Am întocmit și predat un exemplar", "Am informat angajatorul"],
+    ["Am primit și aprobat", "Am luat cunoștință"]
+  ],
+  "content": [
+    {
+      "text": "Temei legal: art. 13 lit. k) din Legea 319/2006 și art. 105–107 din H.G. 1425/2006."
+    },
+    { "text": "{{#riskZones.listed}}", "below": 0 },
+    {
+      "text": "Prezenta evidență cuprinde nominalizarea și localizarea zonelor cu risc ridicat și specific din cadrul {{client.legalName}} și măsurile stabilite în urma evaluării riscurilor pentru aceste zone."
+    },
+    {
+      "table": {
+        "widths": [6, 17, 17, 27, 33],
+        "left": [1, 2, 3, 4],
+        "headerRows": 1,
+        "keepWithNext": [0],
+        "split": true,
+        "top": true,
+        "wholeRows": true,
+        "rows": [
+          ["Nr. crt.", "Zona", "Localizare", "Riscuri", "Măsuri"],
+          [
+            "{{#riskZones.zones}}{{$index}}.",
+            "{{name}}",
+            "{{place}}",
+            "{{risksText}}",
+            "{{measuresText}}{{/riskZones.zones}}"
+          ]
+        ]
+      }
+    },
+    {
+      "text": "Zonele cu risc ridicat și specific se aduc la cunoștința tuturor lucrătorilor cu ocazia instruirii.",
+      "above": 6
+    },
+    {
+      "text": "Măsurile stabilite pentru fiecare zonă se aduc la cunoștința conducătorilor locurilor de muncă și a lucrătorilor care desfășoară activități în aceste zone."
+    },
+    { "text": "{{/riskZones.listed}}", "below": 0 },
+    { "text": "{{#riskZones.none}}", "below": 0 },
+    {
+      "text": "În urma evaluării riscurilor nu au fost identificate zone cu risc ridicat și specific."
+    },
+    { "text": "{{/riskZones.none}}", "below": 0 }
+  ]
+}

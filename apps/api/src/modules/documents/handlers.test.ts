@@ -47,6 +47,7 @@ vi.mock('@ssm-usor/document-engine', () => {
     protective_equipment_list: ['positions', 'equippedPositions', 'unequippedPositionsText'],
     risk_assessment: ['positions', 'riskAssessment'],
     prevention_plan: ['riskAssessment'],
+    risk_zones_record: ['riskZones'],
     fire_cover_registers: ['provider', 'fireSafetyTechnician', 'branding', 'installationRegister'],
     fire_registers: ['branding'],
     fire_decision_waste: ['fire'],
@@ -142,6 +143,7 @@ const clientRow = {
   contact_email: null,
   archived_at: null,
   sensitive_groups_state: 'evaluated',
+  risk_zones_state: 'none',
 };
 const profileRow = {
   full_name: 'Maria POPESCU',
@@ -399,6 +401,7 @@ type Upstream =
   | 'fireOwnInstructions'
   | 'workplaces'
   | 'riskEvaluations'
+  | 'riskZones'
   | 'fireSafety'
   | 'fireEquipment'
   | 'fireInstallations'
@@ -455,6 +458,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     '/rest/v1/client_workplaces': () => handlers.workplaces?.() ?? Response.json([workplaceRow]),
     '/rest/v1/risk_evaluations': () =>
       handlers.riskEvaluations?.() ?? Response.json(evaluationRows),
+    '/rest/v1/risk_zones': () => handlers.riskZones?.() ?? Response.json([]),
     '/rest/v1/client_fire_safety': () => handlers.fireSafety?.() ?? Response.json(fireSafetyRow),
     '/rest/v1/fire_equipment': () =>
       handlers.fireEquipment?.() ?? Response.json([fireEquipmentRow]),
@@ -578,6 +582,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],
       incompleteFireSubstances: [],
+      waitingDocuments: [],
     });
     const positions = upstreamCalls()
       .map(({ url }) => url)
@@ -603,6 +608,69 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     const specialist = read('/rest/v1/organization_members').searchParams;
     expect(specialist.get('organization_id')).toBe(`eq.${organizationId}`);
     expect(specialist.get('user_id')).toBe(`eq.${user.id}`);
+  });
+
+  it('waits only for 9.2 while the client neither lists risk zones nor declares none', async () => {
+    mockUpstream({ clients: () => Response.json({ ...clientRow, risk_zones_state: 'undecided' }) });
+    const response = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
+      ready: true,
+      missing: [],
+      waitingDocuments: [{ typeKey: 'risk_zones_record', missing: ['risk_zones.decided'] }],
+    });
+    const zones = upstreamCalls()
+      .map(({ url }) => url)
+      .find((url) => url.pathname === '/rest/v1/risk_zones')!;
+    expect(zones.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    expect(zones.searchParams.get('order')).toBe('created_at.asc,id.asc');
+  });
+
+  it('waits for the measures of a zone that would print none', async () => {
+    const zone = (
+      factorEvaluationId: string,
+      measures: string | null,
+      factorMeasures: string[] = []
+    ) => ({
+      name: 'Tabloul electric',
+      location: null,
+      measures,
+      client_workplaces: null,
+      risk_zone_factors: [
+        {
+          risk_factors: {
+            id: 'f0f0f0f0-0000-4000-8000-000000000001',
+            evaluation_id: factorEvaluationId,
+            description: 'Electrocutare',
+            gravity_class: 5,
+            probability_class: 3,
+            sort_order: 0,
+            prevention_measures: factorMeasures.map((description, index) => ({
+              id: `a0a0a0a0-0000-4000-8000-00000000000${index}`,
+              kind: 'technical',
+              description,
+              sort_order: index,
+            })),
+          },
+        },
+      ],
+    });
+    const readinessWith = async (row: ReturnType<typeof zone>) => {
+      mockUpstream({
+        clients: () => Response.json({ ...clientRow, risk_zones_state: 'listed' }),
+        riskZones: () => Response.json([row]),
+      });
+      const response = await request(`/clients/${clientId}/documents/readiness`);
+      return documentReadinessResponseSchema.parse(await response.json()).waitingDocuments;
+    };
+    const archived = 'e0e0e0e0-0000-4000-8000-000000000999';
+    expect(await readinessWith(zone(archived, null))).toEqual([
+      { typeKey: 'risk_zones_record', missing: ['risk_zones.measures'] },
+    ]);
+    expect(await readinessWith(zone(archived, 'Ușa ținută încuiată.'))).toEqual([]);
+    expect(await readinessWith(zone(evaluationRows[1]!.id, null))).toEqual([
+      { typeKey: 'risk_zones_record', missing: ['risk_zones.measures'] },
+    ]);
+    expect(await readinessWith(zone(evaluationRows[1]!.id, null, ['Împământare.']))).toEqual([]);
   });
 
   it('drops the hint about the risk evaluator once the organization names one', async () => {
@@ -654,6 +722,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],
       incompleteFireSubstances: [],
+      waitingDocuments: [],
     });
   });
 
@@ -925,6 +994,55 @@ describe('GET /clients/{clientId}/documents', () => {
       await (await request(`/clients/${clientId}/documents`)).json()
     );
     expect(body.items[0]!.draft!.dataChanged).toBe(true);
+  });
+
+  it('marks a draft of the record of risk zones changed by a zone, or by the zones left undecided', async () => {
+    const zoneRow = (name: string) => ({
+      name,
+      location: null,
+      measures: 'Ușa ținută încuiată.',
+      client_workplaces: null,
+      risk_zone_factors: [],
+    });
+    const listed = async (snapshot: unknown, state: string, rows: ReturnType<typeof zoneRow>[]) => {
+      mockUpstream({
+        clients: () => Response.json({ ...clientRow, risk_zones_state: state }),
+        riskZones: () => Response.json(rows),
+        documents: () =>
+          Response.json([
+            {
+              ...documentRow,
+              type_key: 'risk_zones_record',
+              title: 'Evidența zonelor cu risc ridicat și specific',
+              decision_number: null,
+              document_revisions: [{ ...revisionRow, data_snapshot: { riskZones: snapshot } }],
+            },
+          ]),
+      });
+      return clientDocumentListResponseSchema.parse(
+        await (await request(`/clients/${clientId}/documents`)).json()
+      ).items[0]!.draft!.dataChanged;
+    };
+    const printed = {
+      state: 'listed',
+      listed: true,
+      none: false,
+      zones: [
+        {
+          name: 'Tabloul electric',
+          workplace: null,
+          location: null,
+          place: '—',
+          risks: [],
+          risksText: '—',
+          measures: ['Ușa ținută încuiată.'],
+          measuresText: 'Ușa ținută încuiată.',
+        },
+      ],
+    };
+    expect(await listed(printed, 'listed', [zoneRow('Tabloul electric')])).toBe(false);
+    expect(await listed(printed, 'listed', [zoneRow('Tabloul electric general')])).toBe(true);
+    expect(await listed(printed, 'undecided', [])).toBe(true);
   });
 
   describe('a test drafted from the question bank', () => {
@@ -1233,6 +1351,36 @@ describe('POST /clients/{clientId}/documents/generate', () => {
     };
     expect(await generateWith(0)).toEqual(['control_report']);
     expect(await generateWith(1)).toContain('signing_regulation_annex');
+  });
+
+  it('makes the record of risk zones only once the client lists them or declares none', async () => {
+    const recordTemplate = {
+      type_key: 'risk_zones_record',
+      title: 'Evidența zonelor cu risc ridicat și specific',
+      document_template_versions: [
+        { id: 'v6', version: 1, storage_path: 'built-in/risk_zones_record/one.docx' },
+      ],
+    };
+    const generateWith = async (state: string) => {
+      fetchMock.mockReset();
+      mockUpstream({
+        templates: () => Response.json([recordTemplate, templateRows[1]]),
+        documents: (init) =>
+          init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+        clients: () => Response.json({ ...clientRow, risk_zones_state: state }),
+      });
+      expect((await generate()).status).toBe(201);
+      return calls('/rest/v1/client_documents', 'POST').map(
+        ({ init }) => (JSON.parse(String(init?.body)) as { type_key: string }).type_key
+      );
+    };
+    expect(await generateWith('undecided')).toEqual(['control_report']);
+    expect(await generateWith('none')).toContain('risk_zones_record');
+    expect(
+      calls('/rest/v1/document_revisions', 'POST').map(
+        ({ body }) => (body as { data_snapshot: Record<string, unknown> }).data_snapshot.riskZones
+      )
+    ).toContainEqual({ state: 'none', listed: false, none: true, zones: [] });
   });
 
   it('leaves the documents the client already has', async () => {
@@ -1789,6 +1937,24 @@ describe('POST /documents/{documentId}/regenerate', () => {
     expect(body.missing).toEqual(['client.trainingSchedule', 'responsible.workplace_manager']);
     expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
     expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
+  });
+
+  it('refuses the record of risk zones while the client has not decided, and nothing else', async () => {
+    mockUpstream({
+      ...ofType('risk_zones_record'),
+      clients: () => Response.json({ ...clientRow, risk_zones_state: 'undecided' }),
+    });
+    const refused = await regenerate();
+    expect(refused.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await refused.json()).missing).toEqual([
+      'risk_zones.decided',
+    ]);
+
+    mockUpstream({
+      ...ofType('prevention_plan'),
+      clients: () => Response.json({ ...clientRow, risk_zones_state: 'undecided' }),
+    });
+    expect((await regenerate()).status).toBe(200);
   });
 
   it('refuses a decision 1.5 kept under 10 employees once nobody represents the workers', async () => {
@@ -3218,6 +3384,7 @@ describe('the fire-safety set', () => {
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],
       incompleteFireSubstances: [],
+      waitingDocuments: [],
     });
   });
 
@@ -4705,13 +4872,16 @@ describe("a documentation set's tab", () => {
     ownInstructionsReads('fire_own_instructions') +
     workplaceCounts();
   const occupationalReads = () =>
-    ['/rest/v1/organization_members', '/rest/v1/profiles', '/rest/v1/risk_evaluations'].flatMap(
-      (pathname) => read(pathname)
-    ).length + ownInstructionsReads('own_instructions');
+    [
+      '/rest/v1/organization_members',
+      '/rest/v1/profiles',
+      '/rest/v1/risk_evaluations',
+      '/rest/v1/risk_zones',
+    ].flatMap((pathname) => read(pathname)).length + ownInstructionsReads('own_instructions');
 
   const ceilings = {
-    list: { occupational: 18, fire: 23 },
-    readiness: { occupational: 16, fire: 21 },
+    list: { occupational: 19, fire: 23 },
+    readiness: { occupational: 17, fire: 21 },
   };
 
   for (const [route, label] of [
@@ -4724,7 +4894,7 @@ describe("a documentation set's tab", () => {
       expect(response.status).toBe(200);
       expect(fireReads()).toBe(0);
       expect(questionDomains()).toEqual(['ssm']);
-      expect(occupationalReads()).toBe(4);
+      expect(occupationalReads()).toBe(5);
       expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(ceilings[label].occupational);
     });
 

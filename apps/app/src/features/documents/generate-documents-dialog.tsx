@@ -4,6 +4,7 @@ import {
   type DocumentSet,
   documentSetTypeKeys,
   isDatedDocumentType,
+  numberedTitle,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -51,6 +52,7 @@ import { todayIso } from '@/lib/dates';
 import {
   appliesAt,
   fireSafetyHeadcountRule,
+  notGeneratedTitles,
   periodHint,
   workersRepresentativesRule,
 } from './document-labels';
@@ -68,6 +70,7 @@ export function GenerateDocumentsDialog({
   open,
   lastGeneration,
   generatedTypeKeys,
+  lackingTypeKeys,
   onClose,
 }: {
   set: DocumentSet;
@@ -76,6 +79,8 @@ export function GenerateDocumentsDialog({
   open: boolean;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
   generatedTypeKeys: readonly string[];
+  /** The set's documents that apply to the client and that it does not have. */
+  lackingTypeKeys: readonly string[];
   onClose: () => void;
 }) {
   return (
@@ -87,6 +92,7 @@ export function GenerateDocumentsDialog({
           userId={userId}
           lastGeneration={lastGeneration}
           generatedTypeKeys={generatedTypeKeys}
+          lackingTypeKeys={lackingTypeKeys}
           onClose={onClose}
         />
       )}
@@ -100,6 +106,7 @@ function GenerateDocumentsForm({
   userId,
   lastGeneration,
   generatedTypeKeys,
+  lackingTypeKeys,
   onClose,
 }: {
   set: DocumentSet;
@@ -107,6 +114,7 @@ function GenerateDocumentsForm({
   userId: string;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
   generatedTypeKeys: readonly string[];
+  lackingTypeKeys: readonly string[];
   onClose: () => void;
 }) {
   const { request, queryClient, key } = useApi();
@@ -148,6 +156,21 @@ function GenerateDocumentsForm({
         set,
       })
     : [];
+  // A document that exists is not generated with the set, whatever it waits for.
+  const waiting = (readiness.data?.waitingDocuments ?? [])
+    .filter((each) => !generatedTypeKeys.includes(each.typeKey))
+    .map((each) => ({
+      typeKey: each.typeKey,
+      title: numberedTitle(each.typeKey, notGeneratedTitles[each.typeKey]),
+      groups: documentMissingGroups({
+        missing: each.missing,
+        clientId,
+        clash: null,
+        undecidedJobPositions: [],
+        canEditOrganization: isOwner,
+        set,
+      }),
+    }));
   // The cached answer predates what was filled in since, so it waits for the one asked above.
   const checking = readiness.isPending || (readiness.isFetching && !readiness.isFetchedAfterMount);
   const ready = !checking && readiness.data?.ready === true;
@@ -158,6 +181,12 @@ function GenerateDocumentsForm({
         .filter((typeKey) => appliesAt(typeKey, readiness.data.currentEmployeeCount))
     : [];
   const asksPeriod = datedTypeKeys.length > 0;
+  // Generating would make nothing: every document the client lacks waits for data of its own.
+  const onlyWaiting =
+    !asksPeriod &&
+    lackingTypeKeys.length > 0 &&
+    lackingTypeKeys.every((typeKey) => waiting.some((each) => each.typeKey === typeKey));
+  const canGenerate = ready && !onlyWaiting;
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -224,7 +253,7 @@ function GenerateDocumentsForm({
                 : fireSafetyHeadcountRule(readiness.data.currentEmployeeCount, generatedTypeKeys)}
             </Notice>
           )}
-          {ready && evaluatorHint && (
+          {canGenerate && evaluatorHint && (
             <Notice
               variant="info"
               data-testid="generate-evaluator-hint"
@@ -247,7 +276,7 @@ function GenerateDocumentsForm({
               {isOwner ? '' : ' Îl completează proprietarul organizației.'}
             </Notice>
           )}
-          {checking || !readiness.data ? null : !ready ? (
+          {checking || !readiness.data || (onlyWaiting && ready) ? null : !ready ? (
             <div data-testid="generate-missing" className="grid gap-4">
               <p className="text-sm">
                 <strong data-testid="generate-missing-count" className="font-semibold">
@@ -351,6 +380,29 @@ function GenerateDocumentsForm({
               )}
             </div>
           )}
+          {!checking &&
+            waiting.map((each) => (
+              <div key={each.typeKey} data-testid="generate-waiting" className="grid gap-3">
+                <p className="text-sm">
+                  <strong className="font-semibold">{each.title}</strong>{' '}
+                  <span className="text-muted-foreground">
+                    se generează după ce completezi ce lipsește mai jos.
+                    {onlyWaiting ? '' : ' Celelalte documente nu o așteaptă.'}
+                  </span>
+                </p>
+                <MissingDataList
+                  groups={each.groups}
+                  testId="generate-waiting"
+                  onFollow={() =>
+                    startWayBack({
+                      userId,
+                      clientId,
+                      to: occupationalSafety ? 'documents' : 'fire-safety-documents',
+                    })
+                  }
+                />
+              </div>
+            ))}
           {errors.root?.server && (
             <Notice variant="destructive" data-testid="generate-error">
               {errors.root.server.message}
@@ -359,9 +411,9 @@ function GenerateDocumentsForm({
         </DialogBody>
         <DialogFooter className="mt-6">
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
-            {ready ? 'Renunță' : 'Închide'}
+            {canGenerate ? 'Renunță' : 'Închide'}
           </Button>
-          {ready && (
+          {canGenerate && (
             <Button type="submit" data-testid="generate-submit" disabled={busy}>
               {busy ? 'Se generează…' : 'Generează'}
             </Button>

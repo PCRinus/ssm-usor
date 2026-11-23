@@ -2168,7 +2168,14 @@ person responsible. `incompleteRiskEvaluations` names the evaluations behind the
 list of `factors`, `measures` and `plan`. Generating the training themes again also needs an own
 instructions revision to cite, `documents.own_instructions`
 ([ADR 014](architecture/adr-014-training-themes.md)); readiness never lists it, as generating
-the set makes the own instructions first. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
+the set makes the own instructions first. Document 9.2, the record of risk zones
+([ADR 045](architecture/adr-045-risk-zones-record.md)), waits for gaps of its own that block
+nothing else: `risk_zones.decided` while the client's `riskZonesState` is `undecided`, and
+`risk_zones.measures` while a zone has neither a current linked factor nor measures of its own.
+Readiness lists them not in `missing` but in `waitingDocuments`, each
+`{ typeKey: 'risk_zones_record', missing }`; generating the set leaves 9.2 out while they stand,
+and generating it again is refused with them. The fire-safety set's `waitingDocuments` is
+empty. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
 (1 when left out) and is `409` with the reason `missing_document_data` until that list is empty,
 `409` for an archived client, and `503` while no template of the set is registered
 (`pnpm templates:register`). Readiness also returns `hints`, what generating would do better

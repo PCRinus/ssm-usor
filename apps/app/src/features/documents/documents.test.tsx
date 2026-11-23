@@ -95,6 +95,7 @@ function mockApi({
       name: string;
       missing: string[];
     }[];
+    waitingDocuments?: { typeKey: string; missing: string[] }[];
   },
   currentEmployeeCount = 6,
   generate = (() =>
@@ -134,6 +135,7 @@ function mockApi({
           workersRepresentativeClash: null,
           undecidedJobPositions: [],
           incompleteRiskEvaluations: [],
+          waitingDocuments: [],
           ...readiness,
         });
       }
@@ -376,6 +378,40 @@ describe('client documents', () => {
     expect(hint.textContent).toContain('Îl completează proprietarul organizației.');
   });
 
+  it('says the record of risk zones waits for them, and generates the rest of the set', async () => {
+    const waitingDocuments = [{ typeKey: 'risk_zones_record', missing: ['risk_zones.decided'] }];
+    mockApi({ readiness: { ready: true, missing: [], waitingDocuments } });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    const waiting = await screen.findByTestId('generate-waiting');
+    expect(waiting.textContent).toContain(
+      '9.2 Evidența zonelor cu risc ridicat și specific se generează după ce completezi'
+    );
+    const [row] = within(waiting).getAllByTestId('generate-waiting-row');
+    expect(row!.textContent).toContain('Zonele cu risc ridicat și specific');
+    expect(row!.getAttribute('href')).toBe(`/clienti/${clientId}/posturi`);
+    expect(screen.getByTestId('generate-submit')).toBeTruthy();
+  });
+
+  it('says nothing of a waiting record of risk zones that the client already has', async () => {
+    mockApi({
+      items: [{ ...report, typeKey: 'risk_zones_record', title: 'Evidența zonelor' }],
+      readiness: {
+        ready: true,
+        missing: [],
+        waitingDocuments: [{ typeKey: 'risk_zones_record', missing: ['risk_zones.decided'] }],
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    await screen.findByTestId('generate-submit');
+    expect(screen.queryByTestId('generate-waiting')).toBeNull();
+  });
+
   it('does not hint once the organization has named its risk evaluator', async () => {
     mockApi({ readiness: { ready: true, missing: [], hints: [] } });
     mount();
@@ -413,6 +449,59 @@ describe('client documents', () => {
     expect(await summaryOf('1')).toBe('0 din 5 emise');
     expect(screen.getByTestId('documents-archive')).toBeTruthy();
     expect(screen.queryByTestId('documents-generate')).toBeNull();
+  });
+
+  it('offers no generation while the only document the client lacks waits for its risk zones', async () => {
+    mockApi({
+      items: documentTypeKeys
+        .filter(
+          (typeKey) =>
+            typeKey !== 'decision_workers_representative' && typeKey !== 'risk_zones_record'
+        )
+        .map((typeKey) => ({ ...report, id: crypto.randomUUID(), typeKey })),
+      notApplicable: ['decision_workers_representative'],
+      readiness: {
+        ready: true,
+        missing: [],
+        waitingDocuments: [{ typeKey: 'risk_zones_record', missing: ['risk_zones.decided'] }],
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    const waiting = await screen.findByTestId('generate-waiting');
+    expect(waiting.textContent).toContain(
+      '9.2 Evidența zonelor cu risc ridicat și specific se generează după ce completezi ce lipsește mai jos.'
+    );
+    expect(waiting.textContent).not.toContain('Celelalte documente');
+    expect(screen.queryByTestId('generate-submit')).toBeNull();
+    expect(screen.queryByTestId('generate-issue-date')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Renunță' })).toBeNull();
+  });
+
+  it('still names what the whole set lacks while the only document missing waits for its zones', async () => {
+    mockApi({
+      items: documentTypeKeys
+        .filter(
+          (typeKey) =>
+            typeKey !== 'decision_workers_representative' && typeKey !== 'risk_zones_record'
+        )
+        .map((typeKey) => ({ ...report, id: crypto.randomUUID(), typeKey })),
+      notApplicable: ['decision_workers_representative'],
+      readiness: {
+        ready: false,
+        missing: ['responsible.first_aid'],
+        waitingDocuments: [{ typeKey: 'risk_zones_record', missing: ['risk_zones.decided'] }],
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    expect(await screen.findByTestId('generate-missing')).toBeTruthy();
+    expect(await screen.findByTestId('generate-waiting')).toBeTruthy();
+    expect(screen.queryByTestId('generate-submit')).toBeNull();
   });
 
   const sectionNumbers = async () =>
@@ -879,11 +968,11 @@ describe('client documents', () => {
     expect(await summaryOf('1')).toBe('0 din 6 emise · 1 de actualizat · 5 negenerate');
     expect(await summaryOf('2')).toBe('Negenerate');
     expect(await summaryOf('8')).toBe('Ciornă');
-    expect(await summaryOf('9')).toBe('Negenerat');
+    expect(await summaryOf('9')).toBe('Negenerate');
     expect(screen.getByTestId('pack-legend').textContent).toBe(
-      '0 emise1 de actualizat1 ciornă22 de negenerate'
+      '0 emise1 de actualizat1 ciornă23 de negenerate'
     );
-    expect(screen.getByTestId('pack-total').textContent).toBe('24 de documente în 13 secțiuni');
+    expect(screen.getByTestId('pack-total').textContent).toBe('25 de documente în 13 secțiuni');
     expect(screen.queryByTestId('document-row')).toBeNull();
     expect(runtime.router.history.location.search).toBe('');
 
@@ -1402,7 +1491,7 @@ describe('client documents', () => {
 
     expect(await Promise.all(['4', '9', '10'].map(summaryOf))).toEqual([
       'Negenerate',
-      'Negenerat',
+      'Negenerate',
       'Negenerat',
     ]);
 
