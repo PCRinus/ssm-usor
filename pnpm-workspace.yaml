@@ -11,9 +11,9 @@ allowBuilds:
   workerd: true
 
 catalog:
-  '@docx-editor.dev/core': 2.39.0
-  '@docx-editor.dev/fonts': 2.39.0
-  '@docx-editor.dev/react': 2.39.0
+  '@docx-editor.dev/core': 2.38.0
+  '@docx-editor.dev/fonts': 2.38.0
+  '@docx-editor.dev/react': 2.38.0
   '@lingui/cli': 6.9.1
   '@lingui/core': 6.9.1
   '@lingui/format-po': 6.9.1
@@ -33,4 +33,4 @@ overrides:
 # draw a whole number of pixels thick and never thinner than one. Upstream 2.39.0 still paints
 # boxes; check a newer release before carrying this over.
 patchedDependencies:
-  '@docx-editor.dev/core@2.39.0': patches/@docx-editor.dev__core@2.39.0.patch
+  '@docx-editor.dev/core@2.38.0': patches/@docx-editor.dev__core@2.38.0.patch

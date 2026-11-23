@@ -7,14 +7,14 @@ settings:
 catalogs:
   default:
     '@docx-editor.dev/core':
-      specifier: 2.39.0
-      version: 2.39.0
+      specifier: 2.38.0
+      version: 2.38.0
     '@docx-editor.dev/fonts':
-      specifier: 2.39.0
-      version: 2.39.0
+      specifier: 2.38.0
+      version: 2.38.0
     '@docx-editor.dev/react':
-      specifier: 2.39.0
-      version: 2.39.0
+      specifier: 2.38.0
+      version: 2.38.0
     '@lingui/cli':
       specifier: 6.9.1
       version: 6.9.1
@@ -38,7 +38,7 @@ overrides:
   undici@7.29.1: 7.30.1
 
 patchedDependencies:
-  '@docx-editor.dev/core@2.39.0': dedfd38e826ee00c5b0fdd9b303df6c8327d7e3ac2e9c2f86f948d1db309bd21
+  '@docx-editor.dev/core@2.38.0': 4c45d61cc84047e77b88a095420d7c8b0ba8a4fbe162fb5f3b65c8707c73069e
 
 importers:
 
@@ -261,13 +261,13 @@ importers:
     dependencies:
       '@docx-editor.dev/core':
         specifier: 'catalog:'
-        version: 2.39.0(patch_hash=dedfd38e826ee00c5b0fdd9b303df6c8327d7e3ac2e9c2f86f948d1db309bd21)(@napi-rs/canvas@1.0.13)
+        version: 2.38.0(patch_hash=4c45d61cc84047e77b88a095420d7c8b0ba8a4fbe162fb5f3b65c8707c73069e)(@napi-rs/canvas@1.0.13)
       '@docx-editor.dev/fonts':
         specifier: 'catalog:'
-        version: 2.39.0
+        version: 2.38.0
       '@docx-editor.dev/react':
         specifier: 'catalog:'
-        version: 2.39.0(@docx-editor.dev/core@2.39.0(patch_hash=dedfd38e826ee00c5b0fdd9b303df6c8327d7e3ac2e9c2f86f948d1db309bd21)(@napi-rs/canvas@1.0.13))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 2.38.0(@docx-editor.dev/core@2.38.0(patch_hash=4c45d61cc84047e77b88a095420d7c8b0ba8a4fbe162fb5f3b65c8707c73069e)(@napi-rs/canvas@1.0.13))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@hookform/resolvers':
         specifier: ^5.9.2
         version: 5.9.2(@sinclair/typebox@0.27.12)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.1))(zod@4.6.7)
@@ -766,10 +766,10 @@ importers:
     devDependencies:
       '@docx-editor.dev/core':
         specifier: 'catalog:'
-        version: 2.39.0(patch_hash=dedfd38e826ee00c5b0fdd9b303df6c8327d7e3ac2e9c2f86f948d1db309bd21)(@napi-rs/canvas@1.0.13)
+        version: 2.38.0(patch_hash=4c45d61cc84047e77b88a095420d7c8b0ba8a4fbe162fb5f3b65c8707c73069e)(@napi-rs/canvas@1.0.13)
       '@docx-editor.dev/fonts':
         specifier: 'catalog:'
-        version: 2.39.0
+        version: 2.38.0
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
@@ -1553,8 +1553,8 @@ packages:
   '@date-fns/tz@1.5.0':
     resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
 
-  '@docx-editor.dev/core@2.39.0':
-    resolution: {integrity: sha512-SWyqyRNMWFm/Kc7o6RbXdGc1uJi42rn4bW7yjMu/mpYBR0DmVpddCLTJFA2s0pa+g9c8Se//BGa6/OMt9l8yVA==}
+  '@docx-editor.dev/core@2.38.0':
+    resolution: {integrity: sha512-EI4PjRMf7+0KKXMjXk8IuCu7RShYUMhXLJjagMzHsXefXMchi6paZAPVeY45UeKov4TyxLNoEOmV2PBAFF+FWA==}
     engines: {node: ^20.16.0 || >=22.3.0}
     peerDependencies:
       pdf-lib: ^1.17.1
@@ -1565,16 +1565,16 @@ packages:
       yjs:
         optional: true
 
-  '@docx-editor.dev/fonts@2.39.0':
-    resolution: {integrity: sha512-75aa5Ilg87TOwY7GEYW288iM83XrH5KU3tfYMZ5haiAtEKOInkw91bZQrfIpsLc5nSNjitxYCQmUxwLOA4LQxQ==}
+  '@docx-editor.dev/fonts@2.38.0':
+    resolution: {integrity: sha512-5GARHM72ednV8XLPsRLMAt9GTP/sZ1uMwaMYm9RxKQvfaj/uAUf1CMGLQ+Sp5xobPnZNNi2nXHejehC/sBVlhw==}
 
   '@docx-editor.dev/i18n@2.39.0':
     resolution: {integrity: sha512-8P8UryXXAY9upicqooWhUYiB8XqF9GtXJyac+gQ7lpGhJsnFn6knHVBsg5R79XsI251oRoA7aT8ZY68+4+XgsQ==}
 
-  '@docx-editor.dev/react@2.39.0':
-    resolution: {integrity: sha512-BPcybJDHOSBZI8sAJh10Xc/j+vRupatpxmN8s1CmGZCMxs/LwObJU4DtiIx24cazOTU55tULaZSZrjFPoz0JJg==}
+  '@docx-editor.dev/react@2.38.0':
+    resolution: {integrity: sha512-r9w8fABxAeOxVKPPUykN/v/48csp+EFx33oD1s7+9r1aDJSj22e6R5OSQkirRkvKrnrSR7qjyT0/v6RPfBj6mg==}
     peerDependencies:
-      '@docx-editor.dev/core': ~2.39.0
+      '@docx-editor.dev/core': ~2.38.0
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
     peerDependenciesMeta:
@@ -6951,9 +6951,6 @@ packages:
   prosemirror-keymap@1.2.3:
     resolution: {integrity: sha512-4HucRlpiLd1IPQQXNqeo81BGtkY8Ai5smHhKW9jjPKRc2wQIxksg7Hl1tTI2IfT2B/LgX6bfYvXxEpJl7aKYKw==}
 
-  prosemirror-model@1.25.12:
-    resolution: {integrity: sha512-Ue2gTmXMa7EhpLNhC7J+h4+ykD8ha12K6rrZFFKKJHBForfIStw5gJ6Zrf1mqqAa9NmpmEB4wp9bKmA4eUVjWg==}
-
   prosemirror-model@1.25.13:
     resolution: {integrity: sha512-MlDMWGjYXaYOeCiO17jcybntCOzPnN+97U0809ke2QsgPtxW3n5/sD6ZKyJONUgMw1iP93ohZTjeKjnRJ7L6kQ==}
 
@@ -6962,9 +6959,6 @@ packages:
 
   prosemirror-transform@1.12.4:
     resolution: {integrity: sha512-2/WuPum3pn+O/Vi2vzpi8210ICUe2kIPXdLYjQ09Pv5DtT5bcKWMJhAKPBwvpPjpp5iOYUVwVEr0gOM1BY1Mgw==}
-
-  prosemirror-view@1.42.7:
-    resolution: {integrity: sha512-aTIAUN4zdD+VS7gsv9Po9Sty81B6yl6D3HggCosry9DLYTmVo4omjcqICDIOPnPJmskRUsqLInxBjaH7I+BQ4Q==}
 
   prosemirror-view@1.43.0:
     resolution: {integrity: sha512-MZOUuhD+Gv7Cp7UlgvyhptUfb920NkLBgymhyhaM8xp+JXQyLhkssS2EXZvMI3ZU3vRoz5z7mRC32udVgNYHqg==}
@@ -8836,7 +8830,7 @@ snapshots:
 
   '@date-fns/tz@1.5.0': {}
 
-  '@docx-editor.dev/core@2.39.0(patch_hash=dedfd38e826ee00c5b0fdd9b303df6c8327d7e3ac2e9c2f86f948d1db309bd21)(@napi-rs/canvas@1.0.13)':
+  '@docx-editor.dev/core@2.38.0(patch_hash=4c45d61cc84047e77b88a095420d7c8b0ba8a4fbe162fb5f3b65c8707c73069e)(@napi-rs/canvas@1.0.13)':
     dependencies:
       '@docx-editor.dev/i18n': 2.39.0
       bidi-js: 1.1.0
@@ -8853,13 +8847,13 @@ snapshots:
     transitivePeerDependencies:
       - '@napi-rs/canvas'
 
-  '@docx-editor.dev/fonts@2.39.0': {}
+  '@docx-editor.dev/fonts@2.38.0': {}
 
   '@docx-editor.dev/i18n@2.39.0': {}
 
-  '@docx-editor.dev/react@2.39.0(@docx-editor.dev/core@2.39.0(patch_hash=dedfd38e826ee00c5b0fdd9b303df6c8327d7e3ac2e9c2f86f948d1db309bd21)(@napi-rs/canvas@1.0.13))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@docx-editor.dev/react@2.38.0(@docx-editor.dev/core@2.38.0(patch_hash=4c45d61cc84047e77b88a095420d7c8b0ba8a4fbe162fb5f3b65c8707c73069e)(@napi-rs/canvas@1.0.13))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@docx-editor.dev/core': 2.39.0(patch_hash=dedfd38e826ee00c5b0fdd9b303df6c8327d7e3ac2e9c2f86f948d1db309bd21)(@napi-rs/canvas@1.0.13)
+      '@docx-editor.dev/core': 2.38.0(patch_hash=4c45d61cc84047e77b88a095420d7c8b0ba8a4fbe162fb5f3b65c8707c73069e)(@napi-rs/canvas@1.0.13)
       '@docx-editor.dev/i18n': 2.39.0
       '@radix-ui/react-select': 2.4.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       class-variance-authority: 0.7.1
@@ -14218,7 +14212,7 @@ snapshots:
 
   prosemirror-commands@1.7.2:
     dependencies:
-      prosemirror-model: 1.25.12
+      prosemirror-model: 1.25.13
       prosemirror-state: 1.4.4
       prosemirror-transform: 1.12.4
 
@@ -14227,33 +14221,23 @@ snapshots:
       prosemirror-state: 1.4.4
       w3c-keyname: 2.2.8
 
-  prosemirror-model@1.25.12:
-    dependencies:
-      orderedmap: 2.1.1
-
   prosemirror-model@1.25.13:
     dependencies:
       orderedmap: 2.1.1
 
   prosemirror-state@1.4.4:
     dependencies:
-      prosemirror-model: 1.25.12
+      prosemirror-model: 1.25.13
       prosemirror-transform: 1.12.4
-      prosemirror-view: 1.42.7
+      prosemirror-view: 1.43.0
 
   prosemirror-transform@1.12.4:
     dependencies:
-      prosemirror-model: 1.25.12
-
-  prosemirror-view@1.42.7:
-    dependencies:
-      prosemirror-model: 1.25.12
-      prosemirror-state: 1.4.4
-      prosemirror-transform: 1.12.4
+      prosemirror-model: 1.25.13
 
   prosemirror-view@1.43.0:
     dependencies:
-      prosemirror-model: 1.25.12
+      prosemirror-model: 1.25.13
       prosemirror-state: 1.4.4
       prosemirror-transform: 1.12.4
 
