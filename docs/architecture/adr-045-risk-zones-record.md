@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-22
+- Amended 2026-11-23, [below](#amendment-2026-11-23-an-ignored-suggestion-is-remembered): an ignored suggestion is remembered per risk factor.
 - Amends [ADR 015](adr-015-risk-assessment.md) (the risk assessment becomes 9.1 and its folder holds a second document) and the numbering of the occupational safety set.
 
 ## Context
@@ -75,3 +76,7 @@ A card "Zone cu risc ridicat și specific" on the client's Posturi tab, beside "
    - the card on the Posturi tab, after the canvas verdict;
    - the merge context, the readiness gap, the snapshot, template 9.2 and section 9's second document.
 5. The help articles, the update's lines, and registering the template on hosted after the merge.
+
+## Amendment 2026-11-23: an ignored suggestion is remembered
+
+The canvas review settled what "ignore" does. Ignoring a suggestion records each of its factors as ignored for the client, so the suggestion stays gone, and a factor that turns unacceptable later is suggested again on its own. The card lists the ignored suggestions behind a quiet link, each with a way to put it back among the suggestions. While the client declares it has no zones, no suggestion shows, ignored or not. A suggestion named like an existing zone offers to link its factors to that zone instead of a second zone of the same name. Not remembering was rejected: a suggestion the specialist had judged would come back on every visit.
