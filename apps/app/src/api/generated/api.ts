@@ -5299,6 +5299,8 @@ export type RiskZonesResponseZonesItemFactorsItemEvaluation = {
   id: string;
   kind: RiskZonesResponseZonesItemFactorsItemEvaluationKind;
   title: string;
+  /** @nullable */
+  jobPositionId: string | null;
 };
 
 export type RiskZonesResponseZonesItemFactorsItemMeasuresItemKind =
@@ -5346,6 +5348,14 @@ export type RiskZonesResponseZonesItem = {
   updatedAt: string;
 };
 
+export type RiskZonesResponseSuggestionsItemOrigin =
+  (typeof RiskZonesResponseSuggestionsItemOrigin)[keyof typeof RiskZonesResponseSuggestionsItemOrigin];
+
+export const RiskZonesResponseSuggestionsItemOrigin = {
+  work_zone: 'work_zone',
+  evaluation: 'evaluation',
+} as const;
+
 export type RiskZonesResponseSuggestionsItemFactorsItemComponent =
   (typeof RiskZonesResponseSuggestionsItemFactorsItemComponent)[keyof typeof RiskZonesResponseSuggestionsItemFactorsItemComponent];
 
@@ -5369,6 +5379,8 @@ export type RiskZonesResponseSuggestionsItemFactorsItemEvaluation = {
   id: string;
   kind: RiskZonesResponseSuggestionsItemFactorsItemEvaluationKind;
   title: string;
+  /** @nullable */
+  jobPositionId: string | null;
 };
 
 export type RiskZonesResponseSuggestionsItemFactorsItemMeasuresItemKind =
@@ -5403,8 +5415,83 @@ export type RiskZonesResponseSuggestionsItemFactorsItem = {
 
 export type RiskZonesResponseSuggestionsItem = {
   name: string;
+  origin: RiskZonesResponseSuggestionsItemOrigin;
   /** @minItems 1 */
   factors: RiskZonesResponseSuggestionsItemFactorsItem[];
+  /** @nullable */
+  existingZoneId: string | null;
+};
+
+export type RiskZonesResponseIgnoredSuggestionsItemOrigin =
+  (typeof RiskZonesResponseIgnoredSuggestionsItemOrigin)[keyof typeof RiskZonesResponseIgnoredSuggestionsItemOrigin];
+
+export const RiskZonesResponseIgnoredSuggestionsItemOrigin = {
+  work_zone: 'work_zone',
+  evaluation: 'evaluation',
+} as const;
+
+export type RiskZonesResponseIgnoredSuggestionsItemFactorsItemComponent =
+  (typeof RiskZonesResponseIgnoredSuggestionsItemFactorsItemComponent)[keyof typeof RiskZonesResponseIgnoredSuggestionsItemFactorsItemComponent];
+
+export const RiskZonesResponseIgnoredSuggestionsItemFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RiskZonesResponseIgnoredSuggestionsItemFactorsItemEvaluationKind =
+  (typeof RiskZonesResponseIgnoredSuggestionsItemFactorsItemEvaluationKind)[keyof typeof RiskZonesResponseIgnoredSuggestionsItemFactorsItemEvaluationKind];
+
+export const RiskZonesResponseIgnoredSuggestionsItemFactorsItemEvaluationKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+export type RiskZonesResponseIgnoredSuggestionsItemFactorsItemEvaluation = {
+  id: string;
+  kind: RiskZonesResponseIgnoredSuggestionsItemFactorsItemEvaluationKind;
+  title: string;
+  /** @nullable */
+  jobPositionId: string | null;
+};
+
+export type RiskZonesResponseIgnoredSuggestionsItemFactorsItemMeasuresItemKind =
+  (typeof RiskZonesResponseIgnoredSuggestionsItemFactorsItemMeasuresItemKind)[keyof typeof RiskZonesResponseIgnoredSuggestionsItemFactorsItemMeasuresItemKind];
+
+export const RiskZonesResponseIgnoredSuggestionsItemFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type RiskZonesResponseIgnoredSuggestionsItemFactorsItemMeasuresItem = {
+  id: string;
+  kind: RiskZonesResponseIgnoredSuggestionsItemFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type RiskZonesResponseIgnoredSuggestionsItemFactorsItem = {
+  id: string;
+  component: RiskZonesResponseIgnoredSuggestionsItemFactorsItemComponent;
+  group: string;
+  description: string;
+  /**
+   * @minimum 1
+   * @maximum 7
+   */
+  riskLevel: number;
+  evaluation: RiskZonesResponseIgnoredSuggestionsItemFactorsItemEvaluation;
+  measures: RiskZonesResponseIgnoredSuggestionsItemFactorsItemMeasuresItem[];
+};
+
+export type RiskZonesResponseIgnoredSuggestionsItem = {
+  name: string;
+  origin: RiskZonesResponseIgnoredSuggestionsItemOrigin;
+  /** @minItems 1 */
+  factors: RiskZonesResponseIgnoredSuggestionsItemFactorsItem[];
   /** @nullable */
   existingZoneId: string | null;
 };
@@ -5432,6 +5519,8 @@ export type RiskZonesResponseFactorsItemEvaluation = {
   id: string;
   kind: RiskZonesResponseFactorsItemEvaluationKind;
   title: string;
+  /** @nullable */
+  jobPositionId: string | null;
 };
 
 export type RiskZonesResponseFactorsItemMeasuresItemKind =
@@ -5468,6 +5557,7 @@ export interface RiskZonesResponse {
   state: RiskZonesResponseState;
   zones: RiskZonesResponseZonesItem[];
   suggestions: RiskZonesResponseSuggestionsItem[];
+  ignoredSuggestions: RiskZonesResponseIgnoredSuggestionsItem[];
   factors: RiskZonesResponseFactorsItem[];
 }
 
@@ -5515,6 +5605,14 @@ export type RiskZoneNamesResponseItemsItem = {
 
 export interface RiskZoneNamesResponse {
   items: RiskZoneNamesResponseItemsItem[];
+}
+
+export interface RiskZoneSuggestionFactorsRequest {
+  /**
+   * @minItems 1
+   * @maxItems 300
+   */
+  factorIds: string[];
 }
 
 export type EvaluationProfileListResponseItemsItem = {
@@ -29337,7 +29435,7 @@ export const getListRiskZonesUrl = (clientId: string) => {
 };
 
 /**
- * The zones in the order they were added, each with its workplace and its linked factors, the highest level first, with their level, evaluation and prevention measures as the evaluation holds them now; the client’s `state`; `factors`, every factor of current posts and client-level evaluations a zone may link, whatever its level, in the evaluations’ order; and the `suggestions` (ADR 045): the unacceptable factors (level above 3) of current posts and client-level evaluations that no zone links yet, grouped by the position’s work zone, or the position’s name without one, or the evaluation’s title outside the posts, each offered as a zone named after its group. `existingZoneId` names a zone of the client with that name already. Nothing is saved until a zone is added.
+ * The zones in the order they were added, each with its workplace and its linked factors, the highest level first, with their level, evaluation and prevention measures as the evaluation holds them now; the client’s `state`; `factors`, every factor of current posts and client-level evaluations a zone may link, whatever its level, in the evaluations’ order; and the `suggestions` (ADR 045): the unacceptable factors (level above 3) of current posts and client-level evaluations that no zone links yet, grouped by the position’s work zone (`origin` `work_zone`), or the position’s name without one, or the evaluation’s title outside the posts (`evaluation`), each offered as a zone named after its group. `existingZoneId` names a zone of the client with that name already. The factors whose suggestion was ignored are left out of `suggestions` and grouped the same way under `ignoredSuggestions`. Nothing is saved until a zone is added.
  * @summary Read a client's zones of high and specific risk
  */
 export const listRiskZones = async (
@@ -30005,6 +30103,234 @@ export function useListRiskZoneNames<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getIgnoreRiskZoneSuggestionUrl = (clientId: string) => {
+  return `/clients/${clientId}/risk-zone-suggestions/ignore`;
+};
+
+/**
+ * Keeps the factors out of the suggestions, each on its own: a factor that becomes unacceptable later is suggested again, without those ignored before. Ignoring a factor twice changes nothing. Answers with all of the client’s zones, its state and the suggestions, as reading them does.
+ * @summary Ignore a suggested zone
+ */
+export const ignoreRiskZoneSuggestion = async (
+  clientId: string,
+  riskZoneSuggestionFactorsRequest: RiskZoneSuggestionFactorsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskZonesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskZonesResponse>(getIgnoreRiskZoneSuggestionUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(riskZoneSuggestionFactorsRequest),
+  });
+};
+
+export const getIgnoreRiskZoneSuggestionMutationKey = () => ['ignoreRiskZoneSuggestion'] as const;
+
+export const getIgnoreRiskZoneSuggestionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof ignoreRiskZoneSuggestion>>,
+    TError,
+    IgnoreRiskZoneSuggestionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof ignoreRiskZoneSuggestion>>,
+  TError,
+  IgnoreRiskZoneSuggestionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getIgnoreRiskZoneSuggestionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof ignoreRiskZoneSuggestion>>,
+    IgnoreRiskZoneSuggestionMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return ignoreRiskZoneSuggestion(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type IgnoreRiskZoneSuggestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof ignoreRiskZoneSuggestion>>
+>;
+export type IgnoreRiskZoneSuggestionMutationBody = RiskZoneSuggestionFactorsRequest;
+export type IgnoreRiskZoneSuggestionMutationError = ErrorType<ApiErrorResponse>;
+export type IgnoreRiskZoneSuggestionMutationVariables = {
+  clientId: string;
+  data: RiskZoneSuggestionFactorsRequest;
+};
+
+/**
+ * @summary Ignore a suggested zone
+ */
+export const useIgnoreRiskZoneSuggestion = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof ignoreRiskZoneSuggestion>>,
+      TError,
+      IgnoreRiskZoneSuggestionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof ignoreRiskZoneSuggestion>>,
+  TError,
+  IgnoreRiskZoneSuggestionMutationVariables,
+  TContext
+> => {
+  return useMutation(getIgnoreRiskZoneSuggestionMutationOptions(options), queryClient);
+};
+
+export const getRestoreRiskZoneSuggestionUrl = (clientId: string) => {
+  return `/clients/${clientId}/risk-zone-suggestions/restore`;
+};
+
+/**
+ * A factor that was not ignored is left as it is. Answers with all of the client’s zones, its state and the suggestions, as reading them does.
+ * @summary Return ignored factors to the suggestions
+ */
+export const restoreRiskZoneSuggestion = async (
+  clientId: string,
+  riskZoneSuggestionFactorsRequest: RiskZoneSuggestionFactorsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RiskZonesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RiskZonesResponse>(getRestoreRiskZoneSuggestionUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(riskZoneSuggestionFactorsRequest),
+  });
+};
+
+export const getRestoreRiskZoneSuggestionMutationKey = () => ['restoreRiskZoneSuggestion'] as const;
+
+export const getRestoreRiskZoneSuggestionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreRiskZoneSuggestion>>,
+    TError,
+    RestoreRiskZoneSuggestionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof restoreRiskZoneSuggestion>>,
+  TError,
+  RestoreRiskZoneSuggestionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRestoreRiskZoneSuggestionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof restoreRiskZoneSuggestion>>,
+    RestoreRiskZoneSuggestionMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return restoreRiskZoneSuggestion(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RestoreRiskZoneSuggestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof restoreRiskZoneSuggestion>>
+>;
+export type RestoreRiskZoneSuggestionMutationBody = RiskZoneSuggestionFactorsRequest;
+export type RestoreRiskZoneSuggestionMutationError = ErrorType<ApiErrorResponse>;
+export type RestoreRiskZoneSuggestionMutationVariables = {
+  clientId: string;
+  data: RiskZoneSuggestionFactorsRequest;
+};
+
+/**
+ * @summary Return ignored factors to the suggestions
+ */
+export const useRestoreRiskZoneSuggestion = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof restoreRiskZoneSuggestion>>,
+      TError,
+      RestoreRiskZoneSuggestionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof restoreRiskZoneSuggestion>>,
+  TError,
+  RestoreRiskZoneSuggestionMutationVariables,
+  TContext
+> => {
+  return useMutation(getRestoreRiskZoneSuggestionMutationOptions(options), queryClient);
+};
 
 export const getListEvaluationProfilesUrl = (params?: ListEvaluationProfilesParams) => {
   const normalizedParams = new URLSearchParams();

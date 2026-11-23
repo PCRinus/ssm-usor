@@ -1,16 +1,20 @@
 import { createRouter } from '../../router';
 import {
   createRiskZone,
+  ignoreRiskZoneSuggestion,
   listRiskZoneNames,
   listRiskZones,
   removeRiskZone,
+  restoreRiskZoneSuggestion,
   updateRiskZone,
   updateRiskZonesState,
 } from './handlers';
 import {
   createRiskZoneRoute,
+  ignoreRiskZoneSuggestionRoute,
   listRiskZonesRoute,
   removeRiskZoneRoute,
+  restoreRiskZoneSuggestionRoute,
   riskZoneNamesRoute,
   updateRiskZoneRoute,
   updateRiskZonesStateRoute,
@@ -22,4 +26,6 @@ export const riskZonesRouter = createRouter()
   .openapi(updateRiskZoneRoute, updateRiskZone)
   .openapi(removeRiskZoneRoute, removeRiskZone)
   .openapi(updateRiskZonesStateRoute, updateRiskZonesState)
-  .openapi(riskZoneNamesRoute, listRiskZoneNames);
+  .openapi(riskZoneNamesRoute, listRiskZoneNames)
+  .openapi(ignoreRiskZoneSuggestionRoute, ignoreRiskZoneSuggestion)
+  .openapi(restoreRiskZoneSuggestionRoute, restoreRiskZoneSuggestion);

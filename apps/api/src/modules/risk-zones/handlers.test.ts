@@ -146,6 +146,9 @@ function mock(overrides: UpstreamRoutes = {}) {
     'DELETE /rest/v1/risk_zones': () => [{ id: zoneId }],
     '/rest/v1/rpc/save_risk_zone': () => zoneId,
     '/rest/v1/rpc/risk_zone_names': () => [],
+    'GET /rest/v1/risk_zone_ignored_factors': () => [],
+    'POST /rest/v1/risk_zone_ignored_factors': () => [],
+    'DELETE /rest/v1/risk_zone_ignored_factors': () => [],
   });
 }
 
@@ -188,19 +191,57 @@ describe('GET /clients/{clientId}/risk-zones', () => {
       id: id(101),
       kind: 'job_position',
       title: 'Electrician',
+      jobPositionId: position('Electrician', null).id,
     });
   });
 
   it('suggests the unacceptable factors no zone links, grouped by work zone, post or evaluation', async () => {
     mock();
     const { suggestions } = riskZonesResponseSchema.parse(await (await request(base)).json());
-    expect(suggestions.map((s) => [s.name, s.factors.map((f) => f.id), s.existingZoneId])).toEqual([
-      ['atelier', [id(4)], null],
-      ['Contabil', [id(5)], otherZoneId],
-      ['Grupuri sensibile la riscuri specifice', [id(8)], null],
-      ['Vizitatori', [id(7)], null],
+    expect(
+      suggestions.map((s) => [s.name, s.origin, s.factors.map((f) => f.id), s.existingZoneId])
+    ).toEqual([
+      ['atelier', 'work_zone', [id(4)], null],
+      ['Contabil', 'evaluation', [id(5)], otherZoneId],
+      ['Grupuri sensibile la riscuri specifice', 'evaluation', [id(8)], null],
+      ['Vizitatori', 'evaluation', [id(7)], null],
     ]);
-    expect(suggestions[2]!.factors[0]!.evaluation.kind).toBe('sensitive_groups');
+    expect(suggestions[2]!.factors[0]!.evaluation).toEqual({
+      id: id(106),
+      kind: 'sensitive_groups',
+      title: 'Grupuri sensibile la riscuri specifice',
+      jobPositionId: null,
+    });
+  });
+
+  it('sets the ignored factors apart, grouped the same way, and suggests a new factor on its own', async () => {
+    mock({
+      'GET /rest/v1/risk_zones': () => [],
+      'GET /rest/v1/risk_zone_ignored_factors': () => [
+        { factor_id: id(1) },
+        { factor_id: id(4) },
+        { factor_id: id(7) },
+        { factor_id: id(3) },
+      ],
+    });
+    const body = riskZonesResponseSchema.parse(await (await request(base)).json());
+    expect(body.suggestions.map((s) => [s.name, s.factors.map((f) => f.id)])).toEqual([
+      ['Atelier', [id(2)]],
+      ['Contabil', [id(5)]],
+      ['Grupuri sensibile la riscuri specifice', [id(8)]],
+    ]);
+    expect(
+      body.ignoredSuggestions.map((s) => [s.name, s.origin, s.factors.map((f) => f.id)])
+    ).toEqual([
+      ['Atelier', 'work_zone', [id(4), id(1)]],
+      ['Vizitatori', 'evaluation', [id(7)]],
+    ]);
+  });
+
+  it('leaves out of the ignored ones a factor a zone links since', async () => {
+    mock({ 'GET /rest/v1/risk_zone_ignored_factors': () => [{ factor_id: id(2) }] });
+    const body = riskZonesResponseSchema.parse(await (await request(base)).json());
+    expect(body.ignoredSuggestions).toEqual([]);
   });
 
   it('names a suggestion after the post when its work zone is too short to be a zone name', async () => {
@@ -405,5 +446,70 @@ describe('GET /risk-zone-names', () => {
     expect(call!.body ?? Object.fromEntries(call!.url.searchParams)).toEqual({
       p_except_client_id: clientId,
     });
+  });
+});
+
+describe('POST /clients/{clientId}/risk-zone-suggestions/ignore', () => {
+  const ignorePath = `/clients/${clientId}/risk-zone-suggestions/ignore`;
+
+  it('keeps each factor out of the suggestions, once', async () => {
+    mock();
+    const response = await request(ignorePath, 'POST', { factorIds: [id(4), id(4), id(5)] });
+    expect(response.status).toBe(200);
+    riskZonesResponseSchema.parse(await response.json());
+    const [insert] = callsTo('/rest/v1/risk_zone_ignored_factors', 'POST');
+    expect(insert!.body).toEqual([
+      expect.objectContaining({ factor_id: id(4), client_id: clientId }),
+      expect.objectContaining({ factor_id: id(5), client_id: clientId }),
+    ]);
+    expect(insert!.url.searchParams.get('on_conflict')).toBe('factor_id');
+  });
+
+  it('refuses a factor of another client', async () => {
+    mock({
+      'POST /rest/v1/risk_zone_ignored_factors': () =>
+        databaseError('23503', 'violates foreign key constraint'),
+    });
+    const response = await request(ignorePath, 'POST', { factorIds: [id(4)] });
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).issues).toEqual([
+      expect.objectContaining({ path: 'factorIds' }),
+    ]);
+  });
+
+  it('takes at least one factor', async () => {
+    mock();
+    expect((await request(ignorePath, 'POST', { factorIds: [] })).status).toBe(400);
+  });
+
+  it('refuses an archived client before writing', async () => {
+    mock({ '/rest/v1/clients': () => [{ ...clientRow, archived_at: stamp }] });
+    const response = await request(ignorePath, 'POST', { factorIds: [id(4)] });
+    expect(response.status).toBe(409);
+    expect(callsTo('/rest/v1/risk_zone_ignored_factors', 'POST')).toHaveLength(0);
+  });
+});
+
+describe('POST /clients/{clientId}/risk-zone-suggestions/restore', () => {
+  const restorePath = `/clients/${clientId}/risk-zone-suggestions/restore`;
+
+  it('returns the factors to the suggestions', async () => {
+    mock();
+    const response = await request(restorePath, 'POST', { factorIds: [id(4), id(1)] });
+    expect(response.status).toBe(200);
+    riskZonesResponseSchema.parse(await response.json());
+    const [deletion] = callsTo('/rest/v1/risk_zone_ignored_factors', 'DELETE');
+    expect(deletion!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    expect(deletion!.url.searchParams.get('factor_id')).toBe(`in.(${id(4)},${id(1)})`);
+  });
+
+  it('answers 409 under an archived client', async () => {
+    mock({
+      'DELETE /rest/v1/risk_zone_ignored_factors': () =>
+        databaseError('CLA01', 'An archived client is not changed.'),
+    });
+    const response = await request(restorePath, 'POST', { factorIds: [id(4)] });
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
   });
 });

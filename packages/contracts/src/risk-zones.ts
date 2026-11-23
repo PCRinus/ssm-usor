@@ -48,6 +48,7 @@ export const riskZoneEvaluationSchema = z.object({
   kind: riskEvaluationKindSchema,
   /** The position's name, the evaluation's own name, or the sensitive groups' title. */
   title: z.string(),
+  jobPositionId: z.uuid().nullable(),
 });
 
 export type RiskZoneEvaluation = z.infer<typeof riskZoneEvaluationSchema>;
@@ -83,8 +84,15 @@ export const riskZoneSchema = z.object({
 
 export type RiskZone = z.infer<typeof riskZoneSchema>;
 
+/**
+ * `work_zone` names a suggestion after the work zone of its posts; `evaluation` after its
+ * evaluation, a post's name when the post has no work zone.
+ */
+export const riskZoneSuggestionOrigins = ['work_zone', 'evaluation'] as const;
+
 export const riskZoneSuggestionSchema = z.object({
   name: z.string(),
+  origin: z.enum(riskZoneSuggestionOrigins),
   factors: z.array(riskZoneFactorSchema).min(1),
   // A zone of this client by the same name, which the factors could join instead: two zones of
   // a client never share a name.
@@ -97,11 +105,21 @@ export const riskZonesResponseSchema = z.object({
   state: riskZonesStateSchema,
   zones: z.array(riskZoneSchema),
   suggestions: z.array(riskZoneSuggestionSchema),
+  /** The suggestions of the factors the specialist ignored, grouped as the suggestions are. */
+  ignoredSuggestions: z.array(riskZoneSuggestionSchema),
   /** Every factor a zone may link: those of current posts and client-level evaluations, any level. */
   factors: z.array(riskZoneFactorSchema),
 });
 
 export type RiskZonesResponse = z.infer<typeof riskZonesResponseSchema>;
+
+export const riskZoneSuggestionFactorsRequestSchema = z.object({
+  factorIds: z.array(z.uuid()).min(1).max(300),
+});
+
+export type RiskZoneSuggestionFactorsRequest = z.infer<
+  typeof riskZoneSuggestionFactorsRequestSchema
+>;
 
 export const riskZoneNamesQuerySchema = z.object({ exceptClientId: z.uuid().optional() });
 
