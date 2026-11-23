@@ -31,6 +31,7 @@ export const documentKindLabels: Record<string, string> = {
   contract: 'Contract',
   training_sheet: 'Fișă de instruire',
   blank_form: 'Formular necompletat',
+  risk_zones_record: 'Evidența zonelor cu risc ridicat',
   cover: 'Copertă',
   generic_text: 'Text general',
   other: 'Alt document',

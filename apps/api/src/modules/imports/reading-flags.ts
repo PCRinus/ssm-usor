@@ -27,6 +27,7 @@ export interface ReadingFlags {
     total: number;
     byKind: Record<string, number>;
     unreadable: FilePlace[];
+    riskZonesRecords?: FilePlace[];
     setAside: number;
     forEmployees: number;
     otherCompany: number;
@@ -71,6 +72,9 @@ function filesFlags(files: readonly FileForFlags[]): NonNullable<ReadingFlags['f
     total: files.length,
     byKind: tally(files.map(fileKind)),
     unreadable: count('failed').map((file) => placeOf(files, file)),
+    riskZonesRecords: files
+      .filter((file) => file.document_kind === 'risk_zones_record')
+      .map((file) => placeOf(files, file)),
     setAside: count('set_aside').length,
     forEmployees: count('for_employees').length,
     otherCompany: count('other_company').length,
