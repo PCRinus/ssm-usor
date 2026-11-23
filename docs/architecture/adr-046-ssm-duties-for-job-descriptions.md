@@ -1,91 +1,119 @@
-# ADR 046: The SSM duties for the job descriptions, document 14
+# ADR 046: The SSM duties for the job descriptions, document 13, and each worker's acknowledgement of them
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-24
+- Moves the annex on the electronic signature of [ADR 023](adr-023-advanced-electronic-signature.md) from 13 to 14.
 
 ## Context
 
-The legal review of 2026-11-22 (issue #278) found three records the law asks of every employer, whatever its headcount, that the pack did not hold. The first, the record of high and specific risk zones, shipped as document 9.2 ([ADR 045](adr-045-risk-zones-record.md)). This ADR covers the second:
+The legal review of 2026-11-22 (issue #278) found three records the law asks of every employer, whatever its headcount, that the pack did not hold. The first, the record of high and specific risk zones, shipped as document 9.2 ([ADR 045](adr-045-risk-zones-record.md)). This ADR covers the second.
 
 - Legea 319/2006 art. 13 lit. d): the employer must "să stabilească pentru lucrători, prin fișa postului, atribuțiile și răspunderile ce le revin în domeniul securității și sănătății în muncă, corespunzător funcțiilor exercitate".
 - H.G. 1425/2006 art. 15 (1) pt. 4 makes it a prevention activity: "propunerea atribuțiilor și răspunderilor în domeniul securității și sănătății în muncă, ce revin lucrătorilor, corespunzător funcțiilor exercitate, care se consemnează în fișa postului, cu aprobarea angajatorului". Pt. 5 adds the check that every worker knows and applies them.
 - Codul muncii art. 17 (3) lit. d) names the job description among what an employee is told before hiring.
 
-The job description is the employer's own human-resources document, and an external service does not write it. What the service proposes, and the employer approves, is the SSM part. Providers hand it over as an annex to the job description, one per post, signed by the employees who hold it.
+The job description is the employer's own human-resources document, and an external service does not write it. What the service proposes, and the employer approves, is its SSM part, which providers hand over as an annex per post.
 
-The pack already points at this missing piece:
+The pack already quotes every worker's general duties (Legea 319/2006 art. 22–23) in the general training material (2.1, chapter III), the own instructions (3.1, chapter IV) and the employer briefing (11.1). It sets no duty for a post or a person, however, and four of its documents point to a record it does not produce:
 
-- Decision 1.3 says the first-aiders' duties "vor fi prezentate în fișa postului".
-- The control regulation (12) asks controllers to check that workers "cunosc și respectă atribuțiile și responsabilitățile ce le revin în domeniul securității și sănătății în muncă stabilite în fișa postului".
-- The employer briefing (11.1) quotes both articles.
-
-Everything the annex needs is already in the app:
-
-- **Positions:** each client's job positions, with their staff category, their current employees, the own instructions each applies, and whether they need protective equipment.
-- **Responsible persons:** each person's roles (workplace manager, first aid, imminent danger, workers' representative), linked to the employee who holds them.
-- **Zones:** the zones of document 9.2 and the factors linked to each.
+- Decision 1.3 names the first-aiders and says their duties "vor fi prezentate în fișa postului", but lists none.
+- 3.1, chapter VII, says the first-aiders' duties "vor trebui să fie incluse în fișa postului".
+- 2.1 quotes art. 13 lit. d).
+- The control regulation (12) asks controllers to check the duties "stabilite în fișa postului".
 
 ## Decision
 
-### Document 14: one annex per position
+### Two parts, as with the training sheets
 
-The document is 14, "Atribuții și răspunderi în domeniul securității și sănătății în muncă – anexe la fișele posturilor". It is a section of its own after 13, with no cover, numbered 14 like the other single-document sections. Every client gets it; it depends on no headcount.
+The employer's decision and the worker's signature are kept apart, as the training material and the individual training sheets are:
 
-It holds one annex per current position, in the order of the positions table, each beginning on a new page. The page heads "Anexă la fișa postului: <position>". It is not one per employee, because a job description belongs to a post and every holder of the post signs the same text. Per employee would repeat the same pages for a shop with six cashiers.
+1. **Document 13** in the client's SSM documentation holds the duties of every post, proposed by the provider and approved by the employer. It carries no employee's signature.
+2. **An acknowledgement sheet** (_fișa de luare la cunoștință a atribuțiilor SSM_) on each worker's page. It holds the duties of that worker's post and of the roles the worker holds, and the worker's own signature.
+
+A shared signature table on document 13 was rejected. When some employees of a post sign in the portal and others on paper, neither the paper table nor the app would show who signed. One sheet per person lets each sign their own way, as the training sheets do.
+
+### Document 13: one document, one annex per post
+
+The document is 13, "Atribuții și răspunderi în domeniul securității și sănătății în muncă – anexe la fișele posturilor". It is a section of its own, numbered 13, and every client gets it. The annex on the electronic signature, which only a client with participants gets, moves from 13 to 14, so a section that is not always there stays last and no client sees a gap in the numbers.
+
+- **Placement:** placing it earlier by meaning was rejected, for example as 5, next to the instructions. The sections after it would all be renumbered, and those numbers follow the provider's printed binder that clients already file. A second document in folder 3 was the other option and was set aside, so that the folder holds only instructions.
+- **No cover:** a cover carries the hand-over signatures of a long document. This one carries them on its first page instead, as the prevention plan (10) and 9.2 do: the provider's "Am propus și predat un exemplar" and the employer's "Am primit și aprobat".
+- **One annex per post:** the document holds one annex for each current position, in the order of the positions table. Each annex starts on a new page headed "Anexa <n> la fișa postului: <position>" and carries a short approval line of its own ("Aprobat: <role>, <name>, semnătura"), because in practice each annex is filed with that post's job descriptions, away from the first page.
+- **In the app:** the documentation list shows the annexes under the document, as it shows 3.1's.
+- **Per employee was rejected:** a job description belongs to a post, and the six cashiers of a shop share one text.
 
 ### What an annex prints
 
-Each annex prints the following, in this order.
-
 1. **The basis**: Legea 319/2006 art. 13 lit. d) and H.G. 1425/2006 art. 15 (1) pt. 4.
-
-2. **The duties of every worker**: Legea 319/2006 art. 22 and art. 23 (1) lit. a)–i), in the law's words lightly adapted to the second person of a job description. They are the same for every post and fixed in the template.
-
-3. **The duties of this post**, built from its data:
-   - **Own instructions:** to know and apply the own instructions the post applies, named by their number and title as document 3.1 prints them (H.G. 1425/2006 art. 15 (1) pt. 3).
-   - **Protective equipment:** for a post that needs it, to use the protective equipment of document 6 and return it after use (Legea 319/2006 art. 23 (1) lit. b)). A post that needs none prints no line.
-   - **Risk zones:** for a post whose risk factors a zone of 9.2 links, to know that zone and apply its measures (H.G. 1425/2006 art. 106 (2)). A post linked to no zone prints no line.
-   - **Training:** to take part in the trainings at the interval of its staff category, as decision 1.1 sets them.
-
+2. **The duties of every worker**: Legea 319/2006 art. 22 and art. 23 (1) lit. a)–i), adapted to the second person of a job description. The pack already prints them in 2.1 and 3.1. They are repeated here so that an annex is complete on its own, both for the worker who signs it and for an inspector who reads it with the job description.
+3. **The duties of the post**, from its data:
+   - **Own instructions:** to know and apply the own instructions the post applies, named by their number and title as 3.1 prints them (H.G. 1425/2006 art. 15 (1) pt. 3).
+   - **Protective equipment:** for a post that needs it, to use the protective equipment of document 6 and return it after use (Legea 319/2006 art. 23 (1) lit. b)).
+   - **Risk zones:** for a post whose risk factors a zone of 9.2 links, to know that zone and apply its measures (H.G. 1425/2006 art. 106 (2)). The zones are read only once they are decided (ADR 045). Until then the annex prints no zone line, and its snapshot marks it changed when they are.
+   - **Training:** to take part in the trainings at its staff category's interval, as decision 1.1 sets it.
 4. **The duties of a role**, for each current employee of the post who holds one, named:
-   - **Workplace manager:** training its workers at the workplace and periodically (H.G. 1425/2006 art. 91 (1) and 96 (1)), and not letting anyone start work untrained (art. 94). Also passing on the zones' measures (art. 106 (2)).
-   - **First aid:** decision 1.3 names the first-aiders and says their duties "vor fi prezentate în fișa postului", but lists none. So this block is written for the annex, in our own wording on the basis of Legea 319/2006 art. 10: giving first aid as trained, calling the emergency services, keeping the first-aid kit stocked, and telling the employer what was used.
-   - **Imminent danger:** the duties decision 1.4 assigns to its designated personnel.
-   - **Workers' representative:** the duties decision 1.5 lists.
+   - **Workplace manager:** training its workers at the workplace and periodically (H.G. 1425/2006 art. 91 (1), 96 (1)); letting no one start work before their knowledge is checked (art. 94); passing on the zones' measures (art. 106 (2)).
+   - **First aid:** written for the annex on the basis of Legea 319/2006 art. 10, since decision 1.3 sends these duties to the job description and lists none. They are: giving first aid as trained, calling the emergency services, keeping the first-aid kit stocked, and telling the employer what was used.
+   - **Imminent danger** and **workers' representative:** the texts decisions 1.4 and 1.5 already print, so a decision and an annex never disagree, each citing its decision ("conform deciziei nr. 4 SSM din …").
 
-   The imminent-danger and representative blocks reuse the texts their decisions already print, so the annex and the decision never disagree, and each cites its decision: "conform deciziei nr. 4 SSM din …". A person with two roles gets both blocks. The wording written for the annex (the common duties adapted from art. 23, the first-aid and workplace-manager blocks) goes to the SSM contact for review, as the other templates' wording did.
+   A person with two roles gets both blocks.
 
-5. **A sentence on responsibility**: failing these duties is answered for under the internal regulation and the law, with no list of penalties.
+5. **A sentence on responsibility**: failing these duties is answered for under the internal regulation and the law.
 
-6. **The approval and the signatures**: the employer's approval, as on every document of the set; the provider as the one who proposed it ("Am propus" / "Am aprobat"); and a table of the post's current employees, each with "Am luat cunoștință", the date and the signature, as the decisions' tables are drawn.
+### A post's own rules live in the own instructions
+
+There is no field for free duties of a post. A rule that belongs to a post goes into an own-instructions module applied to it ([ADR 012](adr-012-own-instructions.md), [ADR 034](adr-034-own-instructions-as-app-text.md)), and the annex names that module. An example is "nu folosește feliatorul de carne fără a fi instruit", in a module on the slicer. A field on the position was considered and rejected:
+
+- the modules are already the per-post mechanism, kept in the provider's library and reused at every client with the same post;
+- a second place for post rules would split them.
+
+A text typed by hand into document 13 in the editor reaches neither a regenerated 13 nor the acknowledgement sheets, which are built from the data. The help article says so and points to the modules.
+
+### The acknowledgement sheet
+
+On a worker's page, beside the individual training sheets and the electronic-signing agreement:
+
+- **Content:** the annex of the worker's post, with the role blocks of the roles that worker holds, under the title "Fișa de luare la cunoștință a atribuțiilor SSM". It ends with the worker's statement and signature: "Am primit, am citit și am înțeles atribuțiile și răspunderile de mai sus".
+- **Which revision:** it names the revision of document 13 it comes from ("anexa 2 din documentul 13, emis la 24.11.2026"). It can be produced only once document 13 has been generated.
+- **Out of date:** when a newer revision of 13 changes that post's annex, or the worker's roles change, the sheet shows as out of date and is due for signing again. Each revision records a fingerprint of every annex, so a regeneration that leaves a post's annex unchanged leaves its workers' sheets current.
+- **Signing on paper, now:** the member downloads the sheet, the worker signs it by hand, and the member records it as signed on paper, with the day and an optional scan. This follows "Înregistrează actul semnat pe hârtie" of the signing agreement and "Marchează semnat pe hârtie" of a training record. The worker's page and the workers list then show whether the worker's acknowledgement is signed, unsigned or out of date.
+- **No post:** a worker without a post has no sheet. The page says "Lucrătorul nu are un post de lucru" and links to setting one.
+
+### Prepared for the electronic signature
+
+Signing the sheet in the portal is a later step, on the pipeline of [ADR 023](adr-023-advanced-electronic-signature.md). The sheet is built for it now:
+
+- one document per worker, with one signer;
+- the state values of the signing agreement (`generated`, `signed_on_paper`, and later `signed_electronically`);
+- the same evidence of the revision signed.
+
+That later step must also widen the signing agreement. Today the employee agrees to sign their training records electronically, and it does not cover other documents. The same step can move the acknowledgement tables of decisions 1.3, 1.4 and 1.5 to the portal. Until then a worker who consented to electronic signing still signs this sheet on paper.
 
 ### Readiness
 
-The document needs no data the set does not already require: current positions, with the instructions and equipment ADR 012 and ADR 011 already check. A post with no current employee still gets its annex, with an empty signature table to fill in by hand. Since 9.2 may wait for the zones (ADR 045), the zone line reads the zones only when they are decided. While they are not, the annex prints no zone line, and its snapshot marks it as changed once they are.
+Document 13 needs no data the set does not already require: current positions, with the instructions and equipment ADR 011 and ADR 012 check. A post with no current employee still gets its annex.
 
-### Who changes what
+## Left out
 
-The annex is generated and edited like any document of the set. A provider who wants other wording for the common duties edits the generated file, as with every template. A post-specific duty that is neither a module, nor equipment, nor a zone is typed in the editor; there is no field for it. Fields for free post duties were rejected: the four sources above cover what the law ties to a post, and a field would be one more thing to fill for every post of every client.
-
-### In the app
-
-Nothing new to fill in. The document appears in the SSM documentation as section 14 and is generated with the set. The help article on the documentation says what it holds and where its duties come from.
-
-### Left out
-
-- **Fire-safety duties in the job description** belong to the fire-safety set. They are not covered here.
-- **The job description itself**, the human-resources document, is the employer's own; the annex is attached to it, not merged into it.
-- **Electronic signing** of the annex through the portal can come later, as for the training sheets ([ADR 023](adr-023-advanced-electronic-signature.md)).
+- **Fire-safety duties in the job description** belong to the fire-safety set and are not covered here.
+- **The job description itself** stays the employer's document; the annex is attached to it.
+- **Electronic signing** of the sheet is described above as a later step.
 
 ## Consequences
 
-- Every client gains document 14, generated from data it already has, with no new screen.
-- Decision 1.3's sentence that the first-aiders' duties go in the job description becomes true.
-- A change to a post's instructions, equipment, employees or roles, or to a zone linked to it, marks 14 as changed.
+- Every client gains document 13 without a new field to fill in, and every worker with a post gains an acknowledgement to sign.
+- Decision 1.3's promise that the first-aiders' duties go into the job description is kept.
+- The annex on the electronic signature is renumbered to 14 in every place that shows it.
+- The new wording goes to the SSM practitioner on the first render of a sample client, before release (#345): the general duties adapted from art. 23, the first-aid block and the workplace-manager block.
 
 ## Order of work
 
 1. This ADR.
-2. The contracts (the type, its number 14, its section), the merge context for the annexes, the snapshot, and the clients list's applicability row.
-3. The template, built like 9.2's from our own wording, with the role blocks taken from the decisions' texts. Then rendered and checked against the law.
-4. The help article and the update's lines.
+2. Renumbering: the annex on the electronic signature becomes 14 in the contracts, the manifest, the template's file name, the help and the tests.
+3. Document 13: the contracts (its type, number and section), the merge context and fingerprint per annex, the snapshot, the clients list's applicability row, and the template. The template is built like 9.2's from our own wording, then rendered and checked against the law.
+4. The acknowledgement sheet:
+   - its per-employee template;
+   - its storage (state, revision, day, scan) and API;
+   - the card on the worker's page;
+   - the status in the workers list.
+5. The help articles and the update's lines.
