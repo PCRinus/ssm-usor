@@ -1,5 +1,5 @@
 begin;
-select plan(26);
+select plan(27);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), '{"provider":"email"}', '{}', now(), now()
@@ -42,6 +42,9 @@ insert into public.risk_zones (id, organization_id, client_id, name, workplace_i
 
 insert into public.risk_zone_factors (zone_id, factor_id, organization_id, client_id) values
   ('7d000000-0000-4000-8000-000000000001', '7f000000-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001');
+
+insert into public.risk_zone_ignored_factors (factor_id, organization_id, client_id) values
+  ('7f000000-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001');
 
 insert into public.employees (id, organization_id, client_id, job_position_id, workplace_id, last_name, first_name, job_title, hired_at) values
   ('e1e1e1e1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 'Popescu', 'Ion', 'Sudor', '2026-01-05'),
@@ -270,6 +273,7 @@ select is((select count(*) from public.clients where id = 'c1c1c1c1-0000-4000-80
 select is((select count(*) from public.client_workplaces where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its workplaces are gone');
 select is((select count(*) from public.job_position_equipment where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its equipment is gone');
 select is((select count(*) from public.risk_zones where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its risk zones are gone, with their links');
+select is((select count(*) from public.risk_zone_ignored_factors where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its ignored zone suggestions are gone with its factors');
 select is((select count(*) from public.employees where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its employees are gone');
 select is((select count(*) from public.training_signatures where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its training signatures are gone');
 select is((select count(*) from public.test_attempt_keys where attempt_id = 'a7a7a7a7-0000-4000-8000-000000000001'), 0::bigint, 'its finished tests are gone');
