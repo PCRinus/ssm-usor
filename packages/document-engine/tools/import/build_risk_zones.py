@@ -9,6 +9,7 @@ table drawn by the importer's own `fill_section`, so the sweep finishes both ali
 """
 
 import json
+import re
 import sys
 import zipfile
 
@@ -68,6 +69,13 @@ def build(desktop, definition):
     print(definition['file'])
 
 
+def splittable_body_row(match):
+    row = match.group(0)
+    if '<w:tblHeader' in row:
+        return row
+    return re.sub(r'<w:cantSplit\b[^>]*/>', '', row).replace('<w:trPr></w:trPr>', '')
+
+
 def let_rows_flow(path):
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
@@ -79,6 +87,8 @@ def let_rows_flow(path):
                     if '{{#riskZones.zones}}' in xml[start:end]:
                         table = edit_properties(xml[start:end], 'tblPr', lambda inner: put(
                             inner, 'tblCaption', FLOWING_ROWS, TBL_PR_ORDER))
+                        table = re.sub(r'<w:tr\b(?:(?!</w:tr>).)*</w:tr>', splittable_body_row,
+                                       table, flags=re.S)
                         xml = xml[:start] + table + xml[end:]
                 data = xml.encode('utf8')
             archive.writestr(item, data)
