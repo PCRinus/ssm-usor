@@ -331,6 +331,7 @@ function RiskZoneForm({
                 emptyMessage="Scrie denumirea zonei."
                 clearLabel="Șterge denumirea"
                 descriptionClassName="line-clamp-2 text-muted-foreground"
+                descriptionInTrigger={false}
                 unknownValue={(search) => {
                   const text = search.trim();
                   if (!text) return null;
@@ -572,7 +573,7 @@ function FactorChecklist({
               className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
-          <div className="max-h-[28rem] overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto max-sm:max-h-none">
             {shown.length === 0 && (
               <p className="px-3 py-3 text-sm text-muted-foreground">
                 Niciun factor nu se potrivește căutării.

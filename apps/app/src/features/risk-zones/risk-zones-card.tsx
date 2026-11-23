@@ -347,7 +347,7 @@ function DeclaredRow({
         </span>
       </span>
       {!readOnly && (
-        <span className="flex flex-wrap gap-2 max-sm:grid max-sm:w-full max-sm:grid-cols-2 max-sm:[&>button]:h-11">
+        <span className="flex flex-wrap gap-2 max-sm:grid max-sm:w-full max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:[&>button]:h-11">
           <Button
             variant="secondary"
             size="sm"
