@@ -230,7 +230,7 @@ describe('the document editor on a phone', () => {
       within(menu)
         .getAllByRole('menuitem')
         .map((item) => item.textContent)
-    ).toEqual(['Cuprins și căutare', 'Descarcă documentul Word', 'Tipărește']);
+    ).toEqual(['Navigare', 'Descarcă documentul Word', 'Tipărește']);
     await user.keyboard('{Escape}');
 
     await user.click(screen.getByTestId('editor-phone-start-draft'));
@@ -480,7 +480,7 @@ describe('an instruction on a phone', () => {
       within(menu)
         .getAllByRole('menuitem')
         .map((item) => item.textContent)
-    ).toEqual(['Deschide versiunea curentă', 'Cuprins și căutare', 'Descarcă documentul Word']);
+    ).toEqual(['Deschide versiunea curentă', 'Navigare', 'Descarcă documentul Word']);
     expect(within(menu).getByTestId('editor-phone-open-current').getAttribute('href')).toBe(
       `/instructiuni/${moduleId}`
     );

@@ -1,4 +1,5 @@
 import '@docx-editor.dev/core/styles/editor.css';
+import '@/features/documents/editor-theme.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
 import { DocxEditor } from '@docx-editor.dev/react';

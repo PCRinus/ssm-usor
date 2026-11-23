@@ -253,7 +253,7 @@ function MenuItem({
         onSelect={navigation.toggle}
       >
         <TableOfContents aria-hidden="true" />
-        {navigation.open ? 'Închide cuprinsul și căutarea' : 'Cuprins și căutare'}
+        {navigation.open ? 'Închide navigarea' : 'Navigare'}
       </DropdownMenuItem>
     );
   }
@@ -315,8 +315,8 @@ function HistoryButtons() {
 
 // The packaged toolbar takes no parts, so a phone gets its own, without what the bar above
 // already offers (undo, redo) or what a draft never needs (the editing mode, and comments, which
-// need a module the app does not load). It folds whole groups into „⋯”, and the group from bold
-// to link fits a 320 px screen only without strikethrough and link, which the documents rarely use.
+// need a module the app does not load). Strikethrough and link, which the documents rarely use,
+// are left to the desktop toolbar so that a narrow row keeps the controls a draft needs.
 function FormattingToolbar() {
   const t = useChromeTranslate();
   return (

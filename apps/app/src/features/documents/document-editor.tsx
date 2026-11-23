@@ -1,8 +1,9 @@
 import '@docx-editor.dev/core/styles/editor.css';
+import './editor-theme.css';
 import './document-editor.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
-import { DocxEditor, type DocxEditorRef } from '@docx-editor.dev/react';
+import { DocxEditor, type DocxEditorRef, useEditorState } from '@docx-editor.dev/react';
 import { useIsPhone } from '@ssm-usor/ui/hooks/use-mobile';
 import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
@@ -25,7 +26,7 @@ import { useUnfilledMarks } from './use-unfilled-marks';
 // text in Arial, so that one family is all that is allowed to load, from our own origin,
 // about 0.8 MB once per browser. The other packaged families (Carlito as a stand-in for a
 // default the templates never use, serif and mono faces that styles merely declare) would
-// add 2.6 MB for nothing. One value for the whole app: a new identity remounts the editor.
+// add 2.6 MB for nothing.
 const fonts = packagedFonts({ allow: ['Arial'] });
 
 export interface DocumentEditorHandle {
@@ -43,8 +44,8 @@ export default function DocumentEditor({
   handle,
   actions,
   phoneBar,
+  download,
   onReady,
-  onFailed,
   onChange,
   onSaveShortcut,
 }: {
@@ -55,9 +56,10 @@ export default function DocumentEditor({
   handle: Ref<DocumentEditorHandle>;
   actions: ReactNode;
   phoneBar: PhoneBar;
+  /** Offered in the editor's dialog when the document does not open. */
+  download: { label: string; onClick: () => void };
+  /** The document is laid out, or did not open and the editor says so. */
   onReady: () => void;
-  /** The editor could not lay the document out; it shows nothing in that case. */
-  onFailed: () => void;
   onChange: () => void;
   onSaveShortcut: () => void;
 }) {
@@ -82,59 +84,13 @@ export default function DocumentEditor({
     },
   }));
 
-  // A document the layout engine cannot paginate throws outside React, from its own
-  // scheduling, and never reports ready. Until it has, an error on the page is taken as that;
-  // so is half a minute of silence.
-  useEffect(() => {
-    const failed = () => {
-      if (!ready.current) onFailed();
-    };
-    const timeout = window.setTimeout(failed, 30_000);
-    window.addEventListener('error', failed);
-    window.addEventListener('unhandledrejection', failed);
-    return () => {
-      window.clearTimeout(timeout);
-      window.removeEventListener('error', failed);
-      window.removeEventListener('unhandledrejection', failed);
-    };
-  }, [onFailed]);
-
-  // In view mode the editor cancels every selectstart on the pages and copies its own selection,
-  // which does not follow the browser's (after a search it is the match), so nothing could be
-  // copied; capture listeners on the document run before the editor's own. A native select all
-  // would also take the toolbar and the pane.
-  useEffect(() => {
-    if (editable) return;
-    const inPages = (node: Node | null) =>
-      (node instanceof Element ? node : node?.parentElement)?.closest('.docx-pages');
-    const allow = (event: Event) => {
-      if (inPages(event.target as Node)) event.stopPropagation();
-    };
-    const selectAll = (event: KeyboardEvent) => {
-      const mac = /Mac|iPhone|iPad/.test(navigator.platform);
-      const command = mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
-      if (event.key.toLowerCase() !== 'a' || !command || event.altKey) return;
-      if (
-        (event.target as Element | null)?.closest?.(
-          'input, textarea, select, [contenteditable="true"]'
-        )
-      )
-        return;
-      const selection = window.getSelection();
-      const pages = inPages(selection?.anchorNode ?? null);
-      if (!selection || !pages) return;
-      event.preventDefault();
-      selection.selectAllChildren(pages);
-    };
-    document.addEventListener('selectstart', allow, true);
-    document.addEventListener('copy', allow, true);
-    document.addEventListener('keydown', selectAll, true);
-    return () => {
-      document.removeEventListener('selectstart', allow, true);
-      document.removeEventListener('copy', allow, true);
-      document.removeEventListener('keydown', selectAll, true);
-    };
-  }, [editable]);
+  const settle = () => {
+    if (ready.current) return;
+    ready.current = true;
+    setLaidOut(true);
+    cleanRevision.current = editor.current?.getDocumentHandle()?.revision ?? null;
+    onReady();
+  };
 
   return (
     <DocxEditor
@@ -171,18 +127,32 @@ export default function DocumentEditor({
           phoneBar={phoneBar}
         />
       )}
-      onReady={() => {
-        ready.current = true;
-        setLaidOut(true);
-        cleanRevision.current = editor.current?.getDocumentHandle()?.revision ?? null;
-        onReady();
-      }}
+      onReady={settle}
       onChange={(change) => {
         if (ready.current && change.revision !== cleanRevision.current) onChange();
       }}
       onSave={onSaveShortcut}
-    />
+      openFailure={{
+        actions: () => (
+          <DocxEditor.OpenFailure.Action variant="primary" onClick={download.onClick}>
+            {download.label}
+          </DocxEditor.OpenFailure.Action>
+        ),
+      }}
+    >
+      <OpenFailureWatch onFailed={settle} />
+    </DocxEditor>
   );
+}
+
+// A large document the editor refuses never reports ready, and the page keeps it covered and
+// unreachable until it does: its dialog would show behind the cover.
+function OpenFailureWatch({ onFailed }: { onFailed: () => void }) {
+  const failed = useEditorState((state) => Boolean(state.openFailure));
+  useEffect(() => {
+    if (failed) onFailed();
+  }, [failed, onFailed]);
+  return null;
 }
 
 function TitleBarControls({

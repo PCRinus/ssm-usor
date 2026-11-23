@@ -240,6 +240,22 @@ describe('typesetting', () => {
     expect(bodyOf(name)).not.toContain('<w:hyperlink');
   });
 
+  it.each(typesetFiles)('%s lists in the editor no bookmark that nothing points to', (name) => {
+    // The editor's navigation pane lists every bookmark not named with a leading underscore.
+    const body = bodyOf(name);
+    const named = new Set(
+      [
+        ...body.matchAll(
+          /\b(?:PAGEREF|NOTEREF|REF)\s+"?([^\s"\\]+)|\bHYPERLINK\b[^<]*?\\l\s+"([^"]+)"/g
+        ),
+      ].map((match) => match[1] ?? match[2])
+    );
+    const listed = [...body.matchAll(/<w:bookmarkStart\b[^>]*?\bw:name="([^"]*)"/g)]
+      .map((match) => match[1]!)
+      .filter((bookmark) => !bookmark.startsWith('_') && !named.has(bookmark));
+    expect(listed).toEqual([]);
+  });
+
   const sheetHeaders: Record<string, string[]> = {
     'fisa_instruire_ssm.docx': ['Fișa SSM · {{employee.headerName}}Pag. 1 din 1', 'Pag. 1 din 1'],
     'fire/fisa_instructaj_su.docx': ['Fișa SU · {{employee.headerName}}Pag. 1 din 1'],

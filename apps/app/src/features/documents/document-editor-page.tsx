@@ -121,7 +121,6 @@ export function DocumentEditorView({
   // The revision whose file could not be fetched, so that another revision starts clean.
   const [failedRevisionId, setFailedRevisionId] = useState<string | null>(null);
   const [readyRevisionId, setReadyRevisionId] = useState<string | null>(null);
-  const [failedEditorRevisionId, setFailedEditorRevisionId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [startError, setStartError] = useState(false);
@@ -134,7 +133,6 @@ export function DocumentEditorView({
   const canStartDraft = !readOnly && document != null && !document.draft && document.issued != null;
   const revisionId = revision?.id;
   const ready = revisionId !== undefined && readyRevisionId === revisionId;
-  const failed = revisionId !== undefined && failedEditorRevisionId === revisionId;
   const loadError = revisionId !== undefined && failedRevisionId === revisionId;
 
   // The file of the revision, once per revision: saving does not fetch it again.
@@ -401,47 +399,27 @@ export function DocumentEditorView({
           {saveError}
         </Notice>
       )}
-      {failed ? (
-        <div
-          data-testid="editor-failed"
-          role="alert"
-          className="grid max-w-xl gap-4 rounded-lg border p-6"
-        >
-          <TitleWithBack back={arrow} line="text-lg">
-            <h1 className="text-lg font-semibold">{title}</h1>
-          </TitleWithBack>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Acest document are o așezare în pagină pe care editorul din aplicație nu o poate afișa.
-            Descarcă-l, modifică-l în Word și păstrează-l; conținutul lui nu este afectat.
-          </p>
-          <Button className="w-fit" onClick={() => void download()}>
-            <Download aria-hidden="true" />
-            Descarcă documentul
-          </Button>
+      <div data-testid="editor-frame" data-ready={ready} className={editorFrameClassName}>
+        {!ready && <EditorPlaceholder back={back} />}
+        <div className="h-full" aria-hidden={!ready} inert={!ready} {...replayMask}>
+          <Suspense fallback={null}>
+            <DocumentEditor
+              key={loaded.revisionId}
+              bytes={loaded.bytes}
+              title={title}
+              editable={editable}
+              back={back}
+              handle={editor}
+              actions={actions}
+              phoneBar={phoneBar}
+              download={{ label: 'Descarcă documentul', onClick: () => void download() }}
+              onReady={() => setReadyRevisionId(loaded.revisionId)}
+              onChange={() => setDirty(true)}
+              onSaveShortcut={() => void save()}
+            />
+          </Suspense>
         </div>
-      ) : (
-        <div data-testid="editor-frame" data-ready={ready} className={editorFrameClassName}>
-          {!ready && <EditorPlaceholder back={back} />}
-          <div className="h-full" aria-hidden={!ready} inert={!ready} {...replayMask}>
-            <Suspense fallback={null}>
-              <DocumentEditor
-                key={loaded.revisionId}
-                bytes={loaded.bytes}
-                title={title}
-                editable={editable}
-                back={back}
-                handle={editor}
-                actions={actions}
-                phoneBar={phoneBar}
-                onReady={() => setReadyRevisionId(loaded.revisionId)}
-                onFailed={() => setFailedEditorRevisionId(loaded.revisionId)}
-                onChange={() => setDirty(true)}
-                onSaveShortcut={() => void save()}
-              />
-            </Suspense>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

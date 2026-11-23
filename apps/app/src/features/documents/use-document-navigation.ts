@@ -1,7 +1,6 @@
 import type { DocxEditorNavigationProps, NavigationTabValue } from '@docx-editor.dev/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const phoneWidth = '(width <= 40rem)';
 const pane = '.docx-nav';
 const findInput = '#docx-nav-panel-find .docx-nav__search-input';
 const documentContent = '.docx-pages, .docx-editor-one-surface__viewport';
@@ -103,21 +102,6 @@ export function useDocumentNavigation() {
     input?.focus();
     input?.select();
   }, [findRequest]);
-
-  // On a phone the pane covers the page, so what was picked is shown by closing it.
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (event: MouseEvent) => {
-      if (
-        within(event.target, '.docx-nav__heading, .docx-nav__result') &&
-        window.matchMedia(phoneWidth).matches
-      ) {
-        close();
-      }
-    };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, [open, close]);
 
   const navigation = useMemo<DocxEditorNavigationProps>(
     () => ({
