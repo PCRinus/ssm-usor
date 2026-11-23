@@ -69,6 +69,8 @@ test('a suggestion is ignored and restored, the declaration made and undone, and
   await page.getByTestId('generate-waiting-row').click();
   await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/posturi#risk-zones$`));
   const card = page.getByTestId('risk-zones-card');
+  await expect(card.getByTestId('risk-zone-suggestion').first()).toBeVisible();
+  await expect(card).toBeInViewport();
   await expect(card.getByTestId('risk-zones-status')).toHaveText(
     'Documentul 9.2: așteaptă zonele clientului sau declarația că nu are'
   );

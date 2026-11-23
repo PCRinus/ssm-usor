@@ -81,7 +81,8 @@ export function RiskZonesCard({
       help="evaluari-de-risc.zone-cu-risc"
       description={data && !readOnly && <RecordStatus data={data} />}
       action={
-        !readOnly && (
+        !readOnly &&
+        !(data && showsEmptyState(data)) && (
           <Button
             variant="secondary"
             size="sm"
@@ -133,6 +134,13 @@ export function RiskZonesCard({
     </SectionCard>
   );
 }
+
+// The empty state holds its own add button, as drawn.
+const showsEmptyState = (data: RiskZonesResponse) =>
+  data.state === 'undecided' &&
+  data.zones.length === 0 &&
+  data.suggestions.length === 0 &&
+  data.ignoredSuggestions.length === 0;
 
 function RecordStatus({ data }: { data: RiskZonesResponse }) {
   const current = new Set(data.factors.map((factor) => factor.id));

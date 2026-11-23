@@ -504,7 +504,7 @@ describe('the risk zones card', () => {
         .getAllByRole('button')
         .map((button) => button.textContent)
     ).toEqual(['Adaugă o zonă', 'Nu există zone cu risc ridicat și specific']);
-    expect(within(card).getByTestId('risk-zone-add')).toBeTruthy();
+    expect(within(card).queryByTestId('risk-zone-add')).toBeNull();
   });
 
   it('asks for a factor or measures, takes a name used before with its measures, and puts a taken name on the field', async () => {
@@ -527,7 +527,7 @@ describe('the risk zones card', () => {
     const user = userEvent.setup();
     const card = await findCard();
 
-    await user.click(within(card).getByTestId('risk-zone-add'));
+    await user.click(within(card).getByTestId('risk-zones-empty-add'));
     const editor = await screen.findByTestId('risk-zone-editor');
     expect(within(editor).getByTestId('risk-zone-factor-count').textContent).toBe('niciunul ales');
     await user.click(within(editor).getByTestId('risk-zone-name'));
@@ -637,6 +637,38 @@ describe('the risk zones card', () => {
     );
     expect(within(card).getByTestId('risk-zone-measures').textContent).toBe(
       'Măsuri:niciuna de tipărit; leagă un factor cu măsuri sau scrie măsurile proprii'
+    );
+  });
+
+  it('keeps a factor of an archived post linked, without the measures 9.2 no longer prints', async () => {
+    const archivedPost = {
+      id: id(105),
+      kind: 'job_position',
+      title: 'Sudor vechi',
+      jobPositionId: id(205),
+    } as const;
+    const welding = factor(7, archivedPost, 5, 'Arsuri la sudură', [['other', 'Ecran de sudură']]);
+    mockZonesApi({
+      initial: response({
+        state: 'listed',
+        zones: [zone({ id: id(304), name: 'Atelier', factors: [fall, welding] })],
+        suggestions: [],
+      }),
+    });
+    mount();
+    const user = userEvent.setup();
+    const card = await screen.findByTestId('risk-zones-card');
+    const row = await within(card).findByTestId('risk-zone-row');
+    expect(within(row).getByTestId('risk-zone-measures').textContent).toBe(
+      'Măsuri:una din factorii legați'
+    );
+    await user.click(within(row).getByTestId('risk-zone-actions'));
+    await user.click(await screen.findByTestId('risk-zone-edit'));
+    const editor = await screen.findByTestId('risk-zone-editor');
+    expect(within(editor).getByTestId('risk-zone-factor-count').textContent).toBe('2 aleși');
+    expect(within(editor).getByRole('group', { name: 'Sudor vechi' })).toBeTruthy();
+    expect(within(editor).getByTestId('risk-zone-preview').textContent).not.toContain(
+      'Ecran de sudură'
     );
   });
 

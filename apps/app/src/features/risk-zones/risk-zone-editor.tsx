@@ -112,6 +112,13 @@ const labels = {
   suggestion: { title: 'Zonă nouă', save: 'Confirmă zona', saved: 'Zona a fost confirmată.' },
 };
 
+const editorKey = (editing: ZoneEditing) =>
+  editing.kind === 'edit'
+    ? editing.zone.id
+    : editing.kind === 'suggestion'
+      ? `suggestion:${editing.suggestion.factors.map((factor) => factor.id).join(',')}`
+      : 'new';
+
 export function RiskZoneEditor({
   clientId,
   clientName,
@@ -137,7 +144,7 @@ export function RiskZoneEditor({
   const form = shown && (
     <CloseGuard savingRef={savingRef}>
       <RiskZoneForm
-        key={shown.kind === 'edit' ? shown.zone.id : shown.kind}
+        key={editorKey(shown)}
         phone={phone}
         clientId={clientId}
         clientName={clientName}
@@ -221,7 +228,8 @@ function RiskZoneForm({
   const linked = zone?.factors ?? (editing.kind === 'suggestion' ? editing.suggestion.factors : []);
   const groups = factorGroups(data.factors, linked);
   const byId = new Map(groups.flatMap((group) => group.factors).map((f) => [f.id, f]));
-  const chosen = factorIds.flatMap((id) => byId.get(id) ?? []);
+  const current = new Set(data.factors.map((factor) => factor.id));
+  const chosen = factorIds.flatMap((id) => (current.has(id) ? (byId.get(id) ?? []) : []));
   const preview = printedMeasures(chosen, ownMeasures);
   const label = labels[editing.kind];
 
