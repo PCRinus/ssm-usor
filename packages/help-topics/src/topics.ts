@@ -31,9 +31,9 @@ export const helpTopics = {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'adăugarea-unui-lucrător',
   },
-  'angajati.anexa-13': {
+  'angajati.anexa-14': {
     path: '/clienti/angajati/portal-si-act-aditional/',
-    anchor: 'anexa-13-la-regulamentul-intern',
+    anchor: 'anexa-14-la-regulamentul-intern',
   },
   'angajati.angajare': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'angajare' },
   'angajati.autorizatii': {

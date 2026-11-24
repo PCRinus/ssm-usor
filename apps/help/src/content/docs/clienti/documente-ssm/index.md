@@ -78,7 +78,7 @@ Coperta unei secțiuni are numărul **X.0**: 1.0 este coperta deciziilor, 3.0 co
 | 10. Planul de prevenire și protecție                   | 10                                                  |
 | 11. Material de informare a angajatorului              | 11.0 coperta, 11.1 materialul                       |
 | 12. Regulament intern privind controlul propriu        | 12                                                  |
-| 13. Anexă la regulamentul privind semnarea electronică | 13                                                  |
+| 14. Anexă la regulamentul privind semnarea electronică | 14                                                  |
 
 Numărul documentului nu este numărul deciziei. O decizie poartă sub titlu „Decizia nr. 5 SSM”, numărul pe care îl primește la generare, numărând de la primul număr pe care l-ai dat.
 
@@ -152,7 +152,7 @@ O anexă a instrucțiunilor proprii are meniul ei, cu **Deschide** și **Descarc
 Un document pe care clientul nu trebuie să îl aibă nu apare deloc, nici în dosare, nici în numărători:
 
 - **Decizia 1.5**, privind reprezentanții lucrătorilor, se generează de la 10 lucrători în lista clientului. H.G. nr. 1425/2006, art. 53 alin. (2), cere cel puțin un reprezentant de la 10 la 49 de lucrători și doi de la 50 la 100. Dacă decizia a fost generată și numărul a scăzut, ea rămâne în documentație.
-- **Documentul 13**, anexa la regulamentul privind semnarea electronică, apare doar la un client care are persoane invitate să semneze electronic fișele de instruire.
+- **Documentul 14**, anexa la regulamentul privind semnarea electronică, apare doar la un client care are persoane invitate să semneze electronic fișele de instruire.
 
 Fereastra de generare spune ce înseamnă numărul de lucrători al clientului pentru decizia 1.5.
 

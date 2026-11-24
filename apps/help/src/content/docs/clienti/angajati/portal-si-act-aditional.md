@@ -34,8 +34,8 @@ topics:
     heading: Clauza în contract
   - id: angajati.act-aditional-revenire
     heading: Revenirea la semnarea de mână
-  - id: angajati.anexa-13
-    heading: Anexa 13 la regulamentul intern
+  - id: angajati.anexa-14
+    heading: Anexa 14 la regulamentul intern
 sources:
   - docs/architecture/adr-022-participants-and-the-portal.md
   - docs/architecture/adr-023-advanced-electronic-signature.md
@@ -240,8 +240,8 @@ Când lucrătorul cere în scris să semneze din nou de mână, alege **Înregis
 
 Revenirea are efect din momentul în care o înregistrezi, nu din data cererii: de atunci, instruirile lui se semnează pe hârtie, iar cererile de semnare electronică în așteptare se anulează. Actul adițional și semnăturile de până atunci rămân la dosar. Panoul arată apoi **Semnează de mână**, cu ziua de la care lucrătorul semnează fișele de mână, iar rândul **Cererea lucrătorului** arată data cererii și scanul ei. Revenirea se înregistrează o singură dată. La o revenire înregistrată înainte ca aplicația să păstreze aceste date, panoul nu arată nici ziua înregistrării, nici cererea.
 
-### Anexa 13 la regulamentul intern
+### Anexa 14 la regulamentul intern
 
-Angajatorul hotărăște în regulamentul intern cum se semnează fișele de instruire (HG 1425/2006, art. 81 alin. (3¹)). În setul SSM, asta face anexa 13 la regulamentul intern, care se aplică unui client cu participanți în portal.
+Angajatorul hotărăște în regulamentul intern cum se semnează fișele de instruire (HG 1425/2006, art. 81 alin. (3¹)). În setul SSM, asta face anexa 14 la regulamentul intern, care se aplică unui client cu participanți în portal.
 
 Cât timp anexa nu e emisă, panoul actului adițional arată un rând galben și te trimite la **Documentație SSM**. Emite anexa odată cu actele adiționale.
