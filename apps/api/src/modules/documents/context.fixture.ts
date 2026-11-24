@@ -322,6 +322,7 @@ export const facts: DocumentFacts = {
       },
     ],
   },
+  decisionDocuments: {},
   fireSafety: {
     card: {
       periodicTrainingHours: 2,

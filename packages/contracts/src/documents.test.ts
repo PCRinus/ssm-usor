@@ -74,6 +74,18 @@ describe('documentNumberOf', () => {
     ]);
   });
 
+  it('numbers the SSM duties 13, between the control regulation and the signing annex', () => {
+    const typeKeys = documentSetTypeKeys.occupational_safety;
+    expect(typeKeys.slice(typeKeys.indexOf('control_regulation'))).toEqual([
+      'control_regulation',
+      'ssm_duties',
+      'signing_regulation_annex',
+    ]);
+    expect(
+      ['control_regulation', 'ssm_duties', 'signing_regulation_annex'].map(documentNumberOf)
+    ).toEqual(['12', '13', '14']);
+  });
+
   it('numbers no type outside the binder', () => {
     expect(Object.values(trainingSheetTypeKeys).map(documentNumberOf)).toEqual([null, null]);
     expect(documentNumberOf('provider_own_form')).toBeNull();

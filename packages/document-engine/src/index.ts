@@ -31,6 +31,7 @@ export {
   signingContractClauseText,
   signingTypeKeys,
 } from './signing';
+export { ssmDutiesTypeKey, ssmDutiesWording } from './ssm-duties';
 export {
   buildTestSheetData,
   type TestSheetData,

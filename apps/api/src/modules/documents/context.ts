@@ -58,6 +58,12 @@ import {
   riskZonesRecordTypeKey,
 } from './risk-zones-record';
 import {
+  type CitedDecision,
+  type DutyAnnexContext,
+  dutyAnnexes,
+  type StoredDecision,
+} from './ssm-duties';
+import {
   monthNames,
   type OwnInstructionsRevision,
   providerTrainer,
@@ -179,6 +185,8 @@ export type DocumentFacts = {
   /** Every evaluation of the client, archived positions' included (ADR 015). */
   riskEvaluations: RiskEvaluationFacts[];
   riskZones: RiskZonesFacts;
+  /** The decisions document 13 cites, absent until generated (ADR 046). */
+  decisionDocuments: Partial<Record<CitedDecision, StoredDecision>>;
   fireSafety: FireSafetyClientFacts;
   /** The organization's question bank, what the three tests print (ADR 024). */
   testQuestions: TestQuestionFacts;
@@ -291,6 +299,8 @@ export type DocumentContext = {
   positions: PositionContext[];
   equippedPositions: EquippedPositionContext[];
   hasEquippedPositions: boolean;
+  /** Document 13's annexes, one per current position (ADR 046). */
+  dutyAnnexes: DutyAnnexContext[];
   /**
    * The positions without equipment, every one of them when none has any: "postul de lucru
    * Contabil", "posturile de lucru Contabil și Șofer". Null when every position is equipped.
@@ -474,6 +484,7 @@ const imminentDangerWordingNames = [
 const workersRepresentativeNames = [
   'workersRepresentatives',
   'workersRepresentativesLead',
+  'dutyAnnexes',
 ] as const;
 const riskNames = ['unitRisks', 'hasUnitRisks', 'noUnitRisks', 'riskAssessment'] as const;
 
@@ -492,20 +503,28 @@ const printedAs = {
   'specialist.professionalTitle': ['specialist', 'riskEvaluator'],
   'client.representativeName': ['client'],
   'client.representativeRole': ['client'],
-  'client.trainingSchedule': ['training', 'positions', 'equippedPositions', 'themes'],
+  'client.trainingSchedule': [
+    'training',
+    'positions',
+    'equippedPositions',
+    'dutyAnnexes',
+    'themes',
+  ],
   'responsible.workplace_manager': [
     'workplaceManagers',
     'workplaceManagersText',
     'workplaceManagersList',
     ...imminentDangerWordingNames,
+    'dutyAnnexes',
     'themes',
   ],
-  'responsible.first_aid': ['firstAiders', 'firstAiderNames'],
+  'responsible.first_aid': ['firstAiders', 'firstAiderNames', 'dutyAnnexes'],
   'responsible.risk_evaluation_team': ['evaluationTeam'],
   'responsible.imminent_danger': [
     'imminentDanger',
     'imminentDangerText',
     ...imminentDangerWordingNames,
+    'dutyAnnexes',
   ],
   'responsible.workers_representative': workersRepresentativeNames,
   'responsible.workers_representatives_two': workersRepresentativeNames,
@@ -516,13 +535,19 @@ const printedAs = {
     'equippedPositions',
     'hasEquippedPositions',
     'unequippedPositionsText',
+    'dutyAnnexes',
     'annexes',
     'noAnnexes',
     ...riskNames,
     'themes',
   ],
-  'positions.equipment': ['equippedPositions', 'hasEquippedPositions', 'unequippedPositionsText'],
-  'positions.instructions': ['annexes', 'noAnnexes', 'themes'],
+  'positions.equipment': [
+    'equippedPositions',
+    'hasEquippedPositions',
+    'unequippedPositionsText',
+    'dutyAnnexes',
+  ],
+  'positions.instructions': ['annexes', 'noAnnexes', 'dutyAnnexes', 'themes'],
   'positions.risk_evaluation': riskNames,
   'risk_evaluations.sensitive_groups': riskNames,
   'risk_evaluations.measures': riskNames,
@@ -696,6 +721,11 @@ function contextParts(facts: SsmSetFacts): ContextParts<DocumentContext> {
   const risks = () => (builtRisks ??= unitRisks(facts.riskEvaluations, facts.jobPositions));
   let builtAnnexes: AnnexContext[] | undefined;
   const annexes = () => (builtAnnexes ??= annexedModules(facts, 'ssm'));
+  const decisionNumberOfType = (typeKey: (typeof decisionTypeKeys)[number]) =>
+    facts.firstDecisionNumber + decisionTypeKeys.indexOf(typeKey);
+  const workersRepresentativeDecision = () =>
+    documentApplies(facts, 'decision_workers_representative') ||
+    facts.workersRepresentativeDecisionGenerated;
   return {
     branding: () => facts.branding,
     issueDate: () => printedDate(facts.issueDate),
@@ -747,9 +777,7 @@ function contextParts(facts: SsmSetFacts): ContextParts<DocumentContext> {
         ? listed(imminentDangerWording.designatedManagers.map((person) => person.fullName.trim()))
         : null,
     // A 1.5 that exists stays in the set below 10 employees, so the cover keeps listing it.
-    workersRepresentativeDecision: () =>
-      documentApplies(facts, 'decision_workers_representative') ||
-      facts.workersRepresentativeDecisionGenerated,
+    workersRepresentativeDecision,
     workersRepresentatives: () => workersRepresentatives,
     workersRepresentativesLead: () =>
       workersRepresentatives.length === 1 ? 'următorul angajat' : 'următorii angajați',
@@ -809,6 +837,16 @@ function contextParts(facts: SsmSetFacts): ContextParts<DocumentContext> {
             ]
       ),
     hasEquippedPositions: () => unequipped.length < facts.jobPositions.length,
+    dutyAnnexes: () =>
+      dutyAnnexes(facts, {
+        annexes: annexes(),
+        intervalMonths: (position) => intervalOf(position)!,
+        decisionNumbers: {
+          decision_imminent_danger: decisionNumberOfType('decision_imminent_danger'),
+          decision_workers_representative: decisionNumberOfType('decision_workers_representative'),
+        },
+        workersRepresentativeDecision: workersRepresentativeDecision(),
+      }),
     unequippedPositionsText: () =>
       unequipped.length === 0
         ? null

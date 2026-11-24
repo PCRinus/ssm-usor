@@ -16,6 +16,7 @@ import { loadTestQuestions } from './knowledge-tests';
 import type { RiskEvaluationFacts } from './risk-assessment';
 import { loadRiskZones } from './risk-zones-record';
 import { snapshotAnnexes } from './snapshot';
+import type { CitedDecision, StoredDecision } from './ssm-duties';
 
 // Row-level security scopes every query to the caller's organization. With the secret key
 // nothing does but the ids: the client's must already be known to be the preparer's.
@@ -42,6 +43,11 @@ const moduleVersionsPath =
  * their organization, named because the secret key the queue consumer reads with has none.
  */
 export type Preparer = { userId: string; organizationId: string };
+
+const citedDecisionTypes = [
+  'decision_imminent_danger',
+  'decision_workers_representative',
+] as const satisfies CitedDecision[];
 
 function sharedReads(db: DataClient, clientId: string, preparer: Preparer) {
   return Promise.all([
@@ -83,7 +89,7 @@ function sharedReads(db: DataClient, clientId: string, preparer: Preparer) {
         'type_key, title, decision_number, period, document_revisions!inner(revision, status, issued_at, document_generations(issue_date))'
       )
       .eq('client_id', clientId)
-      .in('type_key', ['decision_workers_representative', ...fireSafetyDocumentTypeKeys]),
+      .in('type_key', [...citedDecisionTypes, ...fireSafetyDocumentTypeKeys]),
     db
       .from('job_positions')
       .select(
@@ -202,6 +208,26 @@ function fireSafetyReads(
 }
 
 type SharedReads = Awaited<ReturnType<typeof sharedReads>>;
+
+/** Each as its newest revision prints it, which is what document 13 cites (ADR 046). */
+function citedDecisions(
+  documents: NonNullable<SharedReads[4]['data']>
+): Partial<Record<CitedDecision, StoredDecision>> {
+  return Object.fromEntries(
+    documents
+      .filter((document) => (citedDecisionTypes as readonly string[]).includes(document.type_key))
+      .map((document) => {
+        const newest = [...document.document_revisions].sort((a, b) => b.revision - a.revision)[0];
+        return [
+          document.type_key,
+          {
+            number: document.decision_number,
+            issueDate: newest?.document_generations?.issue_date ?? null,
+          },
+        ];
+      })
+  );
+}
 
 function sharedFactsOf([
   client,
@@ -346,7 +372,7 @@ function sharedFactsOf([
 }
 
 function occupationalSafetyFactsOf(
-  { shared, generated, riskZonesState }: ReturnType<typeof sharedFactsOf>,
+  { shared, generated, riskZonesState, conditionalDocuments }: ReturnType<typeof sharedFactsOf>,
   [membership, profile, ownInstructions, riskEvaluations, testQuestions, riskZones]: Awaited<
     ReturnType<typeof occupationalSafetyReads>
   >
@@ -367,6 +393,7 @@ function occupationalSafetyFactsOf(
     ownInstructions,
     riskEvaluations,
     riskZones: { state: riskZonesState, zones: riskZones },
+    decisionDocuments: citedDecisions(conditionalDocuments),
   };
 }
 
