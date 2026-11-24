@@ -195,11 +195,11 @@ test('a row leads to its field and back, and the client then gets its whole docu
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible({
+  await expect(page.getByText('Au fost generate 23 de documente.')).toBeVisible({
     timeout: 30_000,
   });
   const rows = page.getByTestId('document-row');
-  await expect(page.getByTestId('pack-folder')).toHaveCount(12);
+  await expect(page.getByTestId('pack-folder')).toHaveCount(13);
 
   const workplaceId = await createWorkplace(organizationId, clientId, { name: 'Atelier Ghiroda' });
   const { factorDescription } = await createRiskZone(organizationId, clientId, {
@@ -636,7 +636,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 24 de documente.')).toBeVisible({
+  await expect(page.getByText('Au fost generate 25 de documente.')).toBeVisible({
     timeout: 30_000,
   });
   await openDocumentSection(page, '1');
