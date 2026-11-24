@@ -98,7 +98,7 @@ O anexă cuprinde:
 - atribuțiile rolurilor pe care le au angajații postului, cu numele lor: conducător al locului de muncă, lucrător desemnat pentru primul ajutor, personal desemnat pentru pericol grav și iminent și reprezentant al lucrătorilor, ultimele două cu trimitere la decizia lor, 1.4 și 1.5; cine are două roluri apare la amândouă;
 - răspunderea pentru neîndeplinirea lor.
 
-Zonele apar în anexă după ce ai adăugat zonele clientului sau ai declarat că nu are. Până atunci anexa nu are rândul despre zone, iar după aceea ciorna documentului 13 arată „Date modificate”.
+Rândul despre zone apare în anexa unui post după ce ai adăugat zonele clientului, dacă o zonă este legată de riscurile postului. Când adaugi zone după ce documentul 13 a fost generat, ciorna lui arată „Date modificate” dacă o zonă ajunge astfel într-o anexă.
 
 O regulă care ține doar de un post, de exemplu „nu folosește feliatorul de carne fără a fi instruit”, nu se scrie în documentul 13. O pui într-o instrucțiune proprie din biblioteca ta, pe care o aplici postului: anexa o numește singură, iar instrucțiunea o folosești la orice client cu același post. Ce scrii de mână în documentul 13, în editor, se pierde la generarea din nou, pentru că anexele se scriu din datele clientului.
 
