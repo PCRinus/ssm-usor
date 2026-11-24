@@ -6,7 +6,7 @@ import { bodyOf, documentTextOf } from './read';
 
 const paragraphs = (name: string) =>
   (bodyOf(name).match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g) ?? []).map((paragraph) =>
-    documentTextOf(paragraph).replace(/\s+/g, ' ').trim()
+    documentTextOf(paragraph.replaceAll('<w:tab/>', '<w:t> </w:t>')).replace(/\s+/g, ' ').trim()
   );
 const strings = (value: unknown): string[] =>
   typeof value === 'string'

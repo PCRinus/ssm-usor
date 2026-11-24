@@ -10,6 +10,7 @@ annex starts on a page of its own, since it is filed with its post's job descrip
 """
 
 import json
+import re
 import sys
 
 import uno
@@ -17,8 +18,9 @@ from com.sun.star.style.ParagraphAdjust import CENTER
 
 sys.path.insert(0, '/work/tools/import')
 from import_templates import (  # noqa: E402
-    FONT, HANDOVER, MARGINS, SMALL_PRINT, TITLE_SIZE, _elements, add_branding, build_header,
-    fill_section, insert_handover, prop, start_office, sweep, write_paragraph)
+    FONT, HANDOVER, LIST_HANG, LIST_TIERS, MARGINS, SMALL_PRINT, TITLE_SIZE, _elements, add_branding,
+    all_paragraphs, build_header, fill_section, insert_handover, prop, start_office, sweep,
+    write_paragraph)
 
 MARKER = '@@content@@'
 ITEM = 635
@@ -58,6 +60,29 @@ def section(name, content):
 
 def items(lines, indent=ITEM):
     return [{'text': line, 'indent': indent, 'below': 2} for line in lines]
+
+
+LABEL = re.compile(r'^(–|[a-z]\)) ')
+
+
+def hang_items(document):
+    """The house's list layout, which `typeset` gives the originals: a typed dash or letter hangs
+    from its tier with a tab after it, so a long item's lines run under its text, and a letter is
+    bold. The wording keeps its spaces, as the API fingerprints it."""
+    tiers = {ITEM: LIST_TIERS[0], NESTED: LIST_TIERS[1]}
+    for paragraph, _ in all_paragraphs(document):
+        match = LABEL.match(paragraph.getString())
+        if not match or paragraph.ParaLeftMargin not in tiers:
+            continue
+        paragraph.ParaLeftMargin = tiers[paragraph.ParaLeftMargin]
+        paragraph.ParaFirstLineIndent = LIST_HANG
+        cursor = paragraph.getText().createTextCursorByRange(paragraph.getStart())
+        cursor.goRight(len(match.group(1)), True)
+        if match.group(1) != '–':
+            cursor.CharWeight = 150
+        cursor.collapseToEnd()
+        cursor.goRight(1, True)
+        cursor.setString('\t')
 
 
 def annex_content(annex):
@@ -117,6 +142,7 @@ def build(desktop, definition):
     content += section('dutyAnnexes', items([definition['contents']]))
     content += annex_content(definition['annex'])
     fill_section(document, MARKER, content)
+    hang_items(document)
 
     target = f'/work/templates/{definition["file"]}'
     document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
