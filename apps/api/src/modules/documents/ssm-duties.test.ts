@@ -97,14 +97,45 @@ describe('the annexes of document 13', () => {
   it('cite a decision by the number and date it was generated with', () => {
     const stored = {
       ...facts,
+      decisionsInRun: [],
       decisionDocuments: { decision_imminent_danger: { number: 12, issueDate: '2025-03-02' } },
     };
     expect(annexesOf(stored)[1]!.imminentDangerDuties!.decision).toBe('nr. 12 SSM din 02.03.2025');
     const uploaded = {
       ...facts,
+      decisionsInRun: [],
       decisionDocuments: { decision_imminent_danger: { number: 12, issueDate: null } },
     };
     expect(annexesOf(uploaded)[1]!.imminentDangerDuties!.decision).toBe('nr. 12 SSM');
+  });
+
+  it('give no block citing a decision that neither exists nor is generated in the same run', () => {
+    const alone = { ...facts, decisionsInRun: [] };
+    expect(annexesOf(alone).every((annex) => annex.imminentDangerDuties === null)).toBe(true);
+    expect(
+      annexesOf({
+        ...alone,
+        decisionDocuments: { decision_imminent_danger: { number: 4, issueDate: '2026-11-24' } },
+      })[1]!.imminentDangerDuties!.decision
+    ).toBe('nr. 4 SSM din 24.11.2026');
+  });
+
+  it('give the legal representative designated by name alone the blocks of the post they hold', () => {
+    const holder = facts.responsiblePersons.find((person) => person.currentEmployee)!;
+    const byName = {
+      ...facts,
+      client: {
+        ...facts.client,
+        representativeEmployeeId: holder.employeeId,
+        representativeName: holder.fullName,
+      },
+      responsiblePersons: facts.responsiblePersons.map((person) =>
+        person === holder ? { ...person, employeeId: null, currentEmployee: false } : person
+      ),
+    };
+    expect(annexesOf(byName).map((annex) => annex.hasRoles)).toEqual(
+      annexesOf(facts).map((annex) => annex.hasRoles)
+    );
   });
 
   it("print the workers' representative block only while decision 1.5 is part of the set", () => {

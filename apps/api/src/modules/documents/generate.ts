@@ -176,7 +176,8 @@ export async function generateClientDocuments(
       );
     }
   } else {
-    const input = { ...facts, ...asked, period: null };
+    const decisionsInRun = wanted.map((template) => template.typeKey);
+    const input = { ...facts, ...asked, period: null, decisionsInRun };
     const context = buildDocumentContext(input);
     const fromContext = (built: typeof context, typeKey: string): Merged => {
       const decisionNumber = decisionNumberOf(built, typeKey);
@@ -194,7 +195,10 @@ export async function generateClientDocuments(
       const merged = await mergeThemes(db, clientId, facts, rule, (reloaded) =>
         create(
           themes,
-          fromContext(buildDocumentContext({ ...reloaded, ...asked, period: null }), themes.typeKey)
+          fromContext(
+            buildDocumentContext({ ...reloaded, ...asked, period: null, decisionsInRun }),
+            themes.typeKey
+          )
         )
       );
       current = merged.facts;

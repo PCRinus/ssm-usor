@@ -1,5 +1,6 @@
 import {
   type DocumentTypeKey,
+  isLegalRepresentative,
   printedDate,
   type SsmDutiesFingerprints,
   type SsmDutyRole,
@@ -53,7 +54,12 @@ export type DutyAnnexContext = {
 
 type DutiesInput = Pick<
   DocumentFacts,
-  'issueDate' | 'firstDecisionNumber' | 'client' | 'responsiblePersons' | 'jobPositions'
+  | 'issueDate'
+  | 'firstDecisionNumber'
+  | 'client'
+  | 'responsiblePersons'
+  | 'jobPositions'
+  | 'decisionsInRun'
 > & {
   riskZones: RiskZonesFacts;
   riskEvaluations: readonly RiskEvaluationFacts[];
@@ -61,16 +67,19 @@ type DutiesInput = Pick<
 };
 
 /**
- * "nr. 4 SSM din 24.11.2026": the decision as stored, or, while it is being generated in the same
- * run as document 13, the number and date this generation gives it.
+ * "nr. 4 SSM din 24.11.2026": while the decision is generated in the same run as document 13, the
+ * number and date this run gives it; else the decision as stored. Null while it does not exist:
+ * document 13 regenerated alone cannot know the number the decision will take.
  */
 function decisionReference(
   stored: StoredDecision | undefined,
   generated: number,
-  issueDate: string
+  issueDate: string,
+  inRun: boolean
 ) {
-  const number = stored ? stored.number : generated;
-  const date = stored ? stored.issueDate : issueDate;
+  if (!inRun && !stored) return null;
+  const number = inRun ? generated : stored!.number;
+  const date = inRun ? issueDate : stored!.issueDate;
   return [number === null ? null : `nr. ${number}`, 'SSM', date && `din ${printedDate(date)}`]
     .filter(Boolean)
     .join(' ');
@@ -95,16 +104,23 @@ export function dutyAnnexes(
   const annexByVersion = new Map(annexes.map((annex) => [annex.versionId, annex]));
   const zones = zonesByPosition(facts);
   const decision = (key: CitedDecision) =>
-    decisionReference(facts.decisionDocuments[key], decisionNumbers[key], facts.issueDate);
+    decisionReference(
+      facts.decisionDocuments[key],
+      decisionNumbers[key],
+      facts.issueDate,
+      facts.decisionsInRun?.includes(key) ?? false
+    );
 
   return facts.jobPositions.map((position, index) => {
     // Only someone linked to a current employee of this post: a person designated by name alone
-    // holds no post.
+    // holds no post, unless they are the legal representative linked as an employee.
     const holders = (role: SsmDutyRole) => {
       const people = distinctPeople(
         facts.responsiblePersons.filter(
           (person) =>
-            person.currentEmployee &&
+            (person.currentEmployee ||
+              (Boolean(legalRepresentative.employeeId) &&
+                isLegalRepresentative(person, legalRepresentative))) &&
             person.roles.includes(role) &&
             position.currentEmployees.some((employee) =>
               samePerson(employee, person, legalRepresentative)
@@ -120,7 +136,8 @@ export function dutyAnnexes(
     };
     const citing = (role: SsmDutyRole, key: CitedDecision) => {
       const people = holders(role);
-      return people === null ? null : { people, decision: decision(key) };
+      const reference = decision(key);
+      return people === null || reference === null ? null : { people, decision: reference };
     };
     const instructions = position.instructions
       .flatMap((module) => {

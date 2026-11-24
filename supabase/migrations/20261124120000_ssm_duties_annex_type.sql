@@ -68,8 +68,8 @@ $$;
 -- snapshot is compared with the current data and a hash cannot be rebuilt synchronously there:
 -- { "annexes": [{ "positionId", "fingerprint" }], "roles": [{ "role", "fingerprint" }] }. A
 -- worker's acknowledgement of their duties is out of date once their post's fingerprint, or a
--- role's they hold, differs from the one they signed. Null for every other document and for an
--- uploaded file.
+-- role's they hold, differs from the one they signed. Null for every other document and for a file
+-- uploaded beside an issued revision; a draft edited or replaced by upload keeps what was generated.
 alter table public.document_revisions
   add column duty_fingerprints jsonb
   constraint document_revisions_duty_fingerprints_shape check (

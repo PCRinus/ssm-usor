@@ -187,6 +187,8 @@ export type DocumentFacts = {
   riskZones: RiskZonesFacts;
   /** The decisions document 13 cites, absent until generated (ADR 046). */
   decisionDocuments: Partial<Record<CitedDecision, StoredDecision>>;
+  /** The types a whole-set run generates, whose numbers and date document 13 cites. */
+  decisionsInRun?: readonly string[];
   fireSafety: FireSafetyClientFacts;
   /** The organization's question bank, what the three tests print (ADR 024). */
   testQuestions: TestQuestionFacts;
