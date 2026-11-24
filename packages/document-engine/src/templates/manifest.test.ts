@@ -78,8 +78,8 @@ describe('manifest', () => {
     expect(manifest.templates.filter((entry) => entry.original)).toHaveLength(23);
     expect(
       manifest.templates.filter((entry) => !entry.original).map((entry) => entry.typeKey)
-    ).toEqual(['risk_zones_record', 'signing_regulation_annex']);
-    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(25);
+    ).toEqual(['risk_zones_record', 'ssm_duties', 'signing_regulation_annex']);
+    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(26);
   });
 
   it('names each ported template after its number and its type', () => {

@@ -412,6 +412,40 @@ describe('the record of risk zones', () => {
   }, 30_000);
 });
 
+describe('the SSM duties of the posts', () => {
+  const entry = manifest.templates.find((template) => template.typeKey === 'ssm_duties')!;
+  const textFor = (variant: DocumentFacts) =>
+    documentText(
+      renderDocument(
+        readFileSync(new URL(entry.file, templatesUrl)),
+        documentData(buildDocumentContext(variant), 'ssm_duties')
+      )
+    );
+
+  it('prints an annex per post, with its own duties and the roles its employees hold', () => {
+    const text = textFor(facts);
+    expect(text).toContain('Anexa 1 – Contabil');
+    expect(text).toContain('ANEXA 2 LA FIȘA POSTULUI: Sudor');
+    expect(text).toContain('Anexa 2. I.P.S.S.M. Sudură oxiacetilenică;');
+    expect(text).toContain('Tabloul electric general (Sediu social');
+    expect(text).toContain('care pentru acest post se face la 2 luni');
+    expect(text).toContain('Conducător al locului de muncă: Ioana PETRE');
+    expect(text).toContain('conform deciziei nr. 8 SSM din 19.01.2026: Ioana PETRE');
+    expect(text).not.toContain('Reprezentant al lucrătorilor');
+    expect(text.match(/Lucrător desemnat să aplice măsurile de prim ajutor/g)).toHaveLength(1);
+  }, 30_000);
+
+  it('prints an annex for a post without employees, with no role block', () => {
+    const [accountant, welder] = facts.jobPositions;
+    const text = textFor({
+      ...facts,
+      jobPositions: [accountant!, { ...welder!, currentEmployees: [], currentEmployeeCount: 0 }],
+    });
+    expect(text).toContain('ANEXA 2 LA FIȘA POSTULUI: Sudor');
+    expect(text).not.toContain('Atribuțiile rolurilor');
+  }, 30_000);
+});
+
 const annexBody = {
   blocks: [
     { kind: 'heading' as const, text: 'Înainte de începerea lucrului' },

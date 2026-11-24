@@ -74,10 +74,10 @@ describe('the annexes of document 13', () => {
 
   it('print a role block for each role a current employee of the post holds', () => {
     expect(annexesOf(facts)[1]).toMatchObject({
-      workplaceManager: { people: 'Ioana PETRE' },
-      firstAid: { people: 'Ioana PETRE' },
-      imminentDanger: { people: 'Ioana PETRE', decision: 'nr. 8 SSM din 19.01.2026' },
-      workersRepresentative: null,
+      workplaceManagerDuties: { people: 'Ioana PETRE' },
+      firstAidDuties: { people: 'Ioana PETRE' },
+      imminentDangerDuties: { people: 'Ioana PETRE', decision: 'nr. 8 SSM din 19.01.2026' },
+      workersRepresentativeDuties: null,
       hasRoles: true,
     });
   });
@@ -99,12 +99,12 @@ describe('the annexes of document 13', () => {
       ...facts,
       decisionDocuments: { decision_imminent_danger: { number: 12, issueDate: '2025-03-02' } },
     };
-    expect(annexesOf(stored)[1]!.imminentDanger!.decision).toBe('nr. 12 SSM din 02.03.2025');
+    expect(annexesOf(stored)[1]!.imminentDangerDuties!.decision).toBe('nr. 12 SSM din 02.03.2025');
     const uploaded = {
       ...facts,
       decisionDocuments: { decision_imminent_danger: { number: 12, issueDate: null } },
     };
-    expect(annexesOf(uploaded)[1]!.imminentDanger!.decision).toBe('nr. 12 SSM');
+    expect(annexesOf(uploaded)[1]!.imminentDangerDuties!.decision).toBe('nr. 12 SSM');
   });
 
   it("print the workers' representative block only while decision 1.5 is part of the set", () => {
@@ -116,10 +116,10 @@ describe('the annexes of document 13', () => {
           : person
       ),
     };
-    expect(annexesOf(representative)[1]!.workersRepresentative).toBeNull();
+    expect(annexesOf(representative)[1]!.workersRepresentativeDuties).toBeNull();
     expect(
       annexesOf({ ...representative, workersRepresentativeDecisionGenerated: true })[1]!
-        .workersRepresentative
+        .workersRepresentativeDuties
     ).toEqual({ people: 'Ioana PETRE', decision: 'nr. 9 SSM din 19.01.2026' });
   });
 });

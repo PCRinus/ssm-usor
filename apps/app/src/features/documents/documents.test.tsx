@@ -814,7 +814,7 @@ describe('client documents', () => {
 
     await user.click(screen.getByTestId('pack-all-sections'));
 
-    expect(await screen.findAllByTestId('pack-folder')).toHaveLength(13);
+    expect(await screen.findAllByTestId('pack-folder')).toHaveLength(14);
     expect(screen.queryByTestId('document-row')).toBeNull();
     expect(screen.getByTestId('documents-archive')).toBeTruthy();
     expect(runtime.router.state.location.search).toEqual({});
@@ -970,9 +970,9 @@ describe('client documents', () => {
     expect(await summaryOf('8')).toBe('Ciornă');
     expect(await summaryOf('9')).toBe('Negenerate');
     expect(screen.getByTestId('pack-legend').textContent).toBe(
-      '0 emise1 de actualizat1 ciornă23 de negenerate'
+      '0 emise1 de actualizat1 ciornă24 de negenerate'
     );
-    expect(screen.getByTestId('pack-total').textContent).toBe('25 de documente în 13 secțiuni');
+    expect(screen.getByTestId('pack-total').textContent).toBe('26 de documente în 14 secțiuni');
     expect(screen.queryByTestId('document-row')).toBeNull();
     expect(runtime.router.history.location.search).toBe('');
 

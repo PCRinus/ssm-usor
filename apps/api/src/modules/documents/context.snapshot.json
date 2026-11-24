@@ -29,11 +29,11 @@
   "dutyAnnexes": [
     {
       "equipment": false,
-      "firstAid": null,
+      "firstAidDuties": null,
       "hasInstructions": true,
       "hasRoles": false,
       "hasZones": true,
-      "imminentDanger": null,
+      "imminentDangerDuties": null,
       "instructions": [
         {
           "number": 1,
@@ -44,8 +44,8 @@
       "position": "Contabil",
       "positionId": "5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f",
       "trainingInterval": "la 6 luni",
-      "workersRepresentative": null,
-      "workplaceManager": null,
+      "workersRepresentativeDuties": null,
+      "workplaceManagerDuties": null,
       "zones": [
         {
           "label": "Tabloul electric general (Sediu social, parter, camera tehnică de lângă intrare)"
@@ -54,13 +54,13 @@
     },
     {
       "equipment": true,
-      "firstAid": {
+      "firstAidDuties": {
         "people": "Ioana PETRE"
       },
       "hasInstructions": true,
       "hasRoles": true,
       "hasZones": false,
-      "imminentDanger": {
+      "imminentDangerDuties": {
         "decision": "nr. 8 SSM din 19.01.2026",
         "people": "Ioana PETRE"
       },
@@ -78,8 +78,8 @@
       "position": "Sudor",
       "positionId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
       "trainingInterval": "la 2 luni",
-      "workersRepresentative": null,
-      "workplaceManager": {
+      "workersRepresentativeDuties": null,
+      "workplaceManagerDuties": {
         "people": "Ioana PETRE"
       },
       "zones": []

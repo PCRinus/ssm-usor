@@ -39,11 +39,15 @@ export type DutyAnnexContext = {
   hasZones: boolean;
   /** "la 6 luni", the post's own interval or its category's. */
   trainingInterval: string;
-  /** Null when no current employee of the post holds the role. */
-  workplaceManager: RoleBlock | null;
-  firstAid: RoleBlock | null;
-  imminentDanger: CitingRoleBlock | null;
-  workersRepresentative: CitingRoleBlock | null;
+  /**
+   * Null when no current employee of the post holds the role. Named apart from the set's own
+   * names: docxtemplater looks a null value up again in the outer scope, where `imminentDanger`
+   * is decision 1.4's list of people.
+   */
+  workplaceManagerDuties: RoleBlock | null;
+  firstAidDuties: RoleBlock | null;
+  imminentDangerDuties: CitingRoleBlock | null;
+  workersRepresentativeDuties: CitingRoleBlock | null;
   hasRoles: boolean;
 };
 
@@ -126,10 +130,10 @@ export function dutyAnnexes(
       .sort((a, b) => a.number - b.number);
     const positionZones = (zones.get(position.id) ?? []).map((label) => ({ label }));
     const roles = {
-      workplaceManager: block('workplace_manager'),
-      firstAid: block('first_aid'),
-      imminentDanger: citing('imminent_danger', 'decision_imminent_danger'),
-      workersRepresentative: workersRepresentativeDecision
+      workplaceManagerDuties: block('workplace_manager'),
+      firstAidDuties: block('first_aid'),
+      imminentDangerDuties: citing('imminent_danger', 'decision_imminent_danger'),
+      workersRepresentativeDuties: workersRepresentativeDecision
         ? citing('workers_representative', 'decision_workers_representative')
         : null,
     };

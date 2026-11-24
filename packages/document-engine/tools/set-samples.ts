@@ -1349,6 +1349,69 @@ const riskZonesListed = {
   ],
 };
 
+const noRoles = {
+  workplaceManagerDuties: null,
+  firstAidDuties: null,
+  imminentDangerDuties: null,
+  workersRepresentativeDuties: null,
+  hasRoles: false,
+};
+
+// One annex without roles and with nothing but the training; in the long sample, a post with
+// every line and every role, one with two holders of a role, and one without employees.
+function dutyAnnexesSample(people: ReturnType<typeof person>[]) {
+  const bare = {
+    number: 1,
+    positionId: '00000000-0000-4000-8000-000000000001',
+    position: 'Manager magazin',
+    instructions: [{ number: 1, title: 'Activități de birou' }],
+    hasInstructions: true,
+    equipment: false,
+    zones: [],
+    hasZones: false,
+    trainingInterval: 'la 6 luni',
+    ...noRoles,
+  };
+  if (people.length === 1) return [{ ...bare, instructions: [], hasInstructions: false }];
+  const names = people.map((each) => each.name);
+  return [
+    bare,
+    {
+      number: 2,
+      positionId: '00000000-0000-4000-8000-000000000002',
+      position: 'Sudor',
+      instructions: [
+        { number: 2, title: 'Scări metalice' },
+        { number: 3, title: 'Aparat de sudură oxiacetilenică' },
+      ],
+      hasInstructions: true,
+      equipment: true,
+      zones: [
+        { label: 'Zona de sudură (hala de producție, latura de nord)' },
+        {
+          label:
+            'Depozitul de substanțe de curățenie și de vopsele de la etajul al doilea al halei de producție (Punct de lucru „Atelier”)',
+        },
+      ],
+      hasZones: true,
+      trainingInterval: 'la 2 luni',
+      workplaceManagerDuties: { people: `${names[0]} și ${names[1]}` },
+      firstAidDuties: { people: names[0]! },
+      imminentDangerDuties: { people: names[1]!, decision: 'nr. 4 SSM din 19.01.2026' },
+      workersRepresentativeDuties: { people: names[0]!, decision: 'nr. 5 SSM din 19.01.2026' },
+      hasRoles: true,
+    },
+    {
+      ...bare,
+      number: 3,
+      positionId: '00000000-0000-4000-8000-000000000003',
+      position: 'Montator instalații criogenice',
+      equipment: true,
+      trainingInterval: 'la 3 luni',
+    },
+  ];
+}
+
 function setSample(
   label: string,
   legalName: string,
@@ -1469,6 +1532,7 @@ function setSample(
           : [],
       noAnnexes: people.length === 1,
       riskZones: people.length === 1 ? riskZonesNone : riskZonesListed,
+      dutyAnnexes: dutyAnnexesSample(people),
       riskAssessment: {
         unit: {
           activity: '2562 – Fabricarea articolelor de feronerie',

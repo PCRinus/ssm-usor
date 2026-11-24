@@ -78,6 +78,12 @@ export const documentSections = [
     typeKeys: ['control_regulation'],
   },
   {
+    id: 'ssm-duties',
+    number: '13',
+    title: 'Atribuții și răspunderi SSM – anexe la fișele posturilor',
+    typeKeys: ['ssm_duties'],
+  },
+  {
     id: 'signing-regulation-annex',
     number: '14',
     title: 'Anexă la Regulamentul intern privind semnarea electronică',

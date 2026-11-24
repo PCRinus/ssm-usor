@@ -225,7 +225,9 @@ def signers(table):
     for column in range(2):
         paragraphs = [(text_of(paragraph).strip(), paragraph) for paragraph in column_paragraphs(table, column)]
         paragraphs = [(text, paragraph) for text, paragraph in paragraphs if text and text != LABEL]
-        if len(paragraphs) != 3 or '{{' in paragraphs[0][0] or not paragraphs[0][0][:1].isupper():
+        # A hand-over block of one line a side ("Am primit și aprobat", 13's) has three too.
+        if (len(paragraphs) != 3 or '{{' in paragraphs[0][0] or not paragraphs[0][0][:1].isupper()
+                or paragraphs[0][0].startswith('Am ')):
             return None
         names = [paragraph for text, paragraph in paragraphs[1:] if NAME.fullmatch(text)]
         roles = [paragraph for text, paragraph in paragraphs[1:] if not NAME.fullmatch(text) and text.startswith('{{')]
