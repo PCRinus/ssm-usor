@@ -514,14 +514,14 @@ describe('client documents', () => {
     mount();
     const numbers = await sectionNumbers();
     expect(numbers).toContain('12');
-    expect(numbers).not.toContain('13');
+    expect(numbers).not.toContain('14');
   });
 
   it('lists the annex on the electronic signature for a client with participants', async () => {
     mockApi({ items: [report] });
     mount();
-    expect(await sectionNumbers()).toContain('13');
-    expect(await summaryOf('13')).toBe('Negenerat');
+    expect(await sectionNumbers()).toContain('14');
+    expect(await summaryOf('14')).toBe('Negenerat');
   });
 
   it.each([

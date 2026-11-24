@@ -79,7 +79,7 @@ export const documentSections = [
   },
   {
     id: 'signing-regulation-annex',
-    number: '13',
+    number: '14',
     title: 'Anexă la Regulamentul intern privind semnarea electronică',
     typeKeys: ['signing_regulation_annex'],
   },

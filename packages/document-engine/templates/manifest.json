@@ -288,11 +288,11 @@
       }
     },
     {
-      "number": "13",
+      "number": "14",
       "stage": 1,
       "typeKey": "signing_regulation_annex",
       "title": "Anexă la Regulamentul intern privind semnarea electronică a fișelor de instruire",
-      "file": "13_signing_regulation_annex.docx",
+      "file": "14_signing_regulation_annex.docx",
       "change": {
         "kind": "layout",
         "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."

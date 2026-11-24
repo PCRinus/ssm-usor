@@ -261,7 +261,7 @@ export const occupationalSafetyDocumentNumbers = {
   cover_employer_briefing: '11.0',
   employer_briefing: '11.1',
   control_regulation: '12',
-  signing_regulation_annex: '13',
+  signing_regulation_annex: '14',
 } as const satisfies Record<DocumentTypeKey, string>;
 
 /** Held to the fire-safety manifest by a test. */

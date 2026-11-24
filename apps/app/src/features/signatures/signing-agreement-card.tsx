@@ -428,7 +428,7 @@ export function SigningAgreementCard({
           </TodoAction>
         }
       >
-        Anexa 13 la regulamentul intern nu este emisă. Emite-o odată cu actele adiționale.
+        Anexa 14 la regulamentul intern nu este emisă. Emite-o odată cu actele adiționale.
       </TodoLine>
     );
   }

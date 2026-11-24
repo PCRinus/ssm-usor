@@ -92,7 +92,7 @@ describe('build pack', () => {
       '10',
       '11',
       '12',
-      '13',
+      '14',
     ]);
     expect(pack.sections[0]).toMatchObject({ id: 'decisions', title: 'Decizii interne' });
     expect(titlesOf(pack, 'decisions')).toEqual([

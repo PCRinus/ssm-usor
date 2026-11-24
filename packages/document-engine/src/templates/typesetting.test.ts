@@ -710,7 +710,7 @@ describe('Word 2013 layout of the occupational safety set', () => {
         '6_protective_equipment_list.docx',
         '11.1_employer_briefing.docx',
         '12_control_regulation.docx',
-        '13_signing_regulation_annex.docx',
+        '14_signing_regulation_annex.docx',
       ])
     );
   });

@@ -3,7 +3,7 @@
     pnpm --filter @ssm-usor/document-engine build-signing
 
 Neither is one of the provider's originals: the wording is ours, in `signing.ro.json`, and goes
-to the provider's SSM contact before it ships. The annex to the regulament intern is document 13
+to the provider's SSM contact before it ships. The annex to the regulament intern is document 14
 of the occupational safety set, with the set's box of document details; the signing agreement
 is a per-employee act adițional, with no box, like the individual training sheets. Articles are
 a list, as in the service contract, so no article refers to another by its number. The JSON's
