@@ -1,5 +1,5 @@
 begin;
-select plan(5);
+select plan(6);
 
 insert into public.organizations (id, name) values
   ('11111111-0000-4000-8000-000000000001', 'Org A');
@@ -46,6 +46,12 @@ select throws_ok(
   '23514',
   null,
   'fingerprints without their annexes and roles are refused'
+);
+
+select ok(
+  has_column_privilege('authenticated', 'public.document_revisions', 'duty_fingerprints', 'UPDATE')
+    and has_column_privilege('authenticated', 'public.document_revisions', 'duty_fingerprints', 'INSERT'),
+  'a member writes the fingerprints when generating 13 and when generating its draft again'
 );
 
 select * from finish();

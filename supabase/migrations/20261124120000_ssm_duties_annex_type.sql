@@ -80,3 +80,6 @@ alter table public.document_revisions
       false
     )
   );
+
+-- Regenerating a draft writes it again, as it does the snapshot.
+grant update (duty_fingerprints) on table public.document_revisions to authenticated;
