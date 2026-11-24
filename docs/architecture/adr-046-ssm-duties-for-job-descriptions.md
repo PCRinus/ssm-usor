@@ -52,7 +52,7 @@ The document is 13, "Atribuții și răspunderi în domeniul securității și s
    - **Risk zones:** for a post whose risk factors a zone of 9.2 links, to know that zone and apply its measures (H.G. 1425/2006 art. 106 (2)). The zones are read only once they are decided (ADR 045). Until then the annex prints no zone line, and its snapshot marks it changed when they are.
    - **Training:** to take part in the trainings at its staff category's interval, as decision 1.1 sets it.
 4. **The duties of a role**, for each current employee of the post who holds one, named:
-   - **Workplace manager:** training its workers at the workplace and periodically (H.G. 1425/2006 art. 91 (1), 96 (1)); letting no one start work before their knowledge is checked (art. 94); passing on the zones' measures (art. 106 (2)).
+   - **Workplace manager:** training its workers at the workplace and periodically (H.G. 1425/2006 art. 91 (1), 96 (1)); letting no one start work before their knowledge is checked (art. 94); knowing the zones' measures, which the employer brings to workplace managers (art. 106 (2)), and seeing that its workers apply them. Training covers the execution staff, as decision 1.1 divides it.
    - **First aid:** written for the annex on the basis of Legea 319/2006 art. 10, since decision 1.3 sends these duties to the job description and lists none. They are: giving first aid as trained, calling the emergency services, keeping the first-aid kit stocked, and telling the employer what was used.
    - **Imminent danger** and **workers' representative:** the texts decisions 1.4 and 1.5 already print, so a decision and an annex never disagree, each citing its decision ("conform deciziei nr. 4 SSM din …").
 

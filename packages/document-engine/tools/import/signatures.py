@@ -217,7 +217,7 @@ def top_level_tables(xml):
 
 
 def signers(table):
-    """For each column of a block of two signers, each a heading, a name and a role (13's
+    """For each column of a block of two signers, each a heading, a name and a role (14's
     "Angajator" and "Întocmit"), those three paragraphs; None for any other table."""
     if has_lines(table) or 'HouseTable' in table or len(re.findall(r'<w:gridCol\b', table)) != 2:
         return None

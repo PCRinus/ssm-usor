@@ -89,13 +89,13 @@ Numărul documentului nu este numărul deciziei. O decizie poartă sub titlu „
 
 Documentul **13**, „Atribuții și răspunderi în domeniul securității și sănătății în muncă – anexe la fișele posturilor”, îl primește orice client. Legea nr. 319/2006, art. 13 lit. d), cere angajatorului să stabilească prin fișa postului atribuțiile și răspunderile fiecărui lucrător în domeniul securității și sănătății în muncă, iar H.G. nr. 1425/2006, art. 15 alin. (1) pct. 4, face din propunerea lor o activitate a serviciului de prevenire și protecție, cu aprobarea angajatorului. Fișa postului rămâne documentul angajatorului; documentul 13 îi dă partea de securitate și sănătate în muncă, câte o anexă pentru fiecare post.
 
-Pe prima pagină sunt semnăturile de predare: a ta, „Am propus și predat un exemplar”, și a angajatorului, „Am primit și aprobat”, apoi lista anexelor. Fiecare anexă începe pe o pagină nouă, în ordinea posturilor din tabelul **Posturi**, și are rândul ei de aprobare, pentru că se păstrează la dosar lângă fișele postului respectiv. Un post fără angajați își primește și el anexa.
+Pe prima pagină sunt semnăturile de predare: a ta, „Am propus și predat un exemplar”, și a angajatorului, „Am primit și aprobat”, apoi lista anexelor. Fiecare anexă începe pe o pagină nouă, în ordinea alfabetică a posturilor din tabul **Posturi de lucru**, și are rândul ei de aprobare, pentru că se păstrează la dosar lângă fișele postului respectiv. Un post fără angajați își primește și el anexa.
 
 O anexă cuprinde:
 
 - obligațiile oricărui lucrător, după Legea nr. 319/2006, art. 22 și art. 23 alin. (1);
 - atribuțiile postului, din datele lui: instrucțiunile proprii pe care le aplică postul, cu numărul și titlul din documentul 3.1; echipamentul individual de protecție din documentul 6, dacă postul are; zonele cu risc ridicat și specific din documentul 9.2 legate de riscurile postului; intervalul instruirii periodice al postului;
-- atribuțiile rolurilor pe care le au angajații postului, cu numele lor: conducător al locului de muncă, lucrător desemnat pentru primul ajutor, personal desemnat pentru pericol grav și iminent și reprezentant al lucrătorilor, ultimele două cu trimitere la decizia lor, 1.4 și 1.5; cine are două roluri apare la amândouă;
+- atribuțiile rolurilor pe care le au angajații postului, cu numele lor: conducător al locului de muncă, lucrător desemnat pentru primul ajutor, personal desemnat pentru pericol grav și iminent și reprezentant al lucrătorilor, acesta doar cât timp setul cuprinde decizia 1.5, ultimele două cu trimitere la decizia lor, 1.4 și 1.5; cine are două roluri apare la amândouă;
 - răspunderea pentru neîndeplinirea lor.
 
 Rândul despre zone apare în anexa unui post după ce ai adăugat zonele clientului, dacă o zonă este legată de riscurile postului. Când adaugi zone după ce documentul 13 a fost generat, ciorna lui arată „Date modificate” dacă o zonă ajunge astfel într-o anexă.
