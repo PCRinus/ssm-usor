@@ -299,7 +299,6 @@ export type DocumentContext = {
   positions: PositionContext[];
   equippedPositions: EquippedPositionContext[];
   hasEquippedPositions: boolean;
-  /** Document 13's annexes, one per current position (ADR 046). */
   dutyAnnexes: DutyAnnexContext[];
   /**
    * The positions without equipment, every one of them when none has any: "postul de lucru

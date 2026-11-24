@@ -188,7 +188,6 @@ export async function ssmDutiesFingerprints(
   };
 }
 
-/** What a revision records beside its snapshot: null for any other document. */
 export async function dutyFingerprintsOf(
   typeKey: string,
   snapshot: Record<string, unknown>

@@ -851,7 +851,6 @@ export const regenerationJobResponseSchema = z.object({ job: regenerationJobSche
 
 export type RegenerationJobResponse = z.infer<typeof regenerationJobResponseSchema>;
 
-/** The roles whose duties document 13 prints for the named employees of a post (ADR 046). */
 export const ssmDutyRoles = [
   'workplace_manager',
   'first_aid',
