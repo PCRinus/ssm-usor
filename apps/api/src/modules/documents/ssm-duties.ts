@@ -1,12 +1,14 @@
 import {
+  type DocumentTypeKey,
   printedDate,
   type SsmDutiesFingerprints,
   type SsmDutyRole,
   ssmDutyRoles,
   trainingIntervalLabel,
 } from '@ssm-usor/contracts';
-import { ssmDutiesWording } from '@ssm-usor/document-engine';
+import { ssmDutiesWording } from '@ssm-usor/document-engine/ssm-duties';
 
+import type { Json } from '../../database.types';
 import { sha256 } from '../../lib/hash';
 import { stableJson } from '../../lib/json';
 import { listed } from '../../lib/romanian';
@@ -15,7 +17,7 @@ import { distinctPeople, legalRepresentativeOf, samePerson } from './people';
 import type { RiskEvaluationFacts } from './risk-assessment';
 import { type RiskZonesFacts, zonesByPosition } from './risk-zones-record';
 
-export { ssmDutiesTypeKey } from '@ssm-usor/document-engine';
+export const ssmDutiesTypeKey = 'ssm_duties' as const satisfies DocumentTypeKey;
 
 export type CitedDecision = 'decision_imminent_danger' | 'decision_workers_representative';
 
@@ -180,4 +182,13 @@ export async function ssmDutiesFingerprints(
       }))
     ),
   };
+}
+
+/** What a revision records beside its snapshot: null for any other document. */
+export async function dutyFingerprintsOf(
+  typeKey: string,
+  snapshot: Record<string, unknown>
+): Promise<Json | null> {
+  if (typeKey !== ssmDutiesTypeKey) return null;
+  return ssmDutiesFingerprints((snapshot.dutyAnnexes ?? []) as DutyAnnexContext[]);
 }

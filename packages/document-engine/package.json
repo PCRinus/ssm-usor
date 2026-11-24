@@ -20,6 +20,10 @@
       "types": "./dist/signing.d.ts",
       "import": "./dist/signing.js"
     },
+    "./ssm-duties": {
+      "types": "./dist/ssm-duties.d.ts",
+      "import": "./dist/ssm-duties.js"
+    },
     "./template-files": {
       "types": "./dist/template-files.d.ts",
       "import": "./dist/template-files.js"

@@ -46,6 +46,7 @@ import {
   readServiceContractRow,
 } from './rows';
 import { rulesOf, setOfGroup, setRules, type ThemesRule } from './sets';
+import { dutyFingerprintsOf } from './ssm-duties';
 
 /** The year it is in Romania, which the documents are dated by. */
 function currentYear() {
@@ -288,6 +289,7 @@ async function createDocument(
       template_version_id: template.versionId,
       generation_id: generationId,
       data_snapshot: snapshot as Json,
+      duty_fingerprints: await dutyFingerprintsOf(template.typeKey, snapshot),
     },
     bytes
   );
@@ -311,6 +313,7 @@ async function writeGeneratedDraft(
   }
 ) {
   const { bytes, snapshot, templateVersionId, generationId } = generated;
+  const dutyFingerprints = await dutyFingerprintsOf(document.type_key, snapshot);
   const draft = draftOf(document);
   if (draft) {
     await files.writeDocument(draft.docx_path, bytes, { replace: true });
@@ -320,6 +323,7 @@ async function writeGeneratedDraft(
         template_version_id: templateVersionId,
         generation_id: generationId,
         data_snapshot: snapshot as Json,
+        duty_fingerprints: dutyFingerprints,
         // As generated again: nothing of the edit is left.
         edited_at: null,
         edited_by: null,
@@ -336,6 +340,7 @@ async function writeGeneratedDraft(
         template_version_id: templateVersionId,
         generation_id: generationId,
         data_snapshot: snapshot as Json,
+        duty_fingerprints: dutyFingerprints,
       },
       bytes
     );
