@@ -167,7 +167,7 @@ describe('the fingerprints of document 13', () => {
     expect(after.roles).toEqual(before.roles);
   });
 
-  it("change for another post whose instructions a new module renumbers, as 3.1's numbers are the set's", async () => {
+  it('do not change for another post whose instructions a new module renumbers in 3.1', async () => {
     const before = await fingerprintsOf(facts);
     const earlier = {
       ...weldingModule,
@@ -179,7 +179,7 @@ describe('the fingerprints of document 13', () => {
     const after = await fingerprintsOf(
       withPositions({ instructions: [...accountant.instructions, earlier] })
     );
-    expect(fingerprintOf(after, welderId)).not.toBe(fingerprintOf(before, welderId));
+    expect(fingerprintOf(after, welderId)).toBe(fingerprintOf(before, welderId));
   });
 
   it('change for a post when its equipment, zones or interval change', async () => {

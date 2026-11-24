@@ -153,10 +153,11 @@ export function dutyAnnexes(
   });
 }
 
-// Neither the post's name nor its annex's number: a post renamed or moved in the table has the
-// same duties, and its workers' acknowledgements stay current.
+// Neither the post's name, its annex's number nor 3.1's numbers, which a module added to another
+// post shifts: a post renamed, moved or renumbered has the same duties, and its workers'
+// acknowledgements stay current.
 const postDuties = (annex: DutyAnnexContext) => ({
-  instructions: annex.instructions,
+  instructions: annex.instructions.map((instruction) => instruction.title).sort(),
   equipment: annex.equipment,
   zones: annex.zones,
   trainingInterval: annex.trainingInterval,
