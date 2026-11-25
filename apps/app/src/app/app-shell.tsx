@@ -244,7 +244,8 @@ function NavGroup({
       className="grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-200 ease-out starting:grid-rows-[0fr] starting:opacity-0 data-[open=false]:grid-rows-[0fr] data-[open=false]:opacity-0 motion-reduce:transition-none"
       {...props}
     >
-      <div className="min-h-0 overflow-hidden">{children}</div>
+      {/* The negative margin gives a sub-entry's focus ring room past the clip. */}
+      <div className="-mr-1 min-h-0 overflow-hidden pr-1">{children}</div>
     </div>
   );
 }
@@ -394,7 +395,10 @@ function AppNavigation({
                           </SidebarMenuButton>
                           {children && (
                             <NavGroup open={expanded}>
-                              <SidebarMenuSub data-testid={`nav-${testId}-group`}>
+                              <SidebarMenuSub
+                                data-testid={`nav-${testId}-group`}
+                                className="mr-0 pr-0"
+                              >
                                 {children.map((child) => {
                                   const childPill = pillOf(child.to, {
                                     set: 'set' in child ? child.set : undefined,
