@@ -1,6 +1,6 @@
 ---
 title: Instruirea și testele unui lucrător
-description: Ce arată taburile Instruire SSM și Instruire SU ale unui lucrător și tabul Instruiri ținute al clientului, cum se calculează termenul, când îl așteaptă un test și cum se întocmește fișa individuală.
+description: Ce arată taburile Instruire SSM și Instruire SU ale unui lucrător și tabul Instruiri ținute al clientului, cum se calculează termenul, când îl așteaptă un test, cum se întocmește fișa individuală și cum se semnează fișa atribuțiilor SSM.
 topics:
   - id: angajati.instruire
     heading: Taburile de instruire
@@ -36,6 +36,8 @@ topics:
     heading: Copia de citire și originalele
   - id: angajati.semnaturi-instruire
     heading: Semnăturile unei instruiri
+  - id: angajati.atributii-ssm
+    heading: Fișa de luare la cunoștință a atribuțiilor SSM
 sources:
   - supabase/migrations/20261112160000_paper_trainings_as_written.sql
   - docs/architecture/adr-006-job-positions.md
@@ -64,6 +66,10 @@ sources:
   - apps/app/src/features/training-sheets/training-sheet-download.tsx
   - apps/app/src/features/signatures/use-record-signatures.ts
   - apps/app/src/features/missing-data/missing-rows.ts
+  - docs/architecture/adr-046-ssm-duties-for-job-descriptions.md
+  - packages/contracts/src/duties-acknowledgements.ts
+  - apps/app/src/features/duties-acknowledgements/duties-acknowledgement-card.tsx
+  - apps/app/src/features/duties-acknowledgements/duties-format.ts
   - supabase/migrations/20261016210000_training_records.sql
   - supabase/migrations/20261017100000_training_interval_source.sql
   - supabase/migrations/20261020100000_knowledge_tests.sql
@@ -80,6 +86,7 @@ Cele două taburi arată la fel. Sus ai **Descarcă fișa SSM** (sau **SU**), **
 - **Următoarea instruire**: termenul, sau de ce nu există încă unul;
 - **Intervalul de instruire**: la câte luni se repetă instruirea periodică și de unde vine intervalul;
 - **Ultima instruire periodică**;
+- **Fișa de luare la cunoștință a atribuțiilor SSM**, doar pe tabul **Instruire SSM** (vezi „Fișa de luare la cunoștință a atribuțiilor SSM”);
 - **Testare**: starea testării, rezultatele și încercările din portal;
 - **Instruiri**: tabelul instruirilor lucrătorului în acel domeniu.
 
@@ -255,3 +262,40 @@ Fiecare instruire înregistrată în aplicație are rubrici de semnătură: **In
 Rubricile le vezi deschizând rândul instruirii în tabul lucrătorului. Lucrătorul își semnează rubrica din portal, cu un cod primit pe email sau prin SMS. Rubricile tale, de instructor, verificator sau examinator, le semnezi de pe pagina **Semnături**, mai multe deodată cu un singur cod (vezi [Semnături](/semnaturi/)). O rubrică semnată de mână o marchezi cu **Marchează semnat pe hârtie**.
 
 O instruire de pe fișa pe hârtie nu are rubrici de semnat și nu cere nicio semnătură, nici în aplicație, nici în portal: semnăturile ei sunt pe fișa pe hârtie. În locul rubricilor scrie „Semnat pe hârtie: instruit, instructor”, la care se adaugă verificatorul și cel care admite la lucru când instruirea îi are. Pe fișa individuală, rândul ei apare cu mențiunea „transcris; semnat pe hârtie”. O fișă semnată întocmită înainte ca fișele să scrie „transcris” rămâne cum era: rândurile adăugate pe ea mai târziu primesc tot mențiunea „semnat pe hârtie”.
+
+## Fișa de luare la cunoștință a atribuțiilor SSM
+
+Legea nr. 319/2006, art. 13 lit. d), cere angajatorului să stabilească pentru fiecare lucrător, prin fișa postului, atribuțiile și răspunderile lui în domeniul securității și sănătății în muncă. Documentul 13 din Documentație SSM le scrie, câte o anexă pentru fiecare post, iar H.G. nr. 1425/2006, art. 15 alin. (1) pct. 4, face din propunerea lor o activitate a serviciului de prevenire și protecție. Fișa de luare la cunoștință e exemplarul lucrătorului: anexa postului lui, cu atribuțiile rolurilor pe care le are (conducătorul locului de muncă, prim ajutor, pericol grav și iminent, reprezentantul lucrătorilor), sub care semnează că le-a primit, le-a citit și le-a înțeles.
+
+Cardul fișei e pe tabul **Instruire SSM**, sub starea instruirii:
+
+- **Stare**: **De semnat**, **Semnată pe hârtie**, cu ziua semnării, sau **De semnat din nou**, cu motivul;
+- **Fișa**: anexa din documentul 13 și ziua în care a fost emis, cu postul și rolurile lucrătorului;
+- **Scan**: scanul fișei semnate, dacă l-ai atașat;
+- **Semnată anterior**: fișa semnată înainte, când trebuie semnată din nou;
+- **Ce urmează**: pasul următor.
+
+Fișa se întocmește din ultimul document 13 emis; o ciornă nu contează. Nu se păstrează în aplicație: o primești ca PDF în momentul în care o descarci.
+
+### Fișa semnată pe hârtie
+
+Deocamdată fișa se semnează de mână, chiar și de un lucrător care semnează electronic instruirile, pentru că actul adițional privind semnarea electronică acoperă doar fișele de instruire. Alege **Descarcă fișa pentru semnare pe hârtie** și dă-o lucrătorului s-o semneze. Apoi alege **Înregistrează fișa semnată pe hârtie…** și completează:
+
+- **Data semnării**, care nu poate fi în viitor și nici înaintea zilei în care a fost emis documentul 13;
+- **Scanul fișei**, opțional: îl încarci sau îl alegi dintre fișierele lucrătorului. Un scan nou se salvează în tabul **Documente** al lucrătorului.
+
+Dacă între timp documentul 13 a fost emis din nou, înregistrarea nu se face: descarcă fișa nouă și dă-o la semnat. O fișă înregistrată din greșeală o ștergi cu **Șterge înregistrarea…**; scanul ei rămâne în **Documente**.
+
+Starea fișei o vezi și în lista lucrătorilor, sub post, iar filtrul **Atribuții SSM** îi găsește pe cei care au de semnat (vezi [Filtrele](/clienti/angajati/#filtrele)).
+
+### De semnat din nou
+
+Fișa semnată rămâne valabilă cât timp anexa postului și rolurile lucrătorului sunt cele de la semnare. Devine **De semnat din nou** când un document 13 emis mai târziu schimbă anexa postului, când lucrătorul trece pe alt post sau când primește ori pierde un rol. Un document 13 generat și emis din nou fără să schimbe anexa postului nu schimbă nimic: se compară doar atribuțiile, nu numele și datele din ele. Fișa semnată înainte rămâne la dosar și o vezi la **Semnată anterior**, cu scanul ei.
+
+### Când nu există fișă
+
+- **Documentul 13 nu este emis încă**: generează-l și emite-l din Documentație SSM; până atunci, cardul spune doar atât.
+- **Postul lucrătorului e arhivat**: postul nu mai are anexă în documentul 13. **Schimbă postul** mută lucrătorul pe un post curent.
+- **Postul e mai nou decât documentul 13**: postul a fost creat după ultima emitere, deci nu are anexă. Generează și emite din nou documentul 13.
+
+La un client arhivat și la un fost lucrător, cardul arată starea fișei, dar fișa nu se mai descarcă pentru semnare și nu se mai înregistrează.
