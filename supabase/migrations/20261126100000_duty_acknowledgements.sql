@@ -335,7 +335,14 @@ left join (
   ) standing
   order by standing.client_id, standing.employee_id, standing.precedence, standing.happened_at desc
 ) portal on portal.client_id = e.client_id and portal.employee_id = e.id
-left join public.employee_duty_acknowledgement_states duties on duties.employee_id = e.id;
+-- One row per employee already; grouped so that the planner can drop the join where the state is
+-- not read, and joined on the client too, so that a client's list computes the states of its own
+-- employees, reading the revision's snapshot once, rather than those of the whole organization.
+left join (
+  select st.employee_id, st.client_id, min(st.state) as state
+  from public.employee_duty_acknowledgement_states st
+  group by st.employee_id, st.client_id
+) duties on duties.employee_id = e.id and duties.client_id = e.client_id;
 
 comment on column public.employee_list.duties_acknowledgement_state is
   'A current employee''s acknowledgement of their SSM duties (ADR 046), as employee_duty_acknowledgement_states reads it; null for a former employee.';

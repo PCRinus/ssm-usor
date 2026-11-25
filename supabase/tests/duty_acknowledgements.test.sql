@@ -1,5 +1,5 @@
 begin;
-select plan(24);
+select plan(26);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -237,6 +237,14 @@ select throws_ok(
   'CLA01', null,
   'an archived client takes no record'
 );
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+select lives_ok(
+  $$ select * from public.delete_archived_client('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001') $$,
+  'an archived client with records is deleted'
+);
+select is((select count(*)::int from public.employee_duty_acknowledgements), 0, 'and its records with it');
 
 select * from finish();
 rollback;
