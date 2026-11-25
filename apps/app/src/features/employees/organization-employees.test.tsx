@@ -274,6 +274,33 @@ describe("the organization's employees", () => {
     );
   });
 
+  it('says under the post when the SSM duties wait for a signature, and filters by them', async () => {
+    mockApi(() =>
+      Response.json(page([{ ...popescu, dutiesAcknowledgement: 'sign_again' }, taranu]))
+    );
+    const runtime = mountApp(authFixture(makeSession()).client, '/angajati');
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('organization-employees-row');
+    expect(
+      rows.map(
+        (row) => within(row).queryByTestId('organization-employees-duties')?.textContent ?? null
+      )
+    ).toEqual(['Atribuții SSM noi, nesemnate', null]);
+    await user.click(screen.getByTestId('organization-employees-filters'));
+    const panel = await screen.findByTestId('organization-employees-filters-panel');
+    await user.click(
+      within(panel).getByTestId('organization-employees-filters-dutiesAcknowledgement-no_annex')
+    );
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ dutiesAcknowledgement: 'no_annex' })
+    );
+    await waitFor(() =>
+      expect(listRequests().at(-1)!.searchParams.getAll('dutiesAcknowledgement')).toEqual([
+        'no_annex',
+      ])
+    );
+  });
+
   it('chooses clients from the filters, searching them by name, and clears them', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, '/angajati');

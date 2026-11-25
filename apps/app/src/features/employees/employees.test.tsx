@@ -1,3 +1,4 @@
+import type { DutiesAcknowledgementStatus } from '@ssm-usor/contracts';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -413,6 +414,81 @@ describe('client employees list', () => {
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ status: 'terminated' })
     );
+  });
+
+  it('says under the post, in amber, when the SSM duties wait for a signature, and nothing otherwise', async () => {
+    const worker = (
+      id: string,
+      lastName: string,
+      dutiesAcknowledgement: DutiesAcknowledgementStatus | null
+    ) => employeeListItem({ ...person, id, lastName, dutiesAcknowledgement });
+    mockApi({
+      list: () =>
+        Response.json(
+          page([
+            worker('0f6c7a1e-1b2c-4d3e-8f4a-5b6c7d8e9f01', 'Bălan', 'signed'),
+            worker('0f6c7a1e-1b2c-4d3e-8f4a-5b6c7d8e9f02', 'Constantin', 'to_sign'),
+            worker('0f6c7a1e-1b2c-4d3e-8f4a-5b6c7d8e9f03', 'Ionescu', 'sign_again'),
+            worker('0f6c7a1e-1b2c-4d3e-8f4a-5b6c7d8e9f04', 'Popa', 'no_annex'),
+            worker('0f6c7a1e-1b2c-4d3e-8f4a-5b6c7d8e9f05', 'Stan', 'not_issued'),
+            worker('0f6c7a1e-1b2c-4d3e-8f4a-5b6c7d8e9f06', 'Toma', null),
+          ])
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, employeesPage);
+    await screen.findAllByTestId('employees-row');
+    const lines = screen
+      .getAllByTestId('employees-row')
+      .map((row) => within(row).queryByTestId('employees-duties'));
+    expect(lines.map((line) => line?.textContent ?? null)).toEqual([
+      null,
+      'Atribuții SSM nesemnate',
+      'Atribuții SSM noi, nesemnate',
+      'Postul lipsește din doc. 13',
+      null,
+      null,
+    ]);
+    expect(lines[1]!.className).toContain('text-warning-foreground');
+    expect(lines[1]!.parentElement!.textContent).toBe('SudorAtribuții SSM nesemnate');
+    expect(screen.queryByRole('columnheader', { name: /Atribuții/ })).toBeNull();
+  });
+
+  it('filters by the state of the SSM duties acknowledgement', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-filters'));
+    const panel = await screen.findByTestId('employees-filters-panel');
+    const group = within(panel).getByRole('list', { name: 'Atribuții SSM' });
+    expect(
+      within(group)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+    ).toEqual(['Semnate', 'Nesemnate', 'Noi, nesemnate', 'Postul lipsește din doc. 13']);
+    await user.click(within(panel).getByTestId('employees-filters-dutiesAcknowledgement-to_sign'));
+    await user.click(
+      within(panel).getByTestId('employees-filters-dutiesAcknowledgement-sign_again')
+    );
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({
+        dutiesAcknowledgement: ['to_sign', 'sign_again'],
+      })
+    );
+    await waitFor(() => {
+      const sent = new URL(String(requestsTo(employeesPath).at(-1)![0])).searchParams;
+      expect(sent.getAll('dutiesAcknowledgement')).toEqual(['to_sign', 'sign_again']);
+    });
+  });
+
+  it('offers no duties filter on the former employees', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    mountApp(authFixture(makeSession()).client, `${employeesPage}?status=terminated`);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-filters'));
+    const panel = await screen.findByTestId('employees-filters-panel');
+    expect(within(panel).queryByRole('list', { name: 'Atribuții SSM' })).toBeNull();
   });
 
   it('filters by the posts and workplaces of the client, and keeps them on the other tab', async () => {

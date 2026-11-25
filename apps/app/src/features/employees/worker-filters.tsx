@@ -1,4 +1,5 @@
 import {
+  dutiesAcknowledgementFilters,
   type EmployeeAttentionFilter,
   employeeAttentionFilters,
   type EmployeeTrainingStateFilter,
@@ -16,6 +17,7 @@ import {
   Briefcase,
   Building2,
   ClipboardCheck,
+  FileSignature,
   Flame,
   HardHat,
   MapPin,
@@ -27,11 +29,13 @@ import { getListClientsQueryKey, listClients } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 import type { ListFilterFacet, ListFilterOption } from '@/components/list-filters/types';
 import { filterSearchSchema, idFilterSearchSchema } from '@/components/list-filters/url';
+import { dutiesFilterLabels } from '@/features/duties-acknowledgements/duties-format';
 
 export const workerFilterKeys = [
   'ssmTraining',
   'suTraining',
   'test',
+  'dutiesAcknowledgement',
   'attention',
   'jobPosition',
   'workplace',
@@ -46,6 +50,7 @@ export const clientWorkerFilterKeys = [
   'ssmTraining',
   'suTraining',
   'test',
+  'dutiesAcknowledgement',
   'attention',
   'jobPosition',
   'workplace',
@@ -55,6 +60,7 @@ export const organizationWorkerFilterKeys = [
   'ssmTraining',
   'suTraining',
   'test',
+  'dutiesAcknowledgement',
   'attention',
   'client',
 ] as const satisfies readonly WorkerFilterKey[];
@@ -63,6 +69,7 @@ export const workerFilterSearch = {
   ssmTraining: filterSearchSchema(employeeTrainingStateFilters),
   suTraining: filterSearchSchema(employeeTrainingStateFilters),
   test: filterSearchSchema(testStateFilters),
+  dutiesAcknowledgement: filterSearchSchema(dutiesAcknowledgementFilters),
   attention: filterSearchSchema(employeeAttentionFilters),
 };
 
@@ -171,6 +178,17 @@ const trainingFacets: ListFilterFacet<WorkerFilterKey>[] = [
   },
 ];
 
+const dutiesFacet: ListFilterFacet<WorkerFilterKey> = {
+  key: 'dutiesAcknowledgement',
+  label: 'Atribuții SSM',
+  icon: FileSignature,
+  column: 'left',
+  options: dutiesAcknowledgementFilters.map((value) => ({
+    value,
+    label: dutiesFilterLabels[value],
+  })),
+};
+
 // The clients list's training cell links to its "de instruit" and "scadente", which count either
 // domain: offered only once a link chose them.
 function attentionFacet(withStates: boolean): ListFilterFacet<WorkerFilterKey> {
@@ -276,7 +294,7 @@ export function clientWorkerFacets({
   positions: readonly Named[] | undefined;
 }): ListFilterFacet<WorkerFilterKey>[] {
   return [
-    ...(withStates ? trainingFacets : []),
+    ...(withStates ? [...trainingFacets, dutiesFacet] : []),
     attentionFacet(withStates),
     ...clientPlaceFacets(places),
   ];
@@ -290,7 +308,7 @@ export function organizationWorkerFacets({
   clients: readonly Named[] | undefined;
 }): ListFilterFacet<WorkerFilterKey>[] {
   return [
-    ...(withStates ? trainingFacets : []),
+    ...(withStates ? [...trainingFacets, dutiesFacet] : []),
     attentionFacet(withStates),
     {
       key: 'client',
