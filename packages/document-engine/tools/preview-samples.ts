@@ -3,8 +3,10 @@ import { fileURLToPath } from 'node:url';
 
 import { renderDocument, TemplateError } from '../src/render';
 import { signingTypeKeys } from '../src/signing';
+import { dutiesAcknowledgementTypeKey } from '../src/ssm-duties';
 import { manifestEntries, templateSets } from '../src/template-store';
 import { testSheetTypeKey } from '../src/test-sheet';
+import { dutiesAcknowledgementSamples } from './duties-acknowledgement-samples';
 import {
   type KnowledgeTestCode,
   knowledgeTestData,
@@ -47,9 +49,11 @@ export function previewDocuments(templates: URL): PreviewDocuments {
         `${templatesPath}${entry.path}`,
         entry.typeKey === signingTypeKeys.agreement
           ? signingAgreementSamples()
-          : entry.typeKey === testSheetTypeKey
-            ? testSheetSamples()
-            : trainingSheetSamples(entry.typeKey.endsWith('_su') ? 'su' : 'ssm'),
+          : entry.typeKey === dutiesAcknowledgementTypeKey
+            ? dutiesAcknowledgementSamples()
+            : entry.typeKey === testSheetTypeKey
+              ? testSheetSamples()
+              : trainingSheetSamples(entry.typeKey.endsWith('_su') ? 'su' : 'ssm'),
       ])
   );
   const knowledgeTestCodes = new Map(

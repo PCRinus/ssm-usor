@@ -85,8 +85,9 @@ def hang_items(document):
         cursor.setString('\t')
 
 
-def annex_content(annex):
-    wording = annex['wording']
+def annex_body(wording, roles_heading):
+    """What an annex says, from its basis to its responsibility, which the acknowledgement sheet
+    repeats for one worker (`build_duties_acknowledgement.py`)."""
     general, post, roles = wording['general'], wording['post'], wording['roles']
     role_blocks = []
     for key, name in ROLE_SECTIONS.items():
@@ -96,10 +97,7 @@ def annex_content(annex):
             {'text': role['lead'], 'keep': True},
             *items(role['items']),
         ])
-    return section('dutyAnnexes', [
-        {'text': annex['heading'], 'bold': True, 'pageBefore': True, 'keep': True},
-        {'text': annex['subheading'], 'bold': True, 'keep': True},
-        {'text': annex['approval'], 'below': 12},
+    return [
         {'text': wording['basis']},
         {'text': general['heading'], 'bold': True, 'above': 6, 'keep': True},
         {'text': general['lead'], 'keep': True},
@@ -117,11 +115,20 @@ def annex_content(annex):
         ]),
         *items([post['training']]),
         *section('hasRoles', [
-            {'text': roles['heading'], 'bold': True, 'above': 6, 'keep': True},
+            {'text': roles_heading, 'bold': True, 'above': 6, 'keep': True},
         ]),
         *role_blocks,
         {'text': wording['responsibility']['heading'], 'bold': True, 'above': 6, 'keep': True},
         {'text': wording['responsibility']['text']},
+    ]
+
+
+def annex_content(annex):
+    return section('dutyAnnexes', [
+        {'text': annex['heading'], 'bold': True, 'pageBefore': True, 'keep': True},
+        {'text': annex['subheading'], 'bold': True, 'keep': True},
+        {'text': annex['approval'], 'below': 12},
+        *annex_body(annex['wording'], annex['wording']['roles']['heading']),
     ])
 
 

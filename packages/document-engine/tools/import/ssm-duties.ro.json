@@ -94,5 +94,23 @@
         "text": "Ocupantul postului răspunde, potrivit regulamentului intern și prevederilor legale, pentru neîndeplinirea atribuțiilor și obligațiilor din prezenta anexă."
       }
     }
+  },
+  "acknowledgement": {
+    "file": "fisa_atributii_ssm.docx",
+    "title": "FIȘA DE LUARE LA CUNOȘTINȚĂ A ATRIBUȚIILOR SSM",
+    "subtitle": "Atribuții și răspunderi în domeniul securității și sănătății în muncă",
+    "details": [
+      "Angajator: {{client.legalName}}",
+      "Lucrător: {{employee.name}}",
+      "Postul de lucru: {{position}}",
+      "Cuprinde anexa {{number}} din documentul 13 – Atribuții și răspunderi în domeniul securității și sănătății în muncă – anexe la fișele posturilor, emis la {{issueDate}}."
+    ],
+    "rolesHeading": "Atribuțiile rolurilor deținute de lucrător",
+    "statement": "Am primit, am citit și am înțeles atribuțiile și răspunderile de mai sus.",
+    "signature": [
+      "Nume și prenume: {{employee.name}}",
+      "Data: ____________________",
+      "Semnătura: ____________________"
+    ]
   }
 }

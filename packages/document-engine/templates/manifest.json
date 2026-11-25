@@ -338,6 +338,16 @@
         "kind": "layout",
         "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."
       }
+    },
+    {
+      "perEmployee": true,
+      "typeKey": "duties_acknowledgement",
+      "title": "Fișa de luare la cunoștință a atribuțiilor SSM",
+      "file": "fisa_atributii_ssm.docx",
+      "change": {
+        "kind": "legal",
+        "note": "Fișă nouă: fiecare lucrător semnează atribuțiile SSM ale postului său, din anexa documentului 13, și pe cele ale rolurilor pe care le deține (art. 13 lit. d) din Legea 319/2006, art. 15 alin. (1) pct. 4 și 5 din H.G. 1425/2006)."
+      }
     }
   ]
 }
