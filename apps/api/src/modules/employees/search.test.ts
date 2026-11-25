@@ -38,6 +38,7 @@ const viewRow = {
   created_at: '2026-09-17T10:00:00+00:00',
   updated_at: '2026-09-17T10:00:00+00:00',
   signatures_pending_count: 0,
+  duties_acknowledgement_state: 'signed',
 };
 
 type Handler = (url: URL, init?: RequestInit) => Response | Promise<Response>;
@@ -160,6 +161,7 @@ describe('GET /employees', () => {
           createdAt: viewRow.created_at,
           updatedAt: viewRow.updated_at,
           signaturesPending: 0,
+          dutiesAcknowledgement: 'signed',
           client: { id: clientId, name: 'Șantierul Naval SA' },
         },
       ],

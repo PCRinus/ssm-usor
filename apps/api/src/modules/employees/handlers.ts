@@ -2,6 +2,7 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type ClientEmployeeListItem,
   type CreateEmployeeRequest,
+  type DutiesAcknowledgementStatus,
   type Employee,
   type EmployeeAttentionFilter,
   employeeConflictReasons,
@@ -225,7 +226,7 @@ function conflictError(detail: string | undefined) {
 }
 
 const listViewColumns =
-  'id, client_id, client_name, last_name, first_name, employee_number, email, phone, job_title, job_position_id, job_position_name, workplace_id, workplace_name, hired_at, status, terminated_at, created_at, updated_at, signatures_pending_count';
+  'id, client_id, client_name, last_name, first_name, employee_number, email, phone, job_title, job_position_id, job_position_name, workplace_id, workplace_name, hired_at, status, terminated_at, created_at, updated_at, signatures_pending_count, duties_acknowledgement_state';
 
 const portalColumns =
   'portal_state, portal_since, portal_expires_at, portal_revoked_at, portal_channel, portal_address, portal_language, portal_participant_id, portal_invitation_id, portal_administrator';
@@ -257,6 +258,7 @@ type ListViewRow = { [Column in RequiredListColumn]: NonNullable<EmployeeListVie
   | 'workplace_name'
   | 'terminated_at'
   | 'signatures_pending_count'
+  | 'duties_acknowledgement_state'
 > &
   Partial<PortalViewColumns>;
 
@@ -335,7 +337,8 @@ async function listedEmployees(db: DataClient, rows: ListViewRow[]): Promise<Lis
         test_status: testsOf.get(row.id) ?? null,
       }),
       signaturesPending: row.signatures_pending_count ?? 0,
-      dutiesAcknowledgement: null,
+      dutiesAcknowledgement: (row.duties_acknowledgement_state ??
+        null) as DutiesAcknowledgementStatus | null,
     },
     client: { id: row.client_id, name: row.client_name },
     row,
@@ -382,6 +385,7 @@ const listFilterKeys = [
   'workplace',
   'client',
   'portal',
+  'dutiesAcknowledgement',
 ] as const satisfies readonly (keyof ListFilters)[];
 
 const attentionMatches: Record<EmployeeAttentionFilter, string> = {
@@ -434,6 +438,9 @@ function matchingFilters<Query extends FilterableQuery<Query>>(query: Query, fil
   if (filters.workplace) filtered = filtered.or(workplaceMatch(filters.workplace));
   if (filters.client) filtered = filtered.in('client_id', filters.client);
   if (filters.portal) filtered = filtered.in('portal_state', filters.portal);
+  if (filters.dutiesAcknowledgement) {
+    filtered = filtered.in('duties_acknowledgement_state', filters.dutiesAcknowledgement);
+  }
   return filtered;
 }
 

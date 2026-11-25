@@ -2,6 +2,8 @@ import {
   type BuiltInDocumentTypeKey,
   confirmSignedCopyConflictReason,
   documentSetOf,
+  dutiesAcknowledgementErrorReasons,
+  isDocumentEditable,
   type IssueDocumentRequest,
   unfilledMark,
 } from '@ssm-usor/contracts';
@@ -144,6 +146,17 @@ export async function issueDocument(
  * Stores what the editor saved, or a file edited elsewhere, as the draft's file. From then on
  * the draft is "edited": generating it again would discard this.
  */
+// Document 13 is read back by the acknowledgement sheets from what its data built (ADR 046): a
+// hand edit would reach neither them nor a regeneration.
+function requireEditable(typeKey: string) {
+  if (!isDocumentEditable(typeKey)) {
+    throw ApiError.conflict(
+      dutiesAcknowledgementErrorReasons.documentNotEditable,
+      'This document is built from the data alone: regenerate it instead.'
+    );
+  }
+}
+
 export async function saveDraftFile(
   db: DataClient,
   files: FileStore,
@@ -153,6 +166,7 @@ export async function saveDraftFile(
 ) {
   requireDocx(bytes);
   const document = await readDocument(db, documentId);
+  requireEditable(document.type_key);
   const draft = draftOf(document);
   if (!draft) throw new ApiError('conflict', 'This document has no draft to save to.');
   await requireActiveClient(db, document.client_id);
@@ -179,6 +193,7 @@ export async function uploadDocumentFile(
   bytes: Uint8Array,
   period?: number
 ) {
+  requireEditable(typeKey);
   requireDocx(bytes);
   const [client, documents] = await Promise.all([
     db.from('clients').select('archived_at').eq('id', clientId).maybeSingle(),
@@ -235,6 +250,7 @@ export async function startDraftFromIssued(
   documentId: string
 ) {
   const document = await readDocument(db, documentId);
+  requireEditable(document.type_key);
   if (draftOf(document)) {
     throw ApiError.conflict('draft_exists', 'This document already has a draft.');
   }
