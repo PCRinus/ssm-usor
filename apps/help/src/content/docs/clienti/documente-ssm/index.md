@@ -100,7 +100,7 @@ O anexă cuprinde:
 
 Rândul despre zone apare în anexa unui post după ce ai adăugat zonele clientului, dacă o zonă este legată de riscurile postului. Când adaugi zone după ce documentul 13 a fost generat, ciorna lui arată „Date modificate” dacă o zonă ajunge astfel într-o anexă.
 
-O regulă care ține doar de un post, de exemplu „nu folosește feliatorul de carne fără a fi instruit”, nu se scrie în documentul 13. O pui într-o instrucțiune proprie din biblioteca ta, pe care o aplici postului: anexa o numește singură, iar instrucțiunea o folosești la orice client cu același post. Ce scrii de mână în documentul 13, în editor, se pierde la generarea din nou, pentru că anexele se scriu din datele clientului.
+O regulă care ține doar de un post, de exemplu „nu folosește feliatorul de carne fără a fi instruit”, nu se scrie în documentul 13. O pui într-o instrucțiune proprie din biblioteca ta, pe care o aplici postului: anexa o numește singură, iar instrucțiunea o folosești la orice client cu același post. Documentul 13 nu se modifică de mână: nu se schimbă în editor, nu se înlocuiește cu un fișier Word și nu are **Modifică documentul emis**. Anexele se scriu numai din datele clientului, iar fișele lucrătorilor le repetă întocmai, așa că îl schimbi prin date și **Generează din nou**.
 
 ## Stările unui document
 
@@ -157,6 +157,8 @@ Meniul cu trei puncte de la capătul rândului are, după starea documentului:
 - **Generează din nou**, care completează documentul cu datele de acum ale clientului;
 - **Încarcă un fișier Word**, care face dintr-un fișier al tău ciorna documentului, în locul celei de acum;
 - **Șterge ciorna**.
+
+Documentul 13 nu are **Modifică documentul emis** și **Încarcă un fișier Word**, iar ciorna lui nu se modifică în editor: se scrie numai din datele clientului.
 
 O anexă a instrucțiunilor proprii are meniul ei, cu **Deschide** și **Descarcă Word**.
 
