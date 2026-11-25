@@ -66,7 +66,8 @@ set search_path = ''
 as $$
 begin
   new.recorded_by := (select auth.uid());
-  new.recorded_at := now();
+  -- Not now(), the transaction's start, which ties records made in one transaction.
+  new.recorded_at := clock_timestamp();
   return new;
 end;
 $$;
