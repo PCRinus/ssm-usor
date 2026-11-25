@@ -290,7 +290,7 @@ Starea fișei o vezi și în lista lucrătorilor, sub post, iar filtrul **Atribu
 
 ### De semnat din nou
 
-Fișa semnată rămâne valabilă cât timp anexa postului și rolurile lucrătorului sunt cele de la semnare. Devine **De semnat din nou** când un document 13 emis mai târziu schimbă anexa postului, când lucrătorul trece pe alt post sau când primește ori pierde un rol. Un document 13 generat și emis din nou fără să schimbe anexa postului nu schimbă nimic: se compară doar atribuțiile, nu numele și datele din ele. Fișa semnată înainte rămâne la dosar și o vezi la **Semnată anterior**, cu scanul ei.
+Fișa semnată rămâne valabilă cât timp anexa postului și rolurile lucrătorului sunt cele de la semnare. Devine **De semnat din nou** când un document 13 emis mai târziu schimbă anexa postului, când lucrătorul trece pe un post cu alte atribuții sau când primește ori pierde un rol. Un document 13 generat și emis din nou fără să schimbe anexa postului nu schimbă nimic: se compară doar atribuțiile, nu numele și datele din ele. Fișa semnată înainte rămâne la dosar și o vezi la **Semnată anterior**, cu scanul ei.
 
 ### Când nu există fișă
 
