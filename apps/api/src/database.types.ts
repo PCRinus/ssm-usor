@@ -1476,6 +1476,7 @@ export type Database = {
           document_id: string;
           docx_path: string;
           docx_sha256: string | null;
+          duty_fingerprints: Json | null;
           edited_at: string | null;
           edited_by: string | null;
           generation_id: string | null;
@@ -1499,6 +1500,7 @@ export type Database = {
           document_id: string;
           docx_path: string;
           docx_sha256?: string | null;
+          duty_fingerprints?: Json | null;
           edited_at?: string | null;
           edited_by?: string | null;
           generation_id?: string | null;
@@ -1521,6 +1523,7 @@ export type Database = {
           document_id?: string;
           docx_path?: string;
           docx_sha256?: string | null;
+          duty_fingerprints?: Json | null;
           edited_at?: string | null;
           edited_by?: string | null;
           generation_id?: string | null;

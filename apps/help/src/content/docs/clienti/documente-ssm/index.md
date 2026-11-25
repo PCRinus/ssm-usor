@@ -7,6 +7,8 @@ sources:
   - docs/architecture/adr-012-own-instructions.md
   - docs/architecture/adr-017-legislation-monitoring.md
   - docs/architecture/adr-045-risk-zones-record.md
+  - docs/architecture/adr-046-ssm-duties-for-job-descriptions.md
+  - packages/document-engine/tools/import/ssm-duties.ro.json
   - packages/contracts/src/documents.ts
   - apps/app/src/features/documents/documents-card.tsx
   - apps/app/src/features/documents/document-sections.ts
@@ -64,23 +66,41 @@ Fiecare document are numărul lui din dosarul tipărit, scris înaintea titlului
 
 Coperta unei secțiuni are numărul **X.0**: 1.0 este coperta deciziilor, 3.0 coperta instrucțiunilor proprii. După copertă, documentele secțiunii urmează în ordine, fără goluri: X.1, X.2 și așa mai departe, ca deciziile 1.1–1.5 după coperta 1.0. O secțiune fără copertă care are mai multe documente le numerotează tot de la X.1: secțiunea 9 are evaluarea riscurilor, **9.1**, și evidența zonelor cu risc ridicat și specific, **9.2**.
 
-| Secțiune                                               | Documente                                           |
-| ------------------------------------------------------ | --------------------------------------------------- |
-| 1. Decizii interne                                     | 1.0 coperta, 1.1–1.5 deciziile                      |
-| 2. Material de instruire introductiv-generală          | 2.0 coperta, 2.1 materialul                         |
-| 3. Instrucțiuni proprii                                | 3.0 coperta, 3.1 instrucțiunile proprii, cu anexele |
-| 4. Tematica de instruire                               | 4.0 coperta, 4.1 tematica și programul de instruire |
-| 5. Test de verificare a cunoștințelor                  | 5.0 coperta, 5.1 testul la angajare                 |
-| 6. Lista internă de dotare cu EIP                      | 6                                                   |
-| 7. Registrele de evidență a evenimentelor              | 7.0 coperta, 7.1 registrele                         |
-| 8. Referat de control                                  | 8                                                   |
-| 9. Evaluarea riscurilor                                | 9.1 evaluarea riscurilor, 9.2 evidența zonelor      |
-| 10. Planul de prevenire și protecție                   | 10                                                  |
-| 11. Material de informare a angajatorului              | 11.0 coperta, 11.1 materialul                       |
-| 12. Regulament intern privind controlul propriu        | 12                                                  |
-| 13. Anexă la regulamentul privind semnarea electronică | 13                                                  |
+| Secțiune                                                     | Documente                                           |
+| ------------------------------------------------------------ | --------------------------------------------------- |
+| 1. Decizii interne                                           | 1.0 coperta, 1.1–1.5 deciziile                      |
+| 2. Material de instruire introductiv-generală                | 2.0 coperta, 2.1 materialul                         |
+| 3. Instrucțiuni proprii                                      | 3.0 coperta, 3.1 instrucțiunile proprii, cu anexele |
+| 4. Tematica de instruire                                     | 4.0 coperta, 4.1 tematica și programul de instruire |
+| 5. Test de verificare a cunoștințelor                        | 5.0 coperta, 5.1 testul la angajare                 |
+| 6. Lista internă de dotare cu EIP                            | 6                                                   |
+| 7. Registrele de evidență a evenimentelor                    | 7.0 coperta, 7.1 registrele                         |
+| 8. Referat de control                                        | 8                                                   |
+| 9. Evaluarea riscurilor                                      | 9.1 evaluarea riscurilor, 9.2 evidența zonelor      |
+| 10. Planul de prevenire și protecție                         | 10                                                  |
+| 11. Material de informare a angajatorului                    | 11.0 coperta, 11.1 materialul                       |
+| 12. Regulament intern privind controlul propriu              | 12                                                  |
+| 13. Atribuții și răspunderi SSM – anexe la fișele posturilor | 13, o anexă pentru fiecare post                     |
+| 14. Anexă la regulamentul privind semnarea electronică       | 14                                                  |
 
 Numărul documentului nu este numărul deciziei. O decizie poartă sub titlu „Decizia nr. 5 SSM”, numărul pe care îl primește la generare, numărând de la primul număr pe care l-ai dat.
+
+## Atribuțiile SSM ale posturilor
+
+Documentul **13**, „Atribuții și răspunderi în domeniul securității și sănătății în muncă – anexe la fișele posturilor”, îl primește orice client. Legea nr. 319/2006, art. 13 lit. d), cere angajatorului să stabilească prin fișa postului atribuțiile și răspunderile fiecărui lucrător în domeniul securității și sănătății în muncă, iar H.G. nr. 1425/2006, art. 15 alin. (1) pct. 4, face din propunerea lor o activitate a serviciului de prevenire și protecție, cu aprobarea angajatorului. Fișa postului rămâne documentul angajatorului; documentul 13 îi dă partea de securitate și sănătate în muncă, câte o anexă pentru fiecare post.
+
+Pe prima pagină sunt semnăturile de predare: a ta, „Am propus și predat un exemplar”, și a angajatorului, „Am primit și aprobat”, apoi lista anexelor. Fiecare anexă începe pe o pagină nouă, în ordinea alfabetică a posturilor din tabul **Posturi de lucru**, și are rândul ei de aprobare, pentru că se păstrează la dosar lângă fișele postului respectiv. Un post fără angajați își primește și el anexa.
+
+O anexă cuprinde:
+
+- obligațiile oricărui lucrător, după Legea nr. 319/2006, art. 22 și art. 23 alin. (1);
+- atribuțiile postului, din datele lui: instrucțiunile proprii pe care le aplică postul, cu numărul și titlul din documentul 3.1; echipamentul individual de protecție din documentul 6, dacă postul are; zonele cu risc ridicat și specific din documentul 9.2 legate de riscurile postului; intervalul instruirii periodice al postului;
+- atribuțiile rolurilor pe care le au angajații postului, cu numele lor: conducător al locului de muncă, lucrător desemnat pentru primul ajutor, personal desemnat pentru pericol grav și iminent și reprezentant al lucrătorilor, acesta doar cât timp setul cuprinde decizia 1.5, ultimele două cu trimitere la decizia lor, 1.4 și 1.5; cine are două roluri apare la amândouă;
+- răspunderea pentru neîndeplinirea lor.
+
+Rândul despre zone apare în anexa unui post după ce ai adăugat zonele clientului, dacă o zonă este legată de riscurile postului. Când adaugi zone după ce documentul 13 a fost generat, ciorna lui arată „Date modificate” dacă o zonă ajunge astfel într-o anexă.
+
+O regulă care ține doar de un post, de exemplu „nu folosește feliatorul de carne fără a fi instruit”, nu se scrie în documentul 13. O pui într-o instrucțiune proprie din biblioteca ta, pe care o aplici postului: anexa o numește singură, iar instrucțiunea o folosești la orice client cu același post. Ce scrii de mână în documentul 13, în editor, se pierde la generarea din nou, pentru că anexele se scriu din datele clientului.
 
 ## Stările unui document
 
@@ -152,7 +172,7 @@ O anexă a instrucțiunilor proprii are meniul ei, cu **Deschide** și **Descarc
 Un document pe care clientul nu trebuie să îl aibă nu apare deloc, nici în dosare, nici în numărători:
 
 - **Decizia 1.5**, privind reprezentanții lucrătorilor, se generează de la 10 lucrători în lista clientului. H.G. nr. 1425/2006, art. 53 alin. (2), cere cel puțin un reprezentant de la 10 la 49 de lucrători și doi de la 50 la 100. Dacă decizia a fost generată și numărul a scăzut, ea rămâne în documentație.
-- **Documentul 13**, anexa la regulamentul privind semnarea electronică, apare doar la un client care are persoane invitate să semneze electronic fișele de instruire.
+- **Documentul 14**, anexa la regulamentul privind semnarea electronică, apare doar la un client care are persoane invitate să semneze electronic fișele de instruire.
 
 Fereastra de generare spune ce înseamnă numărul de lucrători al clientului pentru decizia 1.5.
 

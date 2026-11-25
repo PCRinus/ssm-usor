@@ -289,10 +289,21 @@
     },
     {
       "number": "13",
+      "stage": 3,
+      "typeKey": "ssm_duties",
+      "title": "Atribuții și răspunderi în domeniul securității și sănătății în muncă – anexe la fișele posturilor",
+      "file": "13_ssm_duties.docx",
+      "change": {
+        "kind": "legal",
+        "note": "Document nou, cerut de art. 13 lit. d) din Legea 319/2006 și art. 15 alin. (1) pct. 4 din H.G. 1425/2006: câte o anexă la fișa fiecărui post, cu atribuțiile și răspunderile în domeniul securității și sănătății în muncă ale celor care îl ocupă."
+      }
+    },
+    {
+      "number": "14",
       "stage": 1,
       "typeKey": "signing_regulation_annex",
       "title": "Anexă la Regulamentul intern privind semnarea electronică a fișelor de instruire",
-      "file": "13_signing_regulation_annex.docx",
+      "file": "14_signing_regulation_annex.docx",
       "change": {
         "kind": "layout",
         "note": "Fișierul nu mai numește alte fonturi decât Arial; aspectul rămâne același."

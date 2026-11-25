@@ -322,6 +322,8 @@ export const facts: DocumentFacts = {
       },
     ],
   },
+  decisionDocuments: {},
+  decisionsInRun: ['decision_imminent_danger', 'decision_workers_representative'],
   fireSafety: {
     card: {
       periodicTrainingHours: 2,

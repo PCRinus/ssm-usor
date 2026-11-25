@@ -1,0 +1,98 @@
+{
+  "file": "13_ssm_duties.docx",
+  "header": {
+    "code": "A.R.SSM",
+    "title": "Atribuții și răspunderi în domeniul securității și sănătății în muncă – anexe la fișele posturilor"
+  },
+  "title": "ATRIBUȚII ȘI RĂSPUNDERI ÎN DOMENIUL SECURITĂȚII ȘI SĂNĂTĂȚII ÎN MUNCĂ",
+  "subtitle": "Anexe la fișele posturilor din cadrul {{client.legalName}}",
+  "handover": [["Am propus și predat un exemplar"], ["Am primit și aprobat"]],
+  "intro": [
+    "Temei legal: art. 13 lit. d) din Legea 319/2006 și art. 15 alin. (1) pct. 4 din H.G. 1425/2006.",
+    "Prezentul document cuprinde atribuțiile și răspunderile în domeniul securității și sănătății în muncă ce revin lucrătorilor din cadrul {{client.legalName}}, corespunzător funcțiilor exercitate, propuse de serviciul extern de prevenire și protecție {{provider.legalName}} și aprobate de angajator.",
+    "Fiecărui post de lucru îi corespunde o anexă, care se atașează fișei postului respectiv și se aduce la cunoștința fiecărui lucrător care ocupă postul. Anexele sunt următoarele:"
+  ],
+  "contents": "Anexa {{number}} – {{position}}",
+  "annex": {
+    "heading": "ANEXA {{number}} LA FIȘA POSTULUI: {{position}}",
+    "subheading": "Atribuții și răspunderi în domeniul securității și sănătății în muncă",
+    "approval": "Aprobat: {{client.representativeRole}}, {{client.representativeName}}, semnătura ____________________",
+    "wording": {
+      "basis": "Potrivit art. 13 lit. d) din Legea 319/2006 și art. 15 alin. (1) pct. 4 din H.G. 1425/2006, prezenta anexă stabilește atribuțiile și răspunderile în domeniul securității și sănătății în muncă ce revin ocupantului postului {{position}} din cadrul {{client.legalName}}, corespunzător funcției exercitate.",
+      "general": {
+        "heading": "Obligațiile oricărui lucrător",
+        "lead": "Potrivit art. 22 din Legea 319/2006, ocupantul postului își desfășoară activitatea în conformitate cu pregătirea și instruirea sa, precum și cu instrucțiunile primite din partea angajatorului, astfel încât să nu expună la pericol de accidentare sau îmbolnăvire profesională atât propria persoană, cât și alte persoane care pot fi afectate de acțiunile sau omisiunile sale în timpul procesului de muncă. În acest scop, potrivit art. 23 alin. (1) din Legea 319/2006, ocupantul postului:",
+        "items": [
+          "a) utilizează corect mașinile, aparatura, uneltele, substanțele periculoase, echipamentele de transport și alte mijloace de producție;",
+          "b) utilizează corect echipamentul individual de protecție acordat și, după utilizare, îl înapoiază sau îl pune la locul destinat pentru păstrare;",
+          "c) nu procedează la scoaterea din funcțiune, la modificarea, schimbarea sau înlăturarea arbitrară a dispozitivelor de securitate proprii, în special ale mașinilor, aparaturii, uneltelor, instalațiilor tehnice și clădirilor, și utilizează corect aceste dispozitive;",
+          "d) comunică imediat angajatorului și/sau lucrătorilor desemnați orice situație de muncă despre care are motive întemeiate să o considere un pericol pentru securitatea și sănătatea lucrătorilor, precum și orice deficiență a sistemelor de protecție;",
+          "e) aduce la cunoștința conducătorului locului de muncă și/sau angajatorului accidentele suferite de propria persoană;",
+          "f) cooperează cu angajatorul și/sau cu lucrătorii desemnați, atât timp cât este necesar, pentru a face posibilă realizarea oricăror măsuri sau cerințe dispuse de către inspectorii de muncă și inspectorii sanitari, pentru protecția sănătății și securității lucrătorilor;",
+          "g) cooperează, atât timp cât este necesar, cu angajatorul și/sau cu lucrătorii desemnați, pentru a permite angajatorului să se asigure că mediul de muncă și condițiile de lucru sunt sigure și fără riscuri pentru securitate și sănătate, în domeniul său de activitate;",
+          "h) își însușește și respectă prevederile legislației din domeniul securității și sănătății în muncă și măsurile de aplicare a acestora;",
+          "i) dă relațiile solicitate de către inspectorii de muncă și inspectorii sanitari."
+        ]
+      },
+      "post": {
+        "heading": "Atribuțiile postului",
+        "lead": "De asemenea, ocupantul postului:",
+        "instructions": "– cunoaște și aplică instrucțiunile proprii de securitate și sănătate în muncă elaborate pentru postul său (art. 15 alin. (1) pct. 3 din H.G. 1425/2006), cuprinse în documentul 3.1 – Instrucțiuni proprii:",
+        "instruction": "– Anexa {{number}}. I.P.S.S.M. {{title}};",
+        "equipment": "– utilizează corect echipamentul individual de protecție stabilit pentru postul său în documentul 6 – Lista internă de dotare cu echipament individual de protecție și, după utilizare, îl înapoiază sau îl pune la locul destinat pentru păstrare (art. 23 alin. (1) lit. b) din Legea 319/2006);",
+        "zones": "– cunoaște zonele cu risc ridicat și specific în care își desfășoară activitatea și aplică măsurile stabilite pentru acestea în documentul 9.2 – Evidența zonelor cu risc ridicat și specific, aduse la cunoștința sa potrivit art. 106 alin. (2) din H.G. 1425/2006:",
+        "zone": "– {{label}};",
+        "training": "– participă la instruirea la locul de muncă, la instruirea periodică, care pentru acest post se face {{trainingInterval}} (art. 96 alin. (2) din H.G. 1425/2006), și la instruirea periodică suplimentară, în cazurile prevăzute la art. 98 din H.G. 1425/2006, și își însușește cunoștințele transmise."
+      },
+      "roles": {
+        "heading": "Atribuțiile rolurilor deținute de ocupanții postului",
+        "workplace_manager": {
+          "title": "Conducător al locului de muncă: {{people}}",
+          "lead": "În această calitate, pe lângă atribuțiile de mai sus:",
+          "items": [
+            "– efectuează instruirea la locul de muncă a personalului de execuție din subordine (art. 91 alin. (1) din H.G. 1425/2006) și instruirea periodică a acestuia (art. 96 alin. (1) din H.G. 1425/2006), pe baza tematicilor aprobate de angajator, și le consemnează în fișele individuale de instruire;",
+            "– nu permite lucrătorului instruit începerea efectivă a activității la postul de lucru decât după verificarea însușirii cunoștințelor de către șeful ierarhic superior celui care a făcut instruirea, consemnată în fișa de instruire individuală (art. 94 din H.G. 1425/2006);",
+            "– cunoaște măsurile stabilite pentru zonele cu risc ridicat și specific de la locul de muncă pe care îl conduce, aduse la cunoștința sa potrivit art. 106 alin. (2) din H.G. 1425/2006, și urmărește aplicarea lor de către lucrătorii din subordine."
+          ]
+        },
+        "first_aid": {
+          "title": "Lucrător desemnat să aplice măsurile de prim ajutor (art. 10 alin. (2) din Legea 319/2006): {{people}}",
+          "lead": "În această calitate, pe lângă atribuțiile de mai sus:",
+          "items": [
+            "– acordă primul ajutor persoanelor accidentate sau care se îmbolnăvesc la locul de muncă, potrivit instruirii primite;",
+            "– anunță de îndată serviciile specializate, la numărul unic pentru apeluri de urgență 112, și pe conducătorul locului de muncă;",
+            "– verifică trusa de prim ajutor și se îngrijește ca aceasta să fie completă, cu produse în termen de valabilitate;",
+            "– comunică angajatorului ce a fost folosit din trusa de prim ajutor, pentru completarea acesteia."
+          ]
+        },
+        "imminent_danger": {
+          "title": "Personal desemnat pentru situațiile de pericol grav și iminent, conform deciziei {{decision}}: {{people}}",
+          "lead": "În această calitate, la constatarea stării de pericol grav și iminent de accidentare ia imediat următoarele măsuri de securitate:",
+          "items": [
+            "– oprirea echipamentului de muncă și/sau a activității;",
+            "– evacuarea personalului din zona periculoasă;",
+            "– anunțarea serviciilor specializate;",
+            "– anunțarea conducătorilor ierarhici;",
+            "– eliminarea cauzelor care au condus la apariția stării de pericol grav și iminent."
+          ]
+        },
+        "workers_representative": {
+          "title": "Reprezentant al lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă, conform deciziei {{decision}}: {{people}}",
+          "lead": "În această calitate, pe lângă atribuțiile de mai sus:",
+          "items": [
+            "– colaborează cu angajatorul pentru îmbunătățirea condițiilor de securitate și sănătate în muncă;",
+            "– însoțește echipa/persoana care efectuează evaluarea riscurilor;",
+            "– ajută lucrătorii să conștientizeze necesitatea aplicării măsurilor de securitate și sănătate în muncă;",
+            "– aduce la cunoștință angajatorului sau comitetului de securitate și sănătate în muncă propunerile lucrătorilor referitoare la îmbunătățirea condițiilor de muncă;",
+            "– urmărește realizarea măsurilor din planul de prevenire și protecție;",
+            "– informează autoritățile competente asupra nerespectării prevederilor legale în domeniul securității și sănătății în muncă."
+          ]
+        }
+      },
+      "responsibility": {
+        "heading": "Răspunderi",
+        "text": "Ocupantul postului răspunde, potrivit regulamentului intern și prevederilor legale, pentru neîndeplinirea atribuțiilor și obligațiilor din prezenta anexă."
+      }
+    }
+  }
+}

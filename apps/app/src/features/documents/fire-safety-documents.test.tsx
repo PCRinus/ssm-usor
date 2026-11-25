@@ -324,7 +324,7 @@ describe('client fire-safety documents', () => {
     mount(`/clienti/${clientId}/documente-ssm`);
 
     expect((await screen.findAllByTestId('pack-folder')).length).toBeGreaterThan(0);
-    expect(screen.getByTestId('pack-total').textContent).toBe('25 de documente în 13 secțiuni');
+    expect(screen.getByTestId('pack-total').textContent).toBe('26 de documente în 14 secțiuni');
     expect(screen.queryByText(/Registre și formulare SU/)).toBeNull();
     expect(requests('/documents').map(({ url }) => url.search)).toEqual(['']);
   });

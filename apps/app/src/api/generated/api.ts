@@ -7954,6 +7954,7 @@ export const StartRegenerationRequestTypeKey = {
   cover_employer_briefing: 'cover_employer_briefing',
   employer_briefing: 'employer_briefing',
   control_regulation: 'control_regulation',
+  ssm_duties: 'ssm_duties',
   signing_regulation_annex: 'signing_regulation_annex',
   fire_cover_decisions: 'fire_cover_decisions',
   fire_decision_organization: 'fire_decision_organization',
@@ -8162,6 +8163,7 @@ export const DocumentReadinessResponseWaitingDocumentsItemTypeKey = {
   cover_employer_briefing: 'cover_employer_briefing',
   employer_briefing: 'employer_briefing',
   control_regulation: 'control_regulation',
+  ssm_duties: 'ssm_duties',
   signing_regulation_annex: 'signing_regulation_annex',
   fire_cover_decisions: 'fire_cover_decisions',
   fire_decision_organization: 'fire_decision_organization',
@@ -8506,6 +8508,7 @@ export const ClientDocumentListResponseNotApplicableItem = {
   cover_employer_briefing: 'cover_employer_briefing',
   employer_briefing: 'employer_briefing',
   control_regulation: 'control_regulation',
+  ssm_duties: 'ssm_duties',
   signing_regulation_annex: 'signing_regulation_annex',
   fire_cover_decisions: 'fire_cover_decisions',
   fire_decision_organization: 'fire_decision_organization',
@@ -38554,6 +38557,7 @@ export const getUploadClientDocumentUrl = (
     | 'cover_employer_briefing'
     | 'employer_briefing'
     | 'control_regulation'
+    | 'ssm_duties'
     | 'signing_regulation_annex'
     | 'fire_cover_decisions'
     | 'fire_decision_organization'
@@ -38631,6 +38635,7 @@ export const uploadClientDocument = async (
     | 'cover_employer_briefing'
     | 'employer_briefing'
     | 'control_regulation'
+    | 'ssm_duties'
     | 'signing_regulation_annex'
     | 'fire_cover_decisions'
     | 'fire_decision_organization'
@@ -38764,6 +38769,7 @@ export type UploadClientDocumentMutationVariables = {
     | 'cover_employer_briefing'
     | 'employer_briefing'
     | 'control_regulation'
+    | 'ssm_duties'
     | 'signing_regulation_annex'
     | 'fire_cover_decisions'
     | 'fire_decision_organization'

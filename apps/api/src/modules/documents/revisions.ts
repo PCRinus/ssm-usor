@@ -245,7 +245,7 @@ export async function startDraftFromIssued(
 
   const source = await db
     .from('document_revisions')
-    .select('template_version_id, edited_at, edited_by')
+    .select('template_version_id, edited_at, edited_by, duty_fingerprints')
     .eq('id', issued.id)
     .single();
   if (source.error) throw fromDatabaseError(source.error, 'read issued document revision');
@@ -262,6 +262,7 @@ export async function startDraftFromIssued(
       template_version_id: source.data.template_version_id,
       generation_id: issued.generation_id,
       data_snapshot: issued.data_snapshot,
+      duty_fingerprints: source.data.duty_fingerprints,
       edited_at: source.data.edited_at,
       edited_by: source.data.edited_by,
     },

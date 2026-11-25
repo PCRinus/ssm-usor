@@ -2044,7 +2044,7 @@ describe("the employee's signing agreement", () => {
     });
   });
 
-  it('warns while annex 13 of the internal regulation is not issued', async () => {
+  it('warns while annex 14 of the internal regulation is not issued', async () => {
     mockApi({
       [`GET /clients/${clientId}/documents`]: () =>
         Response.json({ items: [], notApplicable: [], lastGeneration: null }),
@@ -2053,7 +2053,7 @@ describe("the employee's signing agreement", () => {
     const card = await screen.findByTestId('signing-agreement-card');
     const line = await within(card).findByTestId('signing-agreement-annex');
     expect(line.textContent).toContain(
-      'Anexa 13 la regulamentul intern nu este emisă. Emite-o odată cu actele adiționale.'
+      'Anexa 14 la regulamentul intern nu este emisă. Emite-o odată cu actele adiționale.'
     );
     expect(within(line).getByRole('link').getAttribute('data-variant')).toBe('secondary');
   });

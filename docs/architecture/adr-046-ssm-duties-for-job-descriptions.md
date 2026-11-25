@@ -45,14 +45,14 @@ The document is 13, "Atribuții și răspunderi în domeniul securității și s
 ### What an annex prints
 
 1. **The basis**: Legea 319/2006 art. 13 lit. d) and H.G. 1425/2006 art. 15 (1) pt. 4.
-2. **The duties of every worker**: Legea 319/2006 art. 22 and art. 23 (1) lit. a)–i), adapted to the second person of a job description. The pack already prints them in 2.1 and 3.1. They are repeated here so that an annex is complete on its own, both for the worker who signs it and for an inspector who reads it with the job description.
+2. **The duties of every worker**: Legea 319/2006 art. 22 and art. 23 (1) lit. a)–i), written of "ocupantul postului", in the third person as a job description is. The pack already prints them in 2.1 and 3.1. They are repeated here so that an annex is complete on its own, both for the worker who signs it and for an inspector who reads it with the job description.
 3. **The duties of the post**, from its data:
    - **Own instructions:** to know and apply the own instructions the post applies, named by their number and title as 3.1 prints them (H.G. 1425/2006 art. 15 (1) pt. 3).
    - **Protective equipment:** for a post that needs it, to use the protective equipment of document 6 and return it after use (Legea 319/2006 art. 23 (1) lit. b)).
    - **Risk zones:** for a post whose risk factors a zone of 9.2 links, to know that zone and apply its measures (H.G. 1425/2006 art. 106 (2)). The zones are read only once they are decided (ADR 045). Until then the annex prints no zone line, and its snapshot marks it changed when they are.
    - **Training:** to take part in the trainings at its staff category's interval, as decision 1.1 sets it.
 4. **The duties of a role**, for each current employee of the post who holds one, named:
-   - **Workplace manager:** training its workers at the workplace and periodically (H.G. 1425/2006 art. 91 (1), 96 (1)); letting no one start work before their knowledge is checked (art. 94); passing on the zones' measures (art. 106 (2)).
+   - **Workplace manager:** training its workers at the workplace and periodically (H.G. 1425/2006 art. 91 (1), 96 (1)); letting no one start work before their knowledge is checked (art. 94); knowing the zones' measures, which the employer brings to workplace managers (art. 106 (2)), and seeing that its workers apply them. Training covers the execution staff, as decision 1.1 divides it.
    - **First aid:** written for the annex on the basis of Legea 319/2006 art. 10, since decision 1.3 sends these duties to the job description and lists none. They are: giving first aid as trained, calling the emergency services, keeping the first-aid kit stocked, and telling the employer what was used.
    - **Imminent danger** and **workers' representative:** the texts decisions 1.4 and 1.5 already print, so a decision and an annex never disagree, each citing its decision ("conform deciziei nr. 4 SSM din …").
 
@@ -75,7 +75,7 @@ On a worker's page, beside the individual training sheets and the electronic-sig
 
 - **Content:** the annex of the worker's post, with the role blocks of the roles that worker holds, under the title "Fișa de luare la cunoștință a atribuțiilor SSM". It ends with the worker's statement and signature: "Am primit, am citit și am înțeles atribuțiile și răspunderile de mai sus".
 - **Which revision:** it names the revision of document 13 it comes from ("anexa 2 din documentul 13, emis la 24.11.2026"). It can be produced only once document 13 has been generated.
-- **Out of date:** when a newer revision of 13 changes that post's annex, or the worker's roles change, the sheet shows as out of date and is due for signing again. Each revision records a fingerprint of every annex, so a regeneration that leaves a post's annex unchanged leaves its workers' sheets current.
+- **Out of date:** when a newer revision of 13 changes that post's annex, or the worker's roles change, the sheet shows as out of date and is due for signing again. Each revision records a fingerprint of every annex and of every role block, leaving out names, dates and 3.1's numbers, so a regeneration that leaves a post's annex unchanged leaves its workers' sheets current.
 - **Signing on paper, now:** the member downloads the sheet, the worker signs it by hand, and the member records it as signed on paper, with the day and an optional scan. This follows "Înregistrează actul semnat pe hârtie" of the signing agreement and "Marchează semnat pe hârtie" of a training record. The worker's page and the workers list then show whether the worker's acknowledgement is signed, unsigned or out of date.
 - **No post:** a worker without a post has no sheet. The page says "Lucrătorul nu are un post de lucru" and links to setting one.
 

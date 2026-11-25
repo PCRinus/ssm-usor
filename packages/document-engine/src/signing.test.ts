@@ -14,7 +14,7 @@ import { documentText } from './text';
 
 const templatesUrl = new URL('../templates/', import.meta.url);
 const annexTemplate = new Uint8Array(
-  readFileSync(new URL('13_signing_regulation_annex.docx', templatesUrl))
+  readFileSync(new URL('14_signing_regulation_annex.docx', templatesUrl))
 );
 const agreementTemplate = new Uint8Array(
   readFileSync(new URL('act_aditional_semnare_electronica.docx', templatesUrl))

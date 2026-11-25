@@ -230,3 +230,32 @@ export function riskZonesRecord(input: RiskZonesInput): RiskZonesRecordContext |
           }),
   };
 }
+
+/**
+ * The zones linking a current factor of each position's own evaluation, by position id. Empty
+ * until the client lists its zones, even while 9.2 still waits for their measures (ADR 046).
+ */
+export function zonesByPosition(input: RiskZonesInput): Map<string, string[]> {
+  const byPosition = new Map<string, string[]>();
+  if (input.riskZones.state !== 'listed') return byPosition;
+  const positionOf = new Map(
+    input.riskEvaluations.flatMap((evaluation) =>
+      evaluation.kind === 'job_position' && evaluation.jobPositionId
+        ? [[evaluation.id, evaluation.jobPositionId] as const]
+        : []
+    )
+  );
+  for (const zone of currentZones(input)) {
+    const place = [zone.workplace && workplaceLabel(zone.workplace), zone.location?.trim()]
+      .filter(Boolean)
+      .join(', ');
+    const label = place ? `${zone.name.trim()} (${place})` : zone.name.trim();
+    const positions = new Set(
+      zone.factors.flatMap((factor) => positionOf.get(factor.evaluationId) ?? [])
+    );
+    for (const positionId of positions) {
+      byPosition.set(positionId, [...(byPosition.get(positionId) ?? []), label]);
+    }
+  }
+  return byPosition;
+}

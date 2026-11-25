@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
+import type { ResponsiblePersonRole } from './document-data';
 import { fireSubstanceEssentials } from './fire-safety';
 import { riskEvaluationKindSchema } from './risk-evaluations';
 
 /**
  * The built-in documents of the occupational safety set, in the order of the provider's pack.
- * Mirrors the manifest of `packages/document-engine/templates`. Documents 9.2 (ADR 045) and 13
- * (ADR 023) are ours, not the provider's.
+ * Mirrors the manifest of `packages/document-engine/templates`. Documents 9.2 (ADR 045), 13
+ * (ADR 046) and 14 (ADR 023) are ours, not the provider's.
  */
 export const documentTypeKeys = [
   'cover_decisions',
@@ -33,6 +34,7 @@ export const documentTypeKeys = [
   'cover_employer_briefing',
   'employer_briefing',
   'control_regulation',
+  'ssm_duties',
   'signing_regulation_annex',
 ] as const;
 
@@ -193,6 +195,8 @@ export const occupationalSafetyDocumentTitles = {
   cover_employer_briefing: 'Copertă – Material de informare a angajatorului',
   employer_briefing: 'Material de informare a angajatorului',
   control_regulation: 'Regulament intern privind controlul propriu',
+  ssm_duties:
+    'Atribuții și răspunderi în domeniul securității și sănătății în muncă – anexe la fișele posturilor',
   signing_regulation_annex:
     'Anexă la Regulamentul intern privind semnarea electronică a fișelor de instruire',
 } as const satisfies Record<DocumentTypeKey, string>;
@@ -261,7 +265,8 @@ export const occupationalSafetyDocumentNumbers = {
   cover_employer_briefing: '11.0',
   employer_briefing: '11.1',
   control_regulation: '12',
-  signing_regulation_annex: '13',
+  ssm_duties: '13',
+  signing_regulation_annex: '14',
 } as const satisfies Record<DocumentTypeKey, string>;
 
 /** Held to the fire-safety manifest by a test. */
@@ -845,3 +850,25 @@ export type RegenerationJob = z.infer<typeof regenerationJobSchema>;
 export const regenerationJobResponseSchema = z.object({ job: regenerationJobSchema });
 
 export type RegenerationJobResponse = z.infer<typeof regenerationJobResponseSchema>;
+
+export const ssmDutyRoles = [
+  'workplace_manager',
+  'first_aid',
+  'imminent_danger',
+  'workers_representative',
+] as const satisfies readonly ResponsiblePersonRole[];
+
+export type SsmDutyRole = (typeof ssmDutyRoles)[number];
+
+/**
+ * What a generated revision of document 13 records (ADR 046): a fingerprint of each post's annex
+ * without its names, dates and role blocks, and one of each role's block without its holders'
+ * names or its decision's number and date. A worker's acknowledgement goes out of date when the
+ * fingerprint of their post, or of a role they hold, differs from the one they signed.
+ */
+export const ssmDutiesFingerprintsSchema = z.object({
+  annexes: z.array(z.object({ positionId: z.uuid(), fingerprint: z.string().min(1) })),
+  roles: z.array(z.object({ role: z.enum(ssmDutyRoles), fingerprint: z.string().min(1) })),
+});
+
+export type SsmDutiesFingerprints = z.infer<typeof ssmDutiesFingerprintsSchema>;

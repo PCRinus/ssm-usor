@@ -93,6 +93,7 @@ describe('build pack', () => {
       '11',
       '12',
       '13',
+      '14',
     ]);
     expect(pack.sections[0]).toMatchObject({ id: 'decisions', title: 'Decizii interne' });
     expect(titlesOf(pack, 'decisions')).toEqual([
@@ -117,7 +118,10 @@ describe('build pack', () => {
       'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
       'Evidența zonelor cu risc ridicat și specific',
     ]);
-    expect(pack.counts).toEqual({ update: 0, draft: 1, issued: 0, missing: 24 });
+    expect(titlesOf(pack, 'ssm-duties')).toEqual([
+      'Atribuții și răspunderi în domeniul securității și sănătății în muncă – anexe la fișele posturilor',
+    ]);
+    expect(pack.counts).toEqual({ update: 0, draft: 1, issued: 0, missing: 25 });
   });
 
   it('lists every fire-safety document, a missing one by its template title', () => {
@@ -173,7 +177,7 @@ describe('build pack', () => {
       'decision_first_aid',
       'decision_imminent_danger',
     ]);
-    expect(pack.counts.missing).toBe(24);
+    expect(pack.counts.missing).toBe(25);
   });
 
   it('leaves out a section none of whose documents apply or exist', () => {

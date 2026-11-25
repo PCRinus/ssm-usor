@@ -6,6 +6,7 @@ import {
   documentReadinessResponseSchema,
   fireSafetyDocumentTypeKeys,
   generateDocumentsResponseSchema,
+  ssmDutiesFingerprintsSchema,
 } from '@ssm-usor/contracts';
 import { unzipSync } from 'fflate';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -48,6 +49,7 @@ vi.mock('@ssm-usor/document-engine', () => {
     risk_assessment: ['positions', 'riskAssessment'],
     prevention_plan: ['riskAssessment'],
     risk_zones_record: ['riskZones'],
+    ssm_duties: ['dutyAnnexes'],
     fire_cover_registers: ['provider', 'fireSafetyTechnician', 'branding', 'installationRegister'],
     fire_registers: ['branding'],
     fire_decision_waste: ['fire'],
@@ -1383,6 +1385,43 @@ describe('POST /clients/{clientId}/documents/generate', () => {
     ).toContainEqual({ state: 'none', listed: false, none: true, zones: [] });
   });
 
+  it('records a fingerprint of each post and role with document 13, and none with the others', async () => {
+    mockUpstream({
+      templates: () =>
+        Response.json([
+          {
+            type_key: 'ssm_duties',
+            title: 'Atribuții și răspunderi în domeniul securității și sănătății în muncă',
+            document_template_versions: [
+              { id: 'v7', version: 1, storage_path: 'built-in/ssm_duties/one.docx' },
+            ],
+          },
+          templateRows[1],
+        ]),
+      documents: (init) =>
+        init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+    });
+    expect((await generate()).status).toBe(201);
+    const revisions = calls('/rest/v1/document_revisions', 'POST').map(
+      ({ body }) =>
+        body as {
+          data_snapshot: { dutyAnnexes?: { positionId: string }[] };
+          duty_fingerprints: unknown;
+        }
+    );
+    const duties = revisions.find((revision) => revision.data_snapshot.dutyAnnexes)!;
+    expect(ssmDutiesFingerprintsSchema.parse(duties.duty_fingerprints)).toMatchObject({
+      annexes: duties.data_snapshot.dutyAnnexes!.map(({ positionId }) => ({ positionId })),
+      roles: [
+        { role: 'workplace_manager' },
+        { role: 'first_aid' },
+        { role: 'imminent_danger' },
+        { role: 'workers_representative' },
+      ],
+    });
+    expect(revisions.filter((revision) => revision.duty_fingerprints === null)).toHaveLength(1);
+  });
+
   it('leaves the documents the client already has', async () => {
     mockUpstream({ templates: () => Response.json([templateRows[0]]) });
     const response = await generate();
@@ -1812,6 +1851,7 @@ describe('POST /documents/{documentId}/regenerate', () => {
       template_version_id: 'v2',
       generation_id: generationId,
       data_snapshot: { client: printedClient, decisionNumber: 3 },
+      duty_fingerprints: null,
       edited_at: null,
       edited_by: null,
     });
@@ -2699,12 +2739,21 @@ describe('POST /documents/{documentId}/draft', () => {
   const start = () => request(`/documents/${documentId}/draft`, 'POST');
   const issued = { ...issuedRevision, generation_id: generationId };
   const editedAt = '2026-09-19T10:30:00+00:00';
+  const dutyFingerprints = {
+    annexes: [{ positionId: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', fingerprint: 'ab' }],
+    roles: [{ role: 'first_aid', fingerprint: 'cd' }],
+  };
   const revisions: Handler = (init) =>
     init?.method === 'POST'
       ? Response.json({ id: revisionId })
       : init?.method === 'DELETE'
         ? new Response(null, { status: 204 })
-        : Response.json({ template_version_id: 'v2', edited_at: editedAt, edited_by: user.id });
+        : Response.json({
+            template_version_id: 'v2',
+            edited_at: editedAt,
+            edited_by: user.id,
+            duty_fingerprints: dutyFingerprints,
+          });
   const issuedDocument = () => Response.json({ ...documentRow, document_revisions: [issued] });
 
   it('copies the issued file into revision 2, with where it came from', async () => {
@@ -2720,6 +2769,7 @@ describe('POST /documents/{documentId}/draft', () => {
       template_version_id: 'v2',
       generation_id: generationId,
       data_snapshot: issued.data_snapshot,
+      duty_fingerprints: dutyFingerprints,
       edited_at: editedAt,
       edited_by: user.id,
     });

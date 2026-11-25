@@ -71,7 +71,7 @@ Codul semnează exact lista de pe ecran din momentul în care l-ai cerut. O cere
 
 La final vezi ce s-a semnat și ce nu, cu motivul. Ce nu s-a semnat rămâne în listă.
 
-Semnătura pe care o dai aici este o semnătură electronică avansată: e legată doar de tine, te identifică, o creezi cu un cod pe care îl primești doar tu și orice modificare ulterioară a fișei se vede (Regulamentul (UE) nr. 910/2014, art. 26). Dacă fișele clientului se semnează electronic hotărăște angajatorul, în regulamentul intern (HG 1425/2006, art. 81 alin. (3¹)); în setul SSM, asta face anexa 13 la regulament.
+Semnătura pe care o dai aici este o semnătură electronică avansată: e legată doar de tine, te identifică, o creezi cu un cod pe care îl primești doar tu și orice modificare ulterioară a fișei se vede (Regulamentul (UE) nr. 910/2014, art. 26). Dacă fișele clientului se semnează electronic hotărăște angajatorul, în regulamentul intern (HG 1425/2006, art. 81 alin. (3¹)); în setul SSM, asta face anexa 14 la regulament.
 
 ## Cel mult 30 de semnături cu un cod
 

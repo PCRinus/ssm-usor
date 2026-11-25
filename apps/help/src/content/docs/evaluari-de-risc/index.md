@@ -263,7 +263,7 @@ Din meniul de lângă o zonă, **Modifică** o deschide din nou, iar **Șterge**
 
 Cât timp clientul nu are nicio zonă, butonul **Nu există zone cu risc ridicat și specific** înregistrează că, în urma evaluării riscurilor, nu au fost identificate astfel de zone. Cât timp declarația stă, sugestiile nu se mai arată, nici cele ignorate. **Modifică** retrage declarația, iar **Adaugă totuși o zonă** deschide o zonă nouă; zona adăugată înlocuiește declarația. Dacă ștergi ultima zonă, întrebarea se redeschide.
 
-Cât timp nu ai adăugat nicio zonă și nici n-ai declarat că nu există, cardul îți spune că documentul 9.2 așteaptă zonele clientului sau declarația. Documentul 9.2 tipărește zonele într-un tabel, cu riscurile și măsurile lor, sau, după declarație, o singură propoziție; vezi mai jos ce cer documentele.
+Cât timp nu ai adăugat nicio zonă și nici n-ai declarat că nu există, cardul îți spune că documentul 9.2 așteaptă zonele clientului sau declarația. Documentul 9.2 tipărește zonele într-un tabel, cu riscurile și măsurile lor, sau, după declarație, o singură propoziție; vezi mai jos ce cer documentele. O zonă legată de factorii de risc ai unui post apare și în anexa acelui post din documentul 13, cu atribuțiile SSM ale postului; vezi [Documentația SSM](/clienti/documente-ssm/#atribuțiile-ssm-ale-posturilor).
 
 ## Ce cer documentele 9.1, 9.2 și 10
 
