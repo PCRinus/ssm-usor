@@ -1,4 +1,4 @@
-import { fileAddress, linkTarget, useFileLink } from '@ssm-usor/api-http/file-link';
+import { useFileLink } from '@ssm-usor/api-http/file-link';
 import { formatEmployeeName, signatureErrorReasons } from '@ssm-usor/contracts';
 import { signingContractClauseText } from '@ssm-usor/document-engine/signing';
 import { Badge } from '@ssm-usor/ui/components/badge';
@@ -33,13 +33,11 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 import {
   getGetOrganizationCompanyDetailsQueryKey,
   getListClientDocumentsQueryKey,
-  getListClientFilesQueryKey,
   getSigningAgreement,
   getSigningAgreementLink,
   putSigningAgreementState,
   type SigningAgreementResponseAgreement,
   type SigningAgreementStateRequest,
-  uploadClientFile,
   useGetOrganizationCompanyDetails,
   useListClientDocuments,
 } from '@/api/generated/api';
@@ -65,8 +63,9 @@ import {
 } from '@/features/clients/details/summary-list';
 import { dateToIso, formatDate, formatDay, todayIso } from '@/lib/dates';
 
-import { noScan, type ScanChoice, useEmployeeFiles } from './agreement-scan';
+import { noScan, type ScanChoice, useScanUpload } from './agreement-scan';
 import { AgreementScanField } from './agreement-scan-field';
+import { ScanLink } from './scan-link';
 import {
   agreementAwaitsEmployer,
   agreementStateLabels,
@@ -548,64 +547,8 @@ function TodoAction({ phone, children }: { phone: boolean; children: ReactNode }
   );
 }
 
-// The scans are the employee's files; the list carries each one's signed link.
-function ScanLink({
-  clientId,
-  employeeId,
-  fileId,
-  testId,
-}: {
-  clientId: string;
-  employeeId: string;
-  fileId: string;
-  testId: string;
-}) {
-  const { request } = useApi();
-  const files = useEmployeeFiles(clientId, employeeId);
-  const file = files.data?.items.find((item) => item.id === fileId);
-  if (files.isPending) return <Skeleton className="h-5 w-48" />;
-  if (!file || !request.baseUrl) {
-    return (
-      <span data-testid={testId} className={cn('font-normal', summaryQuiet)}>
-        Scan atașat
-      </span>
-    );
-  }
-  const disposition = file.link.disposition === 'inline' ? 'inline' : 'attachment';
-  return (
-    <a
-      data-testid={testId}
-      href={fileAddress(request.baseUrl, file.link, disposition)}
-      target={linkTarget(disposition)}
-      className="underline decoration-border underline-offset-4 hover:decoration-current"
-    >
-      <Masked>{file.name}</Masked>
-    </a>
-  );
-}
-
 const saveFailed =
   'Nu am putut salva starea actului adițional. Verifică conexiunea și încearcă din nou.';
-
-// Once uploaded, the scan is chosen as a file among the employee's, so a save refused after it
-// neither uploads it again nor leaves it stored unseen.
-function useScanUpload(employee: AgreementEmployee, onUploaded: (scan: ScanChoice) => void) {
-  const { request, queryClient } = useApi();
-  return async (scan: ScanChoice) => {
-    if (!scan.file) return scan.existingId || null;
-    const { file } = await uploadClientFile(
-      employee.clientId,
-      scan.file,
-      { fileName: scan.file.name, employeeId: employee.id },
-      request
-    );
-    onUploaded({ file: null, existingId: file.id });
-    await queryClient.invalidateQueries({
-      queryKey: getListClientFilesQueryKey(employee.clientId),
-    });
-    return file.id;
-  };
-}
 
 function useAgreementChange(employee: AgreementEmployee, done: string, onClose: () => void) {
   const { request, queryClient } = useApi();
