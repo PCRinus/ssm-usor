@@ -19,6 +19,7 @@ import { disposeRuntimes, mountApp } from '@/test/mount';
 import {
   clientId,
   clientRecord,
+  dutiesNotIssued,
   employeeListItem,
   employeeRecord,
   jobPositionRecord,
@@ -222,6 +223,9 @@ function mockApi(
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/tests`) {
       return Response.json(employeeTests());
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}/duties-acknowledgement`) {
+      return Response.json(dutiesNotIssued);
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/training-sheets`) {
       return Response.json({

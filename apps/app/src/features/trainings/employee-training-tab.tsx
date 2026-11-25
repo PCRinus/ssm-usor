@@ -32,6 +32,7 @@ import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch, periodSearch, periodValue } from '@/components/list-filters/url';
 import { useAuth } from '@/features/auth/auth-context';
 import { SummaryNote, summaryQuiet } from '@/features/clients/details/summary-list';
+import { DutiesAcknowledgementCard } from '@/features/duties-acknowledgements/duties-acknowledgement-card';
 import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
 import { WorkersListError } from '@/features/employees/workers-list';
@@ -335,6 +336,8 @@ export function EmployeeTrainingTab({
           </span>
         </StatusFact>
       </dl>
+
+      {domain === 'ssm' && <DutiesAcknowledgementCard employee={employee} readOnly={readOnly} />}
 
       <EmployeeTestsCard
         clientId={clientId}

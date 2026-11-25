@@ -3,6 +3,7 @@ import type {
   ClientFireSafetyResponseFireSafety,
   ClientListResponseItemsItem,
   ClientResponseClient,
+  DutiesAcknowledgementResponse,
   EmployeeListResponseItemsItem,
   EmployeeListResponseItemsItemPortal,
   EmployeeResponseEmployee,
@@ -289,3 +290,12 @@ export function documentDetailsRecord(
     ...overrides,
   };
 }
+
+export const dutiesNotIssued: DutiesAcknowledgementResponse = {
+  status: 'not_issued',
+  reasons: [],
+  revision: null,
+  annex: null,
+  current: null,
+  history: [],
+};
