@@ -79,6 +79,12 @@ On a worker's page, beside the individual training sheets and the electronic-sig
 - **Signing on paper, now:** the member downloads the sheet, the worker signs it by hand, and the member records it as signed on paper, with the day and an optional scan. This follows "Înregistrează actul semnat pe hârtie" of the signing agreement and "Marchează semnat pe hârtie" of a training record. The worker's page and the workers list then show whether the worker's acknowledgement is signed, unsigned or out of date.
 - **No post:** a worker without a post has no sheet. The page says "Lucrătorul nu are un post de lucru" and links to setting one.
 
+**Note (2026-11-26), from building the sheet:**
+
+- **No worker is without a post.** Every employee holds a job position, so the "No post" case above does not occur. A worker has no sheet in two other cases: their post is archived, so the latest issued 13 has no annex for it, and the card offers to move them to a current post; or the post was created after that 13 was issued, and the card asks to generate and issue 13 again.
+- **The sheet follows the latest issued 13.** A draft does not count. Recording a signed sheet names the revision it was drawn from and is refused once a newer one is issued. A record made by mistake can be removed; its scan stays among the worker's files.
+- **Document 13 is not uploaded or edited by hand.** It has no "Încarcă un fișier Word", no editing in the app and no "Modifică documentul emis"; it is only regenerated. Its annexes therefore always match the fingerprints its revision records, which the sheets are compared against. This replaces the paragraph above on text typed into 13 in the editor: there is no such text. Issue #1214 removes the Word upload from every document.
+
 ### Prepared for the electronic signature
 
 Signing the sheet in the portal is a later step, on the pipeline of [ADR 023](adr-023-advanced-electronic-signature.md). The sheet is built for it now:
