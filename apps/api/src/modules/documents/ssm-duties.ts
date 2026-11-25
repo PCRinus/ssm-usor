@@ -25,7 +25,11 @@ export type CitedDecision = 'decision_imminent_danger' | 'decision_workers_repre
 /** A decision as the client's documents hold it; a date is null for an uploaded file. */
 export type StoredDecision = { number: number | null; issueDate: string | null };
 
-type RoleBlock = { people: string };
+/**
+ * `employeeIds` are the current employees of the post the block names, which the template never
+ * prints: the database reads them to tell which roles a worker's acknowledgement covers.
+ */
+type RoleBlock = { people: string; employeeIds: string[] };
 type CitingRoleBlock = RoleBlock & { decision: string };
 
 export type DutyAnnexContext = {
@@ -128,16 +132,20 @@ export function dutyAnnexes(
         ),
         legalRepresentative
       );
-      return people.length === 0 ? null : listed(people.map((person) => person.fullName.trim()));
-    };
-    const block = (role: SsmDutyRole) => {
-      const people = holders(role);
-      return people === null ? null : { people };
+      if (people.length === 0) return null;
+      return {
+        people: listed(people.map((person) => person.fullName.trim())),
+        employeeIds: position.currentEmployees
+          .filter((employee) =>
+            people.some((person) => samePerson(employee, person, legalRepresentative))
+          )
+          .flatMap((employee) => (employee.employeeId ? [employee.employeeId] : [])),
+      };
     };
     const citing = (role: SsmDutyRole, key: CitedDecision) => {
-      const people = holders(role);
+      const block = holders(role);
       const reference = decision(key);
-      return people === null || reference === null ? null : { people, decision: reference };
+      return block === null || reference === null ? null : { ...block, decision: reference };
     };
     const instructions = position.instructions
       .flatMap((module) => {
@@ -147,8 +155,8 @@ export function dutyAnnexes(
       .sort((a, b) => a.number - b.number);
     const positionZones = (zones.get(position.id) ?? []).map((label) => ({ label }));
     const roles = {
-      workplaceManagerDuties: block('workplace_manager'),
-      firstAidDuties: block('first_aid'),
+      workplaceManagerDuties: holders('workplace_manager'),
+      firstAidDuties: holders('first_aid'),
       imminentDangerDuties: citing('imminent_danger', 'decision_imminent_danger'),
       workersRepresentativeDuties: workersRepresentativeDecision
         ? citing('workers_representative', 'decision_workers_representative')

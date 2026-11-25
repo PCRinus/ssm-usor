@@ -55,6 +55,9 @@
     {
       "equipment": true,
       "firstAidDuties": {
+        "employeeIds": [
+          "e1e1e1e1-0000-4000-8000-000000000002"
+        ],
         "people": "Ioana PETRE"
       },
       "hasInstructions": true,
@@ -62,6 +65,9 @@
       "hasZones": false,
       "imminentDangerDuties": {
         "decision": "nr. 8 SSM din 19.01.2026",
+        "employeeIds": [
+          "e1e1e1e1-0000-4000-8000-000000000002"
+        ],
         "people": "Ioana PETRE"
       },
       "instructions": [
@@ -80,6 +86,9 @@
       "trainingInterval": "la 2 luni",
       "workersRepresentativeDuties": null,
       "workplaceManagerDuties": {
+        "employeeIds": [
+          "e1e1e1e1-0000-4000-8000-000000000002"
+        ],
         "people": "Ioana PETRE"
       },
       "zones": []
