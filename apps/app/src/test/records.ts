@@ -240,6 +240,7 @@ export function employeeListItem(
     training,
     tests,
     signaturesPending: 0,
+    dutiesAcknowledgement: null,
     portal: noPortalAccess,
     ...overrides,
   };

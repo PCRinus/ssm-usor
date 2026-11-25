@@ -8,6 +8,7 @@ import {
 import { clientFileErrorReasons } from './client-files';
 import { clientConflictReasons } from './clients';
 import { responsiblePersonConflictReasons, workplaceConflictReasons } from './document-data';
+import { dutiesAcknowledgementErrorReasons } from './duties-acknowledgements';
 import { employeeConflictReasons } from './employees';
 import { evaluationProfileErrorReasons } from './evaluation-profiles';
 import { safetySheetErrorReasons } from './fire-safety';
@@ -110,6 +111,7 @@ export const apiErrorReasons = [
   ...valuesOf(clientConflictReasons),
   ...valuesOf(workplaceConflictReasons),
   ...valuesOf(responsiblePersonConflictReasons),
+  ...valuesOf(dutiesAcknowledgementErrorReasons),
   ...valuesOf(employeeConflictReasons),
   ...evaluationProfileErrorReasons,
   ...valuesOf(safetySheetErrorReasons),

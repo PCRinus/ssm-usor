@@ -611,6 +611,10 @@ export const clientDocumentSchema = z.object({
   period: documentPeriodSchema.nullable(),
   draft: documentRevisionSchema.nullable(),
   issued: documentRevisionSchema.nullable(),
+  // False for a document built from the data alone: no Word file is uploaded for it, its draft
+  // is not edited in the app, and no draft is started from its issued revision; it is
+  // regenerated instead.
+  editable: z.boolean(),
 });
 
 export type ClientDocument = z.infer<typeof clientDocumentSchema>;
@@ -859,6 +863,13 @@ export const ssmDutyRoles = [
 ] as const satisfies readonly ResponsiblePersonRole[];
 
 export type SsmDutyRole = (typeof ssmDutyRoles)[number];
+
+// Document 13 is read back by the acknowledgement sheets, which print what its data built; a hand
+// edit would reach neither them nor a regeneration (ADR 046).
+export const nonEditableDocumentTypeKeys: readonly string[] = ['ssm_duties'];
+
+export const isDocumentEditable = (typeKey: string) =>
+  !nonEditableDocumentTypeKeys.includes(typeKey);
 
 /**
  * What a generated revision of document 13 records (ADR 046): a fingerprint of each post's annex

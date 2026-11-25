@@ -20,6 +20,7 @@ import { contractReturnsRouter } from './modules/contract-returns';
 import { dashboardRouter } from './modules/dashboard';
 import { documentDataRouter } from './modules/document-data';
 import { documentsRouter } from './modules/documents';
+import { dutiesAcknowledgementsRouter } from './modules/duties-acknowledgements';
 import { employeesRouter } from './modules/employees';
 import { evaluationProfilesRouter } from './modules/evaluation-profiles';
 import { extrasRouter } from './modules/extras';
@@ -126,6 +127,7 @@ export function createApp() {
   app.route('/', companiesRouter);
   app.route('/', employeesRouter);
   app.route('/', trainingsRouter);
+  app.route('/', dutiesAcknowledgementsRouter);
   app.route('/', testsRouter);
   app.route('/', jobPositionsRouter);
   app.route('/', protectiveEquipmentRouter);

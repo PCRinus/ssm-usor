@@ -6,6 +6,7 @@ import {
   documentSetTypeKeys,
   fireDecisionNumber,
   isDatedDocumentType,
+  isDocumentEditable,
   type TemplateVersionKind,
 } from '@ssm-usor/contracts';
 
@@ -209,6 +210,7 @@ function toDocument(
     period: document.period,
     draft: presented(draftOf(document)),
     issued: presented(issuedOf(document)),
+    editable: isDocumentEditable(document.type_key),
   };
 }
 

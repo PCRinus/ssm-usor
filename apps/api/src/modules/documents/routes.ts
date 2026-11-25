@@ -79,7 +79,7 @@ export const listClientDocumentsRoute = createRoute({
   summary:
     "List the documents of one of a client's documentation sets, with their current draft and issued revisions",
   description:
-    'The documents of the set named by `set`, the occupational safety one when left out, in its order. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.',
+    'The documents of the set named by `set`, the occupational safety one when left out, in its order. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from. `editable` is false for document 13, which is only regenerated: it takes no uploaded file, no edit in the app and no draft started from its issued revision.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, query: documentSetQuerySchema },
@@ -340,7 +340,7 @@ export const startDocumentDraftRoute = createRoute({
     404: noSuchDocument,
     409: {
       description:
-        'The document already has a draft (`draft_exists`), has nothing issued, or its client is archived (reason `client_archived`)',
+        'The document already has a draft (`draft_exists`), has nothing issued, its client is archived (reason `client_archived`), or it is built from the data alone and only regenerated (reason `document_not_editable`, document 13)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -388,7 +388,11 @@ export const saveDocumentDraftFileRoute = createRoute({
     200: { description: 'The document with its edited draft', content: documentContent },
     400: { description: 'Invalid path, or not a Word document', content: errorContent },
     404: noSuchDocument,
-    409: { description: 'The document has no draft', content: errorContent },
+    409: {
+      description:
+        'The document has no draft, or it is built from the data alone and only regenerated (reason `document_not_editable`, document 13)',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });
@@ -539,7 +543,7 @@ export const uploadClientDocumentRoute = createRoute({
     404: clientNotFoundResponse,
     409: {
       description:
-        'The client is archived (reason `client_archived`), or the document has to be generated first',
+        'The client is archived (reason `client_archived`), the document has to be generated first, or it is built from the data alone and only regenerated (reason `document_not_editable`, document 13)',
       content: errorContent,
     },
     ...membershipErrors,

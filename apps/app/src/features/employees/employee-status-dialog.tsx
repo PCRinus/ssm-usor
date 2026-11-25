@@ -35,7 +35,10 @@ import { formatDate, todayIso } from '@/lib/dates';
 
 import { refreshWorkforce } from './employee-cache';
 
-type Employee = Omit<EmployeeListResponse['items'][number], 'signaturesPending' | 'portal'>;
+type Employee = Omit<
+  EmployeeListResponse['items'][number],
+  'signaturesPending' | 'portal' | 'dutiesAcknowledgement'
+>;
 
 export type EmployeeStatusAction = 'terminate' | 'reactivate';
 

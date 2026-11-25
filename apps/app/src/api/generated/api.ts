@@ -1520,6 +1520,21 @@ export type EmployeeListResponseItemsItemJobPosition = {
   name: string;
 };
 
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemDutiesAcknowledgement =
+  | (typeof EmployeeListResponseItemsItemDutiesAcknowledgement)[keyof typeof EmployeeListResponseItemsItemDutiesAcknowledgement]
+  | null;
+
+export const EmployeeListResponseItemsItemDutiesAcknowledgement = {
+  not_issued: 'not_issued',
+  no_annex: 'no_annex',
+  to_sign: 'to_sign',
+  signed: 'signed',
+  sign_again: 'sign_again',
+} as const;
+
 export type EmployeeListResponseItemsItemPortalState =
   (typeof EmployeeListResponseItemsItemPortalState)[keyof typeof EmployeeListResponseItemsItemPortalState];
 
@@ -1603,6 +1618,8 @@ export type EmployeeListResponseItemsItem = {
   jobPosition: EmployeeListResponseItemsItemJobPosition;
   /** @minimum 0 */
   signaturesPending: number;
+  /** @nullable */
+  dutiesAcknowledgement: EmployeeListResponseItemsItemDutiesAcknowledgement;
   portal: EmployeeListResponseItemsItemPortal;
 };
 
@@ -2460,6 +2477,21 @@ export type OrganizationEmployeeListResponseItemsItemJobPosition = {
   name: string;
 };
 
+/**
+ * @nullable
+ */
+export type OrganizationEmployeeListResponseItemsItemDutiesAcknowledgement =
+  | (typeof OrganizationEmployeeListResponseItemsItemDutiesAcknowledgement)[keyof typeof OrganizationEmployeeListResponseItemsItemDutiesAcknowledgement]
+  | null;
+
+export const OrganizationEmployeeListResponseItemsItemDutiesAcknowledgement = {
+  not_issued: 'not_issued',
+  no_annex: 'no_annex',
+  to_sign: 'to_sign',
+  signed: 'signed',
+  sign_again: 'sign_again',
+} as const;
+
 export type OrganizationEmployeeListResponseItemsItemClient = {
   id: string;
   name: string;
@@ -2490,6 +2522,8 @@ export type OrganizationEmployeeListResponseItemsItem = {
   jobPosition: OrganizationEmployeeListResponseItemsItemJobPosition;
   /** @minimum 0 */
   signaturesPending: number;
+  /** @nullable */
+  dutiesAcknowledgement: OrganizationEmployeeListResponseItemsItemDutiesAcknowledgement;
   client: OrganizationEmployeeListResponseItemsItemClient;
 };
 
@@ -3181,6 +3215,192 @@ export interface FileLinkResponse {
   url: string;
   fileName: string;
   expiresInSeconds: number;
+}
+
+export type DutiesAcknowledgementResponseStatus =
+  (typeof DutiesAcknowledgementResponseStatus)[keyof typeof DutiesAcknowledgementResponseStatus];
+
+export const DutiesAcknowledgementResponseStatus = {
+  not_issued: 'not_issued',
+  no_annex: 'no_annex',
+  to_sign: 'to_sign',
+  signed: 'signed',
+  sign_again: 'sign_again',
+} as const;
+
+export type DutiesAcknowledgementResponseReasonsItem =
+  (typeof DutiesAcknowledgementResponseReasonsItem)[keyof typeof DutiesAcknowledgementResponseReasonsItem];
+
+export const DutiesAcknowledgementResponseReasonsItem = {
+  annex_changed: 'annex_changed',
+  roles_changed: 'roles_changed',
+} as const;
+
+/**
+ * @nullable
+ */
+export type DutiesAcknowledgementResponseRevision = {
+  documentId: string;
+  revisionId: string;
+  issueDate: string;
+} | null;
+
+export type DutiesAcknowledgementResponseAnnexPosition = {
+  id: string;
+  name: string;
+};
+
+export type DutiesAcknowledgementResponseAnnexRolesItem =
+  (typeof DutiesAcknowledgementResponseAnnexRolesItem)[keyof typeof DutiesAcknowledgementResponseAnnexRolesItem];
+
+export const DutiesAcknowledgementResponseAnnexRolesItem = {
+  workplace_manager: 'workplace_manager',
+  first_aid: 'first_aid',
+  imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
+} as const;
+
+/**
+ * @nullable
+ */
+export type DutiesAcknowledgementResponseAnnex = {
+  documentId: string;
+  revisionId: string;
+  issueDate: string;
+  /** @minimum 1 */
+  number: number;
+  position: DutiesAcknowledgementResponseAnnexPosition;
+  roles: DutiesAcknowledgementResponseAnnexRolesItem[];
+} | null;
+
+export type DutiesAcknowledgementResponseCurrentState =
+  (typeof DutiesAcknowledgementResponseCurrentState)[keyof typeof DutiesAcknowledgementResponseCurrentState];
+
+export const DutiesAcknowledgementResponseCurrentState = {
+  signed_on_paper: 'signed_on_paper',
+} as const;
+
+export type DutiesAcknowledgementResponseCurrentAnnexPosition = {
+  id: string;
+  name: string;
+};
+
+export type DutiesAcknowledgementResponseCurrentAnnexRolesItem =
+  (typeof DutiesAcknowledgementResponseCurrentAnnexRolesItem)[keyof typeof DutiesAcknowledgementResponseCurrentAnnexRolesItem];
+
+export const DutiesAcknowledgementResponseCurrentAnnexRolesItem = {
+  workplace_manager: 'workplace_manager',
+  first_aid: 'first_aid',
+  imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
+} as const;
+
+export type DutiesAcknowledgementResponseCurrentAnnex = {
+  documentId: string;
+  revisionId: string;
+  issueDate: string;
+  /** @minimum 1 */
+  number: number;
+  position: DutiesAcknowledgementResponseCurrentAnnexPosition;
+  roles: DutiesAcknowledgementResponseCurrentAnnexRolesItem[];
+};
+
+/**
+ * @nullable
+ */
+export type DutiesAcknowledgementResponseCurrentRecordedBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type DutiesAcknowledgementResponseCurrent = {
+  id: string;
+  state: DutiesAcknowledgementResponseCurrentState;
+  signedAt: string;
+  signedOn: string;
+  /** @nullable */
+  clientFileId: string | null;
+  annex: DutiesAcknowledgementResponseCurrentAnnex;
+  recordedAt: string;
+  /** @nullable */
+  recordedBy: DutiesAcknowledgementResponseCurrentRecordedBy;
+} | null;
+
+export type DutiesAcknowledgementResponseHistoryItemState =
+  (typeof DutiesAcknowledgementResponseHistoryItemState)[keyof typeof DutiesAcknowledgementResponseHistoryItemState];
+
+export const DutiesAcknowledgementResponseHistoryItemState = {
+  signed_on_paper: 'signed_on_paper',
+} as const;
+
+export type DutiesAcknowledgementResponseHistoryItemAnnexPosition = {
+  id: string;
+  name: string;
+};
+
+export type DutiesAcknowledgementResponseHistoryItemAnnexRolesItem =
+  (typeof DutiesAcknowledgementResponseHistoryItemAnnexRolesItem)[keyof typeof DutiesAcknowledgementResponseHistoryItemAnnexRolesItem];
+
+export const DutiesAcknowledgementResponseHistoryItemAnnexRolesItem = {
+  workplace_manager: 'workplace_manager',
+  first_aid: 'first_aid',
+  imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
+} as const;
+
+export type DutiesAcknowledgementResponseHistoryItemAnnex = {
+  documentId: string;
+  revisionId: string;
+  issueDate: string;
+  /** @minimum 1 */
+  number: number;
+  position: DutiesAcknowledgementResponseHistoryItemAnnexPosition;
+  roles: DutiesAcknowledgementResponseHistoryItemAnnexRolesItem[];
+};
+
+/**
+ * @nullable
+ */
+export type DutiesAcknowledgementResponseHistoryItemRecordedBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+export type DutiesAcknowledgementResponseHistoryItem = {
+  id: string;
+  state: DutiesAcknowledgementResponseHistoryItemState;
+  signedAt: string;
+  signedOn: string;
+  /** @nullable */
+  clientFileId: string | null;
+  annex: DutiesAcknowledgementResponseHistoryItemAnnex;
+  recordedAt: string;
+  /** @nullable */
+  recordedBy: DutiesAcknowledgementResponseHistoryItemRecordedBy;
+};
+
+export interface DutiesAcknowledgementResponse {
+  status: DutiesAcknowledgementResponseStatus;
+  reasons: DutiesAcknowledgementResponseReasonsItem[];
+  /** @nullable */
+  revision: DutiesAcknowledgementResponseRevision;
+  /** @nullable */
+  annex: DutiesAcknowledgementResponseAnnex;
+  /** @nullable */
+  current: DutiesAcknowledgementResponseCurrent;
+  history: DutiesAcknowledgementResponseHistoryItem[];
+}
+
+export interface RecordDutiesAcknowledgementRequest {
+  revisionId: string;
+  signedOn: string;
+  /** @nullable */
+  clientFileId?: string | null;
 }
 
 export type TestBankResponseTestsItemDomain =
@@ -8465,6 +8685,7 @@ export type ClientDocumentListResponseItemsItem = {
   draft: ClientDocumentListResponseItemsItemDraft;
   /** @nullable */
   issued: ClientDocumentListResponseItemsItemIssued;
+  editable: boolean;
 };
 
 /**
@@ -8740,6 +8961,7 @@ export type GenerateDocumentsResponseCreatedItem = {
   draft: GenerateDocumentsResponseCreatedItemDraft;
   /** @nullable */
   issued: GenerateDocumentsResponseCreatedItemIssued;
+  editable: boolean;
 };
 
 export interface GenerateDocumentsResponse {
@@ -8958,6 +9180,7 @@ export type ClientDocumentResponseDocument = {
   draft: ClientDocumentResponseDocumentDraft;
   /** @nullable */
   issued: ClientDocumentResponseDocumentIssued;
+  editable: boolean;
 };
 
 export interface ClientDocumentResponse {
@@ -14303,6 +14526,7 @@ export type ServiceContractResponseDocument = {
   draft: ServiceContractResponseDocumentDraft;
   /** @nullable */
   issued: ServiceContractResponseDocumentIssued;
+  editable: boolean;
 } | null;
 
 /**
@@ -17370,6 +17594,11 @@ export type ListEmployeesParams = {
    * @minItems 1
    * @maxItems 50
    */
+  dutiesAcknowledgement?: ListEmployeesDutiesAcknowledgementItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
   jobPosition?: string[];
   /**
    * @minItems 1
@@ -17452,6 +17681,16 @@ export const ListEmployeesAttentionItem = {
   noEmail: 'noEmail',
   toTrain: 'toTrain',
   trainingDue: 'trainingDue',
+} as const;
+
+export type ListEmployeesDutiesAcknowledgementItem =
+  (typeof ListEmployeesDutiesAcknowledgementItem)[keyof typeof ListEmployeesDutiesAcknowledgementItem];
+
+export const ListEmployeesDutiesAcknowledgementItem = {
+  signed: 'signed',
+  to_sign: 'to_sign',
+  sign_again: 'sign_again',
+  no_annex: 'no_annex',
 } as const;
 
 export type ListEmployeesPortalItem =
@@ -17539,6 +17778,11 @@ export type ListOrganizationEmployeesParams = {
    * @minItems 1
    * @maxItems 50
    */
+  dutiesAcknowledgement?: ListOrganizationEmployeesDutiesAcknowledgementItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
   client?: string[];
 };
 
@@ -17613,6 +17857,16 @@ export const ListOrganizationEmployeesAttentionItem = {
   noEmail: 'noEmail',
   toTrain: 'toTrain',
   trainingDue: 'trainingDue',
+} as const;
+
+export type ListOrganizationEmployeesDutiesAcknowledgementItem =
+  (typeof ListOrganizationEmployeesDutiesAcknowledgementItem)[keyof typeof ListOrganizationEmployeesDutiesAcknowledgementItem];
+
+export const ListOrganizationEmployeesDutiesAcknowledgementItem = {
+  signed: 'signed',
+  to_sign: 'to_sign',
+  sign_again: 'sign_again',
+  no_annex: 'no_annex',
 } as const;
 
 export type ListTrainingsParams = {
@@ -21125,6 +21379,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
       'suTraining',
       'test',
       'attention',
+      'dutiesAcknowledgement',
       'jobPosition',
       'workplace',
       'portal',
@@ -21150,7 +21405,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
 };
 
 /**
- * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name, and a training by its state (overdue, untrained, due, current) then its due date, employees without a state last either way. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics; never the CNP. Each filter takes repeated values, any of which matches, and every filter given must match: `ssmTraining` and `suTraining` the training state in that domain ("attention" untrained or overdue), `test` the test state in either domain ("passed" in both), `attention` the needs ("toTrain" untrained or overdue in either domain and "trainingDue" due in either, as the clients list counts them), `jobPosition` and `workplace` the client's own, `portal` the standing on the portal. The states are those of current employees of active clients, so an archived client refuses the state filters (`ssmTraining`, `suTraining`, `test`, the training needs of `attention`) and the training sorts with `400`. `unfilteredTotal` counts the status asked for without the search and the filters. Each employee carries their standing on the portal (ADR 022): the active participant, else the newest invitation neither accepted nor revoked ("invited", or "expired" past its 30 days), else the latest revoked one, else "none"; with the ids its actions need. "portal" sorts by it in that order, then by name, and is read for an archived client too, whose access can still be revoked. The CNP is only returned by the detail route.
+ * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name, and a training by its state (overdue, untrained, due, current) then its due date, employees without a state last either way. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics; never the CNP. Each filter takes repeated values, any of which matches, and every filter given must match: `ssmTraining` and `suTraining` the training state in that domain ("attention" untrained or overdue), `test` the test state in either domain ("passed" in both), `attention` the needs ("toTrain" untrained or overdue in either domain and "trainingDue" due in either, as the clients list counts them), `jobPosition` and `workplace` the client's own, `portal` the standing on the portal, `dutiesAcknowledgement` the state of the acknowledgement of SSM duties. The states are those of current employees of active clients, so an archived client refuses the state filters (`ssmTraining`, `suTraining`, `test`, the training needs of `attention`) and the training sorts with `400`. `unfilteredTotal` counts the status asked for without the search and the filters. Each employee carries their standing on the portal (ADR 022): the active participant, else the newest invitation neither accepted nor revoked ("invited", or "expired" past its 30 days), else the latest revoked one, else "none"; with the ids its actions need. "portal" sorts by it in that order, then by name, and is read for an archived client too, whose access can still be revoked. Each current employee carries `dutiesAcknowledgement`, the state of their acknowledgement of SSM duties against the latest issued document 13 (ADR 046), as `GET …/duties-acknowledgement` reads it; a former employee carries null and is matched by no value of its filter. The CNP is only returned by the detail route.
  * @summary List a client's employees
  */
 export const listEmployees = async (
@@ -22029,7 +22284,14 @@ export const getListOrganizationEmployeesUrl = (params?: ListOrganizationEmploye
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    const explodeParameters = ['ssmTraining', 'suTraining', 'test', 'attention', 'client'];
+    const explodeParameters = [
+      'ssmTraining',
+      'suTraining',
+      'test',
+      'attention',
+      'dutiesAcknowledgement',
+      'client',
+    ];
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {
@@ -23589,6 +23851,690 @@ export function useGetTrainingSheetLink<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getGetDutiesAcknowledgementUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/duties-acknowledgement`;
+};
+
+/**
+ * Against the latest issued revision of document 13 (ADR 046); a draft does not count. `status`: `not_issued` while the client has none; `no_annex` when it has no annex for the employee's post (archived, or created after it was issued); `to_sign` with nothing recorded; `signed` when the newest record was signed on the post's annex as it now reads and on the roles the employee holds in it; `sign_again` otherwise, `reasons` saying whether the annex (`annex_changed`) or the roles (`roles_changed`) differ. `annex` is the sheet to sign now. `current` is the newest record and `history` the earlier ones, newest first. Read the same way for a former employee.
+ * @summary An employee's acknowledgement of their SSM duties
+ */
+export const getDutiesAcknowledgement = async (
+  clientId: string,
+  employeeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<DutiesAcknowledgementResponse> => {
+  return apiFetch<DutiesAcknowledgementResponse>(
+    getGetDutiesAcknowledgementUrl(clientId, employeeId),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getGetDutiesAcknowledgementQueryKey = (clientId: string, employeeId: string) => {
+  return [`/clients/${clientId}/employees/${employeeId}/duties-acknowledgement`] as const;
+};
+
+export const getGetDutiesAcknowledgementQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDutiesAcknowledgementQueryKey(clientId, employeeId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDutiesAcknowledgement>>> = ({
+    signal,
+  }) => getDutiesAcknowledgement(clientId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgement>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetDutiesAcknowledgementQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDutiesAcknowledgement>>
+>;
+export type GetDutiesAcknowledgementQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDutiesAcknowledgement<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgement>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDutiesAcknowledgement>>,
+          TError,
+          Awaited<ReturnType<typeof getDutiesAcknowledgement>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDutiesAcknowledgement<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgement>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDutiesAcknowledgement>>,
+          TError,
+          Awaited<ReturnType<typeof getDutiesAcknowledgement>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDutiesAcknowledgement<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary An employee's acknowledgement of their SSM duties
+ */
+
+export function useGetDutiesAcknowledgement<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDutiesAcknowledgementQueryOptions(clientId, employeeId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetDutiesAcknowledgementSheetUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/duties-acknowledgement/sheet`;
+};
+
+/**
+ * The acknowledgement sheet (_fișa de luare la cunoștință a atribuțiilor SSM_, ADR 046): the annex of the employee's post in the latest issued revision of document 13, with only the role blocks naming this employee and only their name in them, and the employee's statement, name, date and signature lines. Built from that revision's snapshot, so it says what the revision says; nothing is stored. A former employee's sheet is drawn up too. Converted by the converter that makes the PDFs at issuing.
+ * @summary Download an employee's acknowledgement sheet of SSM duties as a PDF
+ */
+export const getDutiesAcknowledgementSheet = async (
+  clientId: string,
+  employeeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetDutiesAcknowledgementSheetUrl(clientId, employeeId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDutiesAcknowledgementSheetQueryKey = (clientId: string, employeeId: string) => {
+  return [`/clients/${clientId}/employees/${employeeId}/duties-acknowledgement/sheet`] as const;
+};
+
+export const getGetDutiesAcknowledgementSheetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDutiesAcknowledgementSheetQueryKey(clientId, employeeId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>> = ({
+    signal,
+  }) => getDutiesAcknowledgementSheet(clientId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetDutiesAcknowledgementSheetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>
+>;
+export type GetDutiesAcknowledgementSheetQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDutiesAcknowledgementSheet<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>,
+          TError,
+          Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDutiesAcknowledgementSheet<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>,
+          TError,
+          Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDutiesAcknowledgementSheet<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Download an employee's acknowledgement sheet of SSM duties as a PDF
+ */
+
+export function useGetDutiesAcknowledgementSheet<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheet>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDutiesAcknowledgementSheetQueryOptions(clientId, employeeId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetDutiesAcknowledgementSheetWordUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/duties-acknowledgement/sheet/word`;
+};
+
+/**
+ * The acknowledgement sheet (_fișa de luare la cunoștință a atribuțiilor SSM_, ADR 046): the annex of the employee's post in the latest issued revision of document 13, with only the role blocks naming this employee and only their name in them, and the employee's statement, name, date and signature lines. Built from that revision's snapshot, so it says what the revision says; nothing is stored. A former employee's sheet is drawn up too.
+ * @summary Download an employee's acknowledgement sheet of SSM duties as a Word file
+ */
+export const getDutiesAcknowledgementSheetWord = async (
+  clientId: string,
+  employeeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetDutiesAcknowledgementSheetWordUrl(clientId, employeeId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDutiesAcknowledgementSheetWordQueryKey = (
+  clientId: string,
+  employeeId: string
+) => {
+  return [
+    `/clients/${clientId}/employees/${employeeId}/duties-acknowledgement/sheet/word`,
+  ] as const;
+};
+
+export const getGetDutiesAcknowledgementSheetWordQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDutiesAcknowledgementSheetWordQueryKey(clientId, employeeId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>> = ({
+    signal,
+  }) => getDutiesAcknowledgementSheetWord(clientId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetDutiesAcknowledgementSheetWordQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>
+>;
+export type GetDutiesAcknowledgementSheetWordQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDutiesAcknowledgementSheetWord<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>,
+          TError,
+          Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDutiesAcknowledgementSheetWord<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>,
+          TError,
+          Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDutiesAcknowledgementSheetWord<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Download an employee's acknowledgement sheet of SSM duties as a Word file
+ */
+
+export function useGetDutiesAcknowledgementSheetWord<
+  TData = Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDutiesAcknowledgementSheetWord>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDutiesAcknowledgementSheetWordQueryOptions(
+    clientId,
+    employeeId,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getRecordDutiesAcknowledgementUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/duties-acknowledgement/records`;
+};
+
+/**
+ * The sheet of `revisionId`, which must still be the latest issued revision of document 13, came back signed by hand on `signedOn`: not in the future, nor before the day the revision carries; stored as noon in Romania. `clientFileId` is the scan, a file of the client. The record keeps the revision, the post and the number of its annex, the annex's fingerprint and the roles the employee holds in it with theirs, so it shows as out of date once they change. Earlier records stay as history. The database records the member signed in and the moment.
+ * @summary Record an employee's acknowledgement sheet as signed on paper
+ */
+export const recordDutiesAcknowledgement = async (
+  clientId: string,
+  employeeId: string,
+  recordDutiesAcknowledgementRequest: RecordDutiesAcknowledgementRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<DutiesAcknowledgementResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<DutiesAcknowledgementResponse>(
+    getRecordDutiesAcknowledgementUrl(clientId, employeeId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(recordDutiesAcknowledgementRequest),
+    }
+  );
+};
+
+export const getRecordDutiesAcknowledgementMutationKey = () =>
+  ['recordDutiesAcknowledgement'] as const;
+
+export const getRecordDutiesAcknowledgementMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordDutiesAcknowledgement>>,
+    TError,
+    RecordDutiesAcknowledgementMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordDutiesAcknowledgement>>,
+  TError,
+  RecordDutiesAcknowledgementMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRecordDutiesAcknowledgementMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordDutiesAcknowledgement>>,
+    RecordDutiesAcknowledgementMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, data } = props ?? {};
+
+    return recordDutiesAcknowledgement(clientId, employeeId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordDutiesAcknowledgementMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordDutiesAcknowledgement>>
+>;
+export type RecordDutiesAcknowledgementMutationBody = RecordDutiesAcknowledgementRequest;
+export type RecordDutiesAcknowledgementMutationError = ErrorType<ApiErrorResponse>;
+export type RecordDutiesAcknowledgementMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  data: RecordDutiesAcknowledgementRequest;
+};
+
+/**
+ * @summary Record an employee's acknowledgement sheet as signed on paper
+ */
+export const useRecordDutiesAcknowledgement = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof recordDutiesAcknowledgement>>,
+      TError,
+      RecordDutiesAcknowledgementMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof recordDutiesAcknowledgement>>,
+  TError,
+  RecordDutiesAcknowledgementMutationVariables,
+  TContext
+> => {
+  return useMutation(getRecordDutiesAcknowledgementMutationOptions(options), queryClient);
+};
+
+export const getDeleteDutiesAcknowledgementRecordUrl = (
+  clientId: string,
+  employeeId: string,
+  recordId: string
+) => {
+  return `/clients/${clientId}/employees/${employeeId}/duties-acknowledgement/records/${recordId}`;
+};
+
+/**
+ * The record goes; its scan stays among the files of the client. The record before it, if any, becomes the current one.
+ * @summary Remove a record of an acknowledgement sheet made by mistake
+ */
+export const deleteDutiesAcknowledgementRecord = async (
+  clientId: string,
+  employeeId: string,
+  recordId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<DutiesAcknowledgementResponse> => {
+  return apiFetch<DutiesAcknowledgementResponse>(
+    getDeleteDutiesAcknowledgementRecordUrl(clientId, employeeId, recordId),
+    {
+      ...options,
+      method: 'DELETE',
+    }
+  );
+};
+
+export const getDeleteDutiesAcknowledgementRecordMutationKey = () =>
+  ['deleteDutiesAcknowledgementRecord'] as const;
+
+export const getDeleteDutiesAcknowledgementRecordMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDutiesAcknowledgementRecord>>,
+    TError,
+    DeleteDutiesAcknowledgementRecordMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDutiesAcknowledgementRecord>>,
+  TError,
+  DeleteDutiesAcknowledgementRecordMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteDutiesAcknowledgementRecordMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDutiesAcknowledgementRecord>>,
+    DeleteDutiesAcknowledgementRecordMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, recordId } = props ?? {};
+
+    return deleteDutiesAcknowledgementRecord(clientId, employeeId, recordId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteDutiesAcknowledgementRecordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteDutiesAcknowledgementRecord>>
+>;
+
+export type DeleteDutiesAcknowledgementRecordMutationError = ErrorType<ApiErrorResponse>;
+export type DeleteDutiesAcknowledgementRecordMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  recordId: string;
+};
+
+/**
+ * @summary Remove a record of an acknowledgement sheet made by mistake
+ */
+export const useDeleteDutiesAcknowledgementRecord = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteDutiesAcknowledgementRecord>>,
+      TError,
+      DeleteDutiesAcknowledgementRecordMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDutiesAcknowledgementRecord>>,
+  TError,
+  DeleteDutiesAcknowledgementRecordMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteDutiesAcknowledgementRecordMutationOptions(options), queryClient);
+};
 
 export const getGetTestBankUrl = (params?: GetTestBankParams) => {
   const normalizedParams = new URLSearchParams();
@@ -36749,7 +37695,7 @@ export const getListClientDocumentsUrl = (clientId: string, params?: ListClientD
 };
 
 /**
- * The documents of the set named by `set`, the occupational safety one when left out, in its order. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.
+ * The documents of the set named by `set`, the occupational safety one when left out, in its order. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from. `editable` is false for document 13, which is only regenerated: it takes no uploaded file, no edit in the app and no draft started from its issued revision.
  * @summary List the documents of one of a client's documentation sets, with their current draft and issued revisions
  */
 export const listClientDocuments = async (

@@ -97,7 +97,9 @@ type EmployeeListRow = Pick<
   test_status: TestStatusRow | null;
 };
 
-function toEmployeeListItem(row: EmployeeListRow): Omit<EmployeeListItem, 'signaturesPending'> {
+function toEmployeeListItem(
+  row: EmployeeListRow
+): Omit<EmployeeListItem, 'signaturesPending' | 'dutiesAcknowledgement'> {
   return {
     id: row.id,
     clientId: row.client_id,
@@ -333,6 +335,7 @@ async function listedEmployees(db: DataClient, rows: ListViewRow[]): Promise<Lis
         test_status: testsOf.get(row.id) ?? null,
       }),
       signaturesPending: row.signatures_pending_count ?? 0,
+      dutiesAcknowledgement: null,
     },
     client: { id: row.client_id, name: row.client_name },
     row,

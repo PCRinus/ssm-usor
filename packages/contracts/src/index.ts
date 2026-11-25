@@ -31,6 +31,7 @@ export * from './cui';
 export * from './dashboard';
 export * from './document-data';
 export * from './documents';
+export * from './duties-acknowledgements';
 export * from './employee-import-rules';
 export * from './employees';
 export * from './evaluation-profiles';
