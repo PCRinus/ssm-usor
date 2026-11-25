@@ -40,7 +40,7 @@ import { formatRoDate } from '@/lib/dates';
 import { AnnexRow } from './annex-row';
 import { behindInstructions, instructionChangesHint, templateReason } from './behind-labels';
 import type { ClientDocument } from './document-labels';
-import { documentLink, documentSetCopy } from './document-sets';
+import { builtFromDataNote, documentLink, documentSetCopy } from './document-sets';
 import { NumberedTitle } from './pack-rows';
 import { packCells, warningBadge } from './pack-styles';
 import type { DocumentActions, Revision } from './use-document-actions';
@@ -84,6 +84,7 @@ export function DocumentRow({
   const { request: apiRequest } = useApi();
   const { busy, printing, setConfirming } = actions;
   const current = document.draft ?? document.issued;
+  const editable = document.editable;
   const click = rowClickProps(
     () =>
       void navigate({
@@ -112,6 +113,14 @@ export function DocumentRow({
             {document.decisionNumber !== null && (
               <span className="block text-xs text-muted-foreground">
                 Decizia nr. {document.decisionNumber} {documentSetCopy[set].name}
+              </span>
+            )}
+            {!editable && (
+              <span
+                data-testid="document-built-from-data"
+                className="block text-xs text-muted-foreground"
+              >
+                {builtFromDataNote}
               </span>
             )}
           </NumberedTitle>
@@ -195,7 +204,7 @@ export function DocumentRow({
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild data-testid="document-open">
                 <Link {...documentLink(set, clientId, document.id)} state={openedHere}>
-                  {document.draft && !readOnly ? (
+                  {document.draft && !readOnly && editable ? (
                     <>
                       <SquarePen aria-hidden="true" />
                       Deschide și modifică
@@ -299,7 +308,7 @@ export function DocumentRow({
               {!readOnly && (
                 <>
                   <DropdownMenuSeparator />
-                  {document.issued && !document.draft && (
+                  {editable && document.issued && !document.draft && (
                     <DropdownMenuItem
                       data-testid="document-start-draft"
                       disabled={busy}
@@ -316,17 +325,19 @@ export function DocumentRow({
                     <RefreshCw aria-hidden="true" />
                     Generează din nou
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    data-testid="document-upload"
-                    onSelect={() =>
-                      document.draft
-                        ? setConfirming({ action: 'upload', document })
-                        : actions.chooseFile(document.typeKey, title, document.period)
-                    }
-                  >
-                    <Upload aria-hidden="true" />
-                    Încarcă un fișier Word
-                  </DropdownMenuItem>
+                  {editable && (
+                    <DropdownMenuItem
+                      data-testid="document-upload"
+                      onSelect={() =>
+                        document.draft
+                          ? setConfirming({ action: 'upload', document })
+                          : actions.chooseFile(document.typeKey, title, document.period)
+                      }
+                    >
+                      <Upload aria-hidden="true" />
+                      Încarcă un fișier Word
+                    </DropdownMenuItem>
+                  )}
                   {document.draft && (
                     <>
                       <DropdownMenuSeparator />

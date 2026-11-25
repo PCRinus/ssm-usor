@@ -58,6 +58,7 @@ const contractDocument = (overrides: Record<string, unknown> = {}) => ({
   typeKey: 'service_contract',
   title: 'Contract de prestări servicii',
   decisionNumber: null,
+  editable: true,
   draft: revision(),
   issued: null,
   ...overrides,

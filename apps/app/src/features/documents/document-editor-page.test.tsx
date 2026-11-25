@@ -98,6 +98,7 @@ const firstAid = {
   typeKey: 'decision_first_aid',
   title: 'Decizia privind responsabilii cu primul ajutor',
   decisionNumber: 5,
+  editable: true,
   period: null,
   draft: revision() as ReturnType<typeof revision> | null,
   issued: null as ReturnType<typeof revision> | null,
@@ -393,6 +394,35 @@ describe('the document editor page', () => {
     expect((await screen.findByTestId('fake-editor')).dataset.editable).toBe('false');
     expect(screen.queryByTestId('editor-save')).toBeNull();
     expect(screen.getByTestId('editor-read-only').textContent).toBe('Client arhivat');
+  });
+
+  it('opens a draft built from the data alone for reading only, and says why', async () => {
+    mockApi({ items: [{ ...firstAid, typeKey: 'ssm_duties', editable: false }] });
+    mount();
+
+    expect((await screen.findByTestId('fake-editor')).dataset.editable).toBe('false');
+    expect(screen.queryByTestId('editor-save')).toBeNull();
+    expect(screen.getByTestId('editor-built-from-data').textContent).toBe(
+      'Se generează din datele clientului; o regulă a unui post se adaugă prin instrucțiunile proprii.'
+    );
+  });
+
+  it('starts no draft from an issued document built from the data alone', async () => {
+    mockApi({
+      items: [
+        {
+          ...firstAid,
+          typeKey: 'ssm_duties',
+          editable: false,
+          draft: null,
+          issued: revision({ status: 'issued', issuedAt: '2026-09-19T11:00:00+00:00' }),
+        },
+      ],
+    });
+    mount();
+    await screen.findByTestId('fake-editor');
+    expect(screen.queryByTestId('editor-start-draft')).toBeNull();
+    expect(screen.getByTestId('editor-built-from-data')).toBeTruthy();
   });
 
   it('offers the download in the editor dialog when the document does not open', async () => {

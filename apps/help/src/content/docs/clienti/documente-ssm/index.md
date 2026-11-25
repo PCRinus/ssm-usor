@@ -100,7 +100,9 @@ O anexă cuprinde:
 
 Rândul despre zone apare în anexa unui post după ce ai adăugat zonele clientului, dacă o zonă este legată de riscurile postului. Când adaugi zone după ce documentul 13 a fost generat, ciorna lui arată „Date modificate” dacă o zonă ajunge astfel într-o anexă.
 
-O regulă care ține doar de un post, de exemplu „nu folosește feliatorul de carne fără a fi instruit”, nu se scrie în documentul 13. O pui într-o instrucțiune proprie din biblioteca ta, pe care o aplici postului: anexa o numește singură, iar instrucțiunea o folosești la orice client cu același post. Documentul 13 nu se modifică de mână: nu se schimbă în editor, nu se înlocuiește cu un fișier Word și nu are **Modifică documentul emis**. Anexele se scriu numai din datele clientului, iar fișele lucrătorilor le repetă întocmai, așa că îl schimbi prin date și **Generează din nou**.
+O regulă care ține doar de un post, de exemplu „nu folosește feliatorul de carne fără a fi instruit”, nu se scrie în documentul 13. O pui într-o instrucțiune proprie din biblioteca ta, pe care o aplici postului: anexa o numește singură, iar instrucțiunea o folosești la orice client cu același post.
+
+Documentul 13 nu se modifică de mână: nu se schimbă în editor, unde îl deschizi doar pentru citit, nu se înlocuiește cu un fișier Word și nu are **Modifică documentul emis**. Anexele se scriu numai din datele clientului, iar fișele lucrătorilor le repetă întocmai, așa că îl schimbi prin date și **Generează din nou**. Așa, fișa de luare la cunoștință a fiecărui lucrător spune exact ce scrie în documentul 13 emis și știe când anexa postului s-a schimbat (vezi [Fișa de luare la cunoștință a atribuțiilor SSM](/clienti/angajati/instruire-si-teste/#fișa-de-luare-la-cunoștință-a-atribuțiilor-ssm)).
 
 ## Stările unui document
 
@@ -108,11 +110,11 @@ Coloana **Stare** spune unde este documentul și ce mai ai de făcut. Un documen
 
 ### Emis
 
-„Emis · rev. 1” este documentul definitiv, cu PDF-ul făcut la emitere. Un document emis nu se mai modifică. Ca să îl corectezi, alege **Modifică documentul emis** din meniul lui: se face o ciornă nouă din el, care îl înlocuiește când o emiți. Până atunci, revizia emisă rămâne în vigoare și se poate descărca.
+„Emis · rev. 1” este documentul definitiv, cu PDF-ul făcut la emitere. Un document emis nu se mai modifică. Ca să îl corectezi, alege **Modifică documentul emis** din meniul lui: se face o ciornă nouă din el, care îl înlocuiește când o emiți. Documentul 13 nu are această opțiune: îl generezi din nou. Până atunci, revizia emisă rămâne în vigoare și se poate descărca.
 
 ### Ciornă
 
-„Ciornă · rev. 2” este o versiune pe care o mai poți schimba: o deschizi și o modifici în editor, o generezi din nou, o înlocuiești cu un fișier Word sau o ștergi. Când este gata, alege **Emite**. Dacă în ciornă a rămas text „DE COMPLETAT”, acolo unde aplicația nu a avut ce scrie, ți se spune înainte de emitere; butonul pentru locurile de completat din editor te duce la fiecare.
+„Ciornă · rev. 2” este o versiune pe care o mai poți schimba: o deschizi și o modifici în editor, o generezi din nou, o înlocuiești cu un fișier Word sau o ștergi. Ciorna documentului 13 doar o generezi din nou sau o ștergi. Când este gata, alege **Emite**. Dacă în ciornă a rămas text „DE COMPLETAT”, acolo unde aplicația nu a avut ce scrie, ți se spune înainte de emitere; butonul pentru locurile de completat din editor te duce la fiecare.
 
 ### Modificat
 
@@ -158,7 +160,7 @@ Meniul cu trei puncte de la capătul rândului are, după starea documentului:
 - **Încarcă un fișier Word**, care face dintr-un fișier al tău ciorna documentului, în locul celei de acum;
 - **Șterge ciorna**.
 
-Documentul 13 nu are **Modifică documentul emis** și **Încarcă un fișier Word**, iar ciorna lui nu se modifică în editor: se scrie numai din datele clientului.
+Documentul 13 nu are **Deschide și modifică**, **Modifică documentul emis** și **Încarcă un fișier Word**, iar ciorna lui nu se modifică în editor: se scrie numai din datele clientului, cum spune și rândul de sub titlul lui.
 
 O anexă a instrucțiunilor proprii are meniul ei, cu **Deschide** și **Descarcă Word**.
 

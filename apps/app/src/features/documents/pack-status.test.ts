@@ -36,6 +36,7 @@ function clientDocument(
     typeKey,
     title,
     decisionNumber: null,
+    editable: true,
     period: state.period ?? null,
     draft: state.draft ? revision({ dataChanged: state.dataChanged ?? false }) : null,
     issued: state.issued ? revision({ status: 'issued', revision: 2 }) : null,

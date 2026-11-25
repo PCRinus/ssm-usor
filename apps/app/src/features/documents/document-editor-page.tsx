@@ -23,7 +23,7 @@ import { commonFailure } from '@/lib/api-errors';
 import type { DocumentEditorHandle } from './document-editor';
 import type { ClientDocument } from './document-labels';
 import { sectionOf } from './document-sections';
-import { documentSetCopy, documentsLink, setParams } from './document-sets';
+import { builtFromDataNote, documentSetCopy, documentsLink, setParams } from './document-sets';
 import type { PhoneBar } from './editor-bar';
 import { editorFrameClassName, saveAs } from './editor-frame';
 import { EditorPlaceholder } from './editor-placeholder';
@@ -129,8 +129,10 @@ export function DocumentEditorView({
 
   const revision = document?.draft ?? document?.issued ?? null;
   const title = document ? numberedTitle(document.typeKey, document.title) : '';
-  const editable = !readOnly && document?.draft != null;
-  const canStartDraft = !readOnly && document != null && !document.draft && document.issued != null;
+  const builtFromData = document !== undefined && !document.editable;
+  const editable = !readOnly && !builtFromData && document?.draft != null;
+  const canStartDraft =
+    !readOnly && !builtFromData && document != null && !document.draft && document.issued != null;
   const revisionId = revision?.id;
   const ready = revisionId !== undefined && readyRevisionId === revisionId;
   const loadError = revisionId !== undefined && failedRevisionId === revisionId;
@@ -266,6 +268,11 @@ export function DocumentEditorView({
           {readOnlyReason.label}
         </Badge>
       )}
+      {builtFromData && (
+        <span data-testid="editor-built-from-data" className="text-xs text-muted-foreground">
+          {builtFromDataNote}
+        </span>
+      )}
       {editable && (
         <span
           data-testid="editor-saved-state"
@@ -339,7 +346,13 @@ export function DocumentEditorView({
         ? { text: 'Modificări nesalvate', tone: 'warning' }
         : { text: 'Salvat', tone: 'muted' }
       : undefined,
-    note: canStartDraft ? issuedNote : readOnly ? readOnlyReason.title : undefined,
+    note: canStartDraft
+      ? issuedNote
+      : readOnly
+        ? readOnlyReason.title
+        : builtFromData
+          ? builtFromDataNote
+          : undefined,
     busy: printing ? 'Se pregătește tipărirea' : undefined,
     main: canStartDraft
       ? {

@@ -25,6 +25,7 @@ import {
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
+import { invalidateClientDutiesAcknowledgements } from '@/features/duties-acknowledgements/use-duties-acknowledgement';
 import { behindSummaryQueryKey } from '@/features/legislation/use-behind-summary';
 import { commonFailure } from '@/lib/api-errors';
 
@@ -212,6 +213,9 @@ export function useDocumentActions({ set, clientId }: { set: DocumentSet; client
           data: { acceptUnfilled: action === 'issueUnfilled' },
         });
         toast.success(`„${nameOf(document)}” a fost emis.`);
+        if (document.typeKey === 'ssm_duties') {
+          void invalidateClientDutiesAcknowledgements(queryClient, clientId);
+        }
       } else {
         await remove.mutateAsync({ documentId: document.id });
         toast.success(`Ciorna pentru „${nameOf(document)}” a fost ștearsă.`);

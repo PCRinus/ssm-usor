@@ -57,6 +57,11 @@ function confirmationText({ action, document }: NonNullable<Confirming>) {
   if (document.draft?.editedAt) {
     return 'Ciorna a fost modificată de mână. Dacă o generezi din nou, este completată cu datele de acum ale clientului, iar modificările tale se pierd.';
   }
+  if (!document.editable) {
+    return document.draft
+      ? 'Ciorna este completată din nou cu datele de acum ale clientului.'
+      : 'Se creează o ciornă nouă, completată cu datele de acum ale clientului. Revizia emisă rămâne în vigoare până când emiți ciorna.';
+  }
   return document.draft
     ? 'Ciorna este completată din nou cu datele de acum ale clientului. Modificările făcute de mână în fișier se pierd.'
     : 'Se creează o ciornă nouă din șablon, completată cu datele de acum ale clientului, fără modificările făcute de mână în documentul emis. Ca să le păstrezi, alege „Modifică documentul emis”. Revizia emisă rămâne în vigoare până când emiți ciorna.';

@@ -16,6 +16,7 @@ import { mountApp } from '@/test/mount';
 import {
   clientId,
   clientRecord,
+  dutiesNotIssued,
   employeeListItem,
   employeeRecord,
   jobPositionRecord,
@@ -284,6 +285,8 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
           ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
           su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
         });
+      case `GET ${employeePath}/duties-acknowledgement`:
+        return Response.json(dutiesNotIssued);
       case `GET ${employeePath}/participant`:
         return Response.json({ participant: null, invitation: null });
       case `GET ${agreementPath}/state`:

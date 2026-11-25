@@ -16,6 +16,7 @@ import { z } from 'zod';
 
 import {
   type EmployeeResponse,
+  getGetDutiesAcknowledgementQueryKey,
   getGetEmployeeQueryKey,
   getListEmployeesQueryKey,
   getListJobPositionsQueryKey,
@@ -109,6 +110,9 @@ function Form({
         queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(clientId, employee.id) }),
         queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) }),
         queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),
+        queryClient.invalidateQueries({
+          queryKey: getGetDutiesAcknowledgementQueryKey(clientId, employee.id),
+        }),
       ]);
       toast.success('Postul de lucru a fost schimbat.');
       onClose();

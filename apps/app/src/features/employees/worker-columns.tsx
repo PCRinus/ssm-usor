@@ -1,4 +1,5 @@
 import {
+  type DutiesAcknowledgementStatus,
   type EmployeeTraining,
   formatEmployeeName,
   type TestState,
@@ -15,6 +16,7 @@ import {
   narrowHeader,
   twoLineHeader,
 } from '@/components/data-table/columns';
+import { dutiesListLines } from '@/features/duties-acknowledgements/duties-format';
 import { TestStatesLine } from '@/features/knowledge-tests/test-state-badge';
 import { TrainingStateCell } from '@/features/trainings/training-state-badge';
 import { formatDate } from '@/lib/dates';
@@ -31,6 +33,7 @@ interface WorkerRow {
   training: EmployeeTraining;
   tests: Record<TrainingDomain, { state: TestState | null }>;
   signaturesPending: number;
+  dutiesAcknowledgement: DutiesAcknowledgementStatus | null;
 }
 
 // Sortable column ids are the API sort keys.
@@ -65,7 +68,24 @@ export function workerColumns<TData extends WorkerRow>(
       id: 'jobPosition',
       header: 'Post de lucru',
       enableSorting: true,
-      meta: { cellClassName: 'max-w-48 truncate', skeletonClassName: 'w-28' },
+      meta: { cellClassName: 'max-w-48', skeletonClassName: 'w-28' },
+      cell: ({ row, getValue }) => {
+        const status = row.original.dutiesAcknowledgement;
+        const line = status ? dutiesListLines[status] : undefined;
+        return (
+          <>
+            <span className="block truncate">{getValue()}</span>
+            {line && (
+              <CellNote
+                data-testid={`${testIdPrefix}-duties`}
+                className="whitespace-nowrap text-warning-foreground"
+              >
+                {line}
+              </CellNote>
+            )}
+          </>
+        );
+      },
     }),
     // Sorted only where the employees have a state: current employees of an active client.
     training: (sortable: boolean) =>

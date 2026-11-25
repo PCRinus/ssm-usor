@@ -60,6 +60,8 @@ sources:
   - apps/app/src/features/employees/employee-columns.tsx
   - apps/app/src/features/employees/worker-columns.tsx
   - apps/app/src/features/employees/worker-filters.tsx
+  - apps/app/src/features/duties-acknowledgements/duties-format.ts
+  - docs/architecture/adr-046-ssm-duties-for-job-descriptions.md
   - apps/app/src/features/employees/employee-layout.tsx
   - apps/app/src/features/employees/employee-page.tsx
   - apps/app/src/features/employees/employee-sections.ts
@@ -81,7 +83,7 @@ Aici ții evidența oamenilor fiecărui client: cine lucrează acolo, pe ce post
 Lista unui client e în tabul **Lucrători** al clientului. Fiecare rând arată:
 
 - **Lucrător**: numele, cu marca dedesubt când există;
-- **Post de lucru**: postul pe care îl ocupă; funcția din contract e pe pagina lui;
+- **Post de lucru**: postul pe care îl ocupă; funcția din contract e pe pagina lui. Sub post apare, cu galben, un rând despre fișa de luare la cunoștință a atribuțiilor SSM, doar când e ceva de făcut: „Atribuții SSM nesemnate”, „Atribuții SSM noi, nesemnate”, când fișa semnată nu mai corespunde, sau „Postul lipsește din doc. 13”, când ultimul document 13 emis nu are anexă pentru post. Vezi [Fișa de luare la cunoștință a atribuțiilor SSM](/clienti/angajati/instruire-si-teste/#fișa-de-luare-la-cunoștință-a-atribuțiilor-ssm);
 - **Instruire SSM** și **Instruire SU**: starea instruirii în fiecare domeniu, cu termenul sub ea;
 - **Testare**: doar ce cere o acțiune, pe un singur rând, de exemplu „De susținut”, „Neverificat pe fișă” sau „SU: anual scadent”, pentru oricare dintre domenii. Când nu e nimic de făcut, vezi **La zi** dacă lucrătorul a promovat testele din ambele domenii, ca la filtrul **La zi**; dacă a promovat într-un domeniu și în celălalt nu are încă test, vezi de exemplu „SU: fără test”; altfel o liniuță;
 - **De semnat**: câte semnături electronice îi mai cer lucrătorului instruirile și testele lui, de exemplu „2 în așteptare”;
@@ -97,7 +99,7 @@ Cât timp un import din fișe al clientului nu e încheiat, deasupra listei vezi
 
 ### Actuali și foști
 
-Lista arată implicit tabul **Actuali**. Cine a plecat trece la **Foști**, cu toate instruirile, fișele și fișierele lui, iar lista lor are în plus coloana **Data încetării**, ziua în care i-a încetat contractul; o poți ordona și după ea. Un fost lucrător nu mai are stare a instruirii sau a testării, așa că pe acest tab filtrele după instruire și testare nu apar. Vezi [Plecarea unui lucrător](/clienti/angajati/plecare/).
+Lista arată implicit tabul **Actuali**. Cine a plecat trece la **Foști**, cu toate instruirile, fișele și fișierele lui, iar lista lor are în plus coloana **Data încetării**, ziua în care i-a încetat contractul; o poți ordona și după ea. Un fost lucrător nu mai are stare a instruirii, a testării sau a atribuțiilor SSM, așa că pe acest tab filtrele după instruire, testare și atribuții SSM nu apar. Vezi [Plecarea unui lucrător](/clienti/angajati/plecare/).
 
 Când treci de pe un tab pe altul, căutarea și filtrele după post, punct de lucru sau client rămân.
 
@@ -112,6 +114,7 @@ Butonul **Filtre** deschide filtrele listei. Le poți combina; un lucrător apar
 - **Instruire SSM** și **Instruire SU**, fiecare citind doar domeniul lui: **De instruit (neinstruiți sau depășiți)**, **Neinstruiți**, **Depășită**, **Scadentă în 30 de zile** sau **La zi**;
 - **Testare**: **De susținut**, **Anual scadent**, **Neverificat pe fișă** și **Fără test** îi arată pe cei care sunt în acea stare în cel puțin un domeniu; **La zi** îi arată pe cei care au promovat în ambele domenii;
 - **Necesită atenție**: **Semnături în așteptare**, lucrătorii care au de semnat electronic o instruire sau un test; **Fără telefon** și **Fără email**, lucrătorii cărora le lipsește un mijloc de contact, de care au nevoie pentru portal și semnătură;
+- **Atribuții SSM**: starea fișei de luare la cunoștință a atribuțiilor SSM: **Semnate**, **Nesemnate**, **Noi, nesemnate** (fișa semnată nu mai corespunde anexei postului sau rolurilor lucrătorului) și **Postul lipsește din doc. 13**. Cât timp clientul nu are documentul 13 emis, niciun lucrător nu se potrivește;
 - **Post de lucru**: posturile clientului; poți alege mai multe, căutându-le după nume;
 - **Punct de lucru**: punctele de lucru ale clientului, când are mai multe, și **Fără punct de lucru**, când unii lucrători nu au unul; la acesta ajungi și din numărul de pe rândul **Fără punct de lucru** de la tabul **Detalii**.
 

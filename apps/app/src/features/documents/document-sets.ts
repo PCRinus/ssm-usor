@@ -90,3 +90,6 @@ export const documentSetCopy = {
     templatesUnavailable: string | undefined;
   }
 >;
+
+export const builtFromDataNote =
+  'Se generează din datele clientului; o regulă a unui post se adaugă prin instrucțiunile proprii.';

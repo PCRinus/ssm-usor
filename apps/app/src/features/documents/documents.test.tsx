@@ -60,6 +60,7 @@ const firstAid = {
   typeKey: 'decision_first_aid',
   title: 'Decizia privind responsabilii cu primul ajutor',
   decisionNumber: 5,
+  editable: true,
   draft: revision() as ReturnType<typeof revision> | null,
   issued: null as ReturnType<typeof revision> | null,
 };
@@ -69,6 +70,7 @@ const report = {
   typeKey: 'control_report',
   title: 'Referat de control',
   decisionNumber: null,
+  editable: true,
   draft: revision({ id: '1b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d' }),
   issued: null,
 };
@@ -1587,6 +1589,72 @@ describe('client documents', () => {
     await user.click(await screen.findByTestId('document-start-draft'));
     await waitFor(() => expect(requests(`/documents/${firstAidId}/draft`, 'POST')).toHaveLength(1));
     expect(await screen.findByTestId('editor-back')).toBeTruthy();
+  });
+
+  it('offers neither editing nor a Word upload for document 13, and says why under its title', async () => {
+    const issued = revision({
+      id: '2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f',
+      status: 'issued',
+      issuedAt: '2026-09-19T11:00:00+00:00',
+      hasPdf: true,
+    });
+    const duties = {
+      ...report,
+      id: '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a',
+      typeKey: 'ssm_duties',
+      title: 'Atribuții și răspunderi SSM',
+      editable: false,
+    };
+    mockApi({
+      items: [
+        { ...duties, draft: revision({ revision: 2 }), issued },
+        { ...firstAid, draft: null, issued },
+      ],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    const row = await openMenu(user, 'Atribuții și răspunderi SSM', '13');
+    expect(within(row).getByTestId('document-built-from-data').textContent).toBe(
+      'Se generează din datele clientului; o regulă a unui post se adaugă prin instrucțiunile proprii.'
+    );
+    expect((await screen.findByTestId('document-open')).textContent).toBe('Deschide');
+    expect(screen.getByTestId('document-issue')).toBeTruthy();
+    expect(screen.getByTestId('document-download-draft')).toBeTruthy();
+    expect(screen.getByTestId('document-print-draft')).toBeTruthy();
+    expect(screen.getByTestId('document-open-pdf')).toBeTruthy();
+    expect(screen.getByTestId('document-regenerate')).toBeTruthy();
+    expect(screen.getByTestId('document-delete-draft')).toBeTruthy();
+    expect(screen.queryByTestId('document-upload')).toBeNull();
+    expect(screen.queryByTestId('document-start-draft')).toBeNull();
+  });
+
+  it('offers no draft from an issued document 13, only regenerating it', async () => {
+    mockApi({
+      items: [
+        {
+          ...report,
+          id: '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a',
+          typeKey: 'ssm_duties',
+          title: 'Atribuții și răspunderi SSM',
+          editable: false,
+          draft: null,
+          issued: revision({ status: 'issued', issuedAt: '2026-09-19T11:00:00+00:00' }),
+        },
+      ],
+    });
+    mount();
+    const user = userEvent.setup();
+    await openMenu(user, 'Atribuții și răspunderi SSM', '13');
+    expect((await screen.findByTestId('document-open')).textContent).toBe('Deschide');
+    expect(screen.queryByTestId('document-start-draft')).toBeNull();
+    expect(screen.queryByTestId('document-upload')).toBeNull();
+    await user.click(screen.getByTestId('document-regenerate'));
+    const dialog = await screen.findByTestId('document-dialog');
+    expect(dialog.textContent).toContain(
+      'Se creează o ciornă nouă, completată cu datele de acum ale clientului.'
+    );
+    expect(dialog.textContent).not.toContain('Modifică documentul emis');
   });
 
   it('groups the menu by the revision each action works on', async () => {

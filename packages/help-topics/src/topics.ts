@@ -36,6 +36,10 @@ export const helpTopics = {
     anchor: 'anexa-14-la-regulamentul-intern',
   },
   'angajati.angajare': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'angajare' },
+  'angajati.atributii-ssm': {
+    path: '/clienti/angajati/instruire-si-teste/',
+    anchor: 'fișa-de-luare-la-cunoștință-a-atribuțiilor-ssm',
+  },
   'angajati.autorizatii': {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'autorizațiile',

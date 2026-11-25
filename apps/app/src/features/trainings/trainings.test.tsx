@@ -23,6 +23,7 @@ import { mountApp } from '@/test/mount';
 import {
   clientId,
   clientRecord,
+  dutiesNotIssued,
   employeeListItem,
   employeeRecord,
   jobPositionRecord,
@@ -222,6 +223,8 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
           ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
           su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
         });
+      case `GET ${employeePath}/duties-acknowledgement`:
+        return Response.json(dutiesNotIssued);
       case `GET /clients/${clientId}/job-positions`:
         return Response.json({
           items: [position(welderId, 'Sudor'), position(clerkId, 'Contabil')],
@@ -366,7 +369,7 @@ describe("an employee's training tabs", () => {
       within(screen.getByTestId('employee-training-tab'))
         .getAllByRole('heading', { level: 2 })
         .map((heading) => heading.textContent)
-    ).toEqual(['Testare', 'Instruiri']);
+    ).toEqual(['Fișa de luare la cunoștință a atribuțiilor SSM', 'Testare', 'Instruiri']);
 
     const periodic = within(items[0]!);
     expect(periodic.getByText('Periodică')).toBeTruthy();
