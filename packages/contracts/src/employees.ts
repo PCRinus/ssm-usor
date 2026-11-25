@@ -2,6 +2,10 @@ import { z } from 'zod';
 
 import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
 import { commuteMeanSchema, commuteMeansOtherMaxLength } from './commute-means';
+import {
+  dutiesAcknowledgementFilterSchema,
+  dutiesAcknowledgementStatusSchema,
+} from './duties-acknowledgements';
 import { listQuerySchema, listSearchSchema, pageSchema, repeatedQueryValue } from './list';
 import { participantChannelSchema, portalLanguageSchema } from './participant-channels';
 import { phoneSchema } from './phone';
@@ -167,6 +171,7 @@ export const employeeListFiltersSchema = z.object({
   suTraining: repeatedQueryValue(employeeTrainingStateFilterSchema).optional(),
   test: repeatedQueryValue(testStateFilterSchema).optional(),
   attention: repeatedQueryValue(z.enum(employeeAttentionFilters)).optional(),
+  dutiesAcknowledgement: repeatedQueryValue(dutiesAcknowledgementFilterSchema).optional(),
 });
 
 export type EmployeeListFilters = z.infer<typeof employeeListFiltersSchema>;
@@ -263,6 +268,8 @@ export const employeeListItemSchema = employeeSchema
   .extend({
     jobPosition: z.object({ id: z.uuid(), name: z.string() }),
     signaturesPending: z.int().min(0),
+    // Null for a former employee.
+    dutiesAcknowledgement: dutiesAcknowledgementStatusSchema.nullable(),
   });
 
 export type EmployeeListItem = z.infer<typeof employeeListItemSchema>;

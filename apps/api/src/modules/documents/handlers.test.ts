@@ -898,6 +898,23 @@ describe('GET /clients/{clientId}/documents', () => {
     });
   });
 
+  it('says document 13 is not editable, being only regenerated', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json([
+          documentRow,
+          { ...documentRow, id: revisionId, type_key: 'ssm_duties', decision_number: null },
+        ]),
+    });
+    const body = clientDocumentListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/documents`)).json()
+    );
+    expect(body.items.map((item) => [item.typeKey, item.editable])).toEqual([
+      ['decision_first_aid', true],
+      ['ssm_duties', false],
+    ]);
+  });
+
   it('names the module versions the own instructions annex, and a newer one in the library', async () => {
     const moduleId = 'c1c1c1c1-0000-4000-8000-000000000001';
     const annexed = {
@@ -2810,6 +2827,20 @@ describe('POST /documents/{documentId}/draft', () => {
     expect(calls('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
   });
 
+  it('refuses document 13, which is only regenerated', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json({ ...documentRow, type_key: 'ssm_duties', document_revisions: [issued] }),
+      revisions,
+    });
+    const response = await start();
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'document_not_editable'
+    );
+    expect(calls('/rest/v1/document_revisions', 'POST')).toHaveLength(0);
+  });
+
   it('removes the revision again when the file cannot be stored', async () => {
     mockUpstream({
       documents: issuedDocument,
@@ -3130,6 +3161,23 @@ describe('PUT /documents/{documentId}/draft/file', () => {
     expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
   });
 
+  it("refuses the editor's changes to document 13, which is only regenerated", async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json({
+          ...documentRow,
+          type_key: 'ssm_duties',
+          document_revisions: [revisionRow],
+        }),
+    });
+    const response = await save(docx);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'document_not_editable'
+    );
+    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
+  });
+
   it('refuses a document without a draft, so an issued file is never written', async () => {
     mockUpstream({
       documents: () => Response.json({ ...documentRow, document_revisions: [issuedRevision] }),
@@ -3287,6 +3335,17 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
         : url?.searchParams.has('id')
           ? Response.json(rows[0] ?? documentRow)
           : Response.json(rows);
+
+  it('refuses a Word file for document 13, before reading anything', async () => {
+    mockUpstream({ documents: documents([{ ...documentRow, type_key: 'ssm_duties' }]) });
+    const response = await upload('ssm_duties');
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'document_not_editable'
+    );
+    expect(calls('/rest/v1/client_documents')).toHaveLength(0);
+    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
+  });
 
   it("replaces the draft's file of a document that has one", async () => {
     mockUpstream({ documents: documents([documentRow]) });

@@ -13,11 +13,12 @@ import { documentText } from '../text';
 import { documentTextOf, perEmployeeEntries, read, sheetEntries } from './read';
 
 describe('the individual training sheets', () => {
-  it('are, with the signing agreement and the test sheet, the per-employee entries of their manifests, with no number', () => {
+  it('are, with the signing agreement, the test sheet and the acknowledgement of duties, the per-employee entries of their manifests, with no number', () => {
     expect(perEmployeeEntries.map(({ typeKey, path }) => [typeKey, path])).toEqual([
       ['training_sheet_ssm', 'fisa_instruire_ssm.docx'],
       ['signing_agreement', 'act_aditional_semnare_electronica.docx'],
       ['test_sheet', 'fisa_test.docx'],
+      ['duties_acknowledgement', 'fisa_atributii_ssm.docx'],
       ['training_sheet_su', 'fire/fisa_instructaj_su.docx'],
     ]);
     for (const entry of perEmployeeEntries) expect(entry).not.toHaveProperty('number');

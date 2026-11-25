@@ -29,6 +29,8 @@ const withPositions = (
   ],
 });
 
+const ioanaId = 'e1e1e1e1-0000-4000-8000-000000000002';
+
 const weldingModule = welder.instructions.find((module) => module.title.startsWith('Sudură'))!;
 
 describe('the annexes of document 13', () => {
@@ -136,6 +138,15 @@ describe('the annexes of document 13', () => {
     expect(annexesOf(byName).map((annex) => annex.hasRoles)).toEqual(
       annexesOf(facts).map((annex) => annex.hasRoles)
     );
+    expect(annexesOf(byName)[1]!.workplaceManagerDuties!.employeeIds).toEqual([holder.employeeId]);
+  });
+
+  it('name the employees each block covers by id, for the acknowledgements and not the print', () => {
+    expect(annexesOf(facts)[1]).toMatchObject({
+      workplaceManagerDuties: { employeeIds: [ioanaId] },
+      firstAidDuties: { employeeIds: [ioanaId] },
+      imminentDangerDuties: { employeeIds: [ioanaId] },
+    });
   });
 
   it("print the workers' representative block only while decision 1.5 is part of the set", () => {
@@ -151,7 +162,11 @@ describe('the annexes of document 13', () => {
     expect(
       annexesOf({ ...representative, workersRepresentativeDecisionGenerated: true })[1]!
         .workersRepresentativeDuties
-    ).toEqual({ people: 'Ioana PETRE', decision: 'nr. 9 SSM din 19.01.2026' });
+    ).toEqual({
+      people: 'Ioana PETRE',
+      employeeIds: [ioanaId],
+      decision: 'nr. 9 SSM din 19.01.2026',
+    });
   });
 });
 

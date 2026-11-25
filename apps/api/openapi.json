@@ -2064,6 +2064,11 @@
                   "type": "integer",
                   "minimum": 0
                 },
+                "dutiesAcknowledgement": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["not_issued", "no_annex", "to_sign", "signed", "sign_again", null]
+                },
                 "portal": {
                   "type": "object",
                   "properties": {
@@ -2153,6 +2158,7 @@
                 "tests",
                 "jobPosition",
                 "signaturesPending",
+                "dutiesAcknowledgement",
                 "portal"
               ]
             }
@@ -3156,6 +3162,11 @@
                   "type": "integer",
                   "minimum": 0
                 },
+                "dutiesAcknowledgement": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["not_issued", "no_annex", "to_sign", "signed", "sign_again", null]
+                },
                 "client": {
                   "type": "object",
                   "properties": {
@@ -3189,6 +3200,7 @@
                 "tests",
                 "jobPosition",
                 "signaturesPending",
+                "dutiesAcknowledgement",
                 "client"
               ]
             }
@@ -4111,6 +4123,324 @@
           }
         },
         "required": ["url", "fileName", "expiresInSeconds"]
+      },
+      "DutiesAcknowledgementResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["not_issued", "no_annex", "to_sign", "signed", "sign_again"]
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["annex_changed", "roles_changed"]
+            }
+          },
+          "revision": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "documentId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "revisionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "issueDate": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": ["documentId", "revisionId", "issueDate"]
+          },
+          "annex": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "documentId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "revisionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "issueDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "number": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "position": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "workplace_manager",
+                    "first_aid",
+                    "imminent_danger",
+                    "workers_representative"
+                  ]
+                }
+              }
+            },
+            "required": ["documentId", "revisionId", "issueDate", "number", "position", "roles"]
+          },
+          "current": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "state": {
+                "type": "string",
+                "enum": ["signed_on_paper"]
+              },
+              "signedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "signedOn": {
+                "type": "string",
+                "format": "date"
+              },
+              "clientFileId": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "annex": {
+                "type": "object",
+                "properties": {
+                  "documentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "revisionId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "issueDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "number": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "position": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["id", "name"]
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "workplace_manager",
+                        "first_aid",
+                        "imminent_danger",
+                        "workers_representative"
+                      ]
+                    }
+                  }
+                },
+                "required": ["documentId", "revisionId", "issueDate", "number", "position", "roles"]
+              },
+              "recordedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "recordedBy": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "fullName": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": ["id", "fullName"]
+              }
+            },
+            "required": [
+              "id",
+              "state",
+              "signedAt",
+              "signedOn",
+              "clientFileId",
+              "annex",
+              "recordedAt",
+              "recordedBy"
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": ["signed_on_paper"]
+                },
+                "signedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "signedOn": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "clientFileId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "annex": {
+                  "type": "object",
+                  "properties": {
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "revisionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "issueDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "number": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "position": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "name"]
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "workplace_manager",
+                          "first_aid",
+                          "imminent_danger",
+                          "workers_representative"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "documentId",
+                    "revisionId",
+                    "issueDate",
+                    "number",
+                    "position",
+                    "roles"
+                  ]
+                },
+                "recordedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "recordedBy": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "fullName": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": ["id", "fullName"]
+                }
+              },
+              "required": [
+                "id",
+                "state",
+                "signedAt",
+                "signedOn",
+                "clientFileId",
+                "annex",
+                "recordedAt",
+                "recordedBy"
+              ]
+            }
+          }
+        },
+        "required": ["status", "reasons", "revision", "annex", "current", "history"]
+      },
+      "RecordDutiesAcknowledgementRequest": {
+        "type": "object",
+        "properties": {
+          "revisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "signedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "clientFileId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          }
+        },
+        "required": ["revisionId", "signedOn"]
       },
       "TestBankResponse": {
         "type": "object",
@@ -11860,6 +12190,9 @@
                     "annexes",
                     "createdAt"
                   ]
+                },
+                "editable": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -11870,7 +12203,8 @@
                 "decisionNumber",
                 "period",
                 "draft",
-                "issued"
+                "issued",
+                "editable"
               ]
             }
           },
@@ -12279,6 +12613,9 @@
                     "annexes",
                     "createdAt"
                   ]
+                },
+                "editable": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -12289,7 +12626,8 @@
                 "decisionNumber",
                 "period",
                 "draft",
-                "issued"
+                "issued",
+                "editable"
               ]
             }
           },
@@ -12655,6 +12993,9 @@
                   "annexes",
                   "createdAt"
                 ]
+              },
+              "editable": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -12665,7 +13006,8 @@
               "decisionNumber",
               "period",
               "draft",
-              "issued"
+              "issued",
+              "editable"
             ]
           }
         },
@@ -22455,6 +22797,9 @@
                   "annexes",
                   "createdAt"
                 ]
+              },
+              "editable": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -22465,7 +22810,8 @@
               "decisionNumber",
               "period",
               "draft",
-              "issued"
+              "issued",
+              "editable"
             ]
           },
           "lastSend": {
@@ -30524,7 +30870,7 @@
       "get": {
         "operationId": "listEmployees",
         "summary": "List a client's employees",
-        "description": "Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; \"name\" orders by last name then first name, and a training by its state (overdue, untrained, due, current) then its due date, employees without a state last either way. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics; never the CNP. Each filter takes repeated values, any of which matches, and every filter given must match: `ssmTraining` and `suTraining` the training state in that domain (\"attention\" untrained or overdue), `test` the test state in either domain (\"passed\" in both), `attention` the needs (\"toTrain\" untrained or overdue in either domain and \"trainingDue\" due in either, as the clients list counts them), `jobPosition` and `workplace` the client's own, `portal` the standing on the portal. The states are those of current employees of active clients, so an archived client refuses the state filters (`ssmTraining`, `suTraining`, `test`, the training needs of `attention`) and the training sorts with `400`. `unfilteredTotal` counts the status asked for without the search and the filters. Each employee carries their standing on the portal (ADR 022): the active participant, else the newest invitation neither accepted nor revoked (\"invited\", or \"expired\" past its 30 days), else the latest revoked one, else \"none\"; with the ids its actions need. \"portal\" sorts by it in that order, then by name, and is read for an archived client too, whose access can still be revoked. The CNP is only returned by the detail route.",
+        "description": "Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; \"name\" orders by last name then first name, and a training by its state (overdue, untrained, due, current) then its due date, employees without a state last either way. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics; never the CNP. Each filter takes repeated values, any of which matches, and every filter given must match: `ssmTraining` and `suTraining` the training state in that domain (\"attention\" untrained or overdue), `test` the test state in either domain (\"passed\" in both), `attention` the needs (\"toTrain\" untrained or overdue in either domain and \"trainingDue\" due in either, as the clients list counts them), `jobPosition` and `workplace` the client's own, `portal` the standing on the portal, `dutiesAcknowledgement` the state of the acknowledgement of SSM duties. The states are those of current employees of active clients, so an archived client refuses the state filters (`ssmTraining`, `suTraining`, `test`, the training needs of `attention`) and the training sorts with `400`. `unfilteredTotal` counts the status asked for without the search and the filters. Each employee carries their standing on the portal (ADR 022): the active participant, else the newest invitation neither accepted nor revoked (\"invited\", or \"expired\" past its 30 days), else the latest revoked one, else \"none\"; with the ids its actions need. \"portal\" sorts by it in that order, then by name, and is read for an archived client too, whose access can still be revoked. Each current employee carries `dutiesAcknowledgement`, the state of their acknowledgement of SSM duties against the latest issued document 13 (ADR 046), as `GET …/duties-acknowledgement` reads it; a former employee carries null and is matched by no value of its filter. The CNP is only returned by the detail route.",
         "security": [
           {
             "bearerAuth": []
@@ -30662,6 +31008,20 @@
             },
             "required": false,
             "name": "attention",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["signed", "to_sign", "sign_again", "no_annex"]
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "dutiesAcknowledgement",
             "in": "query"
           },
           {
@@ -31690,6 +32050,20 @@
             },
             "required": false,
             "name": "attention",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["signed", "to_sign", "sign_again", "no_annex"]
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "dutiesAcknowledgement",
             "in": "query"
           },
           {
@@ -33133,6 +33507,597 @@
           },
           "503": {
             "description": "Storage is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/duties-acknowledgement": {
+      "get": {
+        "operationId": "getDutiesAcknowledgement",
+        "summary": "An employee's acknowledgement of their SSM duties",
+        "description": "Against the latest issued revision of document 13 (ADR 046); a draft does not count. `status`: `not_issued` while the client has none; `no_annex` when it has no annex for the employee's post (archived, or created after it was issued); `to_sign` with nothing recorded; `signed` when the newest record was signed on the post's annex as it now reads and on the roles the employee holds in it; `sign_again` otherwise, `reasons` saying whether the annex (`annex_changed`) or the roles (`roles_changed`) differ. `annex` is the sheet to sign now. `current` is the newest record and `history` the earlier ones, newest first. Read the same way for a former employee.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The acknowledgement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DutiesAcknowledgementResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/duties-acknowledgement/sheet": {
+      "get": {
+        "operationId": "getDutiesAcknowledgementSheet",
+        "summary": "Download an employee's acknowledgement sheet of SSM duties as a PDF",
+        "description": "The acknowledgement sheet (_fișa de luare la cunoștință a atribuțiilor SSM_, ADR 046): the annex of the employee's post in the latest issued revision of document 13, with only the role blocks naming this employee and only their name in them, and the employee's statement, name, date and signature lines. Built from that revision's snapshot, so it says what the revision says; nothing is stored. A former employee's sheet is drawn up too. Converted by the converter that makes the PDFs at issuing.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sheet, named in `Content-Disposition`",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client has no issued document 13 (reason `duties_not_issued`), or its latest issued revision has no annex for the employee's post (reason `duties_no_annex`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Supabase is unavailable, the template is not registered (reason `template_missing`), or there is no converter or it failed (reason `pdf_unavailable`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/duties-acknowledgement/sheet/word": {
+      "get": {
+        "operationId": "getDutiesAcknowledgementSheetWord",
+        "summary": "Download an employee's acknowledgement sheet of SSM duties as a Word file",
+        "description": "The acknowledgement sheet (_fișa de luare la cunoștință a atribuțiilor SSM_, ADR 046): the annex of the employee's post in the latest issued revision of document 13, with only the role blocks naming this employee and only their name in them, and the employee's statement, name, date and signature lines. Built from that revision's snapshot, so it says what the revision says; nothing is stored. A former employee's sheet is drawn up too.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sheet, named in `Content-Disposition`",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client has no issued document 13 (reason `duties_not_issued`), or its latest issued revision has no annex for the employee's post (reason `duties_no_annex`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Supabase is unavailable, the template is not registered (reason `template_missing`), or there is no converter or it failed (reason `pdf_unavailable`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/duties-acknowledgement/records": {
+      "post": {
+        "operationId": "recordDutiesAcknowledgement",
+        "summary": "Record an employee's acknowledgement sheet as signed on paper",
+        "description": "The sheet of `revisionId`, which must still be the latest issued revision of document 13, came back signed by hand on `signedOn`: not in the future, nor before the day the revision carries; stored as noon in Romania. `clientFileId` is the scan, a file of the client. The record keeps the revision, the post and the number of its annex, the annex's fingerprint and the roles the employee holds in it with theirs, so it shows as out of date once they change. Earlier records stay as history. The database records the member signed in and the moment.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordDutiesAcknowledgementRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The acknowledgement with the new record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DutiesAcknowledgementResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or a day in the future or before the revision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client has no issued document 13 (reason `duties_not_issued`), it has no annex for the employee's post (reason `duties_no_annex`), `revisionId` is not its latest issued revision (reason `duties_revision_not_current`), the file is not of the client, or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/duties-acknowledgement/records/{recordId}": {
+      "delete": {
+        "operationId": "deleteDutiesAcknowledgementRecord",
+        "summary": "Remove a record of an acknowledgement sheet made by mistake",
+        "description": "The record goes; its scan stays among the files of the client. The record before it, if any, becomes the current one.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "recordId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The acknowledgement without the record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DutiesAcknowledgementResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee or the record does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -45543,7 +46508,7 @@
       "get": {
         "operationId": "listClientDocuments",
         "summary": "List the documents of one of a client's documentation sets, with their current draft and issued revisions",
-        "description": "The documents of the set named by `set`, the occupational safety one when left out, in its order. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from.",
+        "description": "The documents of the set named by `set`, the occupational safety one when left out, in its order. `dataChanged` on a draft says that the stored facts would now print differently from what it was generated from. `editable` is false for document 13, which is only regenerated: it takes no uploaded file, no edit in the app and no draft started from its issued revision.",
         "security": [
           {
             "bearerAuth": []
@@ -46571,7 +47536,7 @@
             }
           },
           "409": {
-            "description": "The document already has a draft (`draft_exists`), has nothing issued, or its client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The document already has a draft (`draft_exists`), has nothing issued, its client is archived (reason `client_archived`), or it is built from the data alone and only regenerated (reason `document_not_editable`, document 13); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46782,7 +47747,7 @@
             }
           },
           "409": {
-            "description": "The document has no draft; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The document has no draft, or it is built from the data alone and only regenerated (reason `document_not_editable`, document 13); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47403,7 +48368,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`), or the document has to be generated first; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), the document has to be generated first, or it is built from the data alone and only regenerated (reason `document_not_editable`, document 13); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {

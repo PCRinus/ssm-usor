@@ -19,6 +19,7 @@ import {
   type TemplateSet,
   testSheetTypeKey,
 } from '@ssm-usor/document-engine';
+import { dutiesAcknowledgementTypeKey } from '@ssm-usor/document-engine/ssm-duties';
 import { manifestEntries, templatesUrl } from '@ssm-usor/document-engine/template-store';
 import { describe, expect, it } from 'vitest';
 
@@ -69,11 +70,12 @@ const refusedFor = (merging: () => unknown) => {
 describe('the per-employee templates', () => {
   const perEmployee = entries.filter((entry) => entry.perEmployee).map((entry) => entry.typeKey);
 
-  it('are the two individual training sheets, the signing agreement and the test sheet', () => {
+  it('are the two individual training sheets, the signing agreement, the test sheet and the acknowledgement of duties', () => {
     expect(perEmployee).toEqual([
       trainingSheetTypeKeys.ssm,
       signingTypeKeys.agreement,
       testSheetTypeKey,
+      dutiesAcknowledgementTypeKey,
       trainingSheetTypeKeys.su,
     ]);
   });

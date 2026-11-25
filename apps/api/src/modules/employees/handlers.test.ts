@@ -142,6 +142,7 @@ const employeeViewRow = {
   created_at: employeeRow.created_at,
   updated_at: employeeRow.updated_at,
   signatures_pending_count: 2,
+  duties_acknowledgement_state: 'sign_again',
 };
 
 type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
@@ -235,6 +236,7 @@ describe('GET /clients/{clientId}/employees', () => {
           training,
           tests,
           signaturesPending: 2,
+          dutiesAcknowledgement: 'sign_again',
           portal: noAccess,
         },
       ],
@@ -610,6 +612,23 @@ describe('GET /clients/{clientId}/employees', () => {
       expect(response.status).toBe(400);
       expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
     });
+  });
+
+  it('filters by the acknowledgement of SSM duties, which no state of a document matches', async () => {
+    mockUpstream({
+      list: (init) =>
+        init?.method === 'HEAD'
+          ? new Response(null, { headers: { 'Content-Range': '*/14' } })
+          : Response.json([employeeViewRow], { headers: { 'Content-Range': '0-0/1' } }),
+    });
+    const response = await request(
+      `${employeesPath}?dutiesAcknowledgement=sign_again&dutiesAcknowledgement=to_sign`
+    );
+    expect(response.status).toBe(200);
+    expect(listQuery().get('duties_acknowledgement_state')).toBe('in.(sign_again,to_sign)');
+    expect(countQueries()[0]!.has('duties_acknowledgement_state')).toBe(false);
+    const rejected = await request(`${employeesPath}?dutiesAcknowledgement=not_issued`);
+    expect(rejected.status).toBe(400);
   });
 
   it('requires a bearer token', async () => {
