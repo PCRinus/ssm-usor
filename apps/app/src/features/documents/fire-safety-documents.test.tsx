@@ -49,6 +49,7 @@ const fireDocument = (
   typeKey,
   title,
   decisionNumber: null,
+  editable: true,
   period,
   draft: revision({ id: id.replace(/^./, 'f') }),
   issued: null,
@@ -85,6 +86,7 @@ const ssmReport = {
   typeKey: 'control_report',
   title: 'Referat de control',
   decisionNumber: null,
+  editable: true,
   draft: revision({ id: '1b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d' }),
   issued: null,
 };

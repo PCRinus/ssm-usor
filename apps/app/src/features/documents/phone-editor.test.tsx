@@ -113,6 +113,7 @@ const draft = {
   typeKey: 'decision_first_aid',
   title,
   decisionNumber: 5,
+  editable: true,
   draft: revision() as ReturnType<typeof revision> | null,
   issued: null as ReturnType<typeof revision> | null,
 };
@@ -241,6 +242,19 @@ describe('the document editor on a phone', () => {
             String(input).endsWith(`/documents/${documentId}/draft`) && init?.method === 'POST'
         )
       ).toBe(true)
+    );
+  });
+
+  it('only reads document 13, and says why in the menu', async () => {
+    mockApi({ document: { ...issued, typeKey: 'ssm_duties', editable: false } });
+    mount();
+    const user = userEvent.setup();
+
+    const phoneBar = await bar();
+    expect(within(phoneBar).queryByRole('button', { name: /Modifică|Salvează/ })).toBeNull();
+    const menu = await openMenu(user);
+    expect(within(menu).getByTestId('editor-phone-note').textContent).toBe(
+      'Se generează din datele clientului; o regulă a unui post se adaugă prin instrucțiunile proprii.'
     );
   });
 
