@@ -275,6 +275,21 @@ describe('the acknowledgement sheet on the Instruire SSM tab', () => {
     expect(actionLabels(section)).toEqual(['Descarcă fișa', 'Șterge înregistrarea…']);
   });
 
+  it('names the revision signed while a later one leaves the annex as it was', async () => {
+    mockApi({
+      duties: () => ({
+        ...toSign,
+        status: 'signed',
+        current: record({ annex: annex({ revisionId: oldRevisionId, issueDate: '2026-06-10' }) }),
+      }),
+    });
+    open();
+    const section = await card();
+    expect((await within(section).findByTestId('duties-acknowledgement-sheet')).textContent).toBe(
+      'FișaAnexa 2 din documentul 13, emis la 10.06.2026Postul Brutar, fără roluri'
+    );
+  });
+
   it('says a sheet signed without a scan has none attached', async () => {
     mockApi({ duties: () => ({ ...toSign, status: 'signed', current: record() }) });
     open();
@@ -497,6 +512,74 @@ describe('the dialog of a sheet signed on paper', () => {
       `Data semnării nu poate fi înaintea emiterii documentului 13, pe ${roDate(isoDaysAgo(3))}.`
     );
     expect(posts()).toEqual([]);
+  });
+
+  it('puts the API’s refusal of the day under the date', async () => {
+    mockApi({
+      duties: () => toSign,
+      routes: {
+        [`POST ${dutiesPath}/records`]: () =>
+          Response.json(
+            {
+              error: 'validation_error',
+              message: 'Invalid.',
+              issues: [{ path: 'signedOn', message: 'Before the revision.' }],
+            },
+            { status: 400 }
+          ),
+      },
+    });
+    const user = userEvent.setup();
+    open();
+    const section = await card();
+    await user.click(await within(section).findByTestId('duties-acknowledgement-paper'));
+    const dialog = await screen.findByTestId('duties-acknowledgement-paper-dialog');
+    await user.click(within(dialog).getByTestId('duties-acknowledgement-paper-submit'));
+    expect(
+      await within(dialog).findByText(
+        'Data semnării nu poate fi înaintea emiterii documentului 13, pe 24.11.2026.'
+      )
+    ).toBeTruthy();
+    expect(within(dialog).queryByTestId('duties-acknowledgement-error')).toBeNull();
+  });
+
+  it('says so when document 13 was issued again meanwhile, keeps the revision it opened with, and records nothing more', async () => {
+    const newRevisionId = '8abe5f6b-7c9d-4e0f-8a1b-4c5d6e7f8091';
+    let reissued = false;
+    mockApi({
+      duties: () =>
+        reissued
+          ? { ...toSign, annex: annex({ revisionId: newRevisionId, issueDate: isoDaysAgo(0) }) }
+          : toSign,
+      routes: {
+        [`POST ${dutiesPath}/records`]: () => {
+          reissued = true;
+          return Response.json(
+            {
+              error: 'conflict',
+              message: 'Not current.',
+              reason: 'duties_revision_not_current',
+            },
+            { status: 409 }
+          );
+        },
+      },
+    });
+    const user = userEvent.setup();
+    open();
+    const section = await card();
+    await user.click(await within(section).findByTestId('duties-acknowledgement-paper'));
+    const dialog = await screen.findByTestId('duties-acknowledgement-paper-dialog');
+    await user.click(within(dialog).getByTestId('duties-acknowledgement-paper-submit'));
+    expect((await within(dialog).findByTestId('duties-acknowledgement-error')).textContent).toBe(
+      'Documentul 13 a fost emis din nou între timp. Descarcă fișa nouă și dă-o lucrătorului la semnat.'
+    );
+    await waitFor(() => expect(requestsTo(dutiesPath).length).toBeGreaterThan(1));
+    expect(within(dialog).getByTestId('duties-acknowledgement-paper-submit')).toHaveProperty(
+      'disabled',
+      true
+    );
+    expect(posts()).toEqual([{ revisionId, signedOn: isoDaysAgo(0), clientFileId: null }]);
   });
 
   it('says so when document 13 was issued again meanwhile, and stays open', async () => {

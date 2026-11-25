@@ -33,3 +33,18 @@ export function invalidateDutiesAcknowledgement(
     queryClient.invalidateQueries({ queryKey: getListOrganizationEmployeesQueryKey() }),
   ]);
 }
+
+// Issuing document 13 moves every worker's sheet; the per-worker keys share no prefix.
+export function invalidateClientDutiesAcknowledgements(queryClient: QueryClient, clientId: string) {
+  const prefix = `/clients/${clientId}/employees/`;
+  return Promise.all([
+    queryClient.invalidateQueries({
+      predicate: ({ queryKey: [path] }) =>
+        typeof path === 'string' &&
+        path.startsWith(prefix) &&
+        path.endsWith('/duties-acknowledgement'),
+    }),
+    queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) }),
+    queryClient.invalidateQueries({ queryKey: getListOrganizationEmployeesQueryKey() }),
+  ]);
+}

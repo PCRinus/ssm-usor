@@ -1649,7 +1649,12 @@ describe('client documents', () => {
     expect((await screen.findByTestId('document-open')).textContent).toBe('Deschide');
     expect(screen.queryByTestId('document-start-draft')).toBeNull();
     expect(screen.queryByTestId('document-upload')).toBeNull();
-    expect(screen.getByTestId('document-regenerate')).toBeTruthy();
+    await user.click(screen.getByTestId('document-regenerate'));
+    const dialog = await screen.findByTestId('document-dialog');
+    expect(dialog.textContent).toContain(
+      'Se creează o ciornă nouă, completată cu datele de acum ale clientului.'
+    );
+    expect(dialog.textContent).not.toContain('Modifică documentul emis');
   });
 
   it('groups the menu by the revision each action works on', async () => {

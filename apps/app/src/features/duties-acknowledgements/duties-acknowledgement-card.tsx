@@ -154,13 +154,15 @@ export function DutiesAcknowledgementCard({
   const phone = useIsPhone();
   const query = useDutiesAcknowledgement(employee.clientId, employee.id);
   const [downloading, setDownloading] = useState(false);
-  const [recording, setRecording] = useState(false);
+  const [recording, setRecording] = useState<Annex | null>(null);
   const [removing, setRemoving] = useState<DutiesRecord | null>(null);
   const [movingPost, setMovingPost] = useState(false);
   const former = employee.status === 'terminated';
   const locked = readOnly || former;
   const data = query.data;
   const status = data?.status;
+  // Signed is judged on the annex's text, so the latest revision may not be the one signed.
+  const sheet = status === 'signed' && data?.current ? data.current.annex : data?.annex;
 
   async function download() {
     setDownloading(true);
@@ -205,7 +207,7 @@ export function DutiesAcknowledgementCard({
       variant="secondary"
       size="sm"
       data-testid="duties-acknowledgement-paper"
-      onClick={() => setRecording(true)}
+      onClick={() => setRecording(data?.annex ?? null)}
     >
       <PenLine aria-hidden="true" />
       Înregistrează fișa semnată pe hârtie…
@@ -273,13 +275,13 @@ export function DutiesAcknowledgementCard({
                 <StateBadge status={data.status} />
                 <StateNote data={data} locked={locked} readOnly={readOnly} />
               </SummaryRow>
-              {data.annex && (
+              {sheet && (
                 <SummaryRow
                   label={data.status === 'sign_again' ? 'Fișa nouă' : 'Fișa'}
                   testId="duties-acknowledgement-sheet"
                 >
-                  <AnnexLine annex={data.annex} clientId={employee.clientId} />
-                  <Note>{sheetHolder(data.annex.position.name, data.annex.roles)}</Note>
+                  <AnnexLine annex={sheet} clientId={employee.clientId} />
+                  <Note>{sheetHolder(sheet.position.name, sheet.roles)}</Note>
                 </SummaryRow>
               )}
               {data.status === 'signed' && data.current && (
@@ -317,14 +319,7 @@ export function DutiesAcknowledgementCard({
           )}
         </>
       )}
-      {data?.annex && (
-        <PaperSheetDialog
-          employee={employee}
-          annex={data.annex}
-          open={recording}
-          onClose={() => setRecording(false)}
-        />
-      )}
+      <PaperSheetDialog employee={employee} annex={recording} onClose={() => setRecording(null)} />
       <RemoveRecordDialog employee={employee} record={removing} onClose={() => setRemoving(null)} />
       <EmployeeJobPositionDialog
         clientId={employee.clientId}
@@ -481,20 +476,20 @@ const saveFailed = 'Nu am putut salva starea fișei. Verifică conexiunea și î
 const revisionMoved =
   'Documentul 13 a fost emis din nou între timp. Descarcă fișa nouă și dă-o lucrătorului la semnat.';
 
+// The annex is the one shown when the dialog opened: a refetch while it is open must not make the
+// paper signed on one revision count for another.
 function PaperSheetDialog({
   employee,
   annex,
-  open,
   onClose,
 }: {
   employee: Employee;
-  annex: Annex;
-  open: boolean;
+  annex: Annex | null;
   onClose: () => void;
 }) {
   return (
-    <FormDialog open={open} onClose={onClose}>
-      {open && <PaperSheetForm employee={employee} annex={annex} onClose={onClose} />}
+    <FormDialog open={annex !== null} onClose={onClose}>
+      {annex && <PaperSheetForm employee={employee} annex={annex} onClose={onClose} />}
     </FormDialog>
   );
 }
@@ -514,6 +509,7 @@ function PaperSheetForm({
   const [dateError, setDateError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [superseded, setSuperseded] = useState(false);
   const upload = useScanUpload(employee, setScan);
   useHoldOpen(busy);
   const future = 'Data semnării nu poate fi în viitor.';
@@ -559,6 +555,7 @@ function PaperSheetForm({
       }
       if (apiErrorReason(cause) === dutiesAcknowledgementErrorReasons.revisionNotCurrent) {
         setError(revisionMoved);
+        setSuperseded(true);
         void invalidateDutiesAcknowledgement(queryClient, employee.clientId, employee.id);
         return;
       }
@@ -618,7 +615,11 @@ function PaperSheetForm({
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
             Renunță
           </Button>
-          <Button type="submit" data-testid="duties-acknowledgement-paper-submit" disabled={busy}>
+          <Button
+            type="submit"
+            data-testid="duties-acknowledgement-paper-submit"
+            disabled={busy || superseded}
+          >
             {busy ? 'Se salvează…' : 'Înregistrează'}
           </Button>
         </DialogFooter>
