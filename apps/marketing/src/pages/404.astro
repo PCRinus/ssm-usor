@@ -5,7 +5,7 @@ import FluxLayout from '../layouts/FluxLayout.astro';
 
 <FluxLayout title={notFound.title} description={notFound.description} noindex>
   <section class="missing wrap" data-track-view="page_not_found">
-    <div>
+    <div class="intro">
       <h1>{notFound.heading}</h1>
       <p class="lede">
         {notFound.before} <strong data-missing-path>{notFound.fallbackPath}</strong>{' '}
@@ -270,6 +270,8 @@ import FluxLayout from '../layouts/FluxLayout.astro';
   @media (max-width: 960px) {
     .missing {
       display: block;
+    }
+    .intro {
       max-width: 640px;
     }
     .stage {
