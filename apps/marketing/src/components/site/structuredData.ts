@@ -71,6 +71,21 @@ export function homeStructuredData(site: URL) {
         url: home,
         logo: new URL('/brand/logo.png', site).href,
         email: links.email,
+        vatID: legalEntity.cui,
+        ...(legalEntity.city && {
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: legalEntity.city,
+            addressCountry: 'RO',
+          },
+        }),
+        contactPoint: {
+          '@type': 'ContactPoint',
+          contactType: 'customer support',
+          email: links.email,
+          availableLanguage: 'ro',
+        },
+        sameAs: links.social.map((profile) => profile.href),
       },
       {
         '@type': 'WebSite',
