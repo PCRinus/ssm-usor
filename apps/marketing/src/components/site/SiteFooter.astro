@@ -18,6 +18,42 @@ const shortCommitSha = commitSha.slice(0, 7);
       ))}
       <a href={`mailto:${links.email}`}>{links.email}</a>
     </nav>
+    <ul class="social">
+      {links.social.map((profile) => (
+        <li>
+          <a href={profile.href} rel="me" aria-label={profile.label} title={profile.label}>
+            <svg
+              aria-hidden="true"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              {profile.network === 'linkedin' && (
+                <>
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <path d="M8 10.5V16M8 7.5v.01M12 16v-5.5M12 13a2.5 2.5 0 0 1 5 0v3" />
+                </>
+              )}
+              {profile.network === 'instagram' && (
+                <>
+                  <rect x="3" y="3" width="18" height="18" rx="5" />
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M17 7v.01" />
+                </>
+              )}
+              {profile.network === 'facebook' && (
+                <path d="M15 3h-2a4 4 0 0 0-4 4v3H7v3.5h2V21h3.5v-7.5H15l.5-3.5h-3V7.5a1 1 0 0 1 1-1h2z" />
+              )}
+            </svg>
+          </a>
+        </li>
+      ))}
+    </ul>
     <span class="copy">
       © {year} SSM Ușor
       <span
@@ -62,17 +98,38 @@ const shortCommitSha = commitSha.slice(0, 7);
   nav a {
     color: var(--ink-2);
   }
+  .social {
+    display: flex;
+    gap: 4px;
+    margin-left: -12px;
+  }
+  .social a {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    color: var(--ink-2);
+  }
+  .social a:hover {
+    color: var(--ink);
+  }
   .copy {
     margin-left: auto;
   }
   .version code {
     font-size: 12px;
   }
+  /* A max-width would let the note share a row with the copyright once the row above wraps. */
   .fine {
     flex-basis: 100%;
-    max-width: 72ch;
+    padding-right: max(0px, calc(100% - 72ch));
     margin: 0;
     font-size: 13px;
+  }
+  @media (max-width: 1040px) {
+    .copy {
+      margin-left: 0;
+    }
   }
   @media (max-width: 760px) {
     nav {
@@ -81,8 +138,9 @@ const shortCommitSha = commitSha.slice(0, 7);
     nav a {
       padding-block: 9px;
     }
-    .copy {
-      margin-left: 0;
+    .social a {
+      width: 44px;
+      height: 44px;
     }
   }
 </style>
