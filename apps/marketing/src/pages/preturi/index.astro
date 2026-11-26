@@ -32,7 +32,10 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
         <p class="intro">{pricingPage.intro}</p>
       </header>
 
-      <section class="cards" id="planuri" aria-label="Planuri">
+      <section class="cards" id="planuri" aria-labelledby="plans-title">
+        <h2 id="plans-title" class="sr-only">
+          Planuri
+        </h2>
         <PlanCards placement="pricing_page" />
         <PaymentFacts />
         <p class="calc">
