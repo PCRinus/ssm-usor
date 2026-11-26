@@ -424,3 +424,29 @@ export const footer = {
     { href: '/prelucrare-date/', label: 'Prelucrarea datelor' },
   ],
 };
+
+export const notFound = {
+  title: 'Pagina nu există | SSM Ușor',
+  description: 'Adresa căutată nu există pe site-ul SSM Ușor.',
+  heading: 'Pagina nu există',
+  before: 'La adresa',
+  fallbackPath: 'aceasta',
+  after: 'nu e nimic. Poate te ajută una dintre paginile de mai jos.',
+  pages: [
+    {
+      href: '/#cum',
+      title: 'Cum funcționează',
+      text: 'De la clientul nou la fișa semnată, în patru pași.',
+    },
+    {
+      href: '/preturi/',
+      title: 'Prețuri',
+      text: 'Un abonament pentru tot portofoliul, de la 39\u00a0€ pe lună.',
+    },
+    {
+      href: '/preturi/calculator/',
+      title: 'Calculator de preț',
+      text: 'Află cât plătești după câți lucrători au clienții tăi.',
+    },
+  ],
+};
