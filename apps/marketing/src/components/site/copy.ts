@@ -23,7 +23,7 @@ export const links = {
     },
     {
       network: 'facebook',
-      href: 'https://www.facebook.com/profile.php?id=61596400086863',
+      href: 'https://www.facebook.com/ssmusor.ro/',
       label: 'SSM Ușor pe Facebook',
     },
   ] satisfies { network: SocialNetwork; href: string; label: string }[],
