@@ -1,6 +1,8 @@
 /** Romanian, sentence case, with diacritics; the reader is addressed as "tu". */
 import type { ScreenName } from './screens';
 
+export type SocialNetwork = 'linkedin' | 'instagram' | 'facebook';
+
 const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.ssmusor.ro';
 
 export const links = {
@@ -8,6 +10,23 @@ export const links = {
   email: 'contact@ssmusor.ro',
   notifyHref:
     'mailto:contact@ssmusor.ro?subject=Anun%C8%9B%C4%83-m%C4%83%20c%C3%A2nd%20se%20deschid%20conturile&body=Bun%C4%83%2C%0A%0AVreau%20s%C4%83%20fiu%20anun%C8%9Bat%20c%C3%A2nd%20pot%20crea%20un%20cont%20SSM%20U%C8%99or.%0A%0AFirma%3A%20%0ANum%C4%83r%20de%20clien%C8%9Bi%3A%20',
+  social: [
+    {
+      network: 'linkedin',
+      href: 'https://www.linkedin.com/company/ssm-u%C8%99or/',
+      label: 'SSM Ușor pe LinkedIn',
+    },
+    {
+      network: 'instagram',
+      href: 'https://www.instagram.com/ssmusor.ro/',
+      label: 'SSM Ușor pe Instagram',
+    },
+    {
+      network: 'facebook',
+      href: 'https://www.facebook.com/ssmusor.ro/',
+      label: 'SSM Ușor pe Facebook',
+    },
+  ] satisfies { network: SocialNetwork; href: string; label: string }[],
 };
 
 export const cta = {
@@ -403,5 +422,31 @@ export const footer = {
     { href: '/termeni/', label: 'Termeni' },
     { href: '/confidentialitate/', label: 'Confidențialitate' },
     { href: '/prelucrare-date/', label: 'Prelucrarea datelor' },
+  ],
+};
+
+export const notFound = {
+  title: 'Pagina nu există | SSM Ușor',
+  description: 'Adresa căutată nu există pe site-ul SSM Ușor.',
+  heading: 'Pagina nu există',
+  before: 'La adresa',
+  fallbackPath: 'aceasta',
+  after: 'nu e nimic. Poate te ajută una dintre paginile de mai jos.',
+  pages: [
+    {
+      href: '/#cum',
+      title: 'Cum funcționează',
+      text: 'De la clientul nou la fișa semnată, în patru pași.',
+    },
+    {
+      href: '/preturi/',
+      title: 'Prețuri',
+      text: 'Un abonament pentru tot portofoliul, de la 39\u00a0€ pe lună.',
+    },
+    {
+      href: '/preturi/calculator/',
+      title: 'Calculator de preț',
+      text: 'Află cât plătești după câți lucrători au clienții tăi.',
+    },
   ],
 };

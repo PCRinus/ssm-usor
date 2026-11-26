@@ -11,6 +11,6 @@ export const legalEntity = {
   /** Empty omits the "cu sediul în" clause. */
   address: '',
   /** Empty falls back to the operator's seat. */
-  city: '',
+  city: 'Timișoara',
   emailProvider: 'Resend (Plus Five Five, Inc.)',
 };

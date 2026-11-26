@@ -13,6 +13,17 @@ function robotsTxt(indexable: boolean, origin: string): string {
     : 'User-agent: *\nDisallow: /\n';
 }
 
+// Assets answer a missing trailing slash with a temporary 307; search engines should treat
+// the slashed address as the page's only address.
+function permanentSlashRedirect(response: Response, url: URL): Response | undefined {
+  if (response.status !== 307) return undefined;
+  const location = response.headers.get('location');
+  if (!location) return undefined;
+  const target = new URL(location, url);
+  if (target.origin !== url.origin || target.pathname !== `${url.pathname}/`) return undefined;
+  return new Response(null, { status: 308, headers: response.headers });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -38,7 +49,8 @@ export default {
     }
 
     const assetResponse = await env.ASSETS.fetch(request);
-    const response = new Response(assetResponse.body, assetResponse);
+    const response =
+      permanentSlashRedirect(assetResponse, url) ?? new Response(assetResponse.body, assetResponse);
 
     // Static assets serve .txt as bare text/plain, and llms.txt is Romanian.
     if (response.headers.get('content-type') === 'text/plain') {
